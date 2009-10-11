@@ -21,15 +21,15 @@ get back to the commit.
 
 Edit a file in the work tree and make some changes.  Use |:Gdiff| to open up
 the indexed version.  Use |do| and |dp| on various hunks to bring the files in
-sync, or use |:Gread!|to pull in all changes.  Write the indexed version to
+sync, or use |:Gread!| to pull in all changes.  Write the indexed version to
 stage the file.
 
 Run |:Gblame| in a work tree file to see a blame in a vertical split.  Press
 <CR> on any line to reopen and reblame that file as it stood in that commit.
 Press o or O on any line to inspect that commit in a split or a tab.
 
-Run :Ggrep to search the work tree or history.  Run :Gmove to rename a file.
-Run :Gremove to delete a file.
+Run |:Ggrep| to search the work tree or history.  Run |:Gmove| to rename a
+file.  Run |:Gremove| to delete a file.
 
 ==============================================================================
 COMMANDS                                        *fugitive-commands*
