@@ -662,48 +662,59 @@ function! s:Blame(bang,line1,line2,count) abort
     if strlen(s:buffer().commit()) == 40
       let cmd += [s:buffer().commit()]
     else
-      let cmd = ['--work-tree='.s:repo().tree()] + cmd + ['--contents', '-']
+      let cmd += ['--contents', '-']
     endif
     let basecmd = call(s:repo().git_command,cmd+['--',s:buffer().path()],s:repo())
-    if a:count
-      return 'write !'.substitute(basecmd,' blame ',' blame -L '.a:line1.','.a:line2.' ','g')
-    else
-      let temp = tempname().'.fugitiveblame'
-      silent! exe '%write !'.basecmd.' > '.temp.' 2> '.temp
-      if v:shell_error
-        call s:throw(join(readfile(temp),"\n"))
+    try
+      let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
+      if !s:repo().bare()
+        let dir = getcwd()
+        execute cd.' `=s:repo().tree()`'
       endif
-      let bufnr = bufnr('')
-      let restore = 'call setbufvar('.bufnr.',"&scrollbind",0)'
-      if &l:wrap
-        let restore .= '|call setbufvar('.bufnr.',"&wrap",1)'
+      if a:count
+        execute 'write !'.substitute(basecmd,' blame ',' blame -L '.a:line1.','.a:line2.' ','g')
+      else
+        let temp = tempname().'.fugitiveblame'
+        silent! exe '%write !'.basecmd.' > '.temp.' 2> '.temp
+        if v:shell_error
+          call s:throw(join(readfile(temp),"\n"))
+        endif
+        let bufnr = bufnr('')
+        let restore = 'call setbufvar('.bufnr.',"&scrollbind",0)'
+        if &l:wrap
+          let restore .= '|call setbufvar('.bufnr.',"&wrap",1)'
+        endif
+        if &l:foldenable
+          let restore .= '|call setbufvar('.bufnr.',"&foldenable",1)'
+        endif
+        let winnr = winnr()
+        windo set noscrollbind
+        exe winnr.'wincmd w'
+        setlocal scrollbind nowrap nofoldenable
+        let top = line('w0') + &scrolloff
+        let current = line('.')
+        exe 'leftabove vsplit '.temp
+        let b:git_dir = git_dir
+        let b:fugitive_type = 'blame'
+        let b:fugitive_blamed_bufnr = bufnr
+        let b:fugitive_restore = restore
+        call s:Detect()
+        execute top
+        normal! zt
+        execute current
+        execute "vertical resize ".(match(getline('.'),'\s\+\d\+)')+1)
+        setlocal nomodified nomodifiable nonumber scrollbind nowrap foldcolumn=0 nofoldenable filetype=fugitiveblame
+        nnoremap <buffer> <silent> q    :bdelete<CR>
+        nnoremap <buffer> <silent> <CR> :exe <SID>BlameJump()<CR>
+        nnoremap <buffer> <silent> o    :<C-U>exe <SID>Edit((&splitbelow ? "botright" : "topleft")." split", matchstr(getline('.'),'\x\+'))<CR>
+        nnoremap <buffer> <silent> O    :<C-U>exe <SID>Edit("tabedit", matchstr(getline('.'),'\x\+'))<CR>
+        syncbind
       endif
-      if &l:foldenable
-        let restore .= '|call setbufvar('.bufnr.',"&foldenable",1)'
+    finally
+      if exists('l:dir')
+        execute cd.' `=dir`'
       endif
-      let winnr = winnr()
-      windo set noscrollbind
-      exe winnr.'wincmd w'
-      setlocal scrollbind nowrap nofoldenable
-      let top = line('w0') + &scrolloff
-      let current = line('.')
-      exe 'leftabove vsplit '.temp
-      let b:git_dir = git_dir
-      let b:fugitive_type = 'blame'
-      let b:fugitive_blamed_bufnr = bufnr
-      let b:fugitive_restore = restore
-      call s:Detect()
-      execute top
-      normal! zt
-      execute current
-      execute "vertical resize ".(match(getline('.'),'\s\+\d\+)')+1)
-      setlocal nomodified nomodifiable nonumber scrollbind nowrap foldcolumn=0 nofoldenable filetype=fugitiveblame
-      nnoremap <buffer> <silent> q    :bdelete<CR>
-      nnoremap <buffer> <silent> <CR> :exe <SID>BlameJump()<CR>
-      nnoremap <buffer> <silent> o    :<C-U>exe <SID>Edit((&splitbelow ? "botright" : "topleft")." split", matchstr(getline('.'),'\x\+'))<CR>
-      nnoremap <buffer> <silent> O    :<C-U>exe <SID>Edit("tabedit", matchstr(getline('.'),'\x\+'))<CR>
-      syncbind
-    endif
+    endtry
     return ''
   catch /^fugitive:/
     return 'echoerr v:errmsg'
