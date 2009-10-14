@@ -453,7 +453,7 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :lcd
 " }}}1
 " Ggrep, Glog {{{1
 
-call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Ggrep :call s:Grep(<bang>0,<q-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execute s:Grep(<bang>0,<q-args>)")
 call s:command("-bar -bang Glog :execute s:Log('grep<bang>')")
 
 function! s:Grep(bang,arg) abort
@@ -478,7 +478,9 @@ function! s:Grep(bang,arg) abort
     endfor
     call setqflist(list,'r')
     if !a:bang && !empty(list)
-      cfirst
+      return 'cfirst'
+    else
+      return ''
     endif
   finally
     let &grepprg = grepprg
