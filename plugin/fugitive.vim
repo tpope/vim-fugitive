@@ -107,7 +107,7 @@ endfunction
 augroup fugitive
   autocmd!
   autocmd BufNewFile,BufReadPost * call s:Detect()
-  autocmd BufUnload * execute getbufvar(+expand('<abuf>'), 'fugitive_restore')
+  autocmd BufWinLeave * execute getbufvar(+expand('<abuf>'), 'fugitive_restore')
 augroup END
 
 " }}}1
