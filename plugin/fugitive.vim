@@ -107,6 +107,7 @@ endfunction
 augroup fugitive
   autocmd!
   autocmd BufNewFile,BufReadPost * call s:Detect()
+  autocmd FileType           netrw call s:Detect()
   autocmd BufWinLeave * execute getbufvar(+expand('<abuf>'), 'fugitive_restore')
 augroup END
 
