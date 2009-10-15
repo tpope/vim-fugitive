@@ -78,6 +78,19 @@ that are part of Git repositories).
                         git add on a stage file, but without writing anything
                         to disk.
 
+                                                *fugitive-:Gwrite*
+:Gwrite                 Write to the current file's path and stage the results.
+                        When run in a work tree file, it is effectively git
+                        add.  Elsewhere, it is effectively git checkout.  A
+                        great deal of effort is expended to behave sensibly
+                        when the work tree or index version of the file is
+                        open in another buffer.
+
+:Gwrite {path}          You can give |:Gwrite| an explicit path of where in
+                        the work tree to write.  You can also give a path like
+                        :0:foo.txt or even :0 to write to just that stage in
+                        the index.
+
                                                 *fugitive-:Gdiff*
 :Gdiff [revision]       Perform a |vimdiff| the current file against the index
                         or the given revision.  Use |do| and |dp| and write to

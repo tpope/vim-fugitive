@@ -544,6 +544,107 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gtabedit
 call s:command("-bar -bang -nargs=? -range -complete=customlist,s:EditComplete Gread :execute s:Edit('<line1>,<line2>read<bang>',<f-args>)")
 
 " }}}1
+" Gwrite {{{1
+
+call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gwrite :execute s:Write(<bang>0,<f-args>)")
+
+function! s:Write(force,...) abort
+  let mytab = tabpagenr()
+  let mybufnr = bufnr('')
+  let path = a:0 ? a:1 : s:buffer().path()
+  if path =~# '^:\d\>'
+    return 'write'.(a:force ? '! ' : ' ').s:fnameescape(s:repo().translate(s:buffer().expand(path)))
+  endif
+  let always_permitted = (s:buffer().path() ==# path && s:buffer().commit() =~# '^0\=$')
+  if !always_permitted && !a:force && s:repo().git_chomp_in_tree('diff','--name-status','HEAD','--',path) . s:repo().git_chomp_in_tree('ls-files','--others','--',path) !=# ''
+    let v:errmsg = 'fugitive: file has uncommitted changes (use ! to override)'
+    return 'echoerr v:errmsg'
+  endif
+  let file = s:repo().translate(path)
+  let treebufnr = 0
+  for nr in range(1,bufnr('$'))
+    if fnamemodify(bufname(nr),':p') == file
+      let treebufnr = nr
+    endif
+  endfor
+
+  if treebufnr > 0 && treebufnr != bufnr('')
+    let temp = tempname()
+    silent execute '%write '.temp
+    for tab in [mytab] + range(1,tabpagenr('$'))
+      for winnr in range(1,tabpagewinnr(tab,'$'))
+        if tabpagebuflist(tab)[winnr-1] == treebufnr
+          execute 'tabnext '.tab
+          execute winnr.'wincmd w'
+          try
+            let lnum = line('.')
+            let last = line('$')
+            silent execute '$read '.temp
+            silent execute '1,'.last.'delete_'
+            silent write!
+            silent execute lnum
+            let did = 1
+          finally
+            wincmd p
+            execute 'tabnext '.tab
+          endtry
+        endif
+      endfor
+    endfor
+    if !exists('did')
+      echoerr 'fail'
+      call writefile(readfile(temp,'b'),file,'b')
+    endif
+  else
+    execute 'write! '.s:fnameescape(s:repo().translate(path))
+  endif
+
+  let error = s:repo().git_chomp_in_tree('add', file)
+  if v:shell_error
+    let v:errmsg = 'fugitive: '.error
+    return 'echoerr v:errmsg'
+  endif
+  if s:buffer().path() == path && s:buffer().commit() =~# '^\d$'
+    set nomodified
+  endif
+
+  let one = s:repo().translate(':1:'.path)
+  let two = s:repo().translate(':2:'.path)
+  let three = s:repo().translate(':3:'.path)
+  for nr in range(1,bufnr('$'))
+    if !getbufvar(nr,'&modified') && (bufname(nr) == one || bufname(nr) == two || bufname(nr) == three)
+      execute nr.'bdelete'
+    endif
+  endfor
+
+  let zero = s:repo().translate(':0:'.path)
+  for tab in range(1,tabpagenr('$'))
+    for winnr in range(1,tabpagewinnr(tab,'$'))
+      let bufnr = tabpagebuflist(tab)[winnr-1]
+      let bufname = bufname(bufnr)
+      if bufname ==# zero && bufnr != mybufnr
+        execute 'tabnext '.tab
+        execute winnr.'wincmd w'
+        try
+          let lnum = line('.')
+          let last = line('$')
+          silent $read `=file'
+          silent execute '1,'.last.'delete_'
+          silent execute lnum
+          set nomodified
+          diffupdate
+        finally
+          wincmd p
+          execute 'tabnext '.mytab
+        endtry
+        break
+      endif
+    endfor
+  endfor
+  return 'checktime'
+endfunction
+
+" }}}1
 " Gdiff {{{1
 
 call s:command("-bar -nargs=? -complete=customlist,s:EditComplete Gdiff :execute s:Diff(<f-args>)")
