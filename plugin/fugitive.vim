@@ -524,7 +524,11 @@ function! s:Edit(cmd,...) abort
   else
     let file = s:buffer().path('/')
   endif
-  let file = s:repo().translate(file)
+  try
+    let file = s:repo().translate(file)
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
   if a:cmd =~# 'read!$'
     return '%delete|read '.s:fnameescape(file).'|1delete_|diffupdate|'.line('.')
   else
@@ -673,6 +677,12 @@ function! s:Diff(...) abort
       let file = s:buffer().path('/')
     elseif a:1 ==# ':'
       let file = s:buffer().path(':0:')
+    elseif a:1 =~# '^:/'
+      try
+        let file = s:repo().rev_parse(a:1)
+      catch /^fugitive:/
+        return 'echoerr v:errmsg'
+      endtry
     else
       let file = s:buffer().expand(a:1)
     endif
