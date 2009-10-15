@@ -843,13 +843,15 @@ endfunction
 function! s:BufWriteIndexFile()
   let tmp = tempname()
   try
+    let path = matchstr(expand('<amatch>'),'//\d/\zs.*')
+    let stage = matchstr(expand('<amatch>'),'//\zs\d')
     silent execute 'write !'.s:repo().git_command('hash-object','-w','--stdin').' > '.tmp
     let sha1 = readfile(tmp)[0]
-    let old_mode = matchstr(s:repo().git_chomp('ls-files','--stage',s:buffer().path()),'^\d\+')
+    let old_mode = matchstr(s:repo().git_chomp('ls-files','--stage',path),'^\d\+')
     if old_mode == ''
-      let old_mode = executable(s:repo().tree(s:buffer().path())) ? '100755' : '100644'
+      let old_mode = executable(s:repo().tree(path)) ? '100755' : '100644'
     endif
-    let info = old_mode.' '.sha1.' '.s:buffer().commit()."\t".s:buffer().path()
+    let info = old_mode.' '.sha1.' '.stage."\t".path
     call writefile([info],tmp)
     let error = system(s:repo().git_command('update-index','--index-info').' < '.tmp)
     if v:shell_error == 0
