@@ -677,7 +677,7 @@ function! s:Diff(...) abort
       let file = s:buffer().expand(a:1)
     endif
     if file !~ ':' && file !~ '^/'
-      let file = file.s:buffer().path(':0:')
+      let file = file.s:buffer().path(':')
     endif
   else
     let file = s:buffer().path(s:buffer().commit() == '' ? ':0:' : '/')
