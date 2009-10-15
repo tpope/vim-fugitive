@@ -649,29 +649,43 @@ endfunction
 
 call s:command("-bar -nargs=? -complete=customlist,s:EditComplete Gdiff :execute s:Diff(<f-args>)")
 
+augroup fugitive_diff
+  autocmd BufWinLeave * if winnr('$') == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff! | endif
+  autocmd BufWinEnter * if winnr('$') == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff | endif
+augroup END
+
 function! s:Diff(...) abort
   if exists(':DiffGitCached')
     return 'DiffGitCached'
+  elseif (!a:0 || a:1 == ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().path()) !=# ''
+      leftabove vsplit `=fugitive#buffer().repo().translate(s:buffer().expand(':2'))`
+      diffthis
+      wincmd p
+      rightbelow vsplit `=fugitive#buffer().repo().translate(s:buffer().expand(':3'))`
+      diffthis
+      wincmd p
+      diffthis
+      return ''
   elseif a:0
     if a:1 ==# ''
       return ''
-    elseif a:1 == ':' || a:1 == '/'
-      let file = s:buffer().path(a:1)
+    elseif a:1 ==# '/'
+      let file = s:buffer().path('/')
+    elseif a:1 ==# ':'
+      let file = s:buffer().path(':0:')
     else
       let file = s:buffer().expand(a:1)
     endif
     if file !~ ':' && file !~ '^/'
-      let file = file.s:buffer().path(':')
+      let file = file.s:buffer().path(':0:')
     endif
   else
-    let file = s:buffer().path(s:buffer().commit() == '' ? ':' : '/')
+    let file = s:buffer().path(s:buffer().commit() == '' ? ':0:' : '/')
   endif
   try
     vsplit `=fugitive#buffer().repo().translate(file)`
-    let b:fugitive_restore = 'diffoff!'
     diffthis
     wincmd p
-    let b:fugitive_restore = 'diffoff!'
     diffthis
     return ''
   catch /^fugitive:/
