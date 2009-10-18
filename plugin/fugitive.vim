@@ -1151,15 +1151,33 @@ function! s:GF(mode) abort
       elseif getline('.') =~# '^[+-]\{3\} [ab/]'
         let ref = getline('.')[4:]
 
+      elseif getline('.') =~# '^rename from '
+        let ref = 'a/'.getline('.')[12:]
+      elseif getline('.') =~# '^rename to '
+        let ref = 'b/'.getline('.')[10:]
+
+      elseif getline('.') =~# '^diff --git \%(a/.*\|/dev/null\) \%(b/.*\|/dev/null\)'
+        let dref = matchstr(getline('.'),'\Cdiff --git \zs\%(a/.*\|/dev/null\)\ze \%(b/.*\|/dev/null\)')
+        let ref = matchstr(getline('.'),'\Cdiff --git \%(a/.*\|/dev/null\) \zs\%(b/.*\|/dev/null\)')
+
       elseif line('$') == 1 && getline('.') =~ '^\x\{40\}$'
         let ref = getline('.')
       else
         let ref = ''
       endif
 
-      if myhash != ''
+      if myhash ==# ''
+        let ref = s:sub(ref,'^a/','HEAD:')
+        let ref = s:sub(ref,'^b/',':0:')
+        if exists('dref')
+          let dref = s:sub(dref,'^a/','HEAD:')
+        endif
+      else
         let ref = s:sub(ref,'^a/',myhash.'^:')
         let ref = s:sub(ref,'^b/',myhash.':')
+        if exists('dref')
+          let dref = s:sub(dref,'^a/',myhash.'^:')
+        endif
       endif
 
       if ref == '/dev/null'
@@ -1167,7 +1185,9 @@ function! s:GF(mode) abort
         let ref = 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391'
       endif
 
-      if ref != ""
+      if exists('dref')
+        return s:Edit(a:mode,ref) . '|Gdiff '.s:fnameescape(dref)
+      elseif ref != ""
         return s:Edit(a:mode,ref)
       endif
 
