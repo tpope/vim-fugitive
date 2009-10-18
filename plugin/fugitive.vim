@@ -591,7 +591,7 @@ function! s:Write(force,...) abort
             let did = 1
           finally
             wincmd p
-            execute 'tabnext '.tab
+            execute 'tabnext '.mytab
           endtry
         endif
       endfor
