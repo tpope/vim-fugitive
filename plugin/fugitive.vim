@@ -831,8 +831,8 @@ function! s:Blame(bang,line1,line2,count) abort
         execute current
         execute "vertical resize ".(match(getline('.'),'\s\+\d\+)')+1)
         setlocal nomodified nomodifiable nonumber scrollbind nowrap foldcolumn=0 nofoldenable filetype=fugitiveblame
-        nnoremap <buffer> <silent> q    :bdelete<CR>
-        nnoremap <buffer> <silent> <CR> :exe <SID>BlameJump()<CR>
+        nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
+        nnoremap <buffer> <silent> <CR> :<C-U>exe <SID>BlameJump()<CR>
         nnoremap <buffer> <silent> o    :<C-U>exe <SID>Edit((&splitbelow ? "botright" : "topleft")." split", matchstr(getline('.'),'\x\+'))<CR>
         nnoremap <buffer> <silent> O    :<C-U>exe <SID>Edit("tabedit", matchstr(getline('.'),'\x\+'))<CR>
         syncbind
@@ -1044,8 +1044,8 @@ function! s:BufReadObject()
     setlocal ro noma nomod nomodeline
     if b:fugitive_type !=# 'blob'
       set filetype=git
-      nnoremap <buffer> <silent> a :let b:fugitive_display_format += 1<Bar>exe <SID>BufReadObject()<CR>
-      nnoremap <buffer> <silent> i :let b:fugitive_display_format -= 1<Bar>exe <SID>BufReadObject()<CR>
+      nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe <SID>BufReadObject()<CR>
+      nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe <SID>BufReadObject()<CR>
     else
       call s:JumpInit()
     endif
