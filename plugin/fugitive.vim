@@ -580,7 +580,10 @@ function! s:Write(force,...) abort
       for winnr in range(1,tabpagewinnr(tab,'$'))
         if tabpagebuflist(tab)[winnr-1] == treebufnr
           execute 'tabnext '.tab
-          execute winnr.'wincmd w'
+          if winnr != winnr()
+            execute winnr.'wincmd w'
+            let restorewinnr = 1
+          endif
           try
             let lnum = line('.')
             let last = line('$')
@@ -590,7 +593,9 @@ function! s:Write(force,...) abort
             silent execute lnum
             let did = 1
           finally
-            wincmd p
+            if exists('restorewinnr')
+              wincmd p
+            endif
             execute 'tabnext '.mytab
           endtry
         endif
@@ -621,6 +626,7 @@ function! s:Write(force,...) abort
     endif
   endfor
 
+  unlet! restorewinnr
   let zero = s:repo().translate(':0:'.path)
   for tab in range(1,tabpagenr('$'))
     for winnr in range(1,tabpagewinnr(tab,'$'))
@@ -628,7 +634,10 @@ function! s:Write(force,...) abort
       let bufname = bufname(bufnr)
       if bufname ==# zero && bufnr != mybufnr
         execute 'tabnext '.tab
-        execute winnr.'wincmd w'
+        if winnr != winnr()
+          execute winnr.'wincmd w'
+          let restorewinnr = 1
+        endif
         try
           let lnum = line('.')
           let last = line('$')
@@ -638,7 +647,9 @@ function! s:Write(force,...) abort
           set nomodified
           diffupdate
         finally
-          wincmd p
+          if exists('restorewinnr')
+            wincmd p
+          endif
           execute 'tabnext '.mytab
         endtry
         break
