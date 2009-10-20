@@ -405,7 +405,7 @@ call s:add_methods('buffer',['getvar','getline','repo','type','name','commit','p
 " }}}1
 " Git {{{1
 
-call s:command("-bar -bang -nargs=? -complete=customlist,s:GitComplete Git :call s:Git(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:GitComplete Git :call s:Git(<bang>0,<q-args>)")
 
 function! s:ExecuteInTree(cmd) abort
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
