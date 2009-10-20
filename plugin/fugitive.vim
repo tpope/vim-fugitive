@@ -424,6 +424,7 @@ function! s:Git(bang,cmd) abort
     let git .= ' --no-pager'
   endif
   call s:ExecuteInTree('!'.git.' '.a:cmd)
+  call s:ReloadIndex()
 endfunction
 
 function! s:GitComplete(A,L,P) abort
@@ -450,6 +451,79 @@ endfunction
 
 call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :cd<bang>  `=s:repo().bare() ? s:repo().dir(<q-args>) : s:repo().tree(<q-args>)`")
 call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :lcd<bang> `=s:repo().bare() ? s:repo().dir(<q-args>) : s:repo().tree(<q-args>)`")
+
+" }}}1
+" Gstatus {{{1
+
+call s:command("-bar Gstatus :execute s:Status()")
+
+function! s:Status()
+  try
+    Gpedit :
+    wincmd P
+    nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
+  return ''
+endfunction
+
+function! s:ReloadIndex()
+  let mytab = tabpagenr()
+  for tab in [mytab] + range(1,tabpagenr('$'))
+    for winnr in range(1,tabpagewinnr(tab,'$'))
+      if getbufvar(tabpagebuflist(tab)[winnr-1],'fugitive_type') ==# 'index'
+        execute 'tabnext '.tab
+        if winnr != winnr()
+          execute winnr.'wincmd w'
+          let restorewinnr = 1
+        endif
+        try
+          if !&modified
+            call s:BufReadIndex()
+          endif
+        finally
+          if exists('restorewinnr')
+            wincmd p
+          endif
+          execute 'tabnext '.mytab
+        endtry
+      endif
+    endfor
+  endfor
+endfunction
+
+function! s:StageToggle()
+  try
+    let filename = matchstr(getline('.'),'^#\t[[:alpha:] ]\+: *\zs.*')
+    if filename ==# ''
+      let filename = matchstr(getline('.'),'^#\t\zs.*')
+    endif
+    if filename ==# ''
+      return ''
+    endif
+    let section = getline(search('^# .*:$','bnW'))
+    if getline('.') =~# '^#\trenamed:' && filename =~ ' -> '
+      let cmd = ['mv','--'] + reverse(split(filename,' -> '))
+      let filename = cmd[-1]
+    elseif section =~? ' to be '
+      let cmd = ['reset','-q','--',filename]
+    elseif getline('.') =~# '^#\tdeleted:'
+      let cmd = ['rm','--',filename]
+    else
+      let cmd = ['add','--',filename]
+    endif
+    let output = call(s:repo().git_chomp_in_tree,cmd,s:repo())
+    silent! edit!
+    1
+    redraw
+    call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.filename.'\$','W')
+    echo output
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
+  return 'checktime'
+endfunction
 
 " }}}1
 " Ggrep, Glog {{{1
@@ -519,7 +593,7 @@ function! s:Edit(cmd,...) abort
     return ''
   elseif a:0
     let file = s:buffer().expand(a:1)
-  elseif s:buffer().commit() ==# ''
+  elseif s:buffer().commit() ==# '' && s:buffer().path('/') !~# '^/.git\>'
     let file = s:buffer().path(':')
   else
     let file = s:buffer().path('/')
@@ -532,6 +606,9 @@ function! s:Edit(cmd,...) abort
   if a:cmd =~# 'read!$'
     return '%delete|read '.s:fnameescape(file).'|1delete_|diffupdate|'.line('.')
   else
+    if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
+      wincmd p
+    endif
     return a:cmd.' '.s:fnameescape(file)
   endif
 endfunction
@@ -656,6 +733,7 @@ function! s:Write(force,...) abort
       endif
     endfor
   endfor
+  call s:ReloadIndex()
   return 'checktime'
 endfunction
 
@@ -735,6 +813,7 @@ function! s:Move(force,destination)
   if isdirectory(destination)
     let destination = fnamemodify(s:sub(destination,'/$','').'/'.expand('%:t'),':.')
   endif
+  call s:ReloadIndex()
   if s:buffer().commit() == ''
     return 'saveas! '.s:fnameescape(destination)
   else
@@ -767,6 +846,7 @@ function! s:Remove(force)
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
   else
+    call s:ReloadIndex()
     return 'bdelete'.(a:force ? '!' : '')
   endif
 endfunction
@@ -934,12 +1014,33 @@ function! s:ReplaceCmd(cmd) abort
 endfunction
 
 function! s:BufReadIndex()
+  if !exists('b:fugitive_display_format')
+    let b:fugitive_display_format = +getbufvar('#','fugitive_display_format')
+  endif
+  let b:fugitive_display_format = b:fugitive_display_format % 2
+  let b:fugitive_type = 'index'
   try
     let b:git_dir = s:repo().dir()
-    let b:fugitive_type = 'index'
     setlocal noro ma
-    call s:ReplaceCmd(s:repo().git_command('ls-files','--stage'))
-    setlocal ro noma nomod nomodeline ft=git
+    if b:fugitive_display_format
+      call s:ReplaceCmd(s:repo().git_command('ls-files','--stage'))
+      set ft=git nospell
+    else
+      let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
+      let dir = getcwd()
+      try
+        execute cd.' `=s:repo().tree()`'
+        call s:ReplaceCmd('git status')
+      finally
+        execute cd.' `=dir`'
+      endtry
+      set ft=gitcommit
+    endif
+    setlocal ro noma nomod nomodeline bufhidden=delete
+    nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe <SID>BufReadIndex()<CR>
+    nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe <SID>BufReadIndex()<CR>
+    nnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle()<CR>
+    call s:JumpInit()
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
@@ -992,6 +1093,7 @@ function! s:BufWriteIndexFile()
     let error = system(s:repo().git_command('update-index','--index-info').' < '.tmp)
     if v:shell_error == 0
       setlocal nomodified
+      call s:ReloadIndex()
       return ''
     else
       return 'echoerr '.string('fugitive: '.error)
@@ -1098,14 +1200,7 @@ function! s:GF(mode) abort
     let buffer = s:buffer()
     let myhash = buffer.sha1()
 
-    if buffer.type('index')
-      if getline('.') =~# '^\d\{6\} \x\{40\} \d\t'
-        let ref = matchstr(getline('.'),'\x\{40\}')
-        let file = ':'.s:sub(matchstr(getline('.'),'\d\t.*'),'\t',':')
-        return s:Edit(a:mode,file)
-      endif
-
-    elseif buffer.type('tree')
+    if buffer.type('tree')
       let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
       if showtree && line('.') == 1
         return ""
@@ -1126,6 +1221,36 @@ function! s:GF(mode) abort
       endif
 
     else
+
+      " Index
+      if getline('.') =~# '^\d\{6\} \x\{40\} \d\t'
+        let ref = matchstr(getline('.'),'\x\{40\}')
+        let file = ':'.s:sub(matchstr(getline('.'),'\d\t.*'),'\t',':')
+        return s:Edit(a:mode,file)
+
+      elseif getline('.') =~# '^#\trenamed:.* -> '
+        let file = '/'.matchstr(getline('.'),' -> \zs.*')
+        return s:Edit(a:mode,file)
+      elseif getline('.') =~# '^#\t[[:alpha:] ]\+: *.'
+        let file = '/'.matchstr(getline('.'),': *\zs.*')
+        return s:Edit(a:mode,file)
+      elseif getline('.') =~# '^#\t.'
+        let file = '/'.matchstr(getline('.'),'#\t\zs.*')
+        return s:Edit(a:mode,file)
+      elseif getline('.') =~# ': needs merge$'
+        let file = '/'.matchstr(getline('.'),'.*\ze: needs merge$')
+        return s:Edit(a:mode,file).'|Gdiff'
+
+      elseif getline('.') ==# '# Not currently on any branch.'
+        return s:Edit(a:mode,'HEAD')
+      elseif getline('.') =~# '^# On branch '
+        let file = 'refs/heads/'.getline('.')[12:]
+        return s:Edit(a:mode,file)
+      elseif getline('.') =~# "^# Your branch .*'"
+        let file = 'refs/remotes/'.matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
+        return s:Edit(a:mode,file)
+      endif
+
       let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
 
       if getline('.') =~# '^ref: '

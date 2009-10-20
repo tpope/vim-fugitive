@@ -47,6 +47,11 @@ that are part of Git repositories).
                                                 *fugitive-:Glcd*
 :Glcd [directory]       |:lcd| relative to the repository.
 
+                                                *fugitive-:Gstatus*
+:Gstatus                Bring up the output of git status in the preview
+                        window.  Press - to stage or unstage the file on the
+                        cursor line.
+
                                                 *fugitive-:Ggrep*
 :Ggrep [args]           |:grep| with git-grep as 'grepprg'.
 
@@ -167,7 +172,7 @@ HEAD^:Makefile  The file named Makefile in the parent of HEAD
 -               The current file in HEAD
 ^               The current file in the previous commit
 ~3              The current file 3 commits ago
-:               A list of files in the index
+:               .git/index (Same as |:Gstatus|)
 :0              The current file in the index
 :1              The current file's common ancestor during a conflict
 :2              The current file in the target branch during a conflict
