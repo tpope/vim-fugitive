@@ -708,7 +708,7 @@ function! s:Write(force,...) abort
   let two = s:repo().translate(':2:'.path)
   let three = s:repo().translate(':3:'.path)
   for nr in range(1,bufnr('$'))
-    if !getbufvar(nr,'&modified') && (bufname(nr) == one || bufname(nr) == two || bufname(nr) == three)
+    if bufloaded(nr) && !getbufvar(nr,'&modified') && (bufname(nr) == one || bufname(nr) == two || bufname(nr) == three)
       execute nr.'bdelete'
     endif
   endfor
