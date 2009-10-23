@@ -493,32 +493,42 @@ function! s:ReloadIndex()
   endfor
 endfunction
 
-function! s:StageToggle()
+function! s:StageToggle(lnum1,lnum2)
   try
-    let filename = matchstr(getline('.'),'^#\t[[:alpha:] ]\+: *\zs.*')
-    if filename ==# ''
-      let filename = matchstr(getline('.'),'^#\t\zs.*')
+    let output = ''
+    for lnum in range(a:lnum1,a:lnum2)
+      let line = getline(lnum)
+      let filename = matchstr(line,'^#\t[[:alpha:] ]\+: *\zs.*')
+      if filename ==# ''
+        let filename = matchstr(line,'^#\t\zs.*')
+      endif
+      if filename ==# ''
+        continue
+      endif
+      if !exists('first_filename')
+        let first_filename = filename
+      endif
+      execute lnum
+      let section = getline(search('^# .*:$','bnW'))
+      if line =~# '^#\trenamed:' && filename =~ ' -> '
+        let cmd = ['mv','--'] + reverse(split(filename,' -> '))
+        let filename = cmd[-1]
+      elseif section =~? ' to be '
+        let cmd = ['reset','-q','--',filename]
+      elseif line =~# '^#\tdeleted:'
+        let cmd = ['rm','--',filename]
+      else
+        let cmd = ['add','--',filename]
+      endif
+      let output .= call(s:repo().git_chomp_in_tree,cmd,s:repo())."\n"
+    endfor
+    if exists('first_filename')
+      silent! edit!
+      1
+      redraw
+      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\$','W')
     endif
-    if filename ==# ''
-      return ''
-    endif
-    let section = getline(search('^# .*:$','bnW'))
-    if getline('.') =~# '^#\trenamed:' && filename =~ ' -> '
-      let cmd = ['mv','--'] + reverse(split(filename,' -> '))
-      let filename = cmd[-1]
-    elseif section =~? ' to be '
-      let cmd = ['reset','-q','--',filename]
-    elseif getline('.') =~# '^#\tdeleted:'
-      let cmd = ['rm','--',filename]
-    else
-      let cmd = ['add','--',filename]
-    endif
-    let output = call(s:repo().git_chomp_in_tree,cmd,s:repo())
-    silent! edit!
-    1
-    redraw
-    call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.filename.'\$','W')
-    echo output
+    echo s:sub(s:gsub(output,'\n+','\n'),'\n$','')
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
@@ -1039,7 +1049,8 @@ function! s:BufReadIndex()
     setlocal ro noma nomod nomodeline bufhidden=delete
     nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe <SID>BufReadIndex()<CR>
     nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe <SID>BufReadIndex()<CR>
-    nnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle()<CR>
+    nnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>
+    xnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line("'<"),line("'>"))<CR>
     call s:JumpInit()
   catch /^fugitive:/
     return 'echoerr v:errmsg'
