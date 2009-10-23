@@ -1093,6 +1093,7 @@ function! s:BufWriteIndexFile()
     let error = system(s:repo().git_command('update-index','--index-info').' < '.tmp)
     if v:shell_error == 0
       setlocal nomodified
+      silent execute 'doautocmd BufWritePost '.s:fnameescape(expand('%:p'))
       call s:ReloadIndex()
       return ''
     else
