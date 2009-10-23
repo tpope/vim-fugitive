@@ -1030,7 +1030,7 @@ function! s:BufReadIndex()
       let dir = getcwd()
       try
         execute cd.' `=s:repo().tree()`'
-        call s:ReplaceCmd('git status')
+        call s:ReplaceCmd(s:repo().git_command('status'))
       finally
         execute cd.' `=dir`'
       endtry
