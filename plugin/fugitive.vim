@@ -424,7 +424,7 @@ function! s:Git(bang,cmd) abort
     let git .= ' --no-pager'
   endif
   call s:ExecuteInTree('!'.git.' '.a:cmd)
-  call s:ReloadIndex()
+  call fugitive#reload_status()
 endfunction
 
 function! s:GitComplete(A,L,P) abort
@@ -468,7 +468,7 @@ function! s:Status()
   return ''
 endfunction
 
-function! s:ReloadIndex()
+function! fugitive#reload_status()
   let mytab = tabpagenr()
   for tab in [mytab] + range(1,tabpagenr('$'))
     for winnr in range(1,tabpagewinnr(tab,'$'))
@@ -743,7 +743,7 @@ function! s:Write(force,...) abort
       endif
     endfor
   endfor
-  call s:ReloadIndex()
+  call fugitive#reload_status()
   return 'checktime'
 endfunction
 
@@ -823,7 +823,7 @@ function! s:Move(force,destination)
   if isdirectory(destination)
     let destination = fnamemodify(s:sub(destination,'/$','').'/'.expand('%:t'),':.')
   endif
-  call s:ReloadIndex()
+  call fugitive#reload_status()
   if s:buffer().commit() == ''
     return 'saveas! '.s:fnameescape(destination)
   else
@@ -856,7 +856,7 @@ function! s:Remove(force)
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
   else
-    call s:ReloadIndex()
+    call fugitive#reload_status()
     return 'bdelete'.(a:force ? '!' : '')
   endif
 endfunction
@@ -1105,7 +1105,7 @@ function! s:BufWriteIndexFile()
     if v:shell_error == 0
       setlocal nomodified
       silent execute 'doautocmd BufWritePost '.s:fnameescape(expand('%:p'))
-      call s:ReloadIndex()
+      call fugitive#reload_status()
       return ''
     else
       return 'echoerr '.string('fugitive: '.error)
