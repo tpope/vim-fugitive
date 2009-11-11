@@ -119,9 +119,7 @@ let s:repos = {}
 
 function! s:repo(...) abort
   let dir = a:0 ? a:1 : (exists('b:git_dir') ? b:git_dir : s:ExtractGitDir(expand('%:p')))
-  if dir == ''
-    call s:throw('not a git repository: '.expand('%:p'))
-  else
+  if dir !=# ''
     if has_key(s:repos,dir)
       let repo = get(s:repos,dir)
     else
@@ -130,6 +128,7 @@ function! s:repo(...) abort
     endif
     return extend(extend(repo,s:repo_prototype,'keep'),s:abstract_prototype,'keep')
   endif
+  call s:throw('not a git repository: '.expand('%:p'))
 endfunction
 
 function! s:repo_dir(...) dict abort
@@ -137,12 +136,11 @@ function! s:repo_dir(...) dict abort
 endfunction
 
 function! s:repo_tree(...) dict abort
-  if self.bare()
-    call s:throw('no work tree')
-  else
+  if !self.bare()
     let dir = fnamemodify(self.git_dir,':h')
     return join([dir]+a:000,'/')
   endif
+  call s:throw('no work tree')
 endfunction
 
 function! s:repo_bare() dict abort
@@ -212,9 +210,8 @@ function! s:repo_rev_parse(rev) dict abort
   let hash = self.git_chomp('rev-parse','--verify',a:rev)
   if hash =~ '^\x\{40\}$'
     return hash
-  else
-    call s:throw('rev-parse '.a:rev.': '.hash)
   endif
+  call s:throw('rev-parse '.a:rev.': '.hash)
 endfunction
 
 call s:add_methods('repo',['git_command','git_chomp','git_chomp_in_tree','rev_parse'])
@@ -284,10 +281,10 @@ let s:buffer_prototype = {}
 function! s:buffer(...) abort
   let buffer = {'#': bufnr(a:0 ? a:1 : '%')}
   call extend(extend(buffer,s:buffer_prototype,'keep'),s:abstract_prototype,'keep')
-  if buffer.getvar('git_dir') == ''
-    call s:throw('not a git repository: '.expand('%:p'))
+  if buffer.getvar('git_dir') !=# ''
+    return buffer
   endif
-  return buffer
+  call s:throw('not a git repository: '.expand('%:p'))
 endfunction
 
 function! fugitive#buffer(...) abort
