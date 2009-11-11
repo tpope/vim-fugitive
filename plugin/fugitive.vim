@@ -572,13 +572,17 @@ function! s:Grep(bang,arg) abort
 endfunction
 
 function! s:Log(cmd)
-  let cmd = ['--no-pager', 'log', '--no-color', '--pretty=format:fugitive://'.s:repo().dir().'//%H'.s:buffer().path('/').'::%s']
+  let path = s:buffer().path('/')
+  if path =~# '^/\.git\%(/\|$\)'
+    let path = ''
+  endif
+  let cmd = ['--no-pager', 'log', '--no-color', '--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.'::%s']
   if s:buffer().commit() =~# '\x\{40\}'
     let cmd += [s:buffer().commit().'^']
   endif
   let cmd += ['--']
-  if s:buffer().path() != ''
-    let cmd += [s:buffer().path()]
+  if path =~# '/.'
+    let cmd += [path[1 : -1]]
   endif
   let grepformat = &grepformat
   let grepprg = &grepprg
