@@ -388,10 +388,10 @@ function! s:buffer_expand(rev) dict abort
 endfunction
 
 function! s:buffer_containing_commit() dict abort
-  if self.commit() =~# '\x\{40\}'
-    return self.commit()
-  elseif self.commit() =~# '.'
+  if self.commit() =~# '^\d$'
     return ':'
+  elseif self.commit() =~# '.'
+    return self.commit()
   else
     return 'HEAD'
   endif
@@ -888,7 +888,7 @@ function! s:Blame(bang,line1,line2,count) abort
     endif
     let git_dir = s:repo().dir()
     let cmd = ['--no-pager', 'blame', '--show-number']
-    if strlen(s:buffer().commit()) == 40
+    if s:buffer().commit() =~# '\D\|..'
       let cmd += [s:buffer().commit()]
     else
       let cmd += ['--contents', '-']
