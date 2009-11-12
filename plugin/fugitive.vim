@@ -1157,9 +1157,13 @@ function! s:BufReadObject()
       else
         call s:ReplaceCmd(s:repo().git_command('show','--pretty=format:tree %T%nparent %P%nauthor %an <%ae> %ad%ncommitter %cn <%ce> %cd%nencoding %e%n%n%s%n%n%b',hash))
         call search('^parent ')
-        silent s/\%(^parent\)\@<! /\rparent /ge
+        if getline('.') == 'parent '
+          silent delete_
+        else
+          silent s/\%(^parent\)\@<! /\rparent /ge
+        endif
         if search('^encoding \%(<unknown>\)\=$','W',line('.')+3)
-          silent delete
+          silent delete_
         end
         1
       endif
