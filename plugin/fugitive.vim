@@ -340,8 +340,6 @@ function! s:buffer_path(...) dict abort
   let rev = matchstr(self.name(),'^fugitive://.\{-\}//\zs.*')
   if rev != ''
     let rev = s:sub(rev,'\w*','')
-  elseif self.name() =~ '\.git/refs/\|\.git/.*HEAD$'
-    let rev = ''
   else
     let rev = self.name()[strlen(self.repo().tree()) : -1]
   endif
@@ -536,7 +534,7 @@ endfunction
 " Ggrep, Glog {{{1
 
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execute s:Grep(<bang>0,<q-args>)")
-call s:command("-bar -bang Glog :execute s:Log('grep<bang>')")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Glog :execute s:Log('grep<bang>',<f-args>)")
 
 function! s:Grep(bang,arg) abort
   let grepprg = &grepprg
@@ -571,28 +569,37 @@ function! s:Grep(bang,arg) abort
   endtry
 endfunction
 
-function! s:Log(cmd)
+function! s:Log(cmd,...)
   let path = s:buffer().path('/')
-  if path =~# '^/\.git\%(/\|$\)'
+  if path =~# '^/\.git\%(/\|$\)' || index(a:000,'--') != -1
     let path = ''
   endif
-  let cmd = ['--no-pager', 'log', '--no-color', '--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.'::%s']
-  if s:buffer().commit() =~# '\x\{40\}'
-    let cmd += [s:buffer().commit().'^']
-  endif
-  let cmd += ['--']
+  let cmd = ['--no-pager', 'log', '--no-color']
+  let cmd += [escape('--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.'::%s','%')]
+  if empty(filter(a:000[0 : index(a:000,'--')],'v:val !~# "^-"'))
+    if s:buffer().commit() =~# '\x\{40\}'
+      let cmd += [s:buffer().commit()]
+    elseif s:buffer().path() =~# '^\.git/refs/\|^\.git/.*HEAD$'
+      let cmd += [s:buffer().path()[5:-1]]
+    endif
+  end
+  let cmd += map(copy(a:000),'s:sub(v:val,"^\\%(%(:\\w)*)","\\=fnamemodify(s:buffer().path(),submatch(1))")')
   if path =~# '/.'
-    let cmd += [path[1 : -1]]
+    let cmd += ['--',path[1:-1]]
   endif
   let grepformat = &grepformat
   let grepprg = &grepprg
+  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
+  let cd .= s:fnameescape(getcwd())
   try
-    let &grepprg = escape(call(s:repo().git_command,cmd,s:repo()),'%')
+    cd `=s:repo().tree()`
+    let &grepprg = call(s:repo().git_command,cmd,s:repo())
     let &grepformat = '%f::%m'
     exe a:cmd
   finally
     let &grepformat = grepformat
     let &grepprg = grepprg
+    exe cd
   endtry
 endfunction
 
