@@ -541,6 +541,10 @@ endfunction
 " }}}1
 " Ggrep, Glog {{{1
 
+if !exists('g:fugitive_summary_format')
+  let g:fugitive_summary_format = '%s'
+endif
+
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execute s:Grep(<bang>0,<q-args>)")
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Glog :execute s:Log('grep<bang>',<f-args>)")
 
@@ -583,7 +587,7 @@ function! s:Log(cmd,...)
     let path = ''
   endif
   let cmd = ['--no-pager', 'log', '--no-color']
-  let cmd += [escape('--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.'::%s','%')]
+  let cmd += [escape('--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.'::'.g:fugitive_summary_format,'%')]
   if empty(filter(a:000[0 : index(a:000,'--')],'v:val !~# "^-"'))
     if s:buffer().commit() =~# '\x\{40\}'
       let cmd += [s:buffer().commit()]
