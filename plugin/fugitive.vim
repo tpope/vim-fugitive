@@ -101,6 +101,10 @@ function! s:Detect()
   if exists('b:git_dir')
     silent doautocmd User Fugitive
     cnoremap <expr> <buffer> <C-R><C-G> fugitive#buffer().rev()
+    if expand('%:p') =~# '//'
+      let buffer = fugitive#buffer()
+      call buffer.setvar('&path',s:sub(buffer.getvar('&path'),'^\.%(,|$)',''))
+    endif
   endif
 endfunction
 
@@ -295,6 +299,10 @@ function! s:buffer_getvar(var) dict abort
   return getbufvar(self['#'],a:var)
 endfunction
 
+function! s:buffer_setvar(var,value) dict abort
+  return setbufvar(self['#'],a:var,a:value)
+endfunction
+
 function! s:buffer_getline(lnum) dict abort
   return getbufline(self['#'],a:lnum)[0]
 endfunction
@@ -395,7 +403,7 @@ function! s:buffer_containing_commit() dict abort
   endif
 endfunction
 
-call s:add_methods('buffer',['getvar','getline','repo','type','name','commit','path','rev','sha1','expand','containing_commit'])
+call s:add_methods('buffer',['getvar','setvar','getline','repo','type','name','commit','path','rev','sha1','expand','containing_commit'])
 
 " }}}1
 " Git {{{1
