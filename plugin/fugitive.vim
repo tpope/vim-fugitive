@@ -159,7 +159,11 @@ function! s:repo_translate(spec) dict abort
   elseif a:spec =~# '^:[0-3]:'
     return 'fugitive://'.self.dir().'//'.a:spec[1].'/'.a:spec[3:-1]
   elseif a:spec ==# ':'
-    return self.dir('index')
+    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(s:repo().dir())] ==# s:repo().dir('') && filereadable($GIT_INDEX_FILE)
+      return fnamemodify($GIT_INDEX_FILE,':p')
+    else
+      return self.dir('index')
+    endif
   elseif a:spec =~# '^:/'
     let ref = self.rev_parse(matchstr(a:spec,'.[^:]*'))
     return 'fugitive://'.self.dir().'//'.ref
@@ -1045,22 +1049,27 @@ endfunction
 
 function! s:BufReadIndex()
   if !exists('b:fugitive_display_format')
-    let b:fugitive_display_format = +getbufvar('#','fugitive_display_format')
+    let b:fugitive_display_format = filereadable(expand('<afile>').'.lock')
   endif
   let b:fugitive_display_format = b:fugitive_display_format % 2
   let b:fugitive_type = 'index'
   try
     let b:git_dir = s:repo().dir()
     setlocal noro ma
+    if fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p') ==# expand('<amatch>:p')
+      let indexspec = ''
+    else
+      let indexspec = 'GIT_INDEX_FILE='.expand('<afile>').' '
+    endif
     if b:fugitive_display_format
-      call s:ReplaceCmd(s:repo().git_command('ls-files','--stage'))
+      call s:ReplaceCmd(indexspec.s:repo().git_command('ls-files','--stage'))
       set ft=git nospell
     else
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
       let dir = getcwd()
       try
         execute cd.' `=s:repo().tree()`'
-        call s:ReplaceCmd(s:repo().git_command('status'))
+        call s:ReplaceCmd(indexspec.s:repo().git_command('status'))
       finally
         execute cd.' `=dir`'
       endtry
@@ -1208,6 +1217,7 @@ endfunction
 augroup fugitive_files
   autocmd!
   autocmd BufReadCmd  *.git/index                      exe s:BufReadIndex()
+  autocmd BufReadCmd  *.git/*index*.lock               exe s:BufReadIndex()
   autocmd FileReadCmd fugitive://**//[0-3]/**          exe s:FileRead()
   autocmd BufReadCmd  fugitive://**//[0-3]/**          exe s:BufReadIndexFile()
   autocmd BufWriteCmd fugitive://**//[0-3]/**          exe s:BufWriteIndexFile()
