@@ -675,7 +675,7 @@ function! s:Write(force,...) abort
   let file = s:repo().translate(path)
   let treebufnr = 0
   for nr in range(1,bufnr('$'))
-    if fnamemodify(bufname(nr),':p') == file
+    if fnamemodify(bufname(nr),':p') ==# file
       let treebufnr = nr
     endif
   endfor
@@ -720,7 +720,7 @@ function! s:Write(force,...) abort
     let v:errmsg = 'fugitive: '.error
     return 'echoerr v:errmsg'
   endif
-  if s:buffer().path() == path && s:buffer().commit() =~# '^\d$'
+  if s:buffer().path() ==# path && s:buffer().commit() =~# '^\d$'
     set nomodified
   endif
 
@@ -830,7 +830,7 @@ function! s:Move(force,destination)
     let destination = a:destination[1:-1]
   else
     let destination = fnamemodify(s:sub(a:destination,'[%#]%(:\w)*','\=expand(submatch(0))'),':p')
-    if destination[0:strlen(s:repo().tree())] == s:repo().tree('')
+    if destination[0:strlen(s:repo().tree())] ==# s:repo().tree('')
       let destination = destination[strlen(s:repo().tree('')):-1]
     endif
   endif
@@ -1176,7 +1176,7 @@ function! s:BufReadObject()
       else
         call s:ReplaceCmd(s:repo().git_command('show','--pretty=format:tree %T%nparent %P%nauthor %an <%ae> %ad%ncommitter %cn <%ce> %cd%nencoding %e%n%n%s%n%n%b',hash))
         call search('^parent ')
-        if getline('.') == 'parent '
+        if getline('.') ==# 'parent '
           silent delete_
         else
           silent s/\%(^parent\)\@<! /\rparent /ge
@@ -1352,7 +1352,7 @@ function! s:GF(mode) abort
         endif
       endif
 
-      if ref == '/dev/null'
+      if ref ==# '/dev/null'
         " Empty blob
         let ref = 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391'
       endif
