@@ -653,7 +653,7 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gpedit  
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gsplit   :execute s:Edit('split<bang>',<f-args>)")
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gvsplit  :execute s:Edit('vsplit<bang>',<f-args>)")
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gtabedit :execute s:Edit('tabedit<bang>',<f-args>)")
-call s:command("-bar -bang -nargs=? -range -complete=customlist,s:EditComplete Gread :execute s:Edit('<line1>,<line2>read<bang>',<f-args>)")
+call s:command("-bar -bang -nargs=? -count -complete=customlist,s:EditComplete Gread :execute s:Edit((!<count> && <line1> ? '' : <count>).'read<bang>',<f-args>)")
 
 " }}}1
 " Gwrite {{{1

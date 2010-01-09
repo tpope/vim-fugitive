@@ -78,7 +78,8 @@ that are part of Git repositories).
 :Gpedit [revision]      |:pedit| a |fugitive-revision|
 
                                                 *fugitive-:Gread*
-:Gread [revision]       |:read| a |fugitive-revision|
+:[range]Gread [revision]
+                        |:read| a |fugitive-revision|
 
                                                 *fugitive-:Gread!*
 :Gread! [revision]      Empty the buffer and |:read| a |fugitive-revision|.
