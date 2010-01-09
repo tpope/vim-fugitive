@@ -1,5 +1,5 @@
 " fugitive.vim - Fugitive
-" Maintainer:   Tim Pope <vimNOSPAM@tpope.info>
+" Maintainer:   Tim Pope <vimNOSPAM@tpope.org>
 
 if (exists("g:loaded_fugitive") && g:loaded_fugitive) || &cp
   finish
