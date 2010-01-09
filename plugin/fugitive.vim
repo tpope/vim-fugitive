@@ -460,7 +460,7 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :lcd
 
 call s:command("-bar Gstatus :execute s:Status()")
 
-function! s:Status()
+function! s:Status() abort
   try
     Gpedit :
     wincmd P
@@ -471,7 +471,7 @@ function! s:Status()
   return ''
 endfunction
 
-function! fugitive#reload_status()
+function! fugitive#reload_status() abort
   let mytab = tabpagenr()
   for tab in [mytab] + range(1,tabpagenr('$'))
     for winnr in range(1,tabpagewinnr(tab,'$'))
@@ -496,7 +496,7 @@ function! fugitive#reload_status()
   endfor
 endfunction
 
-function! s:StageToggle(lnum1,lnum2)
+function! s:StageToggle(lnum1,lnum2) abort
   try
     let output = ''
     for lnum in range(a:lnum1,a:lnum2)
