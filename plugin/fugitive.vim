@@ -45,6 +45,13 @@ function! s:throw(string) abort
   throw v:errmsg
 endfunction
 
+function! s:warn(str)
+  echohl WarningMsg
+  echomsg a:str
+  echohl None
+  let v:warningmsg = a:str
+endfunction
+
 function! s:add_methods(namespace, method_names) abort
   for name in a:method_names
     let s:{a:namespace}_prototype[name] = s:function('s:'.a:namespace.'_'.name)
@@ -642,6 +649,9 @@ function! s:Edit(cmd,...) abort
   else
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
       wincmd p
+    endif
+    if a:cmd == 'read'
+      call s:warn('Use :.Gread for future compatibility')
     endif
     return a:cmd.' '.s:fnameescape(file)
   endif

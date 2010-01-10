@@ -78,7 +78,7 @@ that are part of Git repositories).
 :Gpedit [revision]      |:pedit| a |fugitive-revision|
 
                                                 *fugitive-:Gread*
-:[range]Gread [revision]
+:{range}Gread [revision]
                         |:read| a |fugitive-revision|
 
                                                 *fugitive-:Gread!*
