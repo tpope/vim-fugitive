@@ -50,7 +50,19 @@ that are part of Git repositories).
                                                 *fugitive-:Gstatus*
 :Gstatus                Bring up the output of git status in the preview
                         window.  Press - to stage or unstage the file on the
-                        cursor line.
+                        cursor line.  Press C to invoke |:Gcommit|.
+
+                                                *fugitive-:Gcommit*
+:Gcommit [args]         A wrapper around git-commit.  If there is nothing
+                        to commit, |:Gstatus| is called instead.  Unless the
+                        arguments given would skip the invocation of an editor
+                        (e.g., -m), a split window will be used to obtain a
+                        commit message.  Write and close that window (:wq or
+                        |:Gwrite|) to finish the commit.  Unlike when running
+                        the actual git-commit command, it is possible (but
+                        unadvisable) to muck with the index with commands like
+                        git-add and git-reset while a commit message is
+                        pending.
 
                                                 *fugitive-:Ggrep*
 :Ggrep [args]           |:grep| with git-grep as 'grepprg'.

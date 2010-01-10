@@ -512,6 +512,9 @@ function! s:StageToggle(lnum1,lnum2) abort
     let output = ''
     for lnum in range(a:lnum1,a:lnum2)
       let line = getline(lnum)
+      if getline('.') == '# Changes to be committed:'
+        return 'Gcommit'
+      endif
       let filename = matchstr(line,'^#\t[[:alpha:] ]\+: *\zs.*')
       if filename ==# ''
         let filename = matchstr(line,'^#\t\zs.*')
@@ -548,6 +551,91 @@ function! s:StageToggle(lnum1,lnum2) abort
   endtry
   return 'checktime'
 endfunction
+
+" }}}1
+" Gcommit {{{1
+
+call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit(<q-args>)")
+
+function! s:Commit(args) abort
+  let old_type = s:buffer().type()
+  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
+  let cd .= s:fnameescape(getcwd())
+  let msgfile = s:repo().dir('COMMIT_EDITMSG')
+  let outfile = tempname()
+  let errorfile = tempname()
+  try
+    cd `=s:repo().tree()`
+    let command = 'GIT_EDITOR=false '.s:repo().git_command('commit').' '.a:args
+    if a:args =~# '\%(^\| \)--interactive\>'
+      execute '!'.command.' 2> '.errorfile
+    else
+      silent execute '!'.command.' > '.outfile.' 2> '.errorfile
+    end
+    if !v:shell_error
+      if filereadable(outfile)
+        for line in readfile(outfile)
+          echo line
+        endfor
+      endif
+      return ''
+    else
+      let error = get(readfile(errorfile,'',1),0,'!')
+      if error =~# "'false'\\.$"
+        let args = a:args
+        let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-e|--edit|--interactive)%($| )','')
+        let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-F|--file|-m|--message)%(\s+|\=)%(''[^'']*''|"%(\\.|[^"])*"|\\.|\S)*','')
+        let args = s:gsub(args,'%(^| )@<=[%#]%(:\w)*','\=expand(submatch(0))')
+        let args = '-F '.s:shellesc(msgfile).' '.args
+        if args !~# '\%(^\| \)--cleanup\>'
+          let args = '--cleanup=strip '.args
+        endif
+        split `=msgfile`
+        if old_type ==# 'index'
+          bdelete #
+        endif
+        let b:fugitive_commit_arguments = args
+        setlocal bufhidden=delete filetype=gitcommit
+        return '1'
+      elseif error ==# '!'
+        return s:Status()
+      else
+        call s:throw(error)
+      endif
+    endif
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  finally
+    call delete(outfile)
+    call delete(errorfile)
+    exe cd
+    call fugitive#reload_status()
+  endtry
+endfunction
+
+function! s:CommitComplete(A,L,P) abort
+  if a:A =~ '^-' || type(a:A) == type(0) " a:A is 0 on :Gcommit -<Tab>
+    let args = ['-C', '-F', '-a', '-c', '-e', '-i', '-m', '-n', '-o', '-q', '-s', '-t', '-u', '-v', '--all', '--allow-empty', '--amend', '--author=', '--cleanup=', '--dry-run', '--edit', '--file=', '--include', '--interactive', '--message=', '--no-verify', '--only', '--quiet', '--reedit-message=', '--reuse-message=', '--signoff', '--template=', '--untracked-files', '--verbose']
+    return filter(args,'v:val[0 : strlen(a:A)-1] ==# a:A')
+  else
+    return s:repo().superglob(a:A)
+  endif
+endfunction
+
+function! s:FinishCommit()
+  let args = getbufvar(+expand('<abuf>'),'fugitive_commit_arguments')
+  let g:args = args
+  if !empty(args)
+    call setbufvar(+expand('<abuf>'),'fugitive_commit_arguments','')
+    return s:Commit(args)
+  endif
+  return ''
+endfunction
+
+augroup fugitive_commit
+  autocmd!
+  autocmd BufDelete *.git/COMMIT_EDITMSG execute s:sub(s:FinishCommit(), '^echoerr (.*)', 'echohl ErrorMsg|echo \1|echohl NONE')
+augroup END
 
 " }}}1
 " Ggrep, Glog {{{1
@@ -675,6 +763,11 @@ call s:command("-bar -bang -nargs=? -count -complete=customlist,s:EditComplete G
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gwrite :execute s:Write(<bang>0,<f-args>)")
 
 function! s:Write(force,...) abort
+  if exists('b:fugitive_commit_arguments')
+    return 'write|bdelete'
+  elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
+    return 'wq'
+  endif
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
   let path = a:0 ? a:1 : s:buffer().path()
@@ -1092,6 +1185,7 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line("'<"),line("'>"))<CR>
     call s:JumpInit()
+    nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
