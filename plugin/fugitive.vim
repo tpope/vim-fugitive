@@ -1069,7 +1069,7 @@ function! s:BufReadIndex()
     if fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p') ==# expand('%:p')
       let indexspec = ''
     else
-      let indexspec = 'GIT_INDEX_FILE='.expand('%').' '
+      let indexspec = 'GIT_INDEX_FILE='.s:shellesc(expand('%')).' '
     endif
     let g:indexspec = indexspec
     if b:fugitive_display_format
