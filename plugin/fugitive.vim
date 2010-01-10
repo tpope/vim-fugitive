@@ -767,6 +767,8 @@ function! s:Write(force,...) abort
     return 'write|bdelete'
   elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
     return 'wq'
+  elseif s:buffer().type() == 'index'
+    return 'Gcommit'
   endif
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
