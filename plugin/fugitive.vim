@@ -1304,7 +1304,7 @@ function! s:GF(mode) abort
         let file = 'refs/heads/'.getline('.')[12:]
         return s:Edit(a:mode,file)
       elseif getline('.') =~# "^# Your branch .*'"
-        let file = 'refs/remotes/'.matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
+        let file = matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
         return s:Edit(a:mode,file)
       endif
 
