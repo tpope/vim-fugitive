@@ -1059,18 +1059,19 @@ endfunction
 
 function! s:BufReadIndex()
   if !exists('b:fugitive_display_format')
-    let b:fugitive_display_format = filereadable(expand('<afile>').'.lock')
+    let b:fugitive_display_format = filereadable(expand('%').'.lock')
   endif
   let b:fugitive_display_format = b:fugitive_display_format % 2
   let b:fugitive_type = 'index'
   try
     let b:git_dir = s:repo().dir()
     setlocal noro ma
-    if fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p') ==# expand('<amatch>:p')
+    if fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p') ==# expand('%:p')
       let indexspec = ''
     else
-      let indexspec = 'GIT_INDEX_FILE='.expand('<afile>').' '
+      let indexspec = 'GIT_INDEX_FILE='.expand('%').' '
     endif
+    let g:indexspec = indexspec
     if b:fugitive_display_format
       call s:ReplaceCmd(indexspec.s:repo().git_command('ls-files','--stage'))
       set ft=git nospell
