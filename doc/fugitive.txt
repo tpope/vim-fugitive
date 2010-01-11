@@ -21,7 +21,7 @@ get back to the commit.
 
 Edit a file in the work tree and make some changes.  Use |:Gdiff| to open up
 the indexed version.  Use |do| and |dp| on various hunks to bring the files in
-sync, or use |:Gread!| to pull in all changes.  Write the indexed version to
+sync, or use |:Gread| to pull in all changes.  Write the indexed version to
 stage the file.
 
 Run |:Gblame| in a work tree file to see a blame in a vertical split.  Press
@@ -90,14 +90,16 @@ that are part of Git repositories).
 :Gpedit [revision]      |:pedit| a |fugitive-revision|
 
                                                 *fugitive-:Gread*
+:Gread [revision]       Empty the buffer and |:read| a |fugitive-revision|.
+                        When the argument is omitted, this is similar to git
+                        checkout on a work tree file or git add on a stage
+                        file, but without writing anything to disk.
+
 :{range}Gread [revision]
-                        |:read| a |fugitive-revision|
+                        |:read| in a |fugitive-revision| after {range}.
 
                                                 *fugitive-:Gread!*
-:Gread! [revision]      Empty the buffer and |:read| a |fugitive-revision|.
-                        This is similar to git checkout on a work tree file or
-                        git add on a stage file, but without writing anything
-                        to disk.
+:Gread! [revision]      Deprecated synonym for |:Gread|.
 
                                                 *fugitive-:Gwrite*
 :Gwrite                 Write to the current file's path and stage the results.

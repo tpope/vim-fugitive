@@ -732,14 +732,11 @@ function! s:Edit(cmd,...) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
-  if a:cmd =~# 'read!$'
+  if a:cmd =~# 'read!$' || a:cmd ==# 'read'
     return '%delete|read '.s:fnameescape(file).'|1delete_|diffupdate|'.line('.')
   else
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
       wincmd p
-    endif
-    if a:cmd == 'read'
-      call s:warn('Use :.Gread for future compatibility')
     endif
     return a:cmd.' '.s:fnameescape(file)
   endif
