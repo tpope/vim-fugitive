@@ -552,6 +552,56 @@ function! s:StageToggle(lnum1,lnum2) abort
   return 'checktime'
 endfunction
 
+function! s:StagePatch(lnum1,lnum2) abort
+  let add = []
+  let reset = []
+
+  for lnum in range(a:lnum1,a:lnum2)
+    let line = getline(lnum)
+    if line == '# Changes to be committed:'
+      return 'Git reset --patch'
+    elseif line == '# Changed but not updated:'
+      return 'Git add --patch'
+    endif
+    let filename = matchstr(line,'^#\t[[:alpha:] ]\+: *\zs.*')
+    if filename ==# ''
+      let filename = matchstr(line,'^#\t\zs.*')
+    endif
+    if filename ==# ''
+      continue
+    endif
+    if !exists('first_filename')
+      let first_filename = filename
+    endif
+    execute lnum
+    let section = getline(search('^# .*:$','bnW'))
+    if line =~# '^#\trenamed:' && filename =~ ' -> '
+      let reset += [split(filename,' -> ')[1]]
+    elseif section =~? ' to be '
+      let reset += [filename]
+    elseif line !~# '^#\tdeleted:'
+      let add += [filename]
+    endif
+  endfor
+  try
+    if !empty(add)
+      execute "Git add --patch -- ".join(map(add,'s:shellesc(v:val)'))
+    endif
+    if !empty(reset)
+      execute "Git reset --patch -- ".join(map(add,'s:shellesc(v:val)'))
+    endif
+    if exists('first_filename')
+      silent! edit!
+      1
+      redraw
+      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\$','W')
+    endif
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
+  return 'checktime'
+endfunction
+
 " }}}1
 " Gcommit {{{1
 
@@ -1183,6 +1233,8 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe <SID>BufReadIndex()<CR>
     nnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line("'<"),line("'>"))<CR>
+    nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
+    xnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
     call s:JumpInit()
     nunmap   <buffer>          P
     nunmap   <buffer>          ~
