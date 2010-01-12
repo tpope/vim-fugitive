@@ -1184,6 +1184,8 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line("'<"),line("'>"))<CR>
     call s:JumpInit()
+    nunmap   <buffer>          P
+    nunmap   <buffer>          ~
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
