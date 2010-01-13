@@ -1213,7 +1213,6 @@ function! s:BufReadIndex()
     else
       let indexspec = 'GIT_INDEX_FILE='.s:shellesc(expand('%')).' '
     endif
-    let g:indexspec = indexspec
     if b:fugitive_display_format
       call s:ReplaceCmd(indexspec.s:repo().git_command('ls-files','--stage'))
       set ft=git nospell
