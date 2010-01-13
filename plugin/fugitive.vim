@@ -88,9 +88,9 @@ function! s:ExtractGitDir(path) abort
   let nfn = fn
   while fn != ofn
     if isdirectory(fn . '/.git')
-      return s:sub(simplify(fnamemodify(fn . '/.git',':p')),'/$','')
+      return s:sub(simplify(fnamemodify(fn . '/.git',':p')),'\W$','')
     elseif fn =~ '\.git$' && filereadable(fn . '/HEAD')
-      return s:sub(simplify(fnamemodify(fn,':p')),'/$','')
+      return s:sub(simplify(fnamemodify(fn,':p')),'\W$','')
     endif
     let ofn = fn
     let fn = fnamemodify(ofn,':h')
