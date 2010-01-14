@@ -27,6 +27,8 @@ endfunction
 function! s:shellesc(arg) abort
   if a:arg =~ '^[A-Za-z0-9_/.-]\+$'
     return a:arg
+  elseif &shell =~# 'cmd' && a:arg !~# '"'
+    return '"'.a:arg.'"'
   else
     return shellescape(a:arg)
   endif
@@ -616,12 +618,21 @@ function! s:Commit(args) abort
   let errorfile = tempname()
   try
     execute cd.'`=s:repo().tree()`'
-    let command = 'GIT_EDITOR=false '.s:repo().git_command('commit').' '.a:args
-    if a:args =~# '\%(^\| \)--interactive\>'
+    let command = ''
+    if &shell =~# 'cmd'
+      let old_editor = $GIT_EDITOR
+      let $GIT_EDITOR = 'false'
+    elseif &shell !~# 'csh'
+      let command = 'GIT_EDITOR=false '
+    endif
+    let command .= s:repo().git_command('commit').' '.a:args
+    if &shell =~# 'csh'
+      silent execute '!setenv GIT_EDITOR false; ('.command.' > '.outfile.') >& '.errorfile
+    elseif a:args =~# '\%(^\| \)--interactive\>'
       execute '!'.command.' 2> '.errorfile
     else
       silent execute '!'.command.' > '.outfile.' 2> '.errorfile
-    end
+    endif
     if !v:shell_error
       if filereadable(outfile)
         for line in readfile(outfile)
@@ -656,6 +667,9 @@ function! s:Commit(args) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   finally
+    if exists('old_editor')
+      let $GIT_EDITOR = old_editor
+    endif
     call delete(outfile)
     call delete(errorfile)
     execute cd.'`=dir`'
@@ -1182,15 +1196,29 @@ endfunction
 " }}}1
 " File access {{{1
 
-function! s:ReplaceCmd(cmd) abort
+function! s:ReplaceCmd(cmd,...) abort
   let fn = bufname('')
   let tmp = tempname()
   let aw = &autowrite
+  let prefix = ''
   try
+    if a:0 && a:1 != ''
+      if &shell =~# 'cmd'
+        let old_index = $GIT_INDEX_FILE
+        let $GIT_INDEX_FILE = a:1
+      elseif &shell =~# 'csh'
+        let prefix = 'setenv GIT_INDEX_FILE '.s:shellesc(a:1).'; '
+      else
+        let prefix = 'GIT_INDEX_FILE='.s:shellesc(a:1).' '
+      endif
+    endif
     set noautowrite
-    silent exe '!'.escape(a:cmd,'%#') ' > '.tmp
+    silent exe '!'.escape(prefix.a:cmd,'%#').' > '.tmp
   finally
     let &autowrite = aw
+    if exists('old_index')
+      let $GIT_INDEX_FILE = 'old_index'
+    endif
   endtry
   silent exe 'keepalt file '.tmp
   silent edit!
@@ -1209,19 +1237,19 @@ function! s:BufReadIndex()
     let b:git_dir = s:repo().dir()
     setlocal noro ma
     if fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p') ==# expand('%:p')
-      let indexspec = ''
+      let index = ''
     else
-      let indexspec = 'GIT_INDEX_FILE='.s:shellesc(expand('%')).' '
+      let index = expand('%')
     endif
     if b:fugitive_display_format
-      call s:ReplaceCmd(indexspec.s:repo().git_command('ls-files','--stage'))
+      call s:ReplaceCmd(s:repo().git_command('ls-files','--stage'),index)
       set ft=git nospell
     else
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
       let dir = getcwd()
       try
         execute cd.'`=s:repo().tree()`'
-        call s:ReplaceCmd(indexspec.s:repo().git_command('status'))
+        call s:ReplaceCmd(s:repo().git_command('status'),index)
       finally
         execute cd.'`=dir`'
       endtry
