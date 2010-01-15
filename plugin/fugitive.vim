@@ -1123,7 +1123,9 @@ function! s:Blame(bang,line1,line2,count) abort
         execute "vertical resize ".(match(getline('.'),'\s\+\d\+)')+1)
         setlocal nomodified nomodifiable nonumber scrollbind nowrap foldcolumn=0 nofoldenable filetype=fugitiveblame
         nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
-        nnoremap <buffer> <silent> <CR> :<C-U>exe <SID>BlameJump()<CR>
+        nnoremap <buffer> <silent> <CR> :<C-U>exe <SID>BlameJump('')<CR>
+        nnoremap <buffer> <silent> P    :<C-U>exe <SID>BlameJump('^'.v:count1)<CR>
+        nnoremap <buffer> <silent> ~    :<C-U>exe <SID>BlameJump('~'.v:count1)<CR>
         nnoremap <buffer> <silent> o    :<C-U>exe <SID>Edit((&splitbelow ? "botright" : "topleft")." split", matchstr(getline('.'),'\x\+'))<CR>
         nnoremap <buffer> <silent> O    :<C-U>exe <SID>Edit("tabedit", matchstr(getline('.'),'\x\+'))<CR>
         syncbind
@@ -1139,7 +1141,7 @@ function! s:Blame(bang,line1,line2,count) abort
   endtry
 endfunction
 
-function! s:BlameJump() abort
+function! s:BlameJump(suffix) abort
   let commit = matchstr(getline('.'),'^\^\=\zs\x\+')
   if commit =~# '^0\+$'
     let commit = ':0'
@@ -1155,7 +1157,7 @@ function! s:BlameJump() abort
   if winnr > 0
     exe winnr.'wincmd w'
   endif
-  execute s:Edit('edit',commit.':'.path)
+  execute s:Edit('edit',commit.a:suffix.':'.path)
   if winnr > 0
     exe bufnr.'bdelete'
   endif
