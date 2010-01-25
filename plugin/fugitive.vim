@@ -71,9 +71,17 @@ function! s:define_commands()
   endfor
 endfunction
 
-augroup fugitive_commands
+function! s:compatibility_check()
+  if exists('b:git_dir') && exists('*GitBranchInfoCheckGitDir') && !exists('g:fugitive_did_compatibility_warning')
+    let g:fugitive_did_compatibility_warning = 1
+    call s:warn("See http://github.com/tpope/vim-fugitive/issues#issue/1 for why you should remove git-branch-info.vim")
+  endif
+endfunction
+
+augroup fugitive_utility
   autocmd!
   autocmd User Fugitive call s:define_commands()
+  autocmd VimEnter * call s:compatibility_check()
 augroup END
 
 let s:abstract_prototype = {}
