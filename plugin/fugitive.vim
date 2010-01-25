@@ -101,6 +101,9 @@ function! s:ExtractGitDir(path) abort
 endfunction
 
 function! s:Detect()
+  if exists('b:git_dir') && b:git_dir ==# ''
+    unlet b:git_dir
+  endif
   if !exists('b:git_dir')
     let dir = s:ExtractGitDir(expand('%:p'))
     if dir != ''
@@ -131,7 +134,7 @@ let s:repo_prototype = {}
 let s:repos = {}
 
 function! s:repo(...) abort
-  let dir = a:0 ? a:1 : (exists('b:git_dir') ? b:git_dir : s:ExtractGitDir(expand('%:p')))
+  let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : s:ExtractGitDir(expand('%:p')))
   if dir !=# ''
     if has_key(s:repos,dir)
       let repo = get(s:repos,dir)
