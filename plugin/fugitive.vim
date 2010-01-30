@@ -973,8 +973,8 @@ function! s:buffer_compare_age(commit) dict abort
   elseif base ==# a:commit
     return 1
   endif
-  let my_time    = self.repo().git_chomp('log','--max-count=1','--pretty=format:%at',self.commit())
-  let their_time = self.repo().git_chomp('log','--max-count=1','--pretty=format:%at',a:commit)
+  let my_time    = +self.repo().git_chomp('log','--max-count=1','--pretty=format:%at',self.commit())
+  let their_time = +self.repo().git_chomp('log','--max-count=1','--pretty=format:%at',a:commit)
   return my_time < their_time ? -1 : my_time != their_time
 endfunction
 
