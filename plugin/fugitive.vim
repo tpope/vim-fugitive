@@ -958,6 +958,28 @@ augroup fugitive_diff
   autocmd BufWinEnter * if winnr('$') == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff | endif
 augroup END
 
+function! s:buffer_compare_age(commit) dict abort
+  let scores = {':0': 1, ':1': 2, ':2': 3, ':': 4, ':3': 5}
+  let my_score    = get(scores,':'.self.commit(),0)
+  let their_score = get(scores,':'.a:commit,0)
+  if my_score || their_score
+    return my_score < their_score ? -1 : my_score != their_score
+  elseif self.commit() ==# a:commit
+    return 0
+  endif
+  let base = self.repo().git_chomp('merge-base',self.commit(),a:commit)
+  if base ==# self.commit()
+    return -1
+  elseif base ==# a:commit
+    return 1
+  endif
+  let my_time    = self.repo().git_chomp('log','--max-count=1','--pretty=format:%at',self.commit())
+  let their_time = self.repo().git_chomp('log','--max-count=1','--pretty=format:%at',a:commit)
+  return my_time < their_time ? -1 : my_time != their_time
+endfunction
+
+call s:add_methods('buffer',['compare_age'])
+
 function! s:Diff(...) abort
   if exists(':DiffGitCached')
     return 'DiffGitCached'
@@ -993,7 +1015,13 @@ function! s:Diff(...) abort
     let file = s:buffer().path(s:buffer().commit() == '' ? ':0:' : '/')
   endif
   try
-    vsplit `=fugitive#buffer().repo().translate(file)`
+    let spec = s:repo().translate(file)
+    let commit = matchstr(spec,'\C[^:/]//\zs\x\+')
+    if s:buffer().compare_age(commit) < 0
+      rightbelow vsplit `=spec`
+    else
+      leftabove vsplit `=spec`
+    endif
     diffthis
     wincmd p
     diffthis

@@ -120,7 +120,8 @@ that are part of Git repositories).
                         given revision.  With no argument, the version in the
                         index is used (which means a three-way diff during a
                         merge conflict, making it a git-mergetool
-                        alternative).  Use |do| and |dp| and write to the
+                        alternative).  The newer of the two files is placed
+                        to the right.  Use |do| and |dp| and write to the
                         index file to simulate "git add --patch".
 
                                                 *fugitive-:Gmove*
