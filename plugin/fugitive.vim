@@ -1064,7 +1064,9 @@ function! s:MoveComplete(A,L,P)
   if a:A =~ '^/'
     return s:repo().superglob(a:A)
   else
-    return split(glob(a:A.'*'),"\n")
+    let matches = split(glob(a:A.'*'),"\n")
+    call map(matches,'v:val !~ "/$" && isdirectory(v:val) ? v:val."/" : v:val')
+    return matches
   endif
 endfunction
 
