@@ -5,7 +5,6 @@ License: Same terms as Vim itself (see |license|)
 
 This plugin is only available if 'compatible' is not set.
 
-==============================================================================
 INTRODUCTION                                    *fugitive*
 
 Install in ~/.vim, or in ~\vimfiles if you're on Windows and feeling lucky.
@@ -31,7 +30,6 @@ Press o or O on any line to inspect that commit in a split or a tab.
 Run |:Ggrep| to search the work tree or history.  Run |:Gmove| to rename a
 file.  Run |:Gremove| to delete a file.
 
-==============================================================================
 COMMANDS                                        *fugitive-commands*
 
 These commands are local to the buffers in which they work (generally, buffers
@@ -143,7 +141,6 @@ that are part of Git repositories).
 
 :[range]Gblame          Run git-blame on the given range.
 
-==============================================================================
 MAPPINGS                                        *fugitive-mappings*
 
 These maps are available in Git objects.
@@ -171,7 +168,6 @@ C                       Go to the commit containing the current file.
 a                       Show the current tag, commit, or tree in an alternate
                         format.
 
-==============================================================================
 SPECIFYING REVISIONS                            *fugitive-revision*
 
 Fugitive revisions are similar to Git revisions as defined in the "SPECIFYING
@@ -199,12 +195,10 @@ HEAD^:Makefile  The file named Makefile in the parent of HEAD
 :3              The current file in the merged branch during a conflict
 :/foo           The most recent commit with "foo" in the message
 
-==============================================================================
 ABOUT                                           *fugitive-about*
 
 Grab the latest version or report a bug on Github:
 
 http://github.com/tpope/vim-fugitive
 
-==============================================================================
  vim:tw=78:et:ft=help:norl:
