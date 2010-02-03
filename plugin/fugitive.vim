@@ -1609,5 +1609,31 @@ function! s:GF(mode) abort
 endfunction
 
 " }}}1
+" Statusline {{{1
+
+function! s:repo_head_ref() dict abort
+  return readfile(s:repo().dir('HEAD'))[0]
+endfunction
+
+call s:add_methods('repo',['head_ref'])
+
+function! fugitive#statusline(...)
+  if !exists('b:git_dir')
+    return ''
+  endif
+  let status = 'Git'
+  if s:buffer().commit() != ''
+    let status .= ':' . s:buffer().commit()[0:7]
+  endif
+  let head = s:repo().head_ref()
+  if head =~# '^ref: '
+    let status .= s:sub(head,'^ref: %(refs/%(heads/|remotes/|tags/)=)=','(').')'
+  elseif head =~# '^\x\{40\}$'
+    let status .= '('.head[0:7].')'
+  endif
+  return '['.status.']'
+endfunction
+
+" }}}1
 
 " vim:set ft=vim ts=8 sw=2 sts=2:
