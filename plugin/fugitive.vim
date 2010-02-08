@@ -808,7 +808,10 @@ function! s:Edit(cmd,...) abort
     return 'echoerr v:errmsg'
   endtry
   if a:cmd =~# 'read!$' || a:cmd ==# 'read'
-    return '%delete|read '.s:fnameescape(file).'|1delete_|diffupdate|'.line('.')
+    if a:cmd =~# '!$'
+      call s:warn(':Gread! is deprecated. Use :Gread')
+    endif
+    return 'silent %delete|read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
   else
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
       wincmd p
