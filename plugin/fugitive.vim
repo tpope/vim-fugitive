@@ -108,12 +108,12 @@ function! s:ExtractGitDir(path) abort
   return ''
 endfunction
 
-function! s:Detect()
+function! s:Detect(path)
   if exists('b:git_dir') && b:git_dir ==# ''
     unlet b:git_dir
   endif
   if !exists('b:git_dir')
-    let dir = s:ExtractGitDir(expand('%:p'))
+    let dir = s:ExtractGitDir(a:path)
     if dir != ''
       let b:git_dir = dir
     endif
@@ -130,8 +130,9 @@ endfunction
 
 augroup fugitive
   autocmd!
-  autocmd BufNewFile,BufReadPost * call s:Detect()
-  autocmd FileType           netrw call s:Detect()
+  autocmd BufNewFile,BufReadPost * call s:Detect(expand('<amatch>:p'))
+  autocmd FileType           netrw call s:Detect(expand('<amatch>:p'))
+  autocmd VimEnter * if expand('<amatch>')==''|call s:Detect(getcwd())|endif
   autocmd BufWinLeave * execute getbufvar(+expand('<abuf>'), 'fugitive_restore')
 augroup END
 
@@ -348,6 +349,8 @@ function! s:buffer_type(...) dict abort
     let type = 'index'
   elseif isdirectory(self.name())
     let type = 'directory'
+  elseif self.name() == ''
+    let type = 'null'
   elseif filereadable(self.name())
     let type = 'file'
   else
@@ -361,7 +364,8 @@ function! s:buffer_type(...) dict abort
 endfunction
 
 function! s:buffer_name() dict abort
-  return fnamemodify(bufname(self['#']),':p')
+  let bufname = bufname(self['#'])
+  return bufname == '' ? '' : fnamemodify(bufname,':p')
 endfunction
 
 function! s:buffer_commit() dict abort
@@ -662,7 +666,11 @@ function! s:Commit(args) abort
         if args !~# '\%(^\| \)--cleanup\>'
           let args = '--cleanup=strip '.args
         endif
-        split `=msgfile`
+        if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&mod
+          edit `=msgfile`
+        else
+          split `=msgfile`
+        endif
         if old_type ==# 'index'
           bdelete #
         endif
@@ -1160,7 +1168,7 @@ function! s:Blame(bang,line1,line2,count) abort
         let b:fugitive_type = 'blame'
         let b:fugitive_blamed_bufnr = bufnr
         let b:fugitive_restore = restore
-        call s:Detect()
+        call s:Detect(expand('%:p'))
         execute top
         normal! zt
         execute current
