@@ -1632,7 +1632,7 @@ function! fugitive#statusline(...)
   if !exists('b:git_dir')
     return ''
   endif
-  let status = 'Git'
+  let status = ''
   if s:buffer().commit() != ''
     let status .= ':' . s:buffer().commit()[0:7]
   endif
@@ -1642,7 +1642,11 @@ function! fugitive#statusline(...)
   elseif head =~# '^\x\{40\}$'
     let status .= '('.head[0:7].')'
   endif
-  return '['.status.']'
+  if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
+    return ',GIT'.status
+  else
+    return '[Git'.status.']'
+  endif
 endfunction
 
 " }}}1
