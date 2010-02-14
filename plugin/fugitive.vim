@@ -532,10 +532,7 @@ function! s:StageToggle(lnum1,lnum2) abort
       if getline('.') == '# Changes to be committed:'
         return 'Gcommit'
       endif
-      let filename = matchstr(line,'^#\t[[:alpha:] ]\+: *\zs.*')
-      if filename ==# ''
-        let filename = matchstr(line,'^#\t\zs.*')
-      endif
+      let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
       if filename ==# ''
         continue
       endif
@@ -557,10 +554,15 @@ function! s:StageToggle(lnum1,lnum2) abort
       let output .= call(s:repo().git_chomp_in_tree,cmd,s:repo())."\n"
     endfor
     if exists('first_filename')
+      let jump = first_filename
+      let f = matchstr(getline(a:lnum1-1),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+      if f !=# '' | let jump = f | endif
+      let f = matchstr(getline(a:lnum2+1),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+      if f !=# '' | let jump = f | endif
       silent! edit!
       1
       redraw
-      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\$','W')
+      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.jump.'\$','W')
     endif
     echo s:sub(s:gsub(output,'\n+','\n'),'\n$','')
   catch /^fugitive:/
@@ -580,10 +582,7 @@ function! s:StagePatch(lnum1,lnum2) abort
     elseif line == '# Changed but not updated:'
       return 'Git add --patch'
     endif
-    let filename = matchstr(line,'^#\t[[:alpha:] ]\+: *\zs.*')
-    if filename ==# ''
-      let filename = matchstr(line,'^#\t\zs.*')
-    endif
+    let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
     if filename ==# ''
       continue
     endif
