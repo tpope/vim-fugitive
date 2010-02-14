@@ -1475,7 +1475,10 @@ function! s:JumpInit() abort
     nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',<SID>buffer().commit().'^'.v:count1.<SID>buffer().path(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',<SID>buffer().commit().'~'.v:count1.<SID>buffer().path(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe <SID>Edit('edit',<SID>buffer().containing_commit())<CR>
-    nnoremap <buffer> <silent> c     :<C-U>exe <SID>Edit('pedit',<SID>buffer().containing_commit())<CR>
+    nnoremap <buffer> <silent> cc    :<C-U>exe <SID>Edit('edit',<SID>buffer().containing_commit())<CR>
+    nnoremap <buffer> <silent> co    :<C-U>exe <SID>Edit('split',<SID>buffer().containing_commit())<CR>
+    nnoremap <buffer> <silent> cO    :<C-U>exe <SID>Edit('tabedit',<SID>buffer().containing_commit())<CR>
+    nnoremap <buffer> <silent> cp    :<C-U>exe <SID>Edit('pedit',<SID>buffer().containing_commit())<CR>
   endif
 endfunction
 
