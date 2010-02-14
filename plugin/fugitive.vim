@@ -1011,14 +1011,14 @@ function! s:Diff(...) abort
       let file = s:buffer().path(':0:')
     elseif a:1 =~# '^:/'
       try
-        let file = s:repo().rev_parse(a:1)
+        let file = s:repo().rev_parse(a:1).s:buffer().path(':')
       catch /^fugitive:/
         return 'echoerr v:errmsg'
       endtry
     else
       let file = s:buffer().expand(a:1)
     endif
-    if file !~ ':' && file !~ '^/'
+    if file !~# ':' && file !~# '^/' && s:repo().git_chomp('cat-file','-t',file) =~# '^\%(tag\|commit\)$'
       let file = file.s:buffer().path(':')
     endif
   else
