@@ -1,4 +1,4 @@
-*fugitive.txt*  a Git wrapper so awesome, it should be illegal
+*fugitive.txt*  A Git wrapper so awesome, it should be illegal
 
 Author:  Tim Pope <vimNOSPAM@tpope.info>        *fugitive-author*
 License: Same terms as Vim itself (see |license|)
