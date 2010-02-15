@@ -210,7 +210,7 @@ a statusline, this one matches the default when 'ruler' is set:
 <
 ABOUT                                           *fugitive-about*
 
-Grab the latest version or report a bug on Github:
+Grab the latest version or report a bug on GitHub:
 
 http://github.com/tpope/vim-fugitive
 
