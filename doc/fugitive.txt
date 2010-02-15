@@ -23,6 +23,10 @@ the indexed version.  Use |do| and |dp| on various hunks to bring the files in
 sync, or use |:Gread| to pull in all changes.  Write the indexed version to
 stage the file.
 
+Run |:Gstatus| to check your repository's status.  Use "-" to stage and reset
+files and "p" to add/reset --patch them.  Invoke |:Gcommit| to commit your
+changes.
+
 Run |:Gblame| in a work tree file to see a blame in a vertical split.  Press
 <CR> on any line to reopen and reblame that file as it stood in that commit.
 Press o or O on any line to inspect that commit in a split or a tab.
