@@ -1,7 +1,7 @@
 " fugitive.vim - A Git wrapper so awesome, it should be illegal
 " Maintainer:   Tim Pope <vimNOSPAM@tpope.org>
 
-if (exists("g:loaded_fugitive") && g:loaded_fugitive) || &cp
+if exists('g:loaded_fugitive') || &cp
   finish
 endif
 let g:loaded_fugitive = 1
