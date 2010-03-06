@@ -139,11 +139,13 @@ that are part of Git repositories).
                         buffer.
 
                                                 *fugitive-:Gblame*
-:Gblame                 Run git-blame on the file and open the results in a
+:Gblame [flags]         Run git-blame on the file and open the results in a
                         scroll bound vertical split.  Press enter on a line to
-                        reblame the file as it was in that commit.
+                        reblame the file as it was in that commit.  You can
+                        give any of ltwfsMC as flags and they will be passed
+                        along to git-blame.
 
-:[range]Gblame          Run git-blame on the given range.
+:[range]Gblame [flags]  Run git-blame on the given range.
 
 MAPPINGS                                        *fugitive-mappings*
 
