@@ -300,7 +300,7 @@ call s:add_methods('repo',['dirglob','superglob'])
 
 function! s:repo_keywordprg() dict abort
   let args = ' --git-dir='.escape(self.dir(),"\\\"' ").' show'
-  if has("gui_running")
+  if has('gui_running') && !has('win32')
     return g:fugitive_git_executable . ' --no-pager' . args
   else
     return g:fugitive_git_executable . args
@@ -463,7 +463,7 @@ endfunction
 
 function! s:Git(bang,cmd) abort
   let git = s:repo().git_command()
-  if has('gui_running')
+  if has('gui_running') && !has('win32')
     let git .= ' --no-pager'
   endif
   call s:ExecuteInTree('!'.git.' '.a:cmd)
