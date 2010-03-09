@@ -92,10 +92,15 @@ let s:abstract_prototype = {}
 " Initialization {{{1
 
 function! s:ExtractGitDir(path) abort
-  if a:path =~? '^fugitive://.*//'
-    return matchstr(a:path,'fugitive://\zs.\{-\}\ze//')
+  if exists('+shellslash') && !&shellslash
+    let path = s:gsub(a:path,'\\','/')
+  else
+    let path = a:path
   endif
-  let fn = fnamemodify(a:path,':s?[\/]$??')
+  if path =~? '^fugitive://.*//'
+    return matchstr(path,'fugitive://\zs.\{-\}\ze//')
+  endif
+  let fn = fnamemodify(path,':s?[\/]$??')
   let ofn = ""
   let nfn = fn
   while fn != ofn
@@ -367,7 +372,12 @@ endfunction
 
 function! s:buffer_name() dict abort
   let bufname = bufname(self['#'])
-  return bufname == '' ? '' : fnamemodify(bufname,':p')
+  let bufname = bufname == '' ? '' : fnamemodify(bufname,':p')
+  if exists('+shellslash') && !&shellslash
+    return s:gsub(bufname,'\\','/')
+  else
+    return bufname
+  endif
 endfunction
 
 function! s:buffer_commit() dict abort
