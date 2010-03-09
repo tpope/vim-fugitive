@@ -1159,10 +1159,11 @@ function! s:Blame(bang,line1,line2,count,args) abort
       if a:count
         execute 'write !'.substitute(basecmd,' blame ',' blame -L '.a:line1.','.a:line2.' ','g')
       else
-        let temp = tempname().'.fugitiveblame'
-        silent! exe '%write !'.basecmd.' > '.temp.' 2> '.temp
+        let error = tempname()
+        let temp = error.'.fugitiveblame'
+        silent! exe '%write !'.basecmd.' > '.temp.' 2> '.error
         if v:shell_error
-          call s:throw(join(readfile(temp),"\n"))
+          call s:throw(join(readfile(error),"\n"))
         endif
         let bufnr = bufnr('')
         let restore = 'call setbufvar('.bufnr.',"&scrollbind",0)'
