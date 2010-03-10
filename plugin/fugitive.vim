@@ -56,6 +56,14 @@ function! s:warn(str)
   let v:warningmsg = a:str
 endfunction
 
+function! s:shellslash(path)
+  if exists('+shellslash') && !&shellslash
+    return s:gsub(a:path,'\\','/')
+  else
+    return a:path
+  endif
+endfunction
+
 function! s:add_methods(namespace, method_names) abort
   for name in a:method_names
     let s:{a:namespace}_prototype[name] = s:function('s:'.a:namespace.'_'.name)
@@ -92,11 +100,7 @@ let s:abstract_prototype = {}
 " Initialization {{{1
 
 function! s:ExtractGitDir(path) abort
-  if exists('+shellslash') && !&shellslash
-    let path = s:gsub(a:path,'\\','/')
-  else
-    let path = a:path
-  endif
+  let path = s:shellslash(a:path)
   if path =~? '^fugitive://.*//'
     return matchstr(path,'fugitive://\zs.\{-\}\ze//')
   endif
@@ -271,6 +275,7 @@ function! s:repo_superglob(base) dict abort
     if !self.bare()
       let base = s:sub(a:base,'^/','')
       let matches = split(glob(self.tree(s:gsub(base,'/','*&').'*')),"\n")
+      call map(matches,'s:shellslash(v:val)')
       call map(matches,'v:val !~ "/$" && isdirectory(v:val) ? v:val."/" : v:val')
       call map(matches,'v:val[ strlen(self.tree())+(a:base !~ "^/") : -1 ]')
       let results += matches
@@ -372,12 +377,7 @@ endfunction
 
 function! s:buffer_name() dict abort
   let bufname = bufname(self['#'])
-  let bufname = bufname == '' ? '' : fnamemodify(bufname,':p')
-  if exists('+shellslash') && !&shellslash
-    return s:gsub(bufname,'\\','/')
-  else
-    return bufname
-  endif
+  return s:shellslash(bufname == '' ? '' : fnamemodify(bufname,':p'))
 endfunction
 
 function! s:buffer_commit() dict abort
