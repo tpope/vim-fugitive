@@ -1293,7 +1293,7 @@ function! s:ReplaceCmd(cmd,...) abort
   finally
     let &autowrite = aw
     if exists('old_index')
-      let $GIT_INDEX_FILE = 'old_index'
+      let $GIT_INDEX_FILE = old_index
     endif
   endtry
   silent exe 'keepalt file '.tmp
