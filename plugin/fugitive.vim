@@ -670,7 +670,7 @@ function! s:Commit(args) abort
       let error = get(readfile(errorfile,'',1),0,'!')
       if error =~# "'false'\\.$"
         let args = a:args
-        let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-e|--edit|--interactive)%($| )','')
+        let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-[se]|--edit|--interactive)%($| )','')
         let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-F|--file|-m|--message)%(\s+|\=)%(''[^'']*''|"%(\\.|[^"])*"|\\.|\S)*','')
         let args = s:gsub(args,'%(^| )@<=[%#]%(:\w)*','\=expand(submatch(0))')
         let args = '-F '.s:shellesc(msgfile).' '.args
