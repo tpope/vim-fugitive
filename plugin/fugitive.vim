@@ -474,7 +474,7 @@ function! s:GitComplete(A,L,P) abort
   if !exists('s:exec_path')
     let s:exec_path = s:sub(system(g:fugitive_git_executable.' --exec-path'),'\n$','')
   endif
-  let cmds = map(split(glob(s:exec_path.'/git-*'),"\n"),'v:val[strlen(s:exec_path)+5 : -1]')
+  let cmds = map(split(glob(s:exec_path.'/git-*'),"\n"),'s:sub(v:val[strlen(s:exec_path)+5 : -1],"\\.exe$","")')
   if a:L =~ ' [[:alnum:]-]\+ '
     return s:repo().superglob(a:A)
   elseif a:A == ''
