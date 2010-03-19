@@ -448,7 +448,7 @@ call s:add_methods('buffer',['getvar','setvar','getline','repo','type','name','c
 " }}}1
 " Git {{{1
 
-call s:command("-bar -bang -nargs=? -complete=customlist,s:GitComplete Git :call s:Git(<bang>0,<q-args>)")
+call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Git :execute s:Git(<bang>0,<q-args>)")
 
 function! s:ExecuteInTree(cmd) abort
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
@@ -466,8 +466,10 @@ function! s:Git(bang,cmd) abort
   if has('gui_running') && !has('win32')
     let git .= ' --no-pager'
   endif
-  call s:ExecuteInTree('!'.git.' '.a:cmd)
+  let cmd = matchstr(a:cmd,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
+  call s:ExecuteInTree('!'.git.' '.cmd)
   call fugitive#reload_status()
+  return matchstr(a:cmd,'\v\C\\@<!%(\\\\)*\|\zs.*')
 endfunction
 
 function! s:GitComplete(A,L,P) abort
@@ -738,7 +740,7 @@ if !exists('g:fugitive_summary_format')
   let g:fugitive_summary_format = '%s'
 endif
 
-call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execute s:Grep(<bang>0,<q-args>)")
+call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execute s:Grep(<bang>0,<q-args>)")
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Glog :execute s:Log('grep<bang>',<f-args>)")
 
 function! s:Grep(bang,arg) abort
@@ -750,7 +752,7 @@ function! s:Grep(bang,arg) abort
     execute cd.'`=s:repo().tree()`'
     let &grepprg = s:repo().git_command('--no-pager', 'grep', '-n')
     let &grepformat = '%f:%l:%m'
-    exe 'grep! '.a:arg
+    exe 'grep! '.escape(matchstr(a:arg,'\v\C.{-}%($|[''" ]\@=\|)@='),'|')
     let list = getqflist()
     for entry in list
       if bufname(entry.bufnr) =~ ':'
@@ -763,9 +765,9 @@ function! s:Grep(bang,arg) abort
     endfor
     call setqflist(list,'r')
     if !a:bang && !empty(list)
-      return 'cfirst'
+      return 'cfirst'.matchstr(a:arg,'\v\C[''" ]\zs\|.*')
     else
-      return ''
+      return matchstr(a:arg,'\v\C[''" ]\|\zs.*')
     endif
   finally
     let &grepprg = grepprg
