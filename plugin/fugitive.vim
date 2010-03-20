@@ -539,13 +539,14 @@ function! fugitive#reload_status() abort
 endfunction
 
 function! s:StageDiff() abort
+  let section = getline(search('^# .*:$','bnW'))
   let line = getline('.')
   let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
-  if filename ==# ''
-    return ''
-  endif
-  let section = getline(search('^# .*:$','bnW'))
-  if line =~# '^#\trenamed:' && filename =~ ' -> '
+  if filename ==# '' && section == '# Changes to be committed:'
+    return 'Git diff --cached'
+  elseif filename ==# ''
+    return 'Git diff'
+  elseif line =~# '^#\trenamed:' && filename =~ ' -> '
     let [old, new] = split(filename,' -> ')
     execute 'Gedit '.s:fnameescape(':0:'.new)
     return 'Gdiff HEAD:'.s:fnameescape(old)
