@@ -51,7 +51,8 @@ that are part of Git repositories).
 
                                                 *fugitive-:Gstatus*
 :Gstatus                Bring up the output of git-status in the preview
-                        window.  Press - to stage or unstage the file on the
+                        window.  Press D to |:Gdiff| the file on the cursor
+                        line.  Press - to stage or unstage the file on the
                         cursor line.  Press p to do so on a per hunk basis
                         (--patch).  Press C to invoke |:Gcommit|.
 

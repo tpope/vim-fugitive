@@ -538,6 +538,26 @@ function! fugitive#reload_status() abort
   endfor
 endfunction
 
+function! s:StageDiff() abort
+  let line = getline('.')
+  let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+  if filename ==# ''
+    return ''
+  endif
+  let section = getline(search('^# .*:$','bnW'))
+  if line =~# '^#\trenamed:' && filename =~ ' -> '
+    let [old, new] = split(filename,' -> ')
+    execute 'Gedit '.s:fnameescape(':0:'.new)
+    return 'Gdiff HEAD:'.s:fnameescape(old)
+  elseif section == '# Changes to be committed:'
+    execute 'Gedit '.s:fnameescape(':0:'.filename)
+    return 'Gdiff -'
+  else
+    execute 'Gedit '.s:fnameescape('/'.filename)
+    return 'Gdiff'
+  endif
+endfunction
+
 function! s:StageToggle(lnum1,lnum2) abort
   try
     let output = ''
@@ -1336,6 +1356,7 @@ function! s:BufReadIndex()
     setlocal ro noma nomod nomodeline bufhidden=delete
     nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe <SID>BufReadIndex()<CR>
     nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe <SID>BufReadIndex()<CR>
+    nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff()<CR>
     nnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line("'<"),line("'>"))<CR>
     nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
