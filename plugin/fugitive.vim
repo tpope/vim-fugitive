@@ -999,9 +999,17 @@ endfunction
 call s:command("-bang -bar -nargs=? -complete=customlist,s:EditComplete Gdiff :execute s:Diff(<bang>0,<f-args>)")
 
 augroup fugitive_diff
-  autocmd BufWinLeave * if winnr('$') == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff! | endif
-  autocmd BufWinEnter * if winnr('$') == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff | endif
+  autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff! | endif
+  autocmd BufWinEnter * if s:diff_window_count() == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff | endif
 augroup END
+
+function! s:diff_window_count()
+  let c = 0
+  for nr in range(1,winnr('$'))
+    let c += getwinvar(nr,'&diff')
+  endfor
+  return c
+endfunction
 
 function! s:buffer_compare_age(commit) dict abort
   let scores = {':0': 1, ':1': 2, ':2': 3, ':': 4, ':3': 5}
