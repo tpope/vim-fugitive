@@ -999,6 +999,7 @@ endfunction
 call s:command("-bang -bar -nargs=? -complete=customlist,s:EditComplete Gdiff :execute s:Diff(<bang>0,<f-args>)")
 
 augroup fugitive_diff
+  autocmd!
   autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff! | endif
   autocmd BufWinEnter * if s:diff_window_count() == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff | endif
 augroup END
