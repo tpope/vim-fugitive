@@ -144,7 +144,7 @@ augroup fugitive
   autocmd BufNewFile,BufReadPost * call s:Detect(expand('<amatch>:p'))
   autocmd FileType           netrw call s:Detect(expand('<amatch>:p'))
   autocmd VimEnter * if expand('<amatch>')==''|call s:Detect(getcwd())|endif
-  autocmd BufWinLeave * execute getbufvar(+expand('<abuf>'), 'fugitive_restore')
+  autocmd BufWinLeave * execute getwinvar(+winnr(), 'fugitive_restore')
 augroup END
 
 " }}}1
@@ -1199,12 +1199,12 @@ function! s:Blame(bang,line1,line2,count,args) abort
           call s:throw(join(readfile(error),"\n"))
         endif
         let bufnr = bufnr('')
-        let restore = 'call setbufvar('.bufnr.',"&scrollbind",0)'
+        let restore = 'call setwinvar(bufwinnr('.bufnr.'),"&scrollbind",0)'
         if &l:wrap
-          let restore .= '|call setbufvar('.bufnr.',"&wrap",1)'
+          let restore .= '|call setwinvar(bufwinnr('.bufnr.'),"&wrap",1)'
         endif
         if &l:foldenable
-          let restore .= '|call setbufvar('.bufnr.',"&foldenable",1)'
+          let restore .= '|call setwinvar(bufwinnr('.bufnr.'),"&foldenable",1)'
         endif
         let winnr = winnr()
         windo set noscrollbind
@@ -1216,7 +1216,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
         let b:git_dir = git_dir
         let b:fugitive_type = 'blame'
         let b:fugitive_blamed_bufnr = bufnr
-        let b:fugitive_restore = restore
+        let w:fugitive_restore = restore
         let b:fugitive_blame_arguments = join(a:args,' ')
         call s:Detect(expand('%:p'))
         execute top
