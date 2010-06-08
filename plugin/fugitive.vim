@@ -1200,7 +1200,11 @@ function! s:Blame(bang,line1,line2,count,args) abort
       else
         let error = tempname()
         let temp = error.'.fugitiveblame'
-        silent! exe '%write !'.basecmd.' > '.temp.' 2> '.error
+        if &shell =~# 'csh'
+          silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
+        else
+          silent! execute '%write !'.basecmd.' > '.temp.' 2> '.error
+        endif
         if v:shell_error
           call s:throw(join(readfile(error),"\n"))
         endif
