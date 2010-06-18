@@ -1729,6 +1729,18 @@ function! fugitive#statusline(...)
   endif
 endfunction
 
+function! s:repo_config(conf) dict abort
+  return matchstr(system(s:repo().git_command('config').' '.a:conf),"[^\r\n]*")
+endfun
+
+function! s:repo_user() dict abort
+  let username=s:repo().config('user.name')
+  let useremail=s:repo().config('user.email')
+  return username.' <'.useremail.'>'
+endfun
+
+call s:add_methods('repo',['config', 'user'])
+
 " }}}1
 
 " vim:set ft=vim ts=8 sw=2 sts=2:
