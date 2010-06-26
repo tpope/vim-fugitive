@@ -11,7 +11,7 @@ version of the file side by side with the working tree version and use
 Vim's diff handling capabilities to stage a subset of the file's
 changes.
 
-Bring up the output of `git status` with `:Gstatus`.  Use `-` to
+Bring up the output of `git status` with `:Gstatus`.  Press `-` to
 `add`/`reset` a file's changes, or `p` to `add`/`reset` `--patch` that
 mofo.  And guess what `:Gcommit` does!
 
