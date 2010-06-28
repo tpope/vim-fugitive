@@ -1734,8 +1734,8 @@ function! s:repo_config(conf) dict abort
 endfun
 
 function! s:repo_user() dict abort
-  let username=s:repo().config('user.name')
-  let useremail=s:repo().config('user.email')
+  let username = s:repo().config('user.name')
+  let useremail = s:repo().config('user.email')
   return username.' <'.useremail.'>'
 endfun
 
