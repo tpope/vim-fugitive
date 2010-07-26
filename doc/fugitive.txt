@@ -127,6 +127,9 @@ that are part of Git repositories).
                         to the right.  Use |do| and |dp| and write to the
                         index file to simulate "git add --patch".
 
+                                                *fugitive-:Gdiff!*
+:Gdiff! [revision]      Like |:Gdiff|, but split horizontally.
+
                                                 *fugitive-:Gmove*
 :Gmove {destination}    Wrapper around git-mv that renames the buffer
                         afterward.  The destination is relative to the current
