@@ -132,9 +132,12 @@ function! s:Detect(path)
   if exists('b:git_dir')
     silent doautocmd User Fugitive
     cnoremap <expr> <buffer> <C-R><C-G> fugitive#buffer().rev()
+    let buffer = fugitive#buffer()
     if expand('%:p') =~# '//'
-      let buffer = fugitive#buffer()
       call buffer.setvar('&path',s:sub(buffer.getvar('&path'),'^\.%(,|$)',''))
+    endif
+    if b:git_dir !~# ',' && stridx(buffer.getvar('&tags'),b:git_dir) == -1
+      call buffer.setvar('&tags',buffer.getvar('&tags').','.b:git_dir)
     endif
   endif
 endfunction
