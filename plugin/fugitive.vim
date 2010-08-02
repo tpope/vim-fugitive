@@ -137,7 +137,7 @@ function! s:Detect(path)
       call buffer.setvar('&path',s:sub(buffer.getvar('&path'),'^\.%(,|$)',''))
     endif
     if b:git_dir !~# ',' && stridx(buffer.getvar('&tags'),b:git_dir) == -1
-      call buffer.setvar('&tags',buffer.getvar('&tags').','.b:git_dir)
+      call buffer.setvar('&tags',buffer.getvar('&tags').','.b:git_dir.'/tags')
     endif
   endif
 endfunction
