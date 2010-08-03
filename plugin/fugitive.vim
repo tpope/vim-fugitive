@@ -354,7 +354,7 @@ endfunction
 function! s:buffer_type(...) dict abort
   if self.getvar('fugitive_type') != ''
     let type = self.getvar('fugitive_type')
-  elseif fnamemodify(self.name(),':p') =~# '.\git/refs/\|\.git/\w*HEAD$'
+  elseif fnamemodify(self.spec(),':p') =~# '.\git/refs/\|\.git/\w*HEAD$'
     let type = 'head'
   elseif self.getline(1) =~ '^tree \x\{40\}$' && self.getline(2) == ''
     let type = 'tree'
@@ -362,11 +362,11 @@ function! s:buffer_type(...) dict abort
     let type = 'tree'
   elseif self.getline(1) =~ '^\d\{6\} \x\{40\}\> \d\t'
     let type = 'index'
-  elseif isdirectory(self.name())
+  elseif isdirectory(self.spec())
     let type = 'directory'
-  elseif self.name() == ''
+  elseif self.spec() == ''
     let type = 'null'
-  elseif filereadable(self.name())
+  elseif filereadable(self.spec())
     let type = 'file'
   else
     let type = ''
@@ -378,42 +378,46 @@ function! s:buffer_type(...) dict abort
   endif
 endfunction
 
-function! s:buffer_name() dict abort
+function! s:buffer_spec() dict abort
   let bufname = bufname(self['#'])
   return s:shellslash(bufname == '' ? '' : fnamemodify(bufname,':p'))
 endfunction
 
+function! s:buffer_name() dict abort
+  return self.spec()
+endfunction
+
 function! s:buffer_commit() dict abort
-  return matchstr(self.name(),'^fugitive://.\{-\}//\zs\w*')
+  return matchstr(self.spec(),'^fugitive://.\{-\}//\zs\w*')
 endfunction
 
 function! s:buffer_path(...) dict abort
-  let rev = matchstr(self.name(),'^fugitive://.\{-\}//\zs.*')
+  let rev = matchstr(self.spec(),'^fugitive://.\{-\}//\zs.*')
   if rev != ''
     let rev = s:sub(rev,'\w*','')
   else
-    let rev = self.name()[strlen(self.repo().tree()) : -1]
+    let rev = self.spec()[strlen(self.repo().tree()) : -1]
   endif
   return s:sub(rev,'^/',a:0 ? a:1 : '')
 endfunction
 
 function! s:buffer_rev() dict abort
-  let rev = matchstr(self.name(),'^fugitive://.\{-\}//\zs.*')
+  let rev = matchstr(self.spec(),'^fugitive://.\{-\}//\zs.*')
   if rev =~ '^\x/'
     return ':'.rev[0].':'.rev[2:-1]
   elseif rev =~ '.'
     return s:sub(rev,'/',':')
-  elseif self.name() =~ '\.git/index$'
+  elseif self.spec() =~ '\.git/index$'
     return ':'
-  elseif self.name() =~ '\.git/refs/\|\.git/.*HEAD$'
-    return self.name()[strlen(self.repo().dir())+1 : -1]
+  elseif self.spec() =~ '\.git/refs/\|\.git/.*HEAD$'
+    return self.spec()[strlen(self.repo().dir())+1 : -1]
   else
     return self.path()
   endif
 endfunction
 
 function! s:buffer_sha1() dict abort
-  if self.name() =~ '^fugitive://' || self.name() =~ '\.git/refs/\|\.git/.*HEAD$'
+  if self.spec() =~ '^fugitive://' || self.spec() =~ '\.git/refs/\|\.git/.*HEAD$'
     return self.repo().rev_parse(self.rev())
   else
     return ''
@@ -446,7 +450,7 @@ function! s:buffer_containing_commit() dict abort
   endif
 endfunction
 
-call s:add_methods('buffer',['getvar','setvar','getline','repo','type','name','commit','path','rev','sha1','expand','containing_commit'])
+call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','name','commit','path','rev','sha1','expand','containing_commit'])
 
 " }}}1
 " Git {{{1
