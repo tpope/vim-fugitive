@@ -1365,7 +1365,7 @@ function! s:BufReadIndex()
     if fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p') ==# expand('%:p')
       let index = ''
     else
-      let index = expand('%')
+      let index = expand('%:p')
     endif
     if b:fugitive_display_format
       call s:ReplaceCmd(s:repo().git_command('ls-files','--stage'),index)
