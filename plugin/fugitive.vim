@@ -948,7 +948,11 @@ function! s:Write(force,...) abort
     execute 'write! '.s:fnameescape(s:repo().translate(path))
   endif
 
-  let error = s:repo().git_chomp_in_tree('add', file)
+  if a:force
+    let error = s:repo().git_chomp_in_tree('add', '--force', file)
+  else
+    let error = s:repo().git_chomp_in_tree('add', file)
+  endif
   if v:shell_error
     let v:errmsg = 'fugitive: '.error
     return 'echoerr v:errmsg'
