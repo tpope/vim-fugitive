@@ -398,7 +398,7 @@ function! s:buffer_path(...) dict abort
   else
     let rev = self.spec()[strlen(self.repo().tree()) : -1]
   endif
-  return s:sub(rev,'^/',a:0 ? a:1 : '')
+  return s:sub(s:sub(rev,'.\zs/$',''),'^/',a:0 ? a:1 : '')
 endfunction
 
 function! s:buffer_rev() dict abort
@@ -437,7 +437,7 @@ function! s:buffer_expand(rev) dict abort
   else
     let file = a:rev
   endif
-  return s:sub(file,'\%$',self.path())
+  return s:sub(s:sub(file,'\%$',self.path()),'/$','')
 endfunction
 
 function! s:buffer_containing_commit() dict abort
@@ -1602,9 +1602,9 @@ function! s:GF(mode) abort
       if showtree && line('.') == 1
         return ""
       elseif showtree && line('.') > 2
-        return s:Edit(a:mode,buffer.commit().':'.(buffer.path() == '' ? '' : buffer.path().'/').s:sub(getline('.'),'/$',''))
+        return s:Edit(a:mode,buffer.commit().':'.s:buffer().path().(buffer.path() =~# '^$\|/$' ? '' : '/').s:sub(getline('.'),'/$',''))
       elseif getline('.') =~# '^\d\{6\} \l\{3,8\} \x\{40\}\t'
-        return s:Edit(a:mode,buffer.commit().':'.(buffer.path() == '' ? '' : buffer.path().'/').s:sub(matchstr(getline('.'),'\t\zs.*'),'/$',''))
+        return s:Edit(a:mode,buffer.commit().':'.s:buffer().path().(buffer.path() =~# '^$\|/$' ? '' : '/').s:sub(matchstr(getline('.'),'\t\zs.*'),'/$',''))
       endif
 
     elseif buffer.type('blob')
