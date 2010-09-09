@@ -697,7 +697,7 @@ function! s:Commit(args) abort
       endif
       return ''
     else
-      let error = get(readfile(errorfile,'',1),0,'!')
+      let error = get(readfile(errorfile),-2,'!')
       if error =~# "'false'\\.$"
         let args = a:args
         let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-[se]|--edit|--interactive)%($| )','')
