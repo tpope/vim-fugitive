@@ -1395,6 +1395,8 @@ function! s:BufReadIndex()
     xnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line("'<"),line("'>"))<CR>
     nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
+    nnoremap <buffer> <silent> <C-N> :call search('^#\t.*','W')<Bar>.<CR>
+    nnoremap <buffer> <silent> <C-P> :call search('^#\t.*','Wbe')<Bar>.<CR>
     call s:JumpInit()
     nunmap   <buffer>          P
     nunmap   <buffer>          ~

@@ -51,7 +51,9 @@ that are part of Git repositories).
 
                                                 *fugitive-:Gstatus*
 :Gstatus                Bring up the output of git-status in the preview
-                        window.  Press D to |:Gdiff| the file on the cursor
+                        window.  In addition to standard motions, you can
+                        use <C-N> and <C-P> to jump from filename to
+                        filename.  Press D to |:Gdiff| the file on the cursor
                         line, or dh to |:Gdiff!|.  Press - to stage or unstage
                         the file on the cursor line.  Press p to do so on a
                         per hunk basis (--patch).  Press C to invoke
