@@ -748,7 +748,6 @@ endfunction
 
 function! s:FinishCommit()
   let args = getbufvar(+expand('<abuf>'),'fugitive_commit_arguments')
-  let g:args = args
   if !empty(args)
     call setbufvar(+expand('<abuf>'),'fugitive_commit_arguments','')
     return s:Commit(args)
