@@ -1218,6 +1218,10 @@ function! s:Blame(bang,line1,line2,count,args) abort
         else
           silent! execute '%write !'.basecmd.' > '.temp.' 2> '.error
         endif
+        if exists('l:dir')
+          execute cd.'`=dir`'
+          unlet dir
+        endif
         if v:shell_error
           call s:throw(join(readfile(error),"\n"))
         endif
