@@ -1013,8 +1013,8 @@ call s:command("-bar -nargs=? -complete=customlist,s:EditComplete Gsdiff :execut
 
 augroup fugitive_diff
   autocmd!
-  autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | execute 'windo call s:diff_off()' | endif
-  autocmd BufWinEnter * if s:diff_window_count() == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diff_off() | endif
+  autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diff_off_all() | endif
+  autocmd BufWinEnter * if s:diff_window_count() == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff | endif
 augroup END
 
 function! s:diff_window_count()
@@ -1025,10 +1025,20 @@ function! s:diff_window_count()
   return c
 endfunction
 
-function! s:diff_off()
-  if &l:diff
-    diffoff
-  endif
+function! s:diff_off_all()
+  for nr in range(1,winnr('$'))
+    if getwinvar(nr,'&diff')
+      if winnr != winnr()
+        execute winnr.'wincmd w'
+        let restorewinnr = 1
+      endif
+      execute nr.'wincmd w'
+      diffoff
+      if exists('restorewinnr')
+        wincmd p
+      endif
+    endif
+  endfor
 endfunction
 
 function! s:buffer_compare_age(commit) dict abort
