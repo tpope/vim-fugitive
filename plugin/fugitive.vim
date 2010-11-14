@@ -1013,7 +1013,7 @@ call s:command("-bar -nargs=? -complete=customlist,s:EditComplete Gsdiff :execut
 
 augroup fugitive_diff
   autocmd!
-  autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diff_off_all() | endif
+  autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diff_off_all(getbufvar(+expand('<abuf>'), 'git_dir')) | endif
   autocmd BufWinEnter * if s:diff_window_count() == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff | endif
 augroup END
 
@@ -1025,14 +1025,16 @@ function! s:diff_window_count()
   return c
 endfunction
 
-function! s:diff_off_all()
+function! s:diff_off_all(dir)
   for nr in range(1,winnr('$'))
     if getwinvar(nr,'&diff')
       if nr != winnr()
         execute nr.'wincmd w'
         let restorewinnr = 1
       endif
-      diffoff
+      if exists('b:git_dir') && b:git_dir ==# a:dir
+        diffoff
+      endif
       if exists('restorewinnr')
         wincmd p
       endif
