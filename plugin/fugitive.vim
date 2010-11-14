@@ -1028,11 +1028,10 @@ endfunction
 function! s:diff_off_all()
   for nr in range(1,winnr('$'))
     if getwinvar(nr,'&diff')
-      if winnr != winnr()
-        execute winnr.'wincmd w'
+      if nr != winnr()
+        execute nr.'wincmd w'
         let restorewinnr = 1
       endif
-      execute nr.'wincmd w'
       diffoff
       if exists('restorewinnr')
         wincmd p
