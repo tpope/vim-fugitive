@@ -378,10 +378,25 @@ function! s:buffer_type(...) dict abort
   endif
 endfunction
 
-function! s:buffer_spec() dict abort
-  let bufname = bufname(self['#'])
-  return s:shellslash(bufname == '' ? '' : fnamemodify(bufname,':p'))
-endfunction
+if has('win32')
+
+  function! s:buffer_spec() dict abort
+    let bufname = bufname(self['#'])
+    let retval = ''
+    for i in split(bufname,'[^:]\zs\\')
+      let retval = fnamemodify((retval==''?'':retval.'\').i,':.')
+    endfor
+    return s:shellslash(fnamemodify(retval,':p'))
+  endfunction
+
+else
+
+  function! s:buffer_spec() dict abort
+    let bufname = bufname(self['#'])
+    return s:shellslash(bufname == '' ? '' : fnamemodify(bufname,':p'))
+  endfunction
+
+endif
 
 function! s:buffer_name() dict abort
   return self.spec()
