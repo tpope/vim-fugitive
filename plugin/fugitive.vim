@@ -860,7 +860,7 @@ function! s:Edit(cmd,...) abort
     if a:cmd =~# '!$'
       call s:warn(':Gread! is deprecated. Use :Gread')
     endif
-    return 'silent %delete|read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
+    return 'silent %delete_|read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
   else
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
       wincmd p
