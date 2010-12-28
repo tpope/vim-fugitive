@@ -1128,6 +1128,9 @@ function! s:Move(force,destination)
       let destination = destination[strlen(s:repo().tree('')):-1]
     endif
   endif
+  if isdirectory(s:buffer().name())
+    call s:buffer().setvar('&swapfile',0)
+  endif
   let message = call(s:repo().git_chomp_in_tree,['mv']+(a:force ? ['-f'] : [])+['--', s:buffer().path(), destination], s:repo())
   if v:shell_error
     let v:errmsg = 'fugitive: '.message
@@ -1139,7 +1142,11 @@ function! s:Move(force,destination)
   endif
   call fugitive#reload_status()
   if s:buffer().commit() == ''
-    return 'saveas! '.s:fnameescape(destination)
+    if isdirectory(destination)
+      return 'edit '.s:fnameescape(destination)
+    else
+      return 'saveas! '.s:fnameescape(destination)
+    endif
   else
     return 'file '.s:fnameescape(s:repo().translate(':0:'.destination)
   endif
