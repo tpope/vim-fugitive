@@ -548,7 +548,7 @@ endfunction
 function! s:StageDiff(bang) abort
   let section = getline(search('^# .*:$','bnW'))
   let line = getline('.')
-  let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+  let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
   if filename ==# '' && section == '# Changes to be committed:'
     return 'Git diff --cached'
   elseif filename ==# ''
@@ -574,7 +574,7 @@ function! s:StageToggle(lnum1,lnum2) abort
       if getline('.') == '# Changes to be committed:'
         return 'Gcommit'
       endif
-      let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+      let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
       if filename ==# ''
         continue
       endif
@@ -604,7 +604,7 @@ function! s:StageToggle(lnum1,lnum2) abort
       silent! edit!
       1
       redraw
-      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.jump.'\$','W')
+      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.jump.'\%( (new commits)\)\=\$','W')
     endif
     echo s:sub(s:gsub(output,'\n+','\n'),'\n$','')
   catch /^fugitive:/
@@ -624,7 +624,7 @@ function! s:StagePatch(lnum1,lnum2) abort
     elseif line == '# Changed but not updated:'
       return 'Git add --patch'
     endif
-    let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+    let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
     if filename ==# ''
       continue
     endif
@@ -652,7 +652,7 @@ function! s:StagePatch(lnum1,lnum2) abort
       silent! edit!
       1
       redraw
-      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\$','W')
+      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\%( (new commits)\)\=\$','W')
     endif
   catch /^fugitive:/
     return 'echoerr v:errmsg'
@@ -1631,7 +1631,7 @@ function! s:GF(mode) abort
         let file = '/'.matchstr(getline('.'),' -> \zs.*')
         return s:Edit(a:mode,file)
       elseif getline('.') =~# '^#\t[[:alpha:] ]\+: *.'
-        let file = '/'.matchstr(getline('.'),': *\zs.*')
+        let file = '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( (new commits)\)\=$')
         return s:Edit(a:mode,file)
       elseif getline('.') =~# '^#\t.'
         let file = '/'.matchstr(getline('.'),'#\t\zs.*')
