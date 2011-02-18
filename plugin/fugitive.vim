@@ -145,11 +145,21 @@ function! s:Detect(path)
   endif
 endfunction
 
+function! s:DetectForEmptyBuffer()
+  if expand('<amatch>') == '' && (!exists('b:git_detected_for_cwd') || b:git_detected_for_cwd !=# getcwd())
+    if exists('b:git_dir')
+      unlet b:git_dir
+    endif
+    call s:Detect(getcwd())
+    let b:git_detected_for_cwd = getcwd()
+  endif
+endfunction
+
 augroup fugitive
   autocmd!
   autocmd BufNewFile,BufReadPost * call s:Detect(expand('<amatch>:p'))
   autocmd FileType           netrw call s:Detect(expand('<afile>:p'))
-  autocmd VimEnter * if expand('<amatch>')==''|call s:Detect(getcwd())|endif
+  autocmd BufEnter               * call s:DetectForEmptyBuffer()
   autocmd BufWinLeave * execute getwinvar(+winnr(), 'fugitive_restore')
 augroup END
 
