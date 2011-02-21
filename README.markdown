@@ -17,7 +17,8 @@ mofo.  And guess what `:Gcommit` does!
 
 `:Gblame` brings up an interactive vertical split with `git blame`
 output.  Press enter on a line to reblame the file as it stood in that
-commit, or `o` to open that commit in a split.
+commit, or `o` to open that commit in a split.  When you're done, use
+`:Gedit` in the historic buffer to go back to the work tree version.
 
 `:Gmove` does a `git mv` on a file and simultaneously renames the
 buffer.  `:Gremove` does a `git rm` on a file and simultaneously deletes
@@ -34,6 +35,10 @@ and you never get any warnings about the file changing outside Vim.
 `:Gwrite` writes to both the work tree and index versions of a file,
 making it like `git add` when called from a work tree file and like
 `git checkout` when called from the index or a blob in history.
+
+Use `:Gbrowse` to open the current file on GitHub, with optional line
+range (try it in visual mode!).  If your current repository isn't on
+GitHub, `git instaweb` will be spun up instead.
 
 Add `%{fugitive#statusline()}` to `'statusline'` to get an indicator
 with the current branch in (surprise!) your statusline.

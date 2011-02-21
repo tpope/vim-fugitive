@@ -900,7 +900,7 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gtabedit
 call s:command("-bar -bang -nargs=? -count -complete=customlist,s:EditComplete Gread :execute s:Edit((!<count> && <line1> ? '' : <count>).'read<bang>',<f-args>)")
 
 " }}}1
-" Gwrite {{{1
+" Gwrite, Gwq {{{1
 
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gwrite :execute s:Write(<bang>0,<f-args>)")
 
@@ -1365,6 +1365,127 @@ function! s:BlameSyntax() abort
   hi def link FugitiveblameShort              FugitiveblameDelimiter
   hi def link FugitiveblameDelimiter          Delimiter
   hi def link FugitiveblameNotCommittedYet    Comment
+endfunction
+
+" }}}1
+" Gbrowse {{{1
+
+call s:command("-bar -bang -count=0 -nargs=? Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
+
+function! s:Browse(bang,line1,count,...) abort
+  try
+    let rev = a:0 ? substitute(a:1,'@[[:alnum:]_-]\+$','','') : ''
+    if a:0 && a:1 =~# '@[[:alnum:]_-]\+$'
+      let remote = matchstr(a:1,'@\zs[[:alnum:]_-]\+$')
+    elseif s:buffer().path() =~# '^\.git/refs/remotes/.'
+      let remote = matchstr(s:buffer().path(),'^\.git/refs/remotes/\zs[^/]\+')
+    else
+      let remote = 'origin'
+      let branch = matchstr(s:repo().head_ref(),'\<refs/heads/\zs.*')
+      if branch != ''
+        let remote = s:repo().git_chomp('config','branch.'.branch.'.remote')
+        if remote == ''
+          let remote = 'origin'
+        endif
+      endif
+    endif
+    let raw = s:repo().git_chomp('config','remote.'.remote.'.url')
+    let url = s:github_url(s:buffer(),raw,rev,a:line1,a:count)
+    if url == ''
+      let url = s:instaweb_url(s:buffer(),rev,a:count ? a:line1 : 0)
+    endif
+    if url == ''
+      call s:throw("Instaweb failed to start and '".remote."' is not a GitHub remote")
+    endif
+    if a:bang
+      let @* = url
+      return 'echomsg '.string(url)
+    else
+      return 'echomsg '.string(url).'|silent Git web--browse '.shellescape(url,1)
+    endif
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
+endfunction
+
+function! s:github_url(buffer,url,rev,line1,line2) abort
+  let self = a:buffer
+  let path = self.path()
+  let repo = matchstr(a:url,'^\%(https\=://\|git://\|git@\)github\.com[/:]\zs.\{-\}\ze\%(\.git\)\=$')
+  if repo ==# ''
+    return ''
+  endif
+  let root = 'http://github.com/' . repo
+  if path =~# '^\.git/refs/.'
+    return root . '/tree/' . matchstr(path,'[^/]\+$')
+  elseif path ==# '.git/config'
+    return root . '/admin'
+  elseif path =~# '^\.git\>'
+    return root
+  endif
+  if a:rev ==# '-'
+    let commit = self.repo().rev_parse('HEAD')
+  elseif self.commit() =~# '^\x\{40\}$'
+    let commit = self.commit()
+  else
+    let commit = matchstr(self.repo().head_ref(),'[^/]\+$')
+  endif
+  if self.type() ==# 'directory' || self.type() ==# 'tree'
+    let url = s:sub(root . '/tree/' . commit . '/' . path,'/$','')
+  elseif self.type() ==# 'file' || self.type() ==# 'blob'
+    let url = root . '/blob/' . commit . '/' . path
+    if a:line2 && a:line1 == a:line2
+      let url .= '#L' . a:line1
+    elseif a:line2
+      let url .= '#L' . a:line1 . '-' . a:line2
+    endif
+  elseif self.type() ==# 'tag'
+    let commit = matchstr(getline(3),'^tag \zs.*')
+    let url = root . '/tree/' . commit
+  else
+    let url = root . '/commit/' . commit
+  endif
+  return url
+endfunction
+
+function! s:instaweb_url(buffer,rev,...) abort
+  let self = a:buffer
+  let path = self.path()
+  let output = self.repo().git_chomp('instaweb','-b','unknown')
+  if output =~# 'http://'
+    let root = matchstr(output,'http://.*').'/?p='.fnamemodify(self.repo().dir(),':t')
+  else
+    return ''
+  endif
+  if path =~# '^\.git/refs/.'
+    return root . ';a=shortlog;h=' . matchstr(path,'^\.git/\zs.*')
+  elseif path =~# '^\.git\>'
+    return root
+  endif
+  let url = root
+  if self.commit() =~# '^\x\{40\}$' || a:rev ==# '-'
+    let ref = a:rev ==# '-' ? 'HEAD' : self.commit()
+    let url .= ';h=' . self.repo().rev_parse(ref . path)
+  else
+    if self.type() ==# 'file' || self.type() ==# 'blob'
+      let tmp = tempname()
+      silent execute 'write !'.self.repo().git_command('hash-object','-w','--stdin').' > '.tmp
+      let url .= ';h=' . readfile(tmp)[0]
+    else
+      try
+        let url .= ';h=' . self.repo().rev_parse(self.path((self.commit() == '' ? 'HEAD' : ':'.self.commit()).':'))
+      catch /^fugitive:/
+      endtry
+    endif
+    let root .= ';hb=' . matchstr(self.repo().head_ref(),'[^ ]\+$')
+  endif
+  if path !=# ''
+    let url .= ';f=' . path
+  endif
+  if a:0 && a:1
+    let url .= '#l' . a:1
+  endif
+  return url
 endfunction
 
 " }}}1

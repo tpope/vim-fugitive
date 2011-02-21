@@ -154,6 +154,33 @@ that are part of Git repositories).
 
 :[range]Gblame [flags]  Run git-blame on the given range.
 
+                                                *fugitive-:Gbrowse*
+:[range]Gbrowse         If the remote for the current branch is on GitHub,
+                        open the current file, blob, tree, commit, or tag
+                        (with git-web--browse) on GitHub.  Otherwise, open the
+                        current flie, blob, tree, commit, or tag in
+                        git-instaweb (if you have issues, verify you can run
+                        "git instaweb" from a terminal).  If a range is given,
+                        it is appropriately appended to the URL as an anchor.
+
+:[range]Gbrowse!        Like :Gbrowse, but put the URL on the clipboard rather
+                        than opening it.
+
+:[range]Gbrowse -       Like :Gbrowse, but tie the URL to the current HEAD.
+                        This is useful in a work tree file to ensure the link
+                        always goes to the file as it currently stands, rather
+                        than whatever the latest on master is.  Note that
+                        when editing a historical file, said link is tied by
+                        default to the commit you're currently browsing.  (The
+                        intent is that ultimately, one will be able to specify
+                        any |fugitive-revision| here, but the current
+                        implementation is limited to this one special case.)
+
+[range]Gbrowse [...]@{remote}
+                        Force using the given remote rather than the remote
+                        for the current branch.  The remote is used to
+                        determine which GitHub repository to link to.
+
 MAPPINGS                                        *fugitive-mappings*
 
 These maps are available in Git objects.
