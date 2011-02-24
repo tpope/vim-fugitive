@@ -1374,9 +1374,9 @@ call s:command("-bar -bang -count=0 -nargs=? Gbrowse :execute s:Browse(<bang>0,<
 
 function! s:Browse(bang,line1,count,...) abort
   try
-    let rev = a:0 ? substitute(a:1,'@[[:alnum:]_-]\+$','','') : ''
-    if a:0 && a:1 =~# '@[[:alnum:]_-]\+$'
-      let remote = matchstr(a:1,'@\zs[[:alnum:]_-]\+$')
+    let rev = a:0 ? substitute(a:1,'@[[:alnum:]_-]\+\%(://.\{-\}\)\=$','','') : ''
+    if a:0 && a:1 =~# '@[[:alnum:]_-]\+\%(://.\{-\}\)\=$'
+      let remote = matchstr(a:1,'@\zs[[:alnum:]_-]\+\%(://.\{-\}\)\=$')
     elseif s:buffer().path() =~# '^\.git/refs/remotes/.'
       let remote = matchstr(s:buffer().path(),'^\.git/refs/remotes/\zs[^/]\+')
     else
@@ -1390,6 +1390,9 @@ function! s:Browse(bang,line1,count,...) abort
       endif
     endif
     let raw = s:repo().git_chomp('config','remote.'.remote.'.url')
+    if raw ==# ''
+      let raw = remote
+    endif
     let url = s:github_url(s:buffer(),raw,rev,a:line1,a:count)
     if url == ''
       let url = s:instaweb_url(s:buffer(),rev,a:count ? a:line1 : 0)
