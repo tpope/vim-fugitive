@@ -1419,7 +1419,14 @@ function! s:github_url(buffer,url,rev,line1,line2) abort
     return ''
   endif
   let root = 'http://github.com/' . repo
-  if path =~# '^\.git/refs/.'
+  if path =~# '^\.git/refs/heads/'
+    let branch = self.repo().git_chomp('config','branch.'.path[16:-1].'.merge')[11:-1]
+    if branch ==# ''
+      return root . '/tree/' . path[16:-1]
+    else
+      return root . '/tree/' . branch
+    endif
+  elseif path =~# '^\.git/refs/.'
     return root . '/tree/' . matchstr(path,'[^/]\+$')
   elseif path ==# '.git/config'
     return root . '/admin'
@@ -1431,7 +1438,11 @@ function! s:github_url(buffer,url,rev,line1,line2) abort
   elseif self.commit() =~# '^\x\{40\}$'
     let commit = self.commit()
   else
-    let commit = matchstr(self.repo().head_ref(),'[^/]\+$')
+    let local = matchstr(self.repo().head_ref(),'\<refs/heads/\zs.*')
+    let commit = self.repo().git_chomp('config','branch.'.local.'.merge')[11:-1]
+    if commit ==# ''
+      let commit = local
+    endif
   endif
   if self.type() ==# 'directory' || self.type() ==# 'tree'
     let url = s:sub(root . '/tree/' . commit . '/' . path,'/$','')
