@@ -1104,7 +1104,7 @@ function! s:Diff(bang,...) abort
       let file = s:buffer().path('/')
     elseif a:1 ==# ':'
       let file = s:buffer().path(':0:')
-    elseif a:1 =~# '^:/'
+    elseif a:1 =~# '^:/.'
       try
         let file = s:repo().rev_parse(a:1).s:buffer().path(':')
       catch /^fugitive:/
