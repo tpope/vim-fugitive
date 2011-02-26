@@ -254,8 +254,8 @@ endfunction
 
 function! s:repo_rev_parse(rev) dict abort
   let hash = self.git_chomp('rev-parse','--verify',a:rev)
-  if hash =~ '^\x\{40\}$'
-    return hash
+  if hash =~ '\<\x\{40\}$'
+    return matchstr(hash,'\<\x\{40\}$')
   endif
   call s:throw('rev-parse '.a:rev.': '.hash)
 endfunction
