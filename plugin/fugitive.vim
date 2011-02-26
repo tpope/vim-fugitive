@@ -445,6 +445,8 @@ endfunction
 function! s:buffer_expand(rev) dict abort
   if a:rev =~# '^:[0-3]$'
     let file = a:rev.self.path(':')
+  elseif a:rev =~# '^[-:]/$'
+    let file = '/'.self.path()
   elseif a:rev =~# '^-'
     let file = 'HEAD^{}'.a:rev[1:-1].self.path(':')
   elseif a:rev =~# '^@{'
@@ -455,7 +457,7 @@ function! s:buffer_expand(rev) dict abort
   else
     let file = a:rev
   endif
-  return s:sub(s:sub(file,'\%$',self.path()),'/$','')
+  return s:sub(s:sub(file,'\%$',self.path()),'\.\@<=/$','')
 endfunction
 
 function! s:buffer_containing_commit() dict abort
