@@ -1541,7 +1541,7 @@ function! s:instaweb_url(repo,rev,commit,path,type,...) abort
       try
         let url .= ';h=' . a:repo.rev_parse((a:commit == '' ? 'HEAD' : ':' . a:commit) . ':' . a:path)
       catch /^fugitive:/
-        throw 'fugitive: cannot browse uncommitted file'
+        call s:throw('fugitive: cannot browse uncommitted file')
       endtry
     endif
     let root .= ';hb=' . matchstr(a:repo.head_ref(),'[^ ]\+$')
