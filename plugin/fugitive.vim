@@ -876,10 +876,7 @@ function! s:Edit(cmd,...) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
-  if a:cmd =~# 'read!$' || a:cmd ==# 'read'
-    if a:cmd =~# '!$'
-      call s:warn(':Gread! is deprecated. Use :Gread')
-    endif
+  if a:cmd ==# 'read'
     return 'silent %delete_|read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
   else
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'

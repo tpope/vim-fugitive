@@ -105,9 +105,6 @@ that are part of Git repositories).
 :{range}Gread [revision]
                         |:read| in a |fugitive-revision| after {range}.
 
-                                                *fugitive-:Gread!*
-:Gread! [revision]      Deprecated synonym for |:Gread|.
-
                                                 *fugitive-:Gwrite*
 :Gwrite                 Write to the current file's path and stage the results.
                         When run in a work tree file, it is effectively git
