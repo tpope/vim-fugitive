@@ -1408,6 +1408,16 @@ function! s:Browse(bang,line1,count,...) abort
         let type = 'blob'
       endif
     endif
+    if path =~# '^\.git/.*HEAD' && filereadable(s:repo().dir(path[5:-1]))
+      let body = readfile(s:repo().dir(path[5:-1]))[0]
+      if body =~# '^\x\{40\}$'
+        let commit = body
+        let type = 'commit'
+        let path = ''
+      elseif body =~# '^ref: refs/'
+        let path = '.git/' . matchstr(body,'ref: \zs.*')
+      endif
+    endif
 
     if a:0 && a:1 =~# '@[[:alnum:]_-]*\%(://.\{-\}\)\=$'
       let remote = matchstr(a:1,'@\zs[[:alnum:]_-]\+\%(://.\{-\}\)\=$')
@@ -1416,9 +1426,7 @@ function! s:Browse(bang,line1,count,...) abort
     else
       let remote = 'origin'
       let branch = matchstr(rev,'^[[:alnum:]/._-]\+\ze[:^~@]')
-      if branch =~# 'HEAD$' && filereadable(s:repo().dir(branch))
-        let branch = matchstr(readfile(s:repo().dir(branch))[0],'\<refs/heads/\zs.*')
-      elseif branch ==# '' && path =~# '^\.git/refs/\w\+/'
+      if branch ==# '' && path =~# '^\.git/refs/\w\+/'
         let branch = s:sub(path,'^\.git/refs/\w+/','')
       endif
       if filereadable(s:repo().dir('refs/remotes/'.branch))
