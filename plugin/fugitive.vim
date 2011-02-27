@@ -903,6 +903,8 @@ call s:command("-bar -bang -nargs=? -count -complete=customlist,s:EditComplete G
 " Gwrite, Gwq {{{1
 
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gwrite :execute s:Write(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gw :execute s:Write(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gwq :execute s:Wq(<bang>0,<f-args>)")
 
 function! s:Write(force,...) abort
   if exists('b:fugitive_commit_arguments')
@@ -1020,6 +1022,19 @@ function! s:Write(force,...) abort
   endfor
   call fugitive#reload_status()
   return 'checktime'
+endfunction
+
+function! s:Wq(force,...) abort
+  let bang = a:force ? '!' : ''
+  if exists('b:fugitive_commit_arguments')
+    return 'wq'.bang
+  endif
+  let result = call(s:function('s:Write'),[a:force]+a:000)
+  if result =~# '^\%(write\|wq\|echoerr\)'
+    return s:sub(result,'^write','wq')
+  else
+    return result.'|quit'.bang
+  endif
 endfunction
 
 " }}}1

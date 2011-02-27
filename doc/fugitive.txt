@@ -118,6 +118,13 @@ that are part of Git repositories).
                         :0:foo.txt or even :0 to write to just that stage in
                         the index.
 
+                                                *fugitive-:Gwq*
+:Gwq [path]             Like |:Gwrite| followed by |:quit| if the write
+                        succeeded.
+
+:Gwq! [path]            Like |:Gwrite|! followed by |:quit|! if the write
+                        succeeded.
+
                                                 *fugitive-:Gdiff*
 :Gdiff [revision]       Perform a |vimdiff| against the current file in the
                         given revision.  With no argument, the version in the
