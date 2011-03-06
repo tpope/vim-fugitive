@@ -48,3 +48,23 @@ Oh, and of course there's `:Git` for running any arbitrary command.
 Like fugitive.vim? Follow the repository on
 [GitHub](http://github.com/tpope/vim-fugitive) and vote for it on
 [vim.org](http://www.vim.org/scripts/script.php?script_id=2975).
+
+FAQ
+---
+
+> I installed the plugin and started Vim.  Why don't any of the commands
+> exist?
+
+Fugitive cares about the current file, not the current working
+directory.  Edit a file from the repository.
+
+> I opened a new tab.  Why don't any of the commands exist?
+
+Fugitive cares about the current file, not the current working
+directory.  Edit a file from the repository.
+
+> I changed the current working directory.  Why do all the commands use
+> the old directory?
+
+Fugitive cares about the current file, not the current working
+directory.  Edit a file from the repository.
