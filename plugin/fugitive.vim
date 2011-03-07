@@ -1491,7 +1491,7 @@ function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
   if repo_path ==# ''
     return ''
   endif
-  let root = 'http://github.com/' . repo_path
+  let root = 'https://github.com/' . repo_path
   if path =~# '^\.git/refs/heads/'
     let branch = a:repo.git_chomp('config','branch.'.path[16:-1].'.merge')[11:-1]
     if branch ==# ''
