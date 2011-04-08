@@ -695,16 +695,16 @@ function! s:Commit(args) abort
   let errorfile = tempname()
   try
     execute cd.'`=s:repo().tree()`'
-    let command = ''
     if &shell =~# 'cmd'
+      let command = ''
       let old_editor = $GIT_EDITOR
       let $GIT_EDITOR = 'false'
-    elseif &shell !~# 'csh'
-      let command = 'GIT_EDITOR=false '
+    else
+      let command = 'env GIT_EDITOR=false '
     endif
     let command .= s:repo().git_command('commit').' '.a:args
     if &shell =~# 'csh'
-      silent execute '!setenv GIT_EDITOR false; ('.command.' > '.outfile.') >& '.errorfile
+      silent execute '!('.command.' > '.outfile.') >& '.errorfile
     elseif a:args =~# '\%(^\| \)--interactive\>'
       execute '!'.command.' 2> '.errorfile
     else
@@ -1589,10 +1589,8 @@ function! s:ReplaceCmd(cmd,...) abort
       if &shell =~# 'cmd'
         let old_index = $GIT_INDEX_FILE
         let $GIT_INDEX_FILE = a:1
-      elseif &shell =~# 'csh'
-        let prefix = 'setenv GIT_INDEX_FILE '.s:shellesc(a:1).'; '
       else
-        let prefix = 'GIT_INDEX_FILE='.s:shellesc(a:1).' '
+        let prefix = 'env GIT_INDEX_FILE='.s:shellesc(a:1).' '
       endif
     endif
     set noautowrite
