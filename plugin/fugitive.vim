@@ -732,7 +732,7 @@ function! s:Commit(args) abort
         if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&mod
           edit `=msgfile`
         else
-          split `=msgfile`
+          keepalt split `=msgfile`
         endif
         if old_type ==# 'index'
           bdelete #
