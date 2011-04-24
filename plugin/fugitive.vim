@@ -640,9 +640,9 @@ function! s:StagePatch(lnum1,lnum2) abort
 
   for lnum in range(a:lnum1,a:lnum2)
     let line = getline(lnum)
-    if line == '# Changes to be committed:'
+    if line ==# '# Changes to be committed:'
       return 'Git reset --patch'
-    elseif line == '# Changed but not updated:'
+    elseif line =~# '^# Change\%(d but not updated\|s not staged for commit\):$'
       return 'Git add --patch'
     endif
     let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
