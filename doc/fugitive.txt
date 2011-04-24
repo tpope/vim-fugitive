@@ -53,11 +53,13 @@ that are part of Git repositories).
 :Gstatus                Bring up the output of git-status in the preview
                         window.  In addition to standard motions, you can
                         use <C-N> and <C-P> to jump from filename to
-                        filename.  Press D to |:Gdiff| the file on the cursor
-                        line, or ds to |:Gsdiff|.  Press - to stage or unstage
-                        the file on the cursor line.  Press p to do so on a
-                        per hunk basis (--patch).  Press C to invoke
-                        |:Gcommit|.
+                        filename.  Press C to invoke |:Gcommit|.  Press D to
+                        |:Gdiff| the file on the cursor line, or ds to
+                        |:Gsdiff|.  Press - to stage or unstage the file on
+                        the cursor line.  Press p to do so on a per hunk basis
+                        (--patch).  All of D, -, and p have a different,
+                        sensible (and hopefully intuitive) behavior when
+                        invoked on a heading rather than a file name.
 
                                                 *fugitive-:Gcommit*
 :Gcommit [args]         A wrapper around git-commit.  If there is nothing

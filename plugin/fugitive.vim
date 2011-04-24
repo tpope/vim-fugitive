@@ -592,8 +592,30 @@ function! s:StageToggle(lnum1,lnum2) abort
     let output = ''
     for lnum in range(a:lnum1,a:lnum2)
       let line = getline(lnum)
-      if getline('.') == '# Changes to be committed:'
-        return 'Gcommit'
+      if line ==# '# Changes to be committed:'
+        call s:repo().git_chomp_in_tree('reset','-q')
+        silent! edit!
+        1
+        if !search('^# Untracked files:$','W')
+          call search('^# Change','W')
+        endif
+        return ''
+      elseif line =~# '^# Change\%(d but not updated\|s not staged for commit\):$'
+        call s:repo().git_chomp_in_tree('add','-u')
+        silent! edit!
+        1
+        if !search('^# Untracked files:$','W')
+          call search('^# Change','W')
+        endif
+        return ''
+      elseif line ==# '# Untracked files:'
+        call s:repo().git_chomp_in_tree('add','-N','.')
+        silent! edit!
+        1
+        if !search('^# Change\%(d but not updated\|s not staged for commit\):$','W')
+          call search('^# Change','W')
+        endif
+        return ''
       endif
       let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
       if filename ==# ''
