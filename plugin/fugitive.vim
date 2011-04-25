@@ -609,7 +609,8 @@ function! s:StageToggle(lnum1,lnum2) abort
         endif
         return ''
       elseif line ==# '# Untracked files:'
-        call s:repo().git_chomp_in_tree('add','-N','.')
+        " Work around Vim parser idiosyncrasy
+        let discarded = s:repo().git_chomp_in_tree('add','-N','.')
         silent! edit!
         1
         if !search('^# Change\%(d but not updated\|s not staged for commit\):$','W')
@@ -1188,8 +1189,7 @@ function! s:Move(force,destination)
   endif
   if isdirectory(s:buffer().name())
     " Work around Vim parser idiosyncrasy
-    let b = s:buffer()
-    call b.setvar('&swapfile',0)
+    let discarded = s:buffer().setvar('&swapfile',0)
   endif
   let message = call(s:repo().git_chomp_in_tree,['mv']+(a:force ? ['-f'] : [])+['--', s:buffer().path(), destination], s:repo())
   if v:shell_error
