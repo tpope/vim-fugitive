@@ -1126,11 +1126,11 @@ function! s:Diff(bang,...) abort
   elseif (!a:0 || a:1 == ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().path()) !=# ''
     let nr = bufnr('')
     execute 'leftabove '.split.' `=fugitive#buffer().repo().translate(s:buffer().expand('':2''))`'
-    execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<CR>'
+    execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     diffthis
     wincmd p
     execute 'rightbelow '.split.' `=fugitive#buffer().repo().translate(s:buffer().expand('':3''))`'
-    execute 'nnoremap dp <buffer> <silent> :diffput '.nr.'<CR>'
+    execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     diffthis
     wincmd p
     diffthis
