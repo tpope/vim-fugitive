@@ -752,13 +752,14 @@ function! s:Commit(args) abort
         if args !~# '\%(^\| \)--cleanup\>'
           let args = '--cleanup=strip '.args
         endif
+        let old_nr = bufnr('')
         if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&mod
           edit `=msgfile`
         else
           keepalt split `=msgfile`
         endif
         if old_type ==# 'index'
-          bdelete #
+          execute 'bdelete '.old_nr
         endif
         let b:fugitive_commit_arguments = args
         setlocal bufhidden=delete filetype=gitcommit
