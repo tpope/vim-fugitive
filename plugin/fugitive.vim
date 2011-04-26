@@ -619,7 +619,7 @@ function! s:StageToggle(lnum1,lnum2) abort
         endif
         return ''
       endif
-      let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
+      let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (\a\+ [[:alpha:], ]\+)\)\=$')
       if filename ==# ''
         continue
       endif
