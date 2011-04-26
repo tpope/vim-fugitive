@@ -592,8 +592,9 @@ function! s:StageToggle(lnum1,lnum2) abort
     let output = ''
     for lnum in range(a:lnum1,a:lnum2)
       let line = getline(lnum)
+      let repo = s:repo()
       if line ==# '# Changes to be committed:'
-        call s:repo().git_chomp_in_tree('reset','-q')
+        call repo.git_chomp_in_tree('reset','-q')
         silent! edit!
         1
         if !search('^# Untracked files:$','W')
@@ -601,7 +602,7 @@ function! s:StageToggle(lnum1,lnum2) abort
         endif
         return ''
       elseif line =~# '^# Change\%(d but not updated\|s not staged for commit\):$'
-        call s:repo().git_chomp_in_tree('add','-u')
+        call repo.git_chomp_in_tree('add','-u')
         silent! edit!
         1
         if !search('^# Untracked files:$','W')
@@ -610,7 +611,7 @@ function! s:StageToggle(lnum1,lnum2) abort
         return ''
       elseif line ==# '# Untracked files:'
         " Work around Vim parser idiosyncrasy
-        let discarded = s:repo().git_chomp_in_tree('add','-N','.')
+        call repo.git_chomp_in_tree('add','-N','.')
         silent! edit!
         1
         if !search('^# Change\%(d but not updated\|s not staged for commit\):$','W')
@@ -637,7 +638,7 @@ function! s:StageToggle(lnum1,lnum2) abort
       else
         let cmd = ['add','--',filename]
       endif
-      let output .= call(s:repo().git_chomp_in_tree,cmd,s:repo())."\n"
+      let output .= call(repo.git_chomp_in_tree,cmd,s:repo())."\n"
     endfor
     if exists('first_filename')
       let jump = first_filename
