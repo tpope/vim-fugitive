@@ -28,11 +28,15 @@ files and "p" to add/reset --patch them.  Invoke |:Gcommit| to commit your
 changes.
 
 Run |:Gblame| in a work tree file to see a blame in a vertical split.  Press
-<CR> on any line to reopen and reblame that file as it stood in that commit.
-Press o or O on any line to inspect that commit in a split or a tab.
+<CR> on any line to reopen and reblame that file as it stood in that commit,
+or press ~ to reblame it on the first ancestor of that commit. Press o or O
+on any line to inspect that commit in a split or a tab. When you're done, run
+|:Gedit| to return to normal editing mode.
 
-Run |:Ggrep| to search the work tree or history.  Run |:Gmove| to rename a
+Run |:Gwrite| to stage a file or add a new file. Run |:Gmove| to rename a
 file.  Run |:Gremove| to delete a file.
+
+Run |:Ggrep| to search the work tree or history.
 
 COMMANDS                                        *fugitive-commands*
 
