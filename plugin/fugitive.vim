@@ -1609,7 +1609,6 @@ endfunction
 function! s:ReplaceCmd(cmd,...) abort
   let fn = bufname('')
   let tmp = tempname()
-  let aw = &autowrite
   let prefix = ''
   try
     if a:0 && a:1 != ''
@@ -1620,10 +1619,8 @@ function! s:ReplaceCmd(cmd,...) abort
         let prefix = 'env GIT_INDEX_FILE='.s:shellesc(a:1).' '
       endif
     endif
-    set noautowrite
     call system(prefix.a:cmd.' > '.tmp)
   finally
-    let &autowrite = aw
     if exists('old_index')
       let $GIT_INDEX_FILE = old_index
     endif
