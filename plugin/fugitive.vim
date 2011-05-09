@@ -574,7 +574,7 @@ function! s:StageDiff(...) abort
     return 'Git diff --cached'
   elseif filename ==# ''
     return 'Git diff'
-  elseif line =~# '^#\trenamed:' && filename =~ ' -> '
+  elseif line =~# '^#\t\%(renamed\|copied\):' && filename =~ ' -> '
     let [old, new] = split(filename,' -> ')
     execute 'Gedit '.s:fnameescape(':0:'.new)
     return cmd.' HEAD:'.s:fnameescape(old)
@@ -632,7 +632,7 @@ function! s:StageToggle(lnum1,lnum2) abort
         let cmd = ['mv','--'] + reverse(split(filename,' -> '))
         let filename = cmd[-1]
       elseif section =~? ' to be '
-        let cmd = ['reset','-q','--',filename]
+        let cmd = ['reset','-q','--',split(filename,' -> ')[-1]]
       elseif line =~# '^#\tdeleted:'
         let cmd = ['rm','--',filename]
       else
