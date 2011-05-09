@@ -728,11 +728,11 @@ function! s:Commit(args) abort
     endif
     let command .= s:repo().git_command('commit').' '.a:args
     if &shell =~# 'csh'
-      silent execute '!('.command.' > '.outfile.') >& '.errorfile
+      call system('('.command.' > '.outfile.') >& '.errorfile)
     elseif a:args =~# '\%(^\| \)--interactive\>'
-      execute '!'.command.' 2> '.errorfile
+      call system(command.' 2> '.errorfile)
     else
-      silent execute '!'.command.' > '.outfile.' 2> '.errorfile
+      call system(command.' > '.outfile.' 2> '.errorfile)
     endif
     if !v:shell_error
       if filereadable(outfile)
