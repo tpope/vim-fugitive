@@ -1621,7 +1621,7 @@ function! s:ReplaceCmd(cmd,...) abort
       endif
     endif
     set noautowrite
-    silent exe '!'.escape(prefix.a:cmd,'%#').' > '.tmp
+    call system(prefix.a:cmd.' > '.tmp)
   finally
     let &autowrite = aw
     if exists('old_index')
