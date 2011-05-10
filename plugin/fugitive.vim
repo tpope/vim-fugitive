@@ -731,7 +731,7 @@ function! s:Commit(args) abort
       call system('(('.command.' > '.outfile.') >& '.errorfile.')')
     elseif a:args =~# '\%(^\| \)--interactive\>'
       execute '!'.command.' 2> '.errorfile
-    elseif shell =~# 'cmd'
+    elseif &shell =~# 'cmd'
       silent execute '!'.command.' > '.outfile.' 2> '.errorfile
     else
       call system(command.' > '.outfile.' 2> '.errorfile)
