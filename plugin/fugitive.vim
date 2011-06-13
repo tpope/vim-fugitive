@@ -910,6 +910,16 @@ function! s:Edit(cmd,...) abort
   else
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
       wincmd p
+      if &diff
+        let mywinnr = winnr()
+        for winnr in range(winnr('$'),1,-1)
+          if winnr != mywinnr && getwinvar(winnr,'&diff')
+            execute winnr.'wincmd w'
+            close
+            wincmd p
+          endif
+        endfor
+      endif
     endif
     return a:cmd.' '.s:fnameescape(file)
   endif
