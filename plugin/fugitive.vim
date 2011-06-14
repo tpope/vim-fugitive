@@ -1632,7 +1632,7 @@ function! s:ReplaceCmd(cmd,...) abort
         let prefix = 'env GIT_INDEX_FILE='.s:shellesc(a:1).' '
       endif
     endif
-    call writefile(split(system(prefix.a:cmd), "\n", 1), tmp)
+    call writefile(split(system(prefix.a:cmd), "\n", 1), tmp, 'b')
   finally
     if exists('old_index')
       let $GIT_INDEX_FILE = old_index
