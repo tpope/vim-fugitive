@@ -80,6 +80,6 @@ Self-Promotion
 Like fugitive.vim? Follow the repository on
 [GitHub](http://github.com/tpope/vim-fugitive) and vote for it on
 [vim.org](http://www.vim.org/scripts/script.php?script_id=2975).  And if
-you're feeling especially grateful, follow tpope on
+you're feeling especially charitable, follow [tpope](http://tpo.pe/) on
 [Twitter](http://twitter.com/tpope) and
 [Github](http://github.com/tpope).
