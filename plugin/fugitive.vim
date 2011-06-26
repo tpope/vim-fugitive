@@ -12,6 +12,10 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
+if !exists('g:fugitive_setup_aliases')
+  let g:fugitive_setup_aliases = 0
+endif
+
 " Utility {{{1
 
 function! s:function(name) abort
@@ -130,6 +134,9 @@ function! s:Detect(path)
     endif
   endif
   if exists('b:git_dir')
+    if g:fugitive_setup_aliases
+      call s:setup_aliases()
+    endif
     silent doautocmd User Fugitive
     cnoremap <expr> <buffer> <C-R><C-G> fugitive#buffer().rev()
     let buffer = fugitive#buffer()
@@ -2038,13 +2045,37 @@ function! s:repo_config(conf) dict abort
   return matchstr(system(s:repo().git_command('config').' '.a:conf),"[^\r\n]*")
 endfun
 
+function! s:repo_config_regexp(regexp) dict abort
+  return split(system(s:repo().git_command('config').' --get-regexp '.a:regexp), "\n")
+endfun
+
 function! s:repo_user() dict abort
   let username = s:repo().config('user.name')
   let useremail = s:repo().config('user.email')
   return username.' <'.useremail.'>'
 endfun
 
-call s:add_methods('repo',['config', 'user'])
+call s:add_methods('repo',['config', 'config_regexp', 'user'])
+
+" }}}1
+" Aliases {{{1
+
+function! s:split_alias(alias_line) abort
+  let matches = matchlist(a:alias_line, '^alias\.\([^ ]\+\) \(.*\)$')
+  return {'name': matches[1], 'command': matches[2]}
+endfunction
+
+function! s:repo_aliases() dict abort
+  return map(s:repo().config_regexp('^alias\.'), 's:split_alias(v:val)')
+endfunction
+
+call s:add_methods('repo',['aliases'])
+
+function! s:setup_aliases()
+  for alias in s:repo().aliases()
+    call s:command('-nargs=* G'.alias['name'].' :Git '.alias['name'].' <args>')
+  endfor
+endfunction
 
 " }}}1
 
