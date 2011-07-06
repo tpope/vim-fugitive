@@ -842,6 +842,7 @@ function! s:Grep(bang,arg) abort
     endfor
     call setqflist(list,'r')
     if !a:bang && !empty(list)
+      copen
       return 'cfirst'.matchstr(a:arg,'\v\C[''" ]\zs\|.*')
     else
       return matchstr(a:arg,'\v\C[''" ]\|\zs.*')
