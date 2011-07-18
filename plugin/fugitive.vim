@@ -12,6 +12,13 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
+if !exists("g:DiffOff")
+  function! s:diff_off()
+    diffoff
+  endfunction
+  let g:DiffOff = function("s:diff_off")
+endif
+
 " Utility {{{1
 
 function! s:function(name) abort
@@ -1087,13 +1094,6 @@ augroup fugitive_diff
   autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diff_off_all(getbufvar(+expand('<abuf>'), 'git_dir')) | endif
   autocmd BufWinEnter * if s:diff_window_count() == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call g:DiffOff() | endif
 augroup END
-
-if !exists("g:DiffOff")
-  function! s:diff_off()
-    diffoff
-  endfunction
-  let g:DiffOff = function("s:diff_off")
-endif
 
 function! s:diff_window_count()
   let c = 0
