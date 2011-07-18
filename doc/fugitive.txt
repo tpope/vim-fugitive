@@ -248,6 +248,44 @@ a statusline, this one matches the default when 'ruler' is set:
 >
     set statusline=%<%f\ %h%m%r%{fugitive#statusline()}%=%-14.(%l,%c%V%)\ %P
 <
+
+CONFIGURING DIFFOFF                             *fugitive-diffoff*
+
+                                                *g:DiffOff*
+When a |Gdiff| window is closed, fugitive will turn off |diff| mode, but vim's
+|diffoff| command resets some settings to their defaults (for example,
+|foldmethod| is set to manual). To counteract this, fugitive supports a custom
+diffoff function. Set the |g:DiffOff| variable to a |Funcref| of the function
+you'd like to call:
+>
+    let g:DiffOff = function("DiffOffWithFoldSettings")
+<
+Use any function name. It should call diffoff and then apply your settings:
+>
+    function DiffOffWithFoldSettings()
+        diffoff
+
+        " Reset fold level to the configured start value.
+        exec "setlocal foldlevel=" . &foldlevelstart
+
+        " Apply my default instead of vim's
+        setlocal foldmethod=syntax
+    endfunction
+<
+Alternatively, if |ftdetect| applies the relevant settings, you could reload
+the filetype.
+>
+    function DiffOffAndReloadFiletype()
+        diffoff
+
+        unlet! b:did_ftplugin
+        let &filetype = &filetype
+    endfunction
+    let g:DiffOff = function("DiffOffAndReloadFiletype")
+<
+If you don't set |g:DiffOff|, fugitive will use |diffoff| with no extra
+settings.
+
 ABOUT                                           *fugitive-about*
 
 Grab the latest version or report a bug on GitHub:
