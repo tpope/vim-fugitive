@@ -101,3 +101,8 @@ Like fugitive.vim? Follow the repository on
 you're feeling especially charitable, follow [tpope](http://tpo.pe/) on
 [Twitter](http://twitter.com/tpope) and
 [GitHub](http://github.com/tpope).
+
+License
+-------
+
+Distributable under the same terms as Vim itself.  See `:help license`.
