@@ -78,11 +78,27 @@ directory.  Edit a file from the repository.
 Fugitive cares about the current file, not the current working
 directory.  Edit a file from the repository.
 
-> I changed the current working directory.  Why do all the commands use
-> the old directory?
+> Why is `:Gbrowse` not using my system default browser?
 
-Fugitive cares about the current file, not the current working
-directory.  Edit a file from the repository.
+`:Gbrowse` delegates to `git web--browse`, which is less than perfect
+when it comes to finding the default browser on Linux.  You can tell it
+the correct browser to use with `git config --global web.browser ...`.
+See `git web--browse --help` for details.
+
+> Here's a patch that automatically opens the quickfix window after
+> `:Ggrep`.
+
+This is a great example of why I recommend asking before patching.
+There are valid arguments to be made both for and against automatically
+opening the quickfix window.  Whenever I have to make an arbitrary
+decision like this, I ask what Vim would do.  And Vim does not open a
+quickfix window after `:grep`.
+
+Luckily, it's easy to implement the desired behavior without changing
+fugitive.vim.  The following autocommand will cause the quickfix window
+to open after any grep invocation:
+
+    autocmd QuickFixCmdPost *grep* cwindow
 
 Contributing
 ------------
