@@ -87,6 +87,12 @@ directory.  Edit a file from the repository.
 Contributing
 ------------
 
+Before reporting a bug, you should try stripping down your Vim
+configuration and removing other plugins.  The sad nature of VimScript
+is that it is fraught with incompatibilities waiting to happen.  I'm
+happy to work around them where I can, but it's up to you to isolate
+the conflict.
+
 If your [commit message sucks](http://stopwritingramblingcommitmessages.com/),
 I'm not going to accept your pull request.  I've explained very politely
 dozens of times that
