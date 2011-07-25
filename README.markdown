@@ -64,6 +64,9 @@ then simply copy and paste:
     cd ~/.vim/bundle
     git clone git://github.com/tpope/vim-fugitive.git
 
+Once help tags have been generated, you can view the manual with
+`:help fugitive`.
+
 FAQ
 ---
 
