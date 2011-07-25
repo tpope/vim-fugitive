@@ -54,6 +54,16 @@ Screencasts
 * [Browsing the git object database](http://vimcasts.org/e/34)
 * [Exploring the history of a git repository](http://vimcasts.org/e/35)
 
+Installation
+------------
+
+If you don't have a preferred installation method, I recommend
+installing [pathogen.vim](https://github.com/tpope/vim-pathogen), and
+then simply copy and paste:
+
+    cd ~/.vim/bundle
+    git clone git://github.com/tpope/vim-fugitive.git
+
 FAQ
 ---
 
