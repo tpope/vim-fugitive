@@ -1,6 +1,6 @@
 *fugitive.txt*  A Git wrapper so awesome, it should be illegal
 
-Author:  Tim Pope <vimNOSPAM@tpope.org>         *fugitive-author*
+Author:  Tim Pope <http://tpo.pe/>
 License: Same terms as Vim itself (see |license|)
 
 This plugin is only available if 'compatible' is not set.
