@@ -128,7 +128,7 @@ function! s:ExtractGitDir(path) abort
 endfunction
 
 function! s:Detect(path)
-  if exists('b:git_dir') && b:git_dir ==# ''
+  if exists('b:git_dir') && (b:git_dir ==# '' || b:git_dir =~# '/$')
     unlet b:git_dir
   endif
   if !exists('b:git_dir')
