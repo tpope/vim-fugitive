@@ -7,32 +7,8 @@ This plugin is only available if 'compatible' is not set.
 
 INTRODUCTION                                    *fugitive*
 
-Install in ~/.vim, or in ~\vimfiles if you're on Windows and feeling lucky.
-Vim 7.2 is recommended as it ships with syntax highlighting for many Git file
-types.
-
-If you're in a hurry to get started, here are some things to try:
-
-In any file in your repository, run |:Gedit| HEAD.  Press <CR> to jump to the
-current branch.  Press <CR> again to jump to the top most commit.  Keep using
-<CR> to explore parent commits, trees, and blobs.  Use C in a tree or blob to
-get back to the commit.
-
-Edit a file in the work tree and make some changes.  Use |:Gdiff| to open up
-the indexed version.  Use |do| and |dp| on various hunks to bring the files in
-sync, or use |:Gread| to pull in all changes.  Write the indexed version to
-stage the file.
-
-Run |:Gstatus| to check your repository's status.  Use "-" to stage and reset
-files and "p" to add/reset --patch them.  Invoke |:Gcommit| to commit your
-changes.
-
-Run |:Gblame| in a work tree file to see a blame in a vertical split.  Press
-<CR> on any line to reopen and reblame that file as it stood in that commit.
-Press o or O on any line to inspect that commit in a split or a tab.
-
-Run |:Ggrep| to search the work tree or history.  Run |:Gmove| to rename a
-file.  Run |:Gremove| to delete a file.
+Whenever you edit a file from a Git repository, a set of commands is defined
+that serve as a gateway to Git.
 
 COMMANDS                                        *fugitive-commands*
 

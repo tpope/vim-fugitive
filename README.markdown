@@ -67,6 +67,10 @@ then simply copy and paste:
 Once help tags have been generated, you can view the manual with
 `:help fugitive`.
 
+If your Vim version is below 7.2, I recommend also installing
+[vim-git](https://github.com/tpope/vim-git) for syntax highlighting and
+other Git niceties.
+
 FAQ
 ---
 
