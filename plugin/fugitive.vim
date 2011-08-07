@@ -1084,8 +1084,8 @@ call s:command("-bar -nargs=? -complete=customlist,s:EditComplete Gsdiff :execut
 
 augroup fugitive_diff
   autocmd!
-  autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diff_off_all(getbufvar(+expand('<abuf>'), 'git_dir')) | endif
-  autocmd BufWinEnter * if s:diff_window_count() == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | diffoff | endif
+  autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diffoff_all(getbufvar(+expand('<abuf>'), 'git_dir')) | endif
+  autocmd BufWinEnter * if s:diff_window_count() == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diffoff() | endif
 augroup END
 
 function! s:diff_window_count()
@@ -1096,7 +1096,27 @@ function! s:diff_window_count()
   return c
 endfunction
 
-function! s:diff_off_all(dir)
+function! s:diffthis()
+  if !&diff
+    let w:fugitive_diff_restore = 'setlocal nodiff noscrollbind'
+    let w:fugitive_diff_restore .= ' scrollopt=' . &l:scrollopt
+    let w:fugitive_diff_restore .= &l:wrap ? ' wrap' : ' nowrap'
+    let w:fugitive_diff_restore .= ' foldmethod=' . &l:foldmethod
+    let w:fugitive_diff_restore .= ' foldcolumn=' . &l:foldcolumn
+    diffthis
+  endif
+endfunction
+
+function! s:diffoff()
+  if exists('w:fugitive_diff_restore')
+    execute w:fugitive_diff_restore
+    unlet w:fugitive_diff_restore
+  else
+    diffoff
+  endif
+endfunction
+
+function! s:diffoff_all(dir)
   for nr in range(1,winnr('$'))
     if getwinvar(nr,'&diff')
       if nr != winnr()
@@ -1104,7 +1124,7 @@ function! s:diff_off_all(dir)
         let restorewinnr = 1
       endif
       if exists('b:git_dir') && b:git_dir ==# a:dir
-        diffoff
+        call s:diffoff()
       endif
       if exists('restorewinnr')
         wincmd p
@@ -1143,13 +1163,13 @@ function! s:Diff(bang,...) abort
     let nr = bufnr('')
     execute 'leftabove '.split.' `=fugitive#buffer().repo().translate(s:buffer().expand('':2''))`'
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
-    diffthis
+    call s:diffthis()
     wincmd p
     execute 'rightbelow '.split.' `=fugitive#buffer().repo().translate(s:buffer().expand('':3''))`'
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
-    diffthis
+    call s:diffthis()
     wincmd p
-    diffthis
+    call s:diffthis()
     return ''
   elseif a:0
     if a:1 ==# ''
@@ -1181,9 +1201,9 @@ function! s:Diff(bang,...) abort
     else
       execute 'leftabove '.split.' `=spec`'
     endif
-    diffthis
+    call s:diffthis()
     wincmd p
-    diffthis
+    call s:diffthis()
     return ''
   catch /^fugitive:/
     return 'echoerr v:errmsg'
