@@ -51,7 +51,7 @@ that are part of Git repositories).
 
                                                 *fugitive-:Gstatus*
 :Gstatus                Bring up the output of git-status in the preview
-                        window.  In addition to standard motions, you can
+                        window.  In addition to standard motions, one can
                         use <C-N> and <C-P> to jump from filename to
                         filename.  Press C to invoke |:Gcommit|.  Press D to
                         |:Gdiff| the file on the cursor line, or ds to
@@ -59,7 +59,8 @@ that are part of Git repositories).
                         the cursor line.  Press p to do so on a per hunk basis
                         (--patch).  All of D, -, and p have a different,
                         sensible (and hopefully intuitive) behavior when
-                        invoked on a heading rather than a file name.
+                        invoked on a heading rather than a file name.  Press q
+                        to close the preview window.
 
                                                 *fugitive-:Gcommit*
 :Gcommit [args]         A wrapper around git-commit.  If there is nothing
@@ -160,6 +161,14 @@ that are part of Git repositories).
                         reblame the file as it was in that commit.  You can
                         give any of ltwfsMC as flags and they will be passed
                         along to git-blame.
+
+                        In a blame buffer on any line, one can press <CR> to
+                        reblame at that commit, ~ to reblame at that commit's
+                        [count]th first grandparent (like HEAD~[count]), or P
+                        to reblame at that commit's [count]th parent (like
+                        HEAD^[count]).  Press o or O to open up that commit
+                        in a horizontal of vertical split.  Pressing q will
+                        close the blame buffer.
 
 :[range]Gblame [flags]  Run git-blame on the given range.
 
