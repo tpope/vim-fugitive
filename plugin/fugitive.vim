@@ -1549,7 +1549,7 @@ function! s:Browse(bang,line1,count,...) abort
       let @* = url
       return 'echomsg '.string(url)
     else
-      return 'echomsg '.string(url).'|silent Git web--browse '.shellescape(url,1)
+      return 'echomsg '.string(url).'|call fugitive#buffer().repo().git_chomp("web--browse",'.string(url).')'
     endif
   catch /^fugitive:/
     return 'echoerr v:errmsg'
