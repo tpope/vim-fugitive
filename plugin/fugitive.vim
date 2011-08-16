@@ -1753,6 +1753,9 @@ function! s:BufReadIndexFile()
     let b:fugitive_type = 'blob'
     let b:git_dir = s:repo().dir()
     call s:ReplaceCmd(s:repo().git_command('cat-file','blob',s:buffer().sha1()))
+    if &bufhidden ==# ''
+      setlocal bufhidden=delete
+    endif
     return ''
   catch /^fugitive: rev-parse/
     silent exe 'doau BufNewFile '.s:fnameescape(bufname(''))
@@ -1849,6 +1852,9 @@ function! s:BufReadObject()
     endif
     call setpos('.',pos)
     setlocal ro noma nomod nomodeline
+    if &bufhidden ==# ''
+      setlocal bufhidden=delete
+    endif
     if b:fugitive_type !=# 'blob'
       set filetype=git
       nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe <SID>BufReadObject()<CR>
