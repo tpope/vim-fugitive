@@ -43,7 +43,8 @@ GitHub, `git instaweb` will be spun up instead.
 Add `%{fugitive#statusline()}` to `'statusline'` to get an indicator
 with the current branch in (surprise!) your statusline.
 
-Oh, and of course there's `:Git` for running any arbitrary command.
+Last but not least, there's `:Git` for running any arbitrary command,
+and `Git!` to open the output of a command in a temp file.
 
 Screencasts
 -----------

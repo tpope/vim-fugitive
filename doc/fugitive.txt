@@ -19,6 +19,10 @@ that are part of Git repositories).
 :Git [args]             Run an arbitrary git command. Similar to :!git [args]
                         but chdir to the repository tree first.
 
+                                                *fugitive-:Git!*
+:Git! [args]            Like |:Git|, but capture the output into a temp file,
+                        and edit that temp file.
+
                                                 *fugitive-:Gcd*
 :Gcd [directory]        |:cd| relative to the repository.
 
@@ -78,10 +82,15 @@ that are part of Git repositories).
 :Gvsplit [revision]     |:vsplit| a |fugitive-revision|.
 
                                                 *fugitive-:Gtabedit*
-:Gtabedit [revision]    |:tabedit| a |fugitive-revision|
+:Gtabedit [revision]    |:tabedit| a |fugitive-revision|.
 
                                                 *fugitive-:Gpedit*
-:Gpedit [revision]      |:pedit| a |fugitive-revision|
+:Gpedit [revision]      |:pedit| a |fugitive-revision|.
+
+:Gsplit! [args]                 *fugitive-:Gsplit!* *fugitive-:Gvsplit!*
+:Gvsplit! [args]                *fugitive-:Gtabedit!* *fugitive-:Gpedit!*
+:Gtabedit! [args]       Like |:Git!|, but open the resulting temp file in a
+:Gpedit! [args]         split, tab, or preview window.
 
                                                 *fugitive-:Gread*
 :Gread [revision]       Empty the buffer and |:read| a |fugitive-revision|.
@@ -91,6 +100,12 @@ that are part of Git repositories).
 
 :{range}Gread [revision]
                         |:read| in a |fugitive-revision| after {range}.
+
+                                                *fugitive-:Gread!*
+:Gread! [args]          Empty the buffer and |:read| the output of a Git
+                        command.  For example, :Gread! show HEAD:%.
+
+:{range}Gread! [args]  |:read| the output of a Git command after {range}.
 
                                                 *fugitive-:Gwrite*
 :Gwrite                 Write to the current file's path and stage the results.
