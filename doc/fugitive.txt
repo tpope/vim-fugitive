@@ -42,6 +42,8 @@ that are part of Git repositories).
                         C     |:Gcommit|
                         D     |:Gdiff|
                         ds    |:Gsdiff|
+                        dp    |:Git!| diff (mnemonic: p for patch)
+                        dp    |:Git| add --intent-to-add (untracked files)
                         dv    |:Gvdiff|
                         O     |:Gtabedit|
                         o     |:Gsplit|

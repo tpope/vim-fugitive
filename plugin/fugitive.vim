@@ -577,23 +577,37 @@ function! fugitive#reload_status() abort
 endfunction
 
 function! s:StageDiff(diff) abort
-  let section = getline(search('^# .*:$','bnW'))
+  let section = getline(search('^# .*:$','bcnW'))
   let line = getline('.')
   let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
-  if filename ==# '' && section == '# Changes to be committed:'
+  if filename ==# '' && section ==# '# Changes to be committed:'
     return 'Git diff --cached'
   elseif filename ==# ''
     return 'Git diff'
-  elseif line =~# '^#\trenamed:' && filename =~ ' -> '
+  elseif line =~# '^#\trenamed:' && filename =~# ' -> '
     let [old, new] = split(filename,' -> ')
     execute 'Gedit '.s:fnameescape(':0:'.new)
     return a:diff.' HEAD:'.s:fnameescape(old)
-  elseif section == '# Changes to be committed:'
+  elseif section ==# '# Changes to be committed:'
     execute 'Gedit '.s:fnameescape(':0:'.filename)
     return a:diff.' -'
   else
     execute 'Gedit '.s:fnameescape('/'.filename)
     return a:diff
+  endif
+endfunction
+
+function! s:StageDiffEdit() abort
+  let section = getline(search('^# .*:$','bcnW'))
+  let line = getline('.')
+  let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
+  let args = (filename ==# '' ? '.' : s:shellesc(filename))
+  if section ==# '# Changes to be committed:'
+    return 'Git! diff --cached '.args
+  elseif section ==# '# Untracked files:'
+    return 'Git add -N '.args
+  else
+    return 'Git! diff '.args
   endif
 endfunction
 
@@ -1755,6 +1769,7 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
     nnoremap <buffer> <silent> ds :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
+    nnoremap <buffer> <silent> dp :<C-U>execute <SID>StageDiffEdit()<CR>
     nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
