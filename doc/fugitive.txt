@@ -45,8 +45,8 @@ that are part of Git repositories).
                         dv    |:Gvdiff|
                         O     |:Gtabedit|
                         o     |:Gsplit|
-                        p     |:Git| add -p
-                        p     |:Git| reset -p (staged files)
+                        p     |:Git| add --patch
+                        p     |:Git| reset --patch (staged files)
                         q     close status
                         R     reload status
 
