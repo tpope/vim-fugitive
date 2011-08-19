@@ -67,10 +67,7 @@ endfunction
 function! s:recall()
   let rev = s:buffer().rev()
   if rev ==# ':'
-    let filename = matchstr(getline('.'),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
-    if filename !=# ''
-      return filename
-    endif
+    return matchstr(getline('.'),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
   endif
   return rev
 endfunction
