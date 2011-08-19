@@ -1315,7 +1315,6 @@ function! s:Blame(bang,line1,line2,count,args) abort
       call s:throw('unsupported option')
     endif
     call map(a:args,'s:sub(v:val,"^\\ze[^-]","-")')
-    let git_dir = s:repo().dir()
     let cmd = ['--no-pager', 'blame', '--show-number'] + a:args
     if s:buffer().commit() =~# '\D\|..'
       let cmd += [s:buffer().commit()]
@@ -1360,19 +1359,16 @@ function! s:Blame(bang,line1,line2,count,args) abort
         setlocal scrollbind nowrap nofoldenable
         let top = line('w0') + &scrolloff
         let current = line('.')
+        let s:temp_files[temp] = s:repo().dir()
         exe 'leftabove vsplit '.temp
-        let b:git_dir = git_dir
-        let b:fugitive_type = 'blame'
         let b:fugitive_blamed_bufnr = bufnr
         let w:fugitive_leave = restore
         let b:fugitive_blame_arguments = join(a:args,' ')
-        call s:Detect(expand('%:p'))
         execute top
         normal! zt
         execute current
         execute "vertical resize ".(match(getline('.'),'\s\+\d\+)')+1)
-        setlocal nomodified nomodifiable bufhidden=delete nonumber scrollbind nowrap foldcolumn=0 nofoldenable filetype=fugitiveblame
-        nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
+        setlocal nomodified nomodifiable nonumber scrollbind nowrap foldcolumn=0 nofoldenable filetype=fugitiveblame
         nnoremap <buffer> <silent> <CR> :<C-U>exe <SID>BlameJump('')<CR>
         nnoremap <buffer> <silent> P    :<C-U>exe <SID>BlameJump('^'.v:count1)<CR>
         nnoremap <buffer> <silent> ~    :<C-U>exe <SID>BlameJump('~'.v:count1)<CR>
@@ -1876,6 +1872,23 @@ augroup fugitive_files
   autocmd BufReadCmd  fugitive://**//[0-9a-f][0-9a-f]* exe s:BufReadObject()
   autocmd FileReadCmd fugitive://**//[0-9a-f][0-9a-f]* exe s:FileRead()
   autocmd FileType git       call s:JumpInit()
+augroup END
+
+" }}}1
+" Temp files {{{1
+
+let s:temp_files = {}
+
+augroup fugitive_temp
+  autocmd!
+  autocmd BufNewFile,BufReadPost *
+        \ if has_key(s:temp_files,expand('<amatch>:p')) |
+        \   let b:git_dir = s:temp_files[expand('<amatch>:p')] |
+        \   let b:git_type = 'temp' |
+        \   call s:Detect(expand('<amatch>:p')) |
+        \   setlocal bufhidden=delete |
+        \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR> |
+        \ endif
 augroup END
 
 " }}}1
