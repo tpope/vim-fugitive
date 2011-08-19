@@ -1706,6 +1706,7 @@ function! s:BufReadIndex()
     endif
     setlocal ro noma nomod nomodeline bufhidden=delete
     nnoremap <buffer> <silent> q :<C-U>bdelete<CR>
+    nnoremap <buffer> <silent> R :<C-U>edit<CR>
     nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe <SID>BufReadIndex()<CR>
     nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe <SID>BufReadIndex()<CR>
     nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff()<CR>
