@@ -899,6 +899,22 @@ endfunction
 " Gedit, Gpedit, Gsplit, Gvsplit, Gtabedit, Gread {{{1
 
 function! s:Edit(cmd,...) abort
+  if a:cmd !~# 'read'
+    if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
+      wincmd p
+      if &diff
+        let mywinnr = winnr()
+        for winnr in range(winnr('$'),1,-1)
+          if winnr != mywinnr && getwinvar(winnr,'&diff')
+            execute winnr.'wincmd w'
+            close
+            wincmd p
+          endif
+        endfor
+      endif
+    endif
+  endif
+
   if a:0 && a:1 == ''
     return ''
   elseif a:0
@@ -916,19 +932,6 @@ function! s:Edit(cmd,...) abort
   if a:cmd ==# 'read'
     return 'silent %delete_|read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
   else
-    if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
-      wincmd p
-      if &diff
-        let mywinnr = winnr()
-        for winnr in range(winnr('$'),1,-1)
-          if winnr != mywinnr && getwinvar(winnr,'&diff')
-            execute winnr.'wincmd w'
-            close
-            wincmd p
-          endif
-        endfor
-      endif
-    endif
     return a:cmd.' '.s:fnameescape(file)
   endif
 endfunction
