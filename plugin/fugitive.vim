@@ -576,6 +576,18 @@ function! fugitive#reload_status() abort
   endfor
 endfunction
 
+function! s:StageReloadSeek(target,lnum1,lnum2)
+  let jump = a:target
+  let f = matchstr(getline(a:lnum1-1),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+  if f !=# '' | let jump = f | endif
+  let f = matchstr(getline(a:lnum2+1),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+  if f !=# '' | let jump = f | endif
+  silent! edit!
+  1
+  redraw
+  call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.jump.'\%( (new commits)\)\=\$','W')
+endfunction
+
 function! s:StageDiff(diff) abort
   let section = getline(search('^# .*:$','bcnW'))
   let line = getline('.')
@@ -601,13 +613,24 @@ function! s:StageDiffEdit() abort
   let section = getline(search('^# .*:$','bcnW'))
   let line = getline('.')
   let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
-  let args = (filename ==# '' ? '.' : s:shellesc(filename))
+  let arg = (filename ==# '' ? '.' : filename)
   if section ==# '# Changes to be committed:'
-    return 'Git! diff --cached '.args
+    return 'Git! diff --cached '.s:shellesc(arg)
   elseif section ==# '# Untracked files:'
-    return 'Git add -N '.args
+    let repo = s:repo()
+    call repo.git_chomp_in_tree('add','--intent-to-add',arg)
+    if arg ==# '.'
+      silent! edit!
+      1
+      if !search('^# Change\%(d but not updated\|s not staged for commit\):$','W')
+        call search('^# Change','W')
+      endif
+    else
+      call s:StageReloadSeek(arg,line('.'),line('.'))
+    endif
+    return ''
   else
-    return 'Git! diff '.args
+    return 'Git! diff '.s:shellesc(arg)
   endif
 endfunction
 
@@ -634,13 +657,10 @@ function! s:StageToggle(lnum1,lnum2) abort
         endif
         return ''
       elseif line ==# '# Untracked files:'
-        " Work around Vim parser idiosyncrasy
-        call repo.git_chomp_in_tree('add','-N','.')
+        call repo.git_chomp_in_tree('add','.')
         silent! edit!
         1
-        if !search('^# Change\%(d but not updated\|s not staged for commit\):$','W')
-          call search('^# Change','W')
-        endif
+        call search('^# Change','W')
         return ''
       endif
       let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (\a\+ [[:alpha:], ]\+)\)\=$')
@@ -665,15 +685,7 @@ function! s:StageToggle(lnum1,lnum2) abort
       let output .= call(repo.git_chomp_in_tree,cmd,s:repo())."\n"
     endfor
     if exists('first_filename')
-      let jump = first_filename
-      let f = matchstr(getline(a:lnum1-1),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
-      if f !=# '' | let jump = f | endif
-      let f = matchstr(getline(a:lnum2+1),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
-      if f !=# '' | let jump = f | endif
-      silent! edit!
-      1
-      redraw
-      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.jump.'\%( (new commits)\)\=\$','W')
+      call s:StageReloadSeek(first_filename,a:lnum1,a:lnum2)
     endif
     echo s:sub(s:gsub(output,'\n+','\n'),'\n$','')
   catch /^fugitive:/
