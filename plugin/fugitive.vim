@@ -317,6 +317,28 @@ endfunction
 
 call s:add_methods('repo',['dirglob','superglob'])
 
+function! s:repo_config(conf) dict abort
+  return matchstr(system(s:repo().git_command('config').' '.a:conf),"[^\r\n]*")
+endfun
+
+function! s:repo_user() dict abort
+  let username = s:repo().config('user.name')
+  let useremail = s:repo().config('user.email')
+  return username.' <'.useremail.'>'
+endfun
+
+function! s:repo_aliases() dict abort
+  if !has_key(self,'_aliases')
+    let self._aliases = {}
+    for line in split(self.git_chomp('config','--get-regexp','^alias[.]'),"\n")
+      let self._aliases[matchstr(line,'\.\zs\S\+')] = matchstr(line,' \zs.*')
+    endfor
+  endif
+  return self._aliases
+endfunction
+
+call s:add_methods('repo',['config', 'user', 'aliases'])
+
 function! s:repo_keywordprg() dict abort
   let args = ' --git-dir='.escape(self.dir(),"\\\"' ").' show'
   if has('gui_running') && !has('win32')
@@ -518,9 +540,9 @@ function! s:GitComplete(A,L,P) abort
   if a:L =~ ' [[:alnum:]-]\+ '
     return s:repo().superglob(a:A)
   elseif a:A == ''
-    return cmds
+    return sort(cmds+keys(s:repo().aliases()))
   else
-    return filter(cmds,'v:val[0 : strlen(a:A)-1] ==# a:A')
+    return filter(sort(cmds+keys(s:repo().aliases())),'v:val[0:strlen(a:A)-1] ==# a:A')
   endif
 endfunction
 
@@ -2159,18 +2181,6 @@ function! fugitive#statusline(...)
     return '[Git'.status.']'
   endif
 endfunction
-
-function! s:repo_config(conf) dict abort
-  return matchstr(system(s:repo().git_command('config').' '.a:conf),"[^\r\n]*")
-endfun
-
-function! s:repo_user() dict abort
-  let username = s:repo().config('user.name')
-  let useremail = s:repo().config('user.email')
-  return username.' <'.useremail.'>'
-endfun
-
-call s:add_methods('repo',['config', 'user'])
 
 " }}}1
 
