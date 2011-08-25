@@ -1760,6 +1760,9 @@ function! s:ReplaceCmd(cmd,...) abort
   silent edit!
   silent exe 'keepalt file '.s:fnameescape(fn)
   call delete(tmp)
+  if bufname('$') == tmp
+    silent execute 'bwipeout '.bufnr('$')
+  endif
   silent exe 'doau BufReadPost '.s:fnameescape(fn)
 endfunction
 
@@ -1812,7 +1815,7 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
-    nnoremap <buffer> <silent> q :<C-U>bdelete<CR>
+    nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
     nnoremap <buffer> <silent> R :<C-U>edit<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
