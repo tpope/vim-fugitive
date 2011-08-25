@@ -999,6 +999,8 @@ function! s:Edit(cmd,bang,...) abort
     return ''
   elseif a:0
     let file = s:buffer().expand(a:1)
+  elseif expand('%') ==# ''
+    let file = ':'
   elseif s:buffer().commit() ==# '' && s:buffer().path('/') !~# '^/.git\>'
     let file = s:buffer().path(':')
   else
