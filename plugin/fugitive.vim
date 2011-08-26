@@ -399,10 +399,8 @@ function! s:buffer_type(...) dict abort
     let type = 'directory'
   elseif self.spec() == ''
     let type = 'null'
-  elseif filereadable(self.spec())
-    let type = 'file'
   else
-    let type = ''
+    let type = 'file'
   endif
   if a:0
     return !empty(filter(copy(a:000),'v:val ==# type'))
