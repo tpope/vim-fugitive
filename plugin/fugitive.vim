@@ -1605,7 +1605,7 @@ function! s:Browse(bang,line1,count,...) abort
         endif
         if branch != ''
           let remote = s:repo().git_chomp('config','branch.'.branch.'.remote')
-          if remote ==# ''
+          if remote =~# '^\.\=$'
             let remote = 'origin'
           elseif rev[0:strlen(branch)-1] ==# branch && rev[strlen(branch)] =~# '[:^~@]'
             let rev = s:repo().git_chomp('config','branch.'.branch.'.merge')[11:-1] . rev[strlen(branch):-1]
