@@ -564,7 +564,7 @@ function! s:Status() abort
   try
     Gpedit :
     wincmd P
-    nnoremap <buffer> <silent> q    :<C-U>bwipe<CR>
+    nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
@@ -1816,7 +1816,7 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
-    nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bwipe<Bar>endif<CR>
+    nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
     nnoremap <buffer> <silent> R :<C-U>edit<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
