@@ -767,7 +767,6 @@ endfunction
 call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit(<q-args>)")
 
 function! s:Commit(args) abort
-  let old_type = s:buffer().type()
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
   let dir = getcwd()
   let msgfile = s:repo().dir('COMMIT_EDITMSG')
@@ -812,14 +811,14 @@ function! s:Commit(args) abort
         if args !~# '\%(^\| \)--cleanup\>'
           let args = '--cleanup=strip '.args
         endif
-        let old_nr = bufnr('')
         if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&mod
-          edit `=msgfile`
+          keepalt edit `=msgfile`
+        elseif s:buffer().type() ==# 'index'
+          keepalt edit `=msgfile`
+          execute (search('^#','n')+1).'wincmd+'
+          setlocal nopreviewwindow
         else
           keepalt split `=msgfile`
-        endif
-        if old_type ==# 'index'
-          execute 'bdelete '.old_nr
         endif
         let b:fugitive_commit_arguments = args
         setlocal bufhidden=delete filetype=gitcommit
