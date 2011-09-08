@@ -983,7 +983,10 @@ function! s:Edit(cmd,bang,...) abort
       endif
       let echo = s:Edit('read',1,args)
       silent write!
-      setlocal readonly nomodified nomodifiable filetype=git foldmarker=<<<<<<<,>>>>>>>
+      setlocal buftype=nowrite nomodified filetype=git foldmarker=<<<<<<<,>>>>>>>
+      if getline(1) !~# '^diff '
+        setlocal readonly nomodifiable
+      endif
       if a:cmd =~# 'pedit'
         wincmd p
       endif
@@ -1045,6 +1048,24 @@ function! s:Write(force,...) abort
     return 'wq'
   elseif s:buffer().type() == 'index'
     return 'Gcommit'
+  elseif s:buffer().path() ==# '' && getline(4) =~# '^+++ '
+    let filename = getline(4)[6:-1]
+    setlocal buftype=
+    silent write
+    setlocal buftype=nowrite
+    if matchstr(getline(2),'index [[:xdigit:]]\+\.\.\zs[[:xdigit:]]\{7\}') ==# s:repo().rev_parse(':0:'.filename)[0:6]
+      let err = s:repo().git_chomp('apply','--cached','--reverse',s:buffer().spec())
+    else
+      let err = s:repo().git_chomp('apply','--cached',s:buffer().spec())
+    endif
+    if err !=# ''
+      let v:errmsg = split(err,"\n")[0]
+      return 'echoerr v:errmsg'
+    elseif a:force
+      return 'bdelete'
+    else
+      return 'Gedit '.fnameescape(filename)
+    endif
   endif
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
