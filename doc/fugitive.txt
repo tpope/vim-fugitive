@@ -44,7 +44,8 @@ that are part of Git repositories).
                         ca    |Gcommit| --amend
                         D     |:Gdiff|
                         ds    |:Gsdiff|
-                        dp    |:Git!| diff (p for patch; use :Gw to apply)
+                        dp    |:Git!| diff (p for patch; use :Gw to apply - See
+                                            STAGING PARTIAL CHANGES topic)
                         dp    |:Git| add --intent-to-add (untracked files)
                         dv    |:Gvdiff|
                         O     |:Gtabedit|
@@ -260,6 +261,23 @@ a statusline, this one matches the default when 'ruler' is set:
 >
     set statusline=%<%f\ %h%m%r%{fugitive#statusline()}%=%-14.(%l,%c%V%)\ %P
 <
+
+STAGING PARTIAL CHANGES
+
+With Git, you can select partial chunks of code to send to stage area with "git add -e"
+or "git add -p". See "git help add" for more information.
+
+With fugitive, you can accomplish the same in two different ways:
+
+1 - after :Gstatus, you can type "dp" in the line containing the file you want to filter
+chunks of changes.
+2 - you can just type ":Git! diff %" (or any other filename instead of '%', which means
+the file in current buffer).
+
+Then, you'll be presented with a diff view of that file. Replace '-' with space (' ') to
+lines you want to keep unchanged and delete the added lines (beginning with '+') you don't
+want to send to stage (just like stated in "git help add"). When you're set, just issue ":Gw".
+
 ABOUT                                           *fugitive-about*
 
 Grab the latest version or report a bug on GitHub:
