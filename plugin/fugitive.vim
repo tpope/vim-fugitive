@@ -1019,6 +1019,10 @@ function! s:Edit(cmd,bang,...) abort
 endfunction
 
 function! s:EditComplete(A,L,P) abort
+  return s:repo().superglob(a:A)
+endfunction
+
+function! s:EditRunComplete(A,L,P) abort
   if a:L =~# '^\w\+!'
     return s:GitComplete(a:A,a:L,a:P)
   else
@@ -1028,11 +1032,11 @@ endfunction
 
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Ge       :execute s:Edit('edit<bang>',0,<f-args>)")
 call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gedit    :execute s:Edit('edit<bang>',0,<f-args>)")
-call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gpedit   :execute s:Edit('pedit',<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gsplit   :execute s:Edit('split',<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gvsplit  :execute s:Edit('vsplit',<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=? -complete=customlist,s:EditComplete Gtabedit :execute s:Edit('tabedit',<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=? -count -complete=customlist,s:EditComplete Gread :execute s:Edit((!<count> && <line1> ? '' : <count>).'read',<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:EditRunComplete Gpedit   :execute s:Edit('pedit',<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:EditRunComplete Gsplit   :execute s:Edit('split',<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:EditRunComplete Gvsplit  :execute s:Edit('vsplit',<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:EditRunComplete Gtabedit :execute s:Edit('tabedit',<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=? -count -complete=customlist,s:EditRunComplete Gread :execute s:Edit((!<count> && <line1> ? '' : <count>).'read',<bang>0,<f-args>)")
 
 " }}}1
 " Gwrite, Gwq {{{1
