@@ -171,7 +171,9 @@ that are part of Git repositories).
                         to reblame at that commit's [count]th parent (like
                         HEAD^[count]).  Press o or O to open up that commit
                         in a horizontal of vertical split.  Pressing q will
-                        close the blame buffer.
+                        close the blame buffer, and pressing gq will close the
+                        blame buffer and return the targeted window to the
+                        work tree version.
 
 :[range]Gblame [flags]  Run git-blame on the given range.
 
