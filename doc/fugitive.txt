@@ -163,19 +163,17 @@ that are part of Git repositories).
                         scroll bound vertical split.  Press enter on a line to
                         reblame the file as it was in that commit.  You can
                         give any of ltwfsMC as flags and they will be passed
-                        along to git-blame.
+                        along to git-blame.  The following maps, which work on
+                        the cursor line commit where sensible, are provided:
 
-                        In a blame buffer on any line, one can press <CR> to
-                        reblame at that commit, ~ to reblame at that commit's
-                        [count]th first grandparent (like HEAD~[count]), or P
-                        to reblame at that commit's [count]th parent (like
-                        HEAD^[count]).  Press o or O to open up that commit
-                        in a horizontal of vertical split, or i to close the
-                        blame window and open the commit in place of the
-                        original file.  Pressing q will close the blame
-                        buffer, and pressing gq will close the blame buffer
-                        and return the targeted window to the work tree
-                        version.
+                        q     close blame and return to blamed window
+                        gq    q, then |:Gedit| to return to work tree version
+                        i     q, then open commit
+                        o     open commit in horizontal split
+                        O     open commit in new tab
+                        <CR>  reblame at commit
+                        ~     reblame at [count]th first grandparent
+                        P     reblame at [count]th parent (like HEAD^[count])
 
 :[range]Gblame [flags]  Run git-blame on the given range.
 
