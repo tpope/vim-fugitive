@@ -1527,9 +1527,9 @@ function! s:BlameJump(suffix) abort
   execute lnum
   let delta = line('.') - line('w0') - offset
   if delta > 0
-    execute 'norm! 'delta."\<C-E>"
+    execute 'normal! '.delta."\<C-E>"
   elseif delta < 0
-    execute 'norm! '(-delta)."\<C-Y>"
+    execute 'normal! '.(-delta)."\<C-Y>"
   endif
   syncbind
   return ''
