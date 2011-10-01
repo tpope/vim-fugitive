@@ -2011,7 +2011,7 @@ augroup fugitive_temp
         \   let b:git_type = 'temp' |
         \   call s:Detect(expand('<amatch>:p')) |
         \   setlocal bufhidden=delete |
-        \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR> |
+        \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>|
         \ endif
 augroup END
 
