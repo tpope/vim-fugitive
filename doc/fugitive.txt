@@ -170,9 +170,11 @@ that are part of Git repositories).
                         gq    q, then |:Gedit| to return to work tree version
                         i     q, then open commit
                         o     open commit in horizontal split
+                        p     open commit in horizontal preview window split
                         O     open commit in new tab
                         <CR>  reblame at commit
                         ~     reblame at [count]th first grandparent
+                        !     reblame at commit and show preview window
                         P     reblame at [count]th parent (like HEAD^[count])
 
 :[range]Gblame [flags]  Run git-blame on the given range.

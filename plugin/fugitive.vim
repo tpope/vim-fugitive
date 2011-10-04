@@ -1493,6 +1493,8 @@ function! s:Blame(bang,line1,line2,count,args) abort
         nnoremap <buffer> <silent> ~    :<C-U>exe <SID>BlameJump('~'.v:count1)<CR>
         nnoremap <buffer> <silent> i    :<C-U>exe <SID>BlameCommit("exe 'norm q'<Bar>edit")<CR>
         nnoremap <buffer> <silent> o    :<C-U>exe <SID>BlameCommit((&splitbelow ? "botright" : "topleft")." split")<CR>
+        nnoremap <buffer> <silent> p    :<C-U>exe <SID>BlameCommit((&splitbelow ? "botright" : "topleft")." pedit")<CR>
+        nnoremap <buffer> <silent> !    :<C-U>exe <SID>BlameCommit((&splitbelow ? "botright" : "topleft")." pedit")<CR> <Bar> :<C-U>exe <SID>BlameJump('~'.v:count1)<CR>
         nnoremap <buffer> <silent> O    :<C-U>exe <SID>BlameCommit("tabedit")<CR>
         redraw
         syncbind
@@ -1519,6 +1521,9 @@ function! s:BlameCommit(cmd) abort
     let path = s:buffer(b:fugitive_blamed_bufnr).path()
   endif
   execute cmd
+  if cmd =~# 'pedit'
+    wincmd P
+  endif
   if search('^diff .* b/\M'.escape(path,'\').'$','W')
     call search('^+++')
     let head = line('.')
@@ -1540,11 +1545,17 @@ function! s:BlameCommit(cmd) abort
             let offset -= 1
           endif
         endwhile
+        if cmd =~# 'pedit'
+          wincmd p
+        endif
         return ''
       endif
     endwhile
     execute head
     normal! zt
+  endif
+  if cmd =~# 'pedit'
+    wincmd p
   endif
   return ''
 endfunction
