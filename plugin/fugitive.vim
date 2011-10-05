@@ -181,6 +181,10 @@ function! s:repo(...) abort
   call s:throw('not a git repository: '.expand('%:p'))
 endfunction
 
+function! fugitive#repo(...)
+  return call('s:repo', a:000)
+endfunction
+
 function! s:repo_dir(...) dict abort
   return join([self.git_dir]+a:000,'/')
 endfunction
