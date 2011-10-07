@@ -979,7 +979,7 @@ function! s:Edit(cmd,bang,...) abort
       diffupdate
       return 'redraw|echo '.string(':!'.git.' '.args)
     else
-      let temp = tempname()
+      let temp = resolve(tempname())
       let s:temp_files[temp] = s:repo().dir()
       silent execute a:cmd.' '.temp
       if a:cmd =~# 'pedit'
@@ -1446,7 +1446,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
       if a:count
         execute 'write !'.substitute(basecmd,' blame ',' blame -L '.a:line1.','.a:line2.' ','g')
       else
-        let error = tempname()
+        let error = resolve(tempname())
         let temp = error.'.fugitiveblame'
         if &shell =~# 'csh'
           silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
@@ -2053,7 +2053,9 @@ augroup END
 " }}}1
 " Temp files {{{1
 
-let s:temp_files = {}
+if !exists('s:temp_files')
+  let s:temp_files = {}
+endif
 
 augroup fugitive_temp
   autocmd!
