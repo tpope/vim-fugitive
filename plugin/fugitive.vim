@@ -445,6 +445,8 @@ function! s:buffer_path(...) dict abort
   let rev = matchstr(self.spec(),'^fugitive://.\{-\}//\zs.*')
   if rev != ''
     let rev = s:sub(rev,'\w*','')
+  elseif self.repo().bare()
+    let rev = '/.git'.self.spec()[strlen(self.repo().dir()) : -1]
   else
     let rev = self.spec()[strlen(self.repo().tree()) : -1]
   endif
