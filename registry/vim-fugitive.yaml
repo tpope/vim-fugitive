@@ -1,0 +1,7 @@
+addon: fugitive
+description: "git wrapper for vim"
+basedir: /usr/src/fugitive.vim
+disabledby: "let loaded_fugitive = 1"
+files:
+  - plugin/fugitive.vim
+---
