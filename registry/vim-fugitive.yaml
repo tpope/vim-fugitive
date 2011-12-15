@@ -1,6 +1,6 @@
 addon: fugitive
 description: "git wrapper for vim"
-basedir: /usr/src/fugitive.vim
+basedir: /usr/share/vim/addons/
 disabledby: "let loaded_fugitive = 1"
 files:
   - plugin/fugitive.vim
