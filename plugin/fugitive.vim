@@ -12,6 +12,13 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
+if exists('g:fugitive_abbreviate_branches')
+  if ! match(g:fugitive_abbreviate_branches, '^[0-9]+')
+    " Spit out a warning about invalid values?
+    let g:fugitive_abbreviate_branches = '1'
+  endif
+  let g:abbreviate_pattern = '\([0-9A-Za-z_-]\{1,' . g:fugitive_abbreviate_branches . '}\)[^/]*/'
+endif
 " Utility {{{1
 
 function! s:function(name) abort
@@ -2280,6 +2287,9 @@ function! fugitive#statusline(...)
   let head = s:repo().head_ref()
   if head =~# '^ref: '
     let status .= s:sub(head,'^ref: %(refs/%(heads/|remotes/|tags/)=)=','(').')'
+    if exists('g:abbreviate_pattern')
+      let status = substitute(status, g:abbreviate_pattern, '\1/', 'g')
+    endif
   elseif head =~# '^\x\{40\}$'
     let status .= '('.head[0:7].')'
   endif
