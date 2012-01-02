@@ -2269,24 +2269,34 @@ endfunction
 
 call s:add_methods('repo',['head_ref'])
 
-function! fugitive#statusline(...)
+" find the symbolic name of HEAD (git name-rev --name-only HEAD)
+function! fugitive#branchname()
   if !exists('b:git_dir')
     return ''
   endif
-  let status = ''
+
+  let name = ''
   if s:buffer().commit() != ''
-    let status .= ':' . s:buffer().commit()[0:7]
+    let name .= ':' . s:buffer().commit()[0:7]
   endif
+
   let head = s:repo().head_ref()
   if head =~# '^ref: '
-    let status .= s:sub(head,'^ref: %(refs/%(heads/|remotes/|tags/)=)=','(').')'
+    let name .= s:sub(head, '^ref: %(refs/%(heads/|remotes/|tags/)=)=', '')
   elseif head =~# '^\x\{40\}$'
-    let status .= '('.head[0:7].')'
+    let name .= head[0:7]
   endif
+
+  return name
+endfunction
+
+function! fugitive#statusline(...)
+  let status = fugitive#branchname()
+
   if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
-    return ',GIT'.status
+    return ',GIT('.status.')'
   else
-    return '[Git'.status.']'
+    return '[Git('.status.')]'
   endif
 endfunction
 
