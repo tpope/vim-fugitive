@@ -7,7 +7,7 @@ project (FUGITIVE)
 set (FUGITIVE_VERSION_MAJOR 1)
 set (FUGITIVE_VERSION_MINOR 0)
 
-set (FUGITIVE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/usr/share/vim/")
+set (FUGITIVE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/vim/")
 
 # Copy files with 644 permissions
 install(FILES plugin/fugitive.vim
