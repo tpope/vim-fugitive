@@ -1483,7 +1483,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
         let top = line('w0') + &scrolloff
         let current = line('.')
         let s:temp_files[temp] = s:repo().dir()
-        exe 'leftabove vsplit '.temp
+        exe 'keepalt leftabove vsplit '.temp
         let b:fugitive_blamed_bufnr = bufnr
         let w:fugitive_leave = restore
         let b:fugitive_blame_arguments = join(a:args,' ')
