@@ -2291,5 +2291,164 @@ function! fugitive#statusline(...)
 endfunction
 
 " }}}1
+" Gfilelog {{{1
+
+call s:command("-bang Gfilelog :execute s:FileLog(<bang>0)")
+autocmd Syntax fugitivefilelog call s:FileLogSyntax()
+
+function! s:FileLog(bang) abort
+  let path = s:buffer().path()
+  try
+    if path == ''
+      call s:throw('file or blob required')
+    endif
+    let git_dir = s:repo().dir()
+    " insert literal tabs in the format string because git does not seem to provide an escape code for it
+    let cmd = ['--no-pager', 'log', '--pretty=format:\%an	\%d	\%s', '-n100']
+    let extradata_cmd = ['--no-pager', 'log', '--pretty=format:\%h	\%ad', '-n100']
+    let basecmd = call(s:repo().git_command,cmd+['--',path],s:repo())
+    let extradata_basecmd = call(s:repo().git_command,extradata_cmd+['--',path],s:repo())
+    let error = tempname()
+    let log_file = error.'.fugitivefilelog'
+    " put the commit IDs in a separate file -- the user doesn't have to know
+    " exactly what they are
+    let extradata_file = error.'.fugitivefilelogcommits'
+    if &shell =~# 'csh'
+      silent! execute '%write !('.extradata_basecmd.' > '.extradata_file.') >& '.error
+      silent! execute '%write !('.basecmd.' > '.log_file.') >& '.error
+    else
+      silent! execute '%write !'.extradata_basecmd.' > '.extradata_file.' 2> '.error
+      silent! execute '%write !'.basecmd.' > '.log_file.' 2> '.error
+    endif
+    if v:shell_error
+      call s:throw(join(readfile(error),"\n"))
+    endif
+    let bufnr = bufnr('')
+    if a:bang
+      exe 'leftabove vsplit '.log_file
+    else
+      exe 'edit' log_file
+    endif
+    " Some components of the log may have no value. Remove the repeated tabs
+    " that result from this.
+    silent! %s/\t\t\+/\t/g
+    normal! gg
+    let b:extradata_list = []
+    let extradata = readfile(extradata_file)
+    for line in extradata
+      let tokens = matchlist(line, '\([^\t]\+\)\t\([^\t]\+\)')
+      call add(b:extradata_list, {'commit': tokens[1], 'date': tokens[2]})
+    endfor
+    let b:git_dir = git_dir
+    let b:fugitive_type = 'log'
+    let b:fugitive_logged_bufnr = bufnr
+    vertical resize 60
+    setlocal nomodified nomodifiable bufhidden=delete nonumber nowrap foldcolumn=0 nofoldenable filetype=fugitivefilelog ts=1 cursorline nobuflisted
+    nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
+    nnoremap <buffer> <silent> <CR> :<C-U>exe <SID>FileLogJump("edit")<CR>
+    nnoremap <buffer> <silent> o    :<C-U>exe <SID>FileLogJump((&splitbelow ? "botright" : "topleft")." split")<CR>
+    nnoremap <buffer> <silent> O    :<C-U>exe <SID>FileLogJump("tabedit")<CR>
+    nnoremap <buffer> <silent> d    :<C-U>exe <SID>FileLogDiff(0)<CR>
+    nnoremap <buffer> <silent> D    :<C-U>exe <SID>FileLogDiff(1)<CR>
+    " hack to make the cursor stay in the same position. putting line= in FileLogDiffToggle / removing <C-U>
+    " doesn't seem to work
+    nnoremap <buffer> <silent> t    :let line=line('.')<cr> :<C-U>exe <SID>FileLogDiffToggle()<CR> :exe line<cr>
+    autocmd CursorMoved <buffer>    exe 'setlocal statusline='.escape(b:extradata_list[line(".")-1]['date'], ' ')
+    call s:FileLogDiffToggle()
+    return ''
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
+endfunction
+
+" Returns the `commit:path` associated with the current line in the FileLog
+function! s:FileLogPath(...) abort
+  if exists('a:1')
+    let modifier = a:1
+  else
+    let modifier = ''
+  endif
+  return b:extradata_list[line(".")-1]['commit'].modifier.':'.s:buffer(b:fugitive_logged_bufnr).path()
+endfunction
+
+" Closes the file log and returns the selected `commit:path`
+function! s:FileLogClose() abort
+  let original_bufnr = bufnr('')
+  let rev = s:FileLogPath()
+  let fugitive_logged_bufnr = b:fugitive_logged_bufnr
+  bd
+  let winnr = bufwinnr(fugitive_logged_bufnr)
+  if winnr > 0
+    exe winnr.'wincmd w'
+  endif
+  return rev
+endfunction
+
+function! s:FileLogJump(cmd) abort
+  let rev = s:FileLogClose()
+  exe s:Edit(a:cmd,rev)
+endfunction
+
+function! s:FileLogDiff(bang) abort
+  let rev = s:FileLogClose()
+  call s:Diff(a:bang,rev)
+endfunction
+
+function! s:FileLogSyntax() abort
+  let b:current_syntax = 'fugitivefilelog'
+  syn match FugitivelogName "\(\w\| \)\+\t"
+  syn match FugitivelogTag "(.*)\t"
+  hi def link FugitivelogName       String
+  hi def link FugitivelogTag        Identifier
+  hi! def link CursorLine           Visual
+endfunction
+
+function! s:FileLogDiffToggle() abort
+  if !exists('b:fugitive_simplediff_bufnr') || b:fugitive_simplediff_bufnr == -1
+    augroup fugitive_filelog
+      autocmd CursorMoved <buffer> call s:SimpleFileDiff(s:FileLogPath('~1'), s:FileLogPath())
+      autocmd BufUnload <buffer> exe 'bd!' . getbufvar('<afile>', 'fugitive_simplediff_bufnr')
+    augroup END
+    call s:SimpleFileDiff(s:FileLogPath('~1'), s:FileLogPath())
+  else
+    exe "bd" b:fugitive_simplediff_bufnr
+    unlet b:fugitive_simplediff_bufnr
+    au! fugitive_filelog
+  endif
+endfunction
+
+" Does a git diff on a single file and discards the top few lines of extraneous
+" information
+function! s:SimpleFileDiff(a,b) abort
+  call s:SimpleDiff(a:a,a:b)
+  let win = bufwinnr(b:fugitive_simplediff_bufnr)
+  exe win.'wincmd w'
+  set modifiable
+    silent normal! gg5dd
+  set nomodifiable
+  wincmd p
+endfunction
+
+" Does a git diff of commits a and b. Will create one simplediff-buffer that is
+" unique wrt the buffer that it is invoked from.
+function! s:SimpleDiff(a,b) abort
+  if !exists('b:fugitive_simplediff_bufnr') || b:fugitive_simplediff_bufnr == -1
+    belowright split
+    enew!
+    let bufnr = bufnr('')
+    wincmd p
+    let b:fugitive_simplediff_bufnr = bufnr
+  endif
+  let win = bufwinnr(b:fugitive_simplediff_bufnr)
+  exe win.'wincmd w'
+  set modifiable
+    silent! %delete _
+    let diff = system('git diff '.a:a.' '.a:b)
+    silent put = diff
+  setlocal ft=diff buftype=nofile nomodifiable
+  wincmd p
+endfunction
+
+" }}}1
 
 " vim:set ft=vim ts=8 sw=2 sts=2:
