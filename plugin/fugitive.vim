@@ -1233,7 +1233,7 @@ function! s:diffthis()
     endif
     let w:fugitive_diff_restore .= ' conceallevel=' . &l:conceallevel
     diffthis
-    set conceallevel=0
+    setlocal conceallevel=0
   endif
 endfunction
 
