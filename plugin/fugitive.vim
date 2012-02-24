@@ -1231,7 +1231,9 @@ function! s:diffthis()
     if has('cursorbind')
       let w:fugitive_diff_restore .= (&l:cursorbind ? ' ' : ' no') . 'cursorbind'
     endif
+    let w:fugitive_diff_restore .= ' conceallevel=' . &l:conceallevel
     diffthis
+    set conceallevel=0
   endif
 endfunction
 
