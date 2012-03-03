@@ -773,10 +773,13 @@ endfunction
 call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit(<q-args>)")
 
 function! s:Commit(args) abort
+  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
+  let dir = getcwd()
   let msgfile = s:repo().dir('COMMIT_EDITMSG')
   let outfile = tempname()
   let errorfile = tempname()
   try
+    execute cd.'`=s:repo().tree()`'
     if &shell =~# 'cmd'
       let command = ''
       let old_editor = $GIT_EDITOR
@@ -784,7 +787,7 @@ function! s:Commit(args) abort
     else
       let command = 'env GIT_EDITOR=false '
     endif
-    let command .= s:sub(s:repo().git_command('commit'),'--git-dir','--work-tree='.s:shellesc(s:repo().tree()).' --git-dir').' '.a:args
+    let command .= s:repo().git_command('commit').' '.a:args
     if &shell =~# 'csh'
       silent execute '!('.command.' > '.outfile.') >& '.errorfile
     elseif a:args =~# '\%(^\| \)--interactive\>'
@@ -840,6 +843,7 @@ function! s:Commit(args) abort
     endif
     call delete(outfile)
     call delete(errorfile)
+    execute cd.'`=dir`'
     call fugitive#reload_status()
   endtry
 endfunction
