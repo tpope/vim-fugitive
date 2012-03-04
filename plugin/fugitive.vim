@@ -1856,7 +1856,7 @@ function! s:BufReadIndex()
   let b:fugitive_type = 'index'
   try
     let b:git_dir = s:repo().dir()
-    setlocal noro ma
+    setlocal noro ma noml
     if fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p') ==# expand('%:p')
       let index = ''
     else
@@ -1927,6 +1927,7 @@ function! s:BufReadIndexFile()
   try
     let b:fugitive_type = 'blob'
     let b:git_dir = s:repo().dir()
+    setlocal nomodeline
     call s:ReplaceCmd(s:repo().git_command('cat-file','blob',s:buffer().sha1()))
     if &bufhidden ==# ''
       setlocal bufhidden=delete
@@ -1973,7 +1974,7 @@ endfunction
 
 function! s:BufReadObject()
   try
-    setlocal noro ma
+    setlocal noro ma noml
     let b:git_dir = s:repo().dir()
     let hash = s:buffer().sha1()
     if !exists("b:fugitive_type")
