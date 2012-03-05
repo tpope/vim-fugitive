@@ -138,7 +138,6 @@ function! s:Detect(path)
     endif
   endif
   if exists('b:git_dir')
-    setlocal nomodeline
     silent doautocmd User Fugitive
     cnoremap <expr> <buffer> <C-R><C-G> <SID>recall()
     let buffer = fugitive#buffer()
