@@ -2002,21 +2002,21 @@ function! s:BufReadObject()
     setlocal endofline
 
     try
-      if b:fugitive_type == 'tree'
+      if b:fugitive_type ==# 'tree'
         let b:fugitive_display_format = b:fugitive_display_format % 2
         if b:fugitive_display_format
           call s:ReplaceCmd(s:repo().git_command('ls-tree',hash))
         else
           call s:ReplaceCmd(s:repo().git_command('show','--no-color',hash))
         endif
-      elseif b:fugitive_type == 'tag'
+      elseif b:fugitive_type ==# 'tag'
         let b:fugitive_display_format = b:fugitive_display_format % 2
         if b:fugitive_display_format
           call s:ReplaceCmd(s:repo().git_command('cat-file',b:fugitive_type,hash))
         else
           call s:ReplaceCmd(s:repo().git_command('cat-file','-p',hash))
         endif
-      elseif b:fugitive_type == 'commit'
+      elseif b:fugitive_type ==# 'commit'
         let b:fugitive_display_format = b:fugitive_display_format % 2
         if b:fugitive_display_format
           call s:ReplaceCmd(s:repo().git_command('cat-file',b:fugitive_type,hash))
