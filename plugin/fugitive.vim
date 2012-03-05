@@ -1839,13 +1839,16 @@ function! s:ReplaceCmd(cmd,...) abort
     endif
   endtry
   silent exe 'keepalt file '.tmp
-  silent edit!
-  silent exe 'keepalt file '.s:fnameescape(fn)
-  call delete(tmp)
-  if bufname('$') == tmp
-    silent execute 'bwipeout '.bufnr('$')
-  endif
-  silent exe 'doau BufReadPost '.s:fnameescape(fn)
+  try
+    silent edit!
+  finally
+    silent exe 'keepalt file '.s:fnameescape(fn)
+    call delete(tmp)
+    if bufname('$') == tmp
+      silent execute 'bwipeout '.bufnr('$')
+    endif
+    silent exe 'doau BufReadPost '.s:fnameescape(fn)
+  endtry
 endfunction
 
 function! s:BufReadIndex()
