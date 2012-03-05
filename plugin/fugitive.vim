@@ -1856,7 +1856,7 @@ function! s:BufReadIndex()
   let b:fugitive_type = 'index'
   try
     let b:git_dir = s:repo().dir()
-    setlocal noro ma
+    setlocal noro ma nomodeline
     if fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p') ==# expand('%:p')
       let index = ''
     else
@@ -1876,7 +1876,7 @@ function! s:BufReadIndex()
       endtry
       set ft=gitcommit
     endif
-    setlocal ro noma nomod nomodeline noswapfile bufhidden=wipe
+    setlocal ro noma nomod noswapfile bufhidden=wipe
     call s:JumpInit()
     nunmap   <buffer>          P
     nunmap   <buffer>          ~
@@ -1987,6 +1987,10 @@ function! s:BufReadObject()
       let b:fugitive_display_format = +getbufvar('#','fugitive_display_format')
     endif
 
+    if b:fugitive_type !=# 'blob'
+      setlocal nomodeline
+    endif
+
     let pos = getpos('.')
     silent %delete
     setlocal endofline
@@ -2026,7 +2030,7 @@ function! s:BufReadObject()
       call s:ReplaceCmd(s:repo().git_command('cat-file',b:fugitive_type,hash))
     endif
     call setpos('.',pos)
-    setlocal ro noma nomod nomodeline
+    setlocal ro noma nomod
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
