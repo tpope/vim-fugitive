@@ -201,6 +201,16 @@ that are part of Git repositories).
 
 MAPPINGS                                        *fugitive-mappings*
 
+These maps are available everywhere.
+
+                                                *fugitive-c_CTRL-R_CTRL-G*
+<C-R><C-G>              On the command line, recall the path to the current
+                        object (that is, a representation of the object
+                        recognized by |:Gedit|).
+
+                                                *fugitive-y_CTRL-G*
+["x]y<C-G>              Yank the commit SHA and path to the current object.
+
 These maps are available in Git objects.
 
                                                 *fugitive-<CR>*
