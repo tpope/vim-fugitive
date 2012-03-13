@@ -2276,15 +2276,16 @@ function! fugitive#branchname()
   endif
 
   let name = ''
-  if s:buffer().commit() != ''
-    let name .= ':' . s:buffer().commit()[0:7]
-  endif
-
   let head = s:repo().head_ref()
+
   if head =~# '^ref: '
     let name .= s:sub(head, '^ref: %(refs/%(heads/|remotes/|tags/)=)=', '')
   elseif head =~# '^\x\{40\}$'
     let name .= head[0:7]
+  endif
+
+  if s:buffer().commit() != ''
+    let name .= ':' . s:buffer().commit()[0:7]
   endif
 
   return name
