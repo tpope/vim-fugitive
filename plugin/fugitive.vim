@@ -107,6 +107,11 @@ let s:abstract_prototype = {}
 " }}}1
 " Initialization {{{1
 
+function! s:is_git_dir(path) abort
+  let path = a:path . '/'
+  return isdirectory(path.'objects') && isdirectory(path.'refs') && filereadable(path.'HEAD') && filereadable(path.'config')
+endfunction
+
 function! s:extract_git_dir(path) abort
   let path = s:shellslash(a:path)
   if path =~? '^fugitive://.*//'
@@ -115,10 +120,10 @@ function! s:extract_git_dir(path) abort
   let fn = fnamemodify(path,':s?[\/]$??')
   let ofn = ""
   let nfn = fn
-  while fn !=# ofn && fn !=# '/'
-    if filereadable(fn . '/.git/HEAD')
+  while fn !=# ofn
+    if s:is_git_dir(s:sub(fn,'[\/]$','') . '/.git')
       return s:sub(simplify(fnamemodify(fn . '/.git',':p')),'\W$','')
-    elseif fn =~ '\.git$' && filereadable(fn . '/HEAD')
+    elseif s:is_git_dir(fn)
       return s:sub(simplify(fnamemodify(fn,':p')),'\W$','')
     endif
     let ofn = fn
