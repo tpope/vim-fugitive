@@ -107,7 +107,7 @@ let s:abstract_prototype = {}
 " }}}1
 " Initialization {{{1
 
-function! s:ExtractGitDir(path) abort
+function! s:extract_git_dir(path) abort
   let path = s:shellslash(a:path)
   if path =~? '^fugitive://.*//'
     return matchstr(path,'fugitive://\zs.\{-\}\ze//')
@@ -132,7 +132,7 @@ function! s:Detect(path)
     unlet b:git_dir
   endif
   if !exists('b:git_dir')
-    let dir = s:ExtractGitDir(a:path)
+    let dir = s:extract_git_dir(a:path)
     if dir != ''
       let b:git_dir = dir
     endif
@@ -169,7 +169,7 @@ let s:repo_prototype = {}
 let s:repos = {}
 
 function! s:repo(...) abort
-  let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : s:ExtractGitDir(expand('%:p')))
+  let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : s:extract_git_dir(expand('%:p')))
   if dir !=# ''
     if has_key(s:repos,dir)
       let repo = get(s:repos,dir)
@@ -1918,7 +1918,7 @@ endfunction
 
 function! s:FileRead()
   try
-    let repo = s:repo(s:ExtractGitDir(expand('<amatch>')))
+    let repo = s:repo(s:extract_git_dir(expand('<amatch>')))
     let path = s:sub(s:sub(matchstr(expand('<amatch>'),'fugitive://.\{-\}//\zs.*'),'/',':'),'^\d:',':&')
     let hash = repo.rev_parse(path)
     if path =~ '^:'
