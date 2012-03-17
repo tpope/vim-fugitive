@@ -2090,7 +2090,10 @@ endfunction
 
 augroup fugitive_files
   autocmd!
-  autocmd BufReadCmd  *.git/{,**/}index{,.lock}        exe s:BufReadIndex()
+  autocmd BufReadCmd  index{,.lock}
+        \ if s:is_git_dir(expand('<amatch>:p:h')) |
+        \   exe s:BufReadIndex() |
+        \ endif
   autocmd FileReadCmd fugitive://**//[0-3]/**          exe s:FileRead()
   autocmd BufReadCmd  fugitive://**//[0-3]/**          exe s:BufReadIndexFile()
   autocmd BufWriteCmd fugitive://**//[0-3]/**          exe s:BufWriteIndexFile()
