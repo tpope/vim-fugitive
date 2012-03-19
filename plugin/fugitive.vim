@@ -107,34 +107,34 @@ let s:abstract_prototype = {}
 " }}}1
 " Initialization {{{1
 
-function! s:is_git_dir(path) abort
+function! fugitive#is_git_dir(path) abort
   let path = a:path . '/'
-  return isdirectory(path.'objects') && isdirectory(path.'refs') && filereadable(path.'HEAD') && filereadable(path.'config')
+  return isdirectory(path.'objects') && isdirectory(path.'refs') && getfsize(path.'HEAD') > 10
 endfunction
 
-function! s:extract_git_dir(path) abort
-  let path = s:shellslash(a:path)
-  if path =~? '^fugitive://.*//'
-    return matchstr(path,'fugitive://\zs.\{-\}\ze//')
+function! fugitive#extract_git_dir(path) abort
+  if s:shellslash(a:path) =~? '^fugitive://.*//'
+    return matchstr(a:path,'fugitive://\zs.\{-\}\ze//')
   endif
-  let fn = fnamemodify(path,':s?[\/]$??')
-  let ofn = ""
-  let nfn = fn
-  while fn !=# ofn
-    let embedded = s:sub(fn, '[\/]$', '') . '/.git'
-    if s:is_git_dir(embedded)
-      let full = s:sub(fnamemodify(fn . '/.git', ':p'),'\W$','')
-      return getftype(full) ==# 'link' ? resolve(full) : simplify(full)
-    elseif filereadable(embedded)
-      let line = readfile(embedded,1)[0]
-      if line =~# '^gitdir: '
+  let root = s:shellslash(simplify(fnamemodify(a:path,':p:s?[\/]$??')))
+  let previous = ""
+  while root !=# previous
+    let dir = s:sub(root, '[\/]$', '') . '/.git'
+    let type = getftype(dir)
+    if type ==# 'dir' && fugitive#is_git_dir(dir)
+      return dir
+    elseif type ==# 'link' && fugitive#is_git_dir(dir)
+      return resolve(dir)
+    elseif type !=# ''
+      let line = readfile(dir, 1)[0]
+      if line =~# '^gitdir: ' && fugitive#is_git_dir(line[8:-1])
         return line[8:-1]
       endif
-    elseif s:is_git_dir(fn)
-      return s:sub(simplify(fnamemodify(fn,':p')),'\W$','')
+    elseif fugitive#is_git_dir(root)
+      return root
     endif
-    let ofn = fn
-    let fn = fnamemodify(ofn,':h')
+    let previous = root
+    let root = fnamemodify(previous,':h')
   endwhile
   return ''
 endfunction
@@ -144,7 +144,7 @@ function! s:Detect(path)
     unlet b:git_dir
   endif
   if !exists('b:git_dir')
-    let dir = s:extract_git_dir(a:path)
+    let dir = fugitive#extract_git_dir(a:path)
     if dir != ''
       let b:git_dir = dir
     endif
@@ -181,7 +181,7 @@ let s:repo_prototype = {}
 let s:repos = {}
 
 function! s:repo(...) abort
-  let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : s:extract_git_dir(expand('%:p')))
+  let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : fugitive#extract_git_dir(expand('%:p')))
   if dir !=# ''
     if has_key(s:repos,dir)
       let repo = get(s:repos,dir)
@@ -1953,7 +1953,7 @@ endfunction
 
 function! s:FileRead()
   try
-    let repo = s:repo(s:extract_git_dir(expand('<amatch>')))
+    let repo = s:repo(fugitive#extract_git_dir(expand('<amatch>')))
     let path = s:sub(s:sub(matchstr(expand('<amatch>'),'fugitive://.\{-\}//\zs.*'),'/',':'),'^\d:',':&')
     let hash = repo.rev_parse(path)
     if path =~ '^:'
@@ -2102,7 +2102,7 @@ endfunction
 augroup fugitive_files
   autocmd!
   autocmd BufReadCmd  index{,.lock}
-        \ if s:is_git_dir(expand('<amatch>:p:h')) |
+        \ if fugitive#is_git_dir(expand('<amatch>:p:h')) |
         \   exe s:BufReadIndex() |
         \ endif
   autocmd FileReadCmd fugitive://**//[0-3]/**          exe s:FileRead()
