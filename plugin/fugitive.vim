@@ -202,28 +202,35 @@ function! s:repo_dir(...) dict abort
   return join([self.git_dir]+a:000,'/')
 endfunction
 
+function! s:repo_configured_tree() dict abort
+  if filereadable(self.dir('config'))
+    let config = readfile(self.dir('config'),10)
+    call filter(config,'v:val =~# "^\\s*worktree *="')
+    if len(config) == 1
+      return matchstr(config[0], '= *\zs.*')
+    endif
+  endif
+  return ''
+endfunction
+
 function! s:repo_tree(...) dict abort
   if self.dir() =~# '/\.git$'
     let dir = self.dir()[0:-6]
   else
-    let config = readfile(self.dir('config'),10)
-    call filter(config,'v:val =~# "^\\s*worktree *="')
-    if len(config) == 1
-      let dir = matchstr(config[0], '= *\zs.*')
-    else
-      call s:throw('no work tree')
-    endif
+    let dir = self.configured_tree()
   endif
-  return join([dir]+a:000,'/')
+  if dir ==# ''
+    call s:throw('no work tree')
+  else
+    return join([dir]+a:000,'/')
+  endif
 endfunction
 
 function! s:repo_bare() dict abort
   if self.dir() =~# '/\.git$'
     return 0
   else
-    let config = readfile(self.dir('config'),10)
-    call filter(config,'v:val =~# "^\\s*worktree *="')
-    return (len(config) != 1)
+    return self.configured_tree() ==# ''
   endtry
 endfunction
 
@@ -268,7 +275,7 @@ function! s:repo_translate(spec) dict abort
   endif
 endfunction
 
-call s:add_methods('repo',['dir','tree','bare','translate'])
+call s:add_methods('repo',['dir','configured_tree','tree','bare','translate'])
 
 function! s:repo_git_command(...) dict abort
   let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
