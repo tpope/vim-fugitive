@@ -203,14 +203,17 @@ function! s:repo_dir(...) dict abort
 endfunction
 
 function! s:repo_configured_tree() dict abort
-  if filereadable(self.dir('config'))
-    let config = readfile(self.dir('config'),10)
-    call filter(config,'v:val =~# "^\\s*worktree *="')
-    if len(config) == 1
-      return matchstr(config[0], '= *\zs.*')
+  if !has_key(self,'_tree')
+    let self._tree = ''
+    if filereadable(self.dir('config'))
+      let config = readfile(self.dir('config'),10)
+      call filter(config,'v:val =~# "^\\s*worktree *="')
+      if len(config) == 1
+        let self._tree = matchstr(config[0], '= *\zs.*')
+      endif
     endif
   endif
-  return ''
+  return self._tree
 endfunction
 
 function! s:repo_tree(...) dict abort
