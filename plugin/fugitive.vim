@@ -235,7 +235,7 @@ function! s:repo_translate(spec) dict abort
   elseif a:spec =~# '^:[0-3]:'
     return 'fugitive://'.self.dir().'//'.a:spec[1].'/'.a:spec[3:-1]
   elseif a:spec ==# ':'
-    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(s:repo().dir())] ==# s:repo().dir('') && filereadable($GIT_INDEX_FILE)
+    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(self.dir())] ==# self.dir('') && filereadable($GIT_INDEX_FILE)
       return fnamemodify($GIT_INDEX_FILE,':p')
     else
       return self.dir('index')
@@ -247,15 +247,15 @@ function! s:repo_translate(spec) dict abort
     return 'fugitive://'.self.dir().'//0/'.a:spec[1:-1]
   elseif a:spec =~# 'HEAD\|^refs/' && a:spec !~ ':' && filereadable(self.dir(a:spec))
     return self.dir(a:spec)
-  elseif filereadable(s:repo().dir('refs/'.a:spec))
+  elseif filereadable(self.dir('refs/'.a:spec))
     return self.dir('refs/'.a:spec)
-  elseif filereadable(s:repo().dir('refs/tags/'.a:spec))
+  elseif filereadable(self.dir('refs/tags/'.a:spec))
     return self.dir('refs/tags/'.a:spec)
-  elseif filereadable(s:repo().dir('refs/heads/'.a:spec))
+  elseif filereadable(self.dir('refs/heads/'.a:spec))
     return self.dir('refs/heads/'.a:spec)
-  elseif filereadable(s:repo().dir('refs/remotes/'.a:spec))
+  elseif filereadable(self.dir('refs/remotes/'.a:spec))
     return self.dir('refs/remotes/'.a:spec)
-  elseif filereadable(s:repo().dir('refs/remotes/'.a:spec.'/HEAD'))
+  elseif filereadable(self.dir('refs/remotes/'.a:spec.'/HEAD'))
     return self.dir('refs/remotes/'.a:spec,'/HEAD')
   else
     try
@@ -2312,7 +2312,7 @@ endfunction
 " Statusline {{{1
 
 function! s:repo_head_ref() dict abort
-  return readfile(s:repo().dir('HEAD'))[0]
+  return readfile(self.dir('HEAD'))[0]
 endfunction
 
 call s:add_methods('repo',['head_ref'])
