@@ -123,7 +123,8 @@ function! s:extract_git_dir(path) abort
   while fn !=# ofn
     let embedded = s:sub(fn, '[\/]$', '') . '/.git'
     if s:is_git_dir(embedded)
-      return s:sub(simplify(fnamemodify(fn . '/.git',':p')),'\W$','')
+      let full = s:sub(fnamemodify(fn . '/.git', ':p'),'\W$','')
+      return getftype(full) ==# 'link' ? resolve(full) : simplify(full)
     elseif filereadable(embedded)
       let line = readfile(embedded,1)[0]
       if line =~# '^gitdir: '
