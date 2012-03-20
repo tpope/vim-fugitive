@@ -117,7 +117,7 @@ function! fugitive#extract_git_dir(path) abort
       return dir
     elseif type ==# 'link' && fugitive#is_git_dir(dir)
       return resolve(dir)
-    elseif type !=# ''
+    elseif type !=# '' && filereadable(dir)
       let line = readfile(dir, 1)[0]
       if line =~# '^gitdir: ' && fugitive#is_git_dir(line[8:-1])
         return line[8:-1]
