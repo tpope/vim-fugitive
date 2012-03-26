@@ -49,6 +49,7 @@ that are part of Git repositories).
                         dv    |:Gvdiff|
                         O     |:Gtabedit|
                         o     |:Gsplit|
+                        S     |:Gvsplit|
                         p     |:Git| add --patch
                         p     |:Git| reset --patch (staged files)
                         q     close status
