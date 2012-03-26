@@ -53,6 +53,7 @@ that are part of Git repositories).
                         p     |:Git| reset --patch (staged files)
                         q     close status
                         R     reload status
+                        S     |:Gvsplit|
 
                                                 *fugitive-:Gcommit*
 :Gcommit [args]         A wrapper around git-commit.  If there is nothing
@@ -231,6 +232,10 @@ These maps are available in Git objects.
 
                                                 *fugitive-o*
 o                       Jump to the revision under the cursor in a new split.
+
+                                                *fugitive-S*
+S                       Jump to the revision under the cursor in a new
+                        vertical split.
 
                                                 *fugitive-O*
 O                       Jump to the revision under the cursor in a new tab.
