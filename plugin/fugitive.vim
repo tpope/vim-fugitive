@@ -232,8 +232,12 @@ endfunction
 function! s:repo_translate(spec) dict abort
   if a:spec ==# '.' || a:spec ==# '/.'
     return self.bare() ? self.dir() : self.tree()
+  elseif a:spec =~# '^/\=\.git$' && self.bare()
+    return self.dir()
+  elseif a:spec =~# '^/\=\.git/'
+    return self.dir(s:sub(a:spec, '^/=\.git/', ''))
   elseif a:spec =~# '^/'
-    return fnamemodify(self.dir(),':h').a:spec
+    return self.tree().a:spec
   elseif a:spec =~# '^:[0-3]:'
     return 'fugitive://'.self.dir().'//'.a:spec[1].'/'.a:spec[3:-1]
   elseif a:spec ==# ':'
