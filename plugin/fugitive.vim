@@ -2261,7 +2261,7 @@ function! s:GF(mode) abort
         endwhile
         let offset += matchstr(getline(lnum), type.'\zs\d\+')
         let ref = getline(search('^'.type.'\{3\} [ab]/','bnW'))[4:-1]
-        let dcmd = '+'.offset.'|foldopen'
+        let dcmd = '+'.offset.'|if foldlevel(".")|foldopen!|endif'
         let dref = ''
 
       elseif getline('.') =~# '^rename from '
