@@ -1585,7 +1585,7 @@ function! s:BlameCommit(cmd) abort
             let offset -= 1
           endif
         endwhile
-        return ''
+        return 'if foldlevel(".")|foldopen!|endif'
       endif
     endwhile
     execute head
