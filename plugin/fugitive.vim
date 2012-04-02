@@ -1183,7 +1183,8 @@ function! s:Write(force,...) abort
   let two = s:repo().translate(':2:'.path)
   let three = s:repo().translate(':3:'.path)
   for nr in range(1,bufnr('$'))
-    if bufloaded(nr) && !getbufvar(nr,'&modified') && (bufname(nr) == one || bufname(nr) == two || bufname(nr) == three)
+    let name = fnamemodify(bufname(nr), ':p')
+    if bufloaded(nr) && !getbufvar(nr,'&modified') && (name ==# one || name ==# two || name ==# three)
       execute nr.'bdelete'
     endif
   endfor
@@ -1193,7 +1194,7 @@ function! s:Write(force,...) abort
   for tab in range(1,tabpagenr('$'))
     for winnr in range(1,tabpagewinnr(tab,'$'))
       let bufnr = tabpagebuflist(tab)[winnr-1]
-      let bufname = bufname(bufnr)
+      let bufname = fnamemodify(bufname(bufnr), ':p')
       if bufname ==# zero && bufnr != mybufnr
         execute 'tabnext '.tab
         if winnr != winnr()
@@ -1856,7 +1857,7 @@ endfunction
 " File access {{{1
 
 function! s:ReplaceCmd(cmd,...) abort
-  let fn = bufname('')
+  let fn = expand('%:p')
   let tmp = tempname()
   let prefix = ''
   try
@@ -1884,7 +1885,7 @@ function! s:ReplaceCmd(cmd,...) abort
   finally
     silent exe 'keepalt file '.s:fnameescape(fn)
     call delete(tmp)
-    if bufname('$') == tmp
+    if fnamemodify(bufname('$'), ':p') ==# tmp
       silent execute 'bwipeout '.bufnr('$')
     endif
     silent exe 'doau BufReadPost '.s:fnameescape(fn)
@@ -1982,7 +1983,7 @@ function! s:BufReadIndexFile()
     endtry
     return ''
   catch /^fugitive: rev-parse/
-    silent exe 'doau BufNewFile '.s:fnameescape(bufname(''))
+    silent exe 'doau BufNewFile '.s:fnameescape(expand('%:p'))
     return ''
   catch /^fugitive:/
     return 'echoerr v:errmsg'
