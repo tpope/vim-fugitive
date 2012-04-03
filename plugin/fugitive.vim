@@ -1211,7 +1211,7 @@ function! s:Write(force,...) abort
         try
           let lnum = line('.')
           let last = line('$')
-          silent $read `=file`
+          silent execute '$read '.s:fnameescape(file)
           silent execute '1,'.last.'delete_'
           silent execute lnum
           set nomodified
