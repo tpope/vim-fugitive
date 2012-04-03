@@ -1387,7 +1387,7 @@ function! s:Move(force,destination)
       let destination = destination[strlen(s:repo().tree('')):-1]
     endif
   endif
-  if isdirectory(s:buffer().name())
+  if isdirectory(s:buffer().spec())
     " Work around Vim parser idiosyncrasy
     let discarded = s:buffer().setvar('&swapfile',0)
   endif
