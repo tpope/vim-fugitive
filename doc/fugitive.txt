@@ -69,12 +69,20 @@ that are part of Git repositories).
                                                 *fugitive-:Ggrep*
 :Ggrep [args]           |:grep| with git-grep as 'grepprg'.
 
+                                                *fugitive-:Glgrep*
+:Glgrep [args]          |:lgrep| with git-grep as 'grepprg'.
+
                                                 *fugitive-:Glog*
 :Glog [args]            Load all previous revisions of the current file into
                         the quickfix list.  Additional git-log arguments can
                         be given (for example, --reverse).  If "--" appears as
                         an argument, no file specific filtering is done, and
-                        commits are loaded into the quickfix list.
+                        previous commits rather than previous file revisions
+                        are loaded.
+
+                                                *fugitive-:Gllog*
+:Gllog [args]           Like |:Glog|, but use the location list instead of the
+                        quickfix list.
 
                                         *fugitive-:Gedit* *fugitive-:Ge*
 :Gedit [revision]       |:edit| a |fugitive-revision|.
