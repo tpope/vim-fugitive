@@ -2359,4 +2359,4 @@ endfunction
 
 " }}}1
 
-" vim:set ft=vim ts=8 sw=2 sts=2:
+" vim:set ft=vim ts=8 et sw=2 sts=2:
