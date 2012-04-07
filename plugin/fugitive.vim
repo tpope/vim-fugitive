@@ -545,7 +545,7 @@ function! s:buffer_up(...) dict abort
       let rev = 'HEAD'
     elseif rev =~# '^:'
       let rev = ':'
-    elseif rev =~# '^[^^~:]\+$'
+    elseif rev =~# '^refs/[^^~:]*$\|^[^^~:]*HEAD$'
       let rev .= '^{}'
     elseif rev =~# '^/\|:.*/'
       let rev = s:sub(rev, '.*\zs/.*', '')
