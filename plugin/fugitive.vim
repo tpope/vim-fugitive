@@ -966,7 +966,7 @@ function! s:Grep(cmd,bang,arg) abort
     if a:cmd =~# '^l'
       call setloclist(0, list, 'r')
     else
-      setqflist(list, 'r')
+      call setqflist(list, 'r')
     endif
     if !a:bang && !empty(list)
       return (a:cmd =~# '^l' ? 'l' : 'c').'first'.matchstr(a:arg,'\v\C[''" ]\zs\|.*')
