@@ -235,6 +235,9 @@ o                       Jump to the revision under the cursor in a new split.
                                                 *fugitive-O*
 O                       Jump to the revision under the cursor in a new tab.
 
+                                                *fugitive--*
+-                       Go to the tree containing the current tree or blob.
+
                                                 *fugitive-~*
 ~                       Go to the current file in the [count]th first
                         ancestor.

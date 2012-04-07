@@ -537,7 +537,31 @@ function! s:buffer_containing_commit() dict abort
   endif
 endfunction
 
-call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','name','commit','path','rev','sha1','expand','containing_commit'])
+function! s:buffer_up(...) dict abort
+  let rev = self.rev()
+  let c = a:0 ? a:1 : 1
+  while c
+    if rev =~# '^[/:]$'
+      let rev = 'HEAD'
+    elseif rev =~# '^:'
+      let rev = ':'
+    elseif rev =~# '^[^^~:]\+$'
+      let rev .= '^{}'
+    elseif rev =~# '^/\|:.*/'
+      let rev = s:sub(rev, '.*\zs/.*', '')
+    elseif rev =~# ':.'
+      let rev = matchstr(rev, '^[^:]*:')
+    elseif rev =~# ':$'
+      let rev = rev[0:-2]
+    else
+      return rev.'~'.c
+    endif
+    let c -= 1
+  endwhile
+  return rev
+endfunction
+
+call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','name','commit','path','rev','sha1','expand','containing_commit','up'])
 
 " }}}1
 " Git {{{1
@@ -2149,6 +2173,7 @@ function! s:JumpInit() abort
   if !&modifiable
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
     nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
+    nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,<SID>buffer().up(v:count1))<CR>
     nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,<SID>buffer().commit().'^'.v:count1.<SID>buffer().path(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,<SID>buffer().commit().'~'.v:count1.<SID>buffer().path(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe <SID>Edit('edit',0,<SID>buffer().containing_commit())<CR>
