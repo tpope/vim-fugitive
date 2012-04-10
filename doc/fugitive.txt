@@ -53,6 +53,7 @@ that are part of Git repositories).
                         p     |:Git| reset --patch (staged files)
                         q     close status
                         R     reload status
+                        S     |:Gvsplit|
 
                                                 *fugitive-:Gcommit*
 :Gcommit [args]         A wrapper around git-commit.  If there is nothing
@@ -69,12 +70,20 @@ that are part of Git repositories).
                                                 *fugitive-:Ggrep*
 :Ggrep [args]           |:grep| with git-grep as 'grepprg'.
 
+                                                *fugitive-:Glgrep*
+:Glgrep [args]          |:lgrep| with git-grep as 'grepprg'.
+
                                                 *fugitive-:Glog*
 :Glog [args]            Load all previous revisions of the current file into
                         the quickfix list.  Additional git-log arguments can
                         be given (for example, --reverse).  If "--" appears as
                         an argument, no file specific filtering is done, and
-                        commits are loaded into the quickfix list.
+                        previous commits rather than previous file revisions
+                        are loaded.
+
+                                                *fugitive-:Gllog*
+:Gllog [args]           Like |:Glog|, but use the location list instead of the
+                        quickfix list.
 
                                         *fugitive-:Gedit* *fugitive-:Gedit*
 :Gedit [revision]       |:edit| a |fugitive-revision|.
@@ -171,7 +180,7 @@ that are part of Git repositories).
                         i     q, then open commit
                         o     open commit in horizontal split
                         O     open commit in new tab
-                        <CR>  reblame at commit
+                        -     reblame at commit
                         ~     reblame at [count]th first grandparent
                         P     reblame at [count]th parent (like HEAD^[count])
 
@@ -186,6 +195,11 @@ that are part of Git repositories).
                         "git instaweb" from a terminal).  If a range is given,
                         it is appropriately appended to the URL as an anchor.
 
+                        To use with GitHub FI, point g:fugitive_github_domains
+                        at a list of domains:
+>
+                        let g:fugitive_github_domains = ['git.example.com']
+~
 :[range]Gbrowse!        Like :Gbrowse, but put the URL on the clipboard rather
                         than opening it.
 
@@ -201,6 +215,16 @@ that are part of Git repositories).
 
 MAPPINGS                                        *fugitive-mappings*
 
+These maps are available everywhere.
+
+                                                *fugitive-c_CTRL-R_CTRL-G*
+<C-R><C-G>              On the command line, recall the path to the current
+                        object (that is, a representation of the object
+                        recognized by |:Gedit|).
+
+                                                *fugitive-y_CTRL-G*
+["x]y<C-G>              Yank the commit SHA and path to the current object.
+
 These maps are available in Git objects.
 
                                                 *fugitive-<CR>*
@@ -209,8 +233,15 @@ These maps are available in Git objects.
                                                 *fugitive-o*
 o                       Jump to the revision under the cursor in a new split.
 
+                                                *fugitive-S*
+S                       Jump to the revision under the cursor in a new
+                        vertical split.
+
                                                 *fugitive-O*
 O                       Jump to the revision under the cursor in a new tab.
+
+                                                *fugitive--*
+-                       Go to the tree containing the current tree or blob.
 
                                                 *fugitive-~*
 ~                       Go to the current file in the [count]th first
