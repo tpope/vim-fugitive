@@ -40,8 +40,8 @@ that are part of Git repositories).
                         -     |:Git| add
                         -     |:Git| reset (staged files)
                         C     |:Gcommit|
-                        cA    |Gcommit| --amend --reuse-message=HEAD
-                        ca    |Gcommit| --amend
+                        cA    |:Gcommit| --amend --reuse-message=HEAD
+                        ca    |:Gcommit| --amend
                         D     |:Gdiff|
                         ds    |:Gsdiff|
                         dp    |:Git!| diff (p for patch; use :Gw to apply)
@@ -76,7 +76,7 @@ that are part of Git repositories).
                         an argument, no file specific filtering is done, and
                         commits are loaded into the quickfix list.
 
-                                        *fugitive-:Gedit* *fugitive-:Ge*
+                                        *fugitive-:Gedit* *fugitive-:Gedit*
 :Gedit [revision]       |:edit| a |fugitive-revision|.
 
                                                 *fugitive-:Gsplit*
