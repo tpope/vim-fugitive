@@ -40,8 +40,8 @@ that are part of Git repositories).
                         -     |:Git| add
                         -     |:Git| reset (staged files)
                         C     |:Gcommit|
-                        cA    |Gcommit| --amend --reuse-message=HEAD
-                        ca    |Gcommit| --amend
+                        cA    |:Gcommit| --amend --reuse-message=HEAD
+                        ca    |:Gcommit| --amend
                         D     |:Gdiff|
                         ds    |:Gsdiff|
                         dp    |:Git!| diff (p for patch; use :Gw to apply)
