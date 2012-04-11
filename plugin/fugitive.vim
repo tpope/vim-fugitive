@@ -108,7 +108,7 @@ function! fugitive#extract_git_dir(path) abort
   if s:shellslash(a:path) =~# '^fugitive://.*//'
     return matchstr(s:shellslash(a:path), '\C^fugitive://\zs.\{-\}\ze//')
   endif
-  let root = s:shellslash(simplify(fnamemodify(a:path,':p:s?[\/]$??')))
+  let root = s:shellslash(simplify(fnamemodify(a:path, ':p:s?[\/]$??')))
   let previous = ""
   while root !=# previous
     let dir = s:sub(root, '[\/]$', '') . '/.git'
@@ -126,7 +126,7 @@ function! fugitive#extract_git_dir(path) abort
       return root
     endif
     let previous = root
-    let root = fnamemodify(previous,':h')
+    let root = fnamemodify(root, ':h')
   endwhile
   return ''
 endfunction
@@ -137,22 +137,22 @@ function! s:Detect(path)
   endif
   if !exists('b:git_dir')
     let dir = fugitive#extract_git_dir(a:path)
-    if dir != ''
+    if dir !=# ''
       let b:git_dir = dir
     endif
   endif
   if exists('b:git_dir')
     silent doautocmd User Fugitive
     cnoremap <buffer> <expr> <C-R><C-G> <SID>recall()
-    nnoremap <buffer> <silent> y<C-G> :call setreg(v:register,<SID>recall())<CR>
+    nnoremap <buffer> <silent> y<C-G> :call setreg(v:register, <SID>recall())<CR>
     let buffer = fugitive#buffer()
     if expand('%:p') =~# '//'
-      call buffer.setvar('&path',s:sub(buffer.getvar('&path'),'^\.%(,|$)',''))
+      call buffer.setvar('&path', s:sub(buffer.getvar('&path'), '^\.%(,|$)', ''))
     endif
-    if stridx(buffer.getvar('&tags'),escape(b:git_dir.'/tags',', ')) == -1
-      call buffer.setvar('&tags',escape(b:git_dir.'/tags',', ').','.buffer.getvar('&tags'))
-      if &filetype != ''
-        call buffer.setvar('&tags',escape(b:git_dir.'/'.&filetype.'.tags',', ').','.buffer.getvar('&tags'))
+    if stridx(buffer.getvar('&tags'), escape(b:git_dir.'/tags', ', ')) == -1
+      call buffer.setvar('&tags', escape(b:git_dir.'/tags', ', ').','.buffer.getvar('&tags'))
+      if &filetype !=# ''
+        call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
       endif
     endif
   endif
@@ -176,13 +176,13 @@ let s:repos = {}
 function! s:repo(...) abort
   let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : fugitive#extract_git_dir(expand('%:p')))
   if dir !=# ''
-    if has_key(s:repos,dir)
-      let repo = get(s:repos,dir)
+    if has_key(s:repos, dir)
+      let repo = get(s:repos, dir)
     else
       let repo = {'git_dir': dir}
       let s:repos[dir] = repo
     endif
-    return extend(extend(repo,s:repo_prototype,'keep'),s:abstract_prototype,'keep')
+    return extend(extend(repo, s:repo_prototype, 'keep'), s:abstract_prototype, 'keep')
   endif
   call s:throw('not a git repository: '.expand('%:p'))
 endfunction
