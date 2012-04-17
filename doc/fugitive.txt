@@ -293,6 +293,13 @@ a statusline, this one matches the default when 'ruler' is set:
 >
     set statusline=%<%f\ %h%m%r%{fugitive#statusline()}%=%-14.(%l,%c%V%)\ %P
 <
+                                                *fugitive#branchname()*
+Alternatively, fugitive#branchname() can return the name of the current
+branch. This can be used in situations where a more customizable statusline 
+is needed:
+>
+    set statusline=%<%f\ %h%m%r\ branch:\ %{fugitive#branchname()}%=%-14.(%l,%c%V%)\ %P
+<
 ABOUT                                           *fugitive-about*
 
 Grab the latest version or report a bug on GitHub:
