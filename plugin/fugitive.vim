@@ -275,7 +275,21 @@ function! s:repo_translate(spec) dict abort
   endif
 endfunction
 
-call s:add_methods('repo',['dir','configured_tree','tree','bare','translate'])
+function! s:repo_head(...) dict abort
+    let head = s:repo().head_ref()
+
+    if head =~# '^ref: '
+      let branch = s:sub(head,'^ref: %(refs/%(heads/|remotes/|tags/)=)=','')
+    elseif head =~# '^\x\{40\}$'
+      " truncate hash to a:1 characters if we're in detached head mode
+      let len = a:0 ? a:1 : 0
+      let branch = len ? head[0:len-1] : ''
+    endif
+
+    return branch
+endfunction
+
+call s:add_methods('repo',['dir','configured_tree','tree','bare','translate','head'])
 
 function! s:repo_git_command(...) dict abort
   let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
@@ -2384,6 +2398,14 @@ function! fugitive#statusline(...)
   else
     return '[Git'.status.']'
   endif
+endfunction
+
+function! fugitive#head(...)
+  if !exists('b:git_dir')
+    return ''
+  endif
+
+  return s:repo().head(a:0 ? a:1 : 0)
 endfunction
 
 " }}}1

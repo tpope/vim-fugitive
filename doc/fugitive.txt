@@ -293,6 +293,12 @@ a statusline, this one matches the default when 'ruler' is set:
 >
     set statusline=%<%f\ %h%m%r%{fugitive#statusline()}%=%-14.(%l,%c%V%)\ %P
 <
+                                                *fugitive#head(...)*
+Use fugitive#head() to return the name of the current branch. If the current
+HEAD is detached, fugitive#head() will return the empty string, unless the
+optional argument is given, in which case the hash of the current commit will
+be truncated to the given number of characters.
+
 ABOUT                                           *fugitive-about*
 
 Grab the latest version or report a bug on GitHub:
