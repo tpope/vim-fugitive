@@ -1950,6 +1950,7 @@ function! s:BufReadIndex()
         execute cd.'`=dir`'
       endtry
       set ft=gitcommit
+      set foldtext=fugitive#foldtext() foldmethod=syntax foldlevel=1
     endif
     setlocal ro noma nomod noswapfile
     if &bufhidden ==# ''
