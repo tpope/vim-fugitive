@@ -1901,7 +1901,8 @@ function! s:ReplaceCmd(cmd,...) abort
       endif
     endif
     if &shell =~# 'cmd'
-      call system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', '^^^&').' > '.tmp.'"')
+      let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
+      call system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', cmd_escape_char.'&').' > '.tmp.'"')
     else
       call system(' ('.prefix.a:cmd.' > '.tmp.') ')
     endif
