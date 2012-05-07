@@ -2387,12 +2387,7 @@ function! fugitive#statusline(...)
   if s:buffer().commit() != ''
     let status .= ':' . s:buffer().commit()[0:7]
   endif
-  let head = s:repo().head_ref()
-  if head =~# '^ref: '
-    let status .= s:sub(head,'^ref: %(refs/%(heads/|remotes/|tags/)=)=','(').')'
-  elseif head =~# '^\x\{40\}$'
-    let status .= '('.head[0:7].')'
-  endif
+  let status .= '('.fugitive#head(7).')'
   if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
     return ',GIT'.status
   else
