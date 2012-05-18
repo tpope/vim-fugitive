@@ -219,7 +219,12 @@ function! s:repo_tree(...) dict abort
   if self.dir() =~# '/\.git$'
     let dir = self.dir()[0:-6]
   else
-    let dir = self.configured_tree()
+    let worktree = self.configured_tree()
+    if worktree =~#'^/' || worktree =~#'^\\'
+      let dir = worktree
+    else
+      let dir = join([self.dir(), worktree], '/')
+    endif
   endif
   if dir ==# ''
     call s:throw('no work tree')
