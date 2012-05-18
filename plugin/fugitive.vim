@@ -208,7 +208,11 @@ function! s:repo_configured_tree() dict abort
       endif
     endif
   endif
-  return self._tree
+  if self._tree =~# '^\.'
+    return simplify(self.dir(self._tree))
+  else
+    return self._tree
+  endif
 endfunction
 
 function! s:repo_tree(...) dict abort
