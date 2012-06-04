@@ -100,7 +100,7 @@ let s:abstract_prototype = {}
 " Initialization {{{1
 
 function! fugitive#is_git_dir(path) abort
-  let path = a:path . '/'
+  let path = s:sub(a:path, '[\/]$', '') . '/'
   return isdirectory(path.'objects') && isdirectory(path.'refs') && getfsize(path.'HEAD') > 10
 endfunction
 
