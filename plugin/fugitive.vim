@@ -2057,7 +2057,7 @@ function! s:BufWriteIndexFile()
     let info = old_mode.' '.sha1.' '.stage."\t".path
     call writefile([info],tmp)
     if has('win32')
-      let error = system('type '.tmp.'|'.s:repo().git_command('update-index','--index-info'))
+      let error = system('type '.s:gsub(tmp,'/','\\').'|'.s:repo().git_command('update-index','--index-info'))
     else
       let error = system(s:repo().git_command('update-index','--index-info').' < '.tmp)
     endif
