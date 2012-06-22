@@ -1513,6 +1513,10 @@ augroup fugitive_blame
   autocmd User Fugitive if s:buffer().type('file', 'blob') | exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,[<f-args>])" | endif
 augroup END
 
+function! s:linechars(pattern)
+  return strlen(s:gsub(matchstr(getline('.'), a:pattern), '.', '.'))
+endfunction
+
 function! s:Blame(bang,line1,line2,count,args) abort
   try
     if s:buffer().path() == ''
@@ -1577,7 +1581,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
         execute top
         normal! zt
         execute current
-        execute "vertical resize ".(match(getline('.'),'\s\+\d\+)')+1)
+        execute "vertical resize ".(s:linechars('.\{-\}\d\ze\s\+\d\+)')+1)
         setlocal nomodified nomodifiable nonumber scrollbind nowrap foldcolumn=0 nofoldenable filetype=fugitiveblame
         if exists('+relativenumber')
           setlocal norelativenumber
@@ -1591,6 +1595,9 @@ function! s:Blame(bang,line1,line2,count,args) abort
         nnoremap <buffer> <silent> i    :<C-U>exe <SID>BlameCommit("exe 'norm q'<Bar>edit")<CR>
         nnoremap <buffer> <silent> o    :<C-U>exe <SID>BlameCommit((&splitbelow ? "botright" : "topleft")." split")<CR>
         nnoremap <buffer> <silent> O    :<C-U>exe <SID>BlameCommit("tabedit")<CR>
+        nnoremap <buffer> <silent> A    :<C-u>exe "vertical resize ".(<SID>linechars('.\{-\}\ze \d\{4\}-\d\d-\d\d ')+1)<CR>
+        nnoremap <buffer> <silent> C    :<C-u>exe "vertical resize ".(<SID>linechars('^\S\+')+1)<CR>
+        nnoremap <buffer> <silent> D    :<C-u>exe "vertical resize ".(<SID>linechars('.\{-\}\ze\d\ze\s\+\d\+)')+1)<CR>
         redraw
         syncbind
       endif

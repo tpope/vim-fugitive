@@ -175,6 +175,9 @@ that are part of Git repositories).
                         along to git-blame.  The following maps, which work on
                         the cursor line commit where sensible, are provided:
 
+                        A     resize to end of author column
+                        C     resize to end of commit column
+                        D     resize to end of date/time column
                         q     close blame and return to blamed window
                         gq    q, then |:Gedit| to return to work tree version
                         i     q, then open commit
