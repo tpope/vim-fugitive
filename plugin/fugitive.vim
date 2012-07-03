@@ -12,6 +12,23 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
+
+"initialize variables for repo_status_flag on statusline
+"  to enable status_flag feature declare below 'g:fugitive_stl_show...' variables somewhere in your vimrc setting
+if exists('g:fugitive_stl_showdirtystate')
+  let s:enable_dirty_state = 1
+  let s:dirty_state = ''
+  let s:git_index_mod_time_old = 0
+endif
+if exists('g:fugitive_stl_showstashstate')
+  let s:enable_stash_state = 1
+  let s:stash_state = ''
+endif
+if exists('g:fugitive_stl_showuntrackedfiles')
+  let s:enable_untracked_state = 1
+  let s:untracked_state = ''
+endif
+
 " Utility {{{1
 
 function! s:function(name) abort
@@ -167,6 +184,8 @@ augroup fugitive
   autocmd User NERDTreeInit,NERDTreeNewRoot call s:Detect(b:NERDTreeRoot.path.str())
   autocmd VimEnter * if expand('<amatch>')==''|call s:Detect(getcwd())|endif
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
+  autocmd BufWritePost  *       if &ft != 'gitcommit' | let b:force_check_state = 1 | endif
+  autocmd BufEnter      index   let b:force_check_state = 1
 augroup END
 
 " }}}1
@@ -2386,6 +2405,48 @@ endfunction
 " }}}1
 " Statusline {{{1
 
+"getting 'git status' command result procedure for dirty_flag and untracked_flag
+"  because 'git' command doesn't work in GIT_DIR ('.git/')
+"  temporally change directory to GIT_WORK_TREE [just assume that GIT_WORK_TREE is '.git/..']
+"  then, return 'git status' result
+function! s:repo_get_status() dict abort
+  let l:git_work_tree = substitute(b:git_dir, '\.git$', '', '')
+  if empty(l:git_work_tree) | let l:git_work_tree = '.' | endif
+  let l:curr_path = getcwd()
+  exe 'cd! ' . l:git_work_tree
+  let l:git_status = self.git_chomp('status')
+  exe 'cd! ' . l:curr_path
+  return l:git_status
+endfunction
+
+"checking repo_status procedure
+"    dirty_flag - '*': modified, but not staged flag
+"                 '+': staged (to be committed) flag
+"    stash_flag - '$': something is stashed
+"    untracked  - '%': there're untracked files
+"  {dirty, untracked} flags are made from 'git status' result
+"  stash_flag is made from checking theh existence of '.git/refs/stash' file
+function! s:repo_check_state() dict abort
+  if exists('s:enable_dirty_state') || exists('s:enable_untracked_state')
+    let l:git_status = self.get_status()
+
+    "check repo status by regexp matching 'git status' result with strings
+    let l:modified = (l:git_status =~ ' not \(updated\|staged\)') ? '*' : ''
+    let l:staged = (l:git_status =~ ' to be committed') ? '+' : ''
+    let l:untracked = (l:git_status =~ 'Untracked ') ? '%' : ''
+
+    let s:dirty_state = exists('s:enable_dirty_state') ? l:modified . l:staged : ''
+    let s:untracked_state = exists('s:enable_untracked_state') ? l:untracked : ''
+  endif
+
+  if exists('s:enable_stash_state')
+    let s:stash_state = filereadable(self.dir('refs/stash')) ? '$' : ''
+  endif
+endfunction
+
+call s:add_methods('repo',['get_status'])
+call s:add_methods('repo',['check_state'])
+
 function! s:repo_head_ref() dict abort
   return readfile(self.dir('HEAD'))[0]
 endfunction
@@ -2400,10 +2461,29 @@ function! fugitive#statusline(...)
   if s:buffer().commit() != ''
     let status .= ':' . s:buffer().commit()[0:7]
   endif
-  let status .= '('.fugitive#head(7).')'
+
+  "checking repo_status is quite burdensome, so call check_state() only when...
+  "  1. '.git/index' file is modified - by checking its modification timestamp
+  "  2. b:force_check_state variable exists
+  "         i.  currently editing file is modifed - check by 'autocmd BufWritePost *'
+  "         ii. on :Gstatus preview window - by 'autocmd BufEnter index'
+  let s:git_index_mod_time = getftime(b:git_dir . "/index")
+  if exists('b:force_check_state') ||
+        \   (exists('s:git_index_mod_time_old') && s:git_index_mod_time_old != s:git_index_mod_time)
+    call s:repo().check_state()
+    unlet! b:force_check_state
+    let s:git_index_mod_time_old = s:git_index_mod_time
+  endif
+
+  let status .= '('.fugitive#head(7) . s:dirty_state.s:stash_state.s:untracked_state .')'
   if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
     return ',GIT'.status
   else
+    "
+    "for 'Powerline' modify the related file as below - add '*+$%' not to wipe out repo_status_flag
+    "vim-powerline/autoload/Powerline/Functions/fugitive.vim:4,59
+      "4:- let ret = substitute(ret, '\c\v\[?GIT\(([a-z0-9\-_\./:]+)\)\]?', a:symbol .' \1', 'g')
+      "4:+ let ret = substitute(ret, '\c\v\[?GIT\(([a-z0-9\-_\./:*+$%]+)\)\]?', a:symbol .' \1', 'g')
     return '[Git'.status.']'
   endif
 endfunction
