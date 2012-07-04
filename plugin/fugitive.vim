@@ -1989,8 +1989,8 @@ function! s:BufReadIndex()
     nunmap   <buffer>          ~
     nnoremap <buffer> <silent> <C-N> :call search('^#\t.*','W')<Bar>.<CR>
     nnoremap <buffer> <silent> <C-P> :call search('^#\t.*','Wbe')<Bar>.<CR>
-    nnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>
-    xnoremap <buffer> <silent> - :<C-U>execute <SID>StageToggle(line("'<"),line("'>"))<CR>
+    nnoremap <buffer> <silent> - :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>
+    xnoremap <buffer> <silent> - :<C-U>silent execute <SID>StageToggle(line("'<"),line("'>"))<CR>
     nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe <SID>BufReadIndex()<CR>
     nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe <SID>BufReadIndex()<CR>
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>
