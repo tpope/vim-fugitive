@@ -15,18 +15,16 @@ endif
 
 "initialize variables for repo_status_flag on statusline
 "  to enable status_flag feature declare below 'g:fugitive_stl_show...' variables somewhere in your vimrc setting
+let s:repo_state = {'dirty': {'unstaged': '' , 'staged': ''}, 'stash': '' , 'untracked': ''}
 if exists('g:fugitive_stl_showdirtystate')
   let s:enable_dirty_state = 1
-  let s:dirty_state = ''
-  let s:git_index_mod_time_old = 0
+  let b:git_index_mod_time_old = 0
 endif
 if exists('g:fugitive_stl_showstashstate')
   let s:enable_stash_state = 1
-  let s:stash_state = ''
 endif
 if exists('g:fugitive_stl_showuntrackedfiles')
   let s:enable_untracked_state = 1
-  let s:untracked_state = ''
 endif
 
 " Utility {{{1
@@ -2435,12 +2433,13 @@ function! s:repo_check_state() dict abort
     let l:staged = (l:git_status =~ ' to be committed') ? '+' : ''
     let l:untracked = (l:git_status =~ 'Untracked ') ? '%' : ''
 
-    let s:dirty_state = exists('s:enable_dirty_state') ? l:modified . l:staged : ''
-    let s:untracked_state = exists('s:enable_untracked_state') ? l:untracked : ''
+    let s:repo_state.dirty['unstaged'] = exists('s:enable_dirty_state') ? l:modified : ''
+    let s:repo_state.dirty['staged'] = exists('s:enable_dirty_state') ? l:staged : ''
+    let s:repo_state['untracked'] = exists('s:enable_untracked_state') ? l:untracked : ''
   endif
 
   if exists('s:enable_stash_state')
-    let s:stash_state = filereadable(self.dir('refs/stash')) ? '$' : ''
+    let s:repo_state['stash'] = filereadable(self.dir('refs/stash')) ? '$' : ''
   endif
 endfunction
 
@@ -2467,15 +2466,15 @@ function! fugitive#statusline(...)
   "  2. b:force_check_state variable exists
   "         i.  currently editing file is modifed - check by 'autocmd BufWritePost *'
   "         ii. on :Gstatus preview window - by 'autocmd BufEnter index'
-  let s:git_index_mod_time = getftime(b:git_dir . "/index")
+  let l:git_index_mod_time = getftime(b:git_dir . "/index")
   if exists('b:force_check_state') ||
-        \   (exists('s:git_index_mod_time_old') && s:git_index_mod_time_old != s:git_index_mod_time)
+        \   (exists('b:git_index_mod_time_old') && b:git_index_mod_time_old != l:git_index_mod_time)
     call s:repo().check_state()
     unlet! b:force_check_state
-    let s:git_index_mod_time_old = s:git_index_mod_time
+    let b:git_index_mod_time_old = l:git_index_mod_time
   endif
 
-  let status .= '('.fugitive#head(7) . s:dirty_state.s:stash_state.s:untracked_state .')'
+  let status .= '('.fugitive#head(7) . substitute(string(s:repo_state), "[A-Za-z:' {},]", "", "g") .')'
   if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
     return ',GIT'.status
   else
