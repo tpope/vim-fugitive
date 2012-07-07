@@ -1551,6 +1551,7 @@ augroup fugitive_blame
   autocmd FileType fugitiveblame setlocal nomodeline | if exists('b:git_dir') | let &l:keywordprg = s:repo().keywordprg() | endif
   autocmd Syntax fugitiveblame call s:BlameSyntax()
   autocmd User Fugitive if s:buffer().type('file', 'blob') | exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,[<f-args>])" | endif
+  autocmd ColorScheme * call s:RehighlightBlame()
 augroup END
 
 function! s:linechars(pattern)
@@ -1736,6 +1737,8 @@ function! s:BlameJump(suffix) abort
   return ''
 endfunction
 
+let s:hash_colors = {}
+
 function! s:BlameSyntax() abort
   let b:current_syntax = 'fugitiveblame'
   let conceal = has('conceal') ? ' conceal' : ''
@@ -1754,7 +1757,7 @@ function! s:BlameSyntax() abort
   syn match FugitiveblameNotCommittedYet "(\@<=Not Committed Yet\>" contained containedin=FugitiveblameAnnotation
   hi def link FugitiveblameBoundary           Keyword
   hi def link FugitiveblameHash               Identifier
-  hi def link FugitiveblameUncommitted        Function
+  hi def link FugitiveblameUncommitted        Ignore
   hi def link FugitiveblameTime               PreProc
   hi def link FugitiveblameLineNumber         Number
   hi def link FugitiveblameOriginalFile       String
@@ -1762,6 +1765,28 @@ function! s:BlameSyntax() abort
   hi def link FugitiveblameShort              FugitiveblameDelimiter
   hi def link FugitiveblameDelimiter          Delimiter
   hi def link FugitiveblameNotCommittedYet    Comment
+  for lnum in range(1, line('$'))
+    let hash = matchstr(getline(lnum), '^\^\=\zs\x\{6\}')
+    if hash ==# '' || hash ==# '000000'
+      continue
+    endif
+    if &t_Co > 16 && exists('*csapprox#per_component#Approximate') && !has_key(s:hash_colors, hash)
+      let [s, r, g, b; __] = map(matchlist(hash, '\(\x\x\)\(\x\x\)\(\x\x\)'), 'str2nr(v:val,16)')
+      let color = csapprox#per_component#Approximate(r, g, b)
+      if color == 16 && &background ==# 'dark'
+        let color = 8
+      endif
+      let s:hash_colors[hash] = ' ctermfg='.color
+    endif
+    exe 'syn match FugitiveblameHash'.hash.'       "\%(^\^\=\)\@<='.hash.'\x\{1,34\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameOriginalLineNumber,fugitiveblameOriginalFile skipwhite'
+    exe 'hi FugitiveblameHash'.hash.' guifg=#'.hash.get(s:hash_colors, hash, '')
+  endfor
+endfunction
+
+function! s:RehighlightBlame()
+  for [hash, cterm] in items(s:hash_colors)
+    exe 'hi FugitiveblameHash'.hash.' guifg=#'.hash.cterm
+  endfor
 endfunction
 
 " }}}1
