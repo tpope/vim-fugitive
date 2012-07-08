@@ -696,9 +696,9 @@ function! s:StageDiff(diff) abort
   let line = getline('.')
   let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
   if filename ==# '' && section ==# '# Changes to be committed:'
-    return 'Git diff --cached'
+    return 'Git! diff --cached'
   elseif filename ==# ''
-    return 'Git diff'
+    return 'Git! diff'
   elseif line =~# '^#\trenamed:' && filename =~# ' -> '
     let [old, new] = split(filename,' -> ')
     execute 'Gedit '.s:fnameescape(':0:'.new)
