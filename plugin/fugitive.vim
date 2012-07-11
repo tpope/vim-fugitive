@@ -1006,7 +1006,7 @@ function! s:Log(cmd,...)
     let path = ''
   endif
   let cmd = ['--no-pager', 'log', '--no-color']
-  let cmd += [escape('--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.'::'.g:fugitive_summary_format,'%')]
+  let cmd += ['--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.'::'.g:fugitive_summary_format]
   if empty(filter(a:000[0 : index(a:000,'--')],'v:val !~# "^-"'))
     if s:buffer().commit() =~# '\x\{40\}'
       let cmd += [s:buffer().commit()]
@@ -1024,7 +1024,7 @@ function! s:Log(cmd,...)
   let dir = getcwd()
   try
     execute cd.'`=s:repo().tree()`'
-    let &grepprg = call(s:repo().git_command,cmd,s:repo())
+    let &grepprg = escape(call(s:repo().git_command,cmd,s:repo()),'%')
     let &grepformat = '%f::%m'
     exe a:cmd
   finally
