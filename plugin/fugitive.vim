@@ -2399,15 +2399,19 @@ function! fugitive#statusline(...)
   if !exists('b:git_dir')
     return ''
   endif
+
+  let template = (a:0 ? a:1 : '[Git(%status%)]')
+
   let status = ''
   if s:buffer().commit() != ''
-    let status .= ':' . s:buffer().commit()[0:7]
+    let status .= s:buffer().commit()[0:7] . ':'
   endif
-  let status .= '('.fugitive#head(7).')'
+  let status .= fugitive#head(7)
   if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
     return ',GIT'.status
   else
-    return '[Git'.status.']'
+    return substitute(template, '%status%', status, 'g')
+ "   return '[Git'.status.']'
   endif
 endfunction
 
