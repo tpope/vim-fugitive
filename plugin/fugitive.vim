@@ -679,19 +679,20 @@ function! fugitive#reload_status() abort
   endfor
 endfunction
 
-function! s:stage_section(lnum) abort
+function! s:stage_info(lnum) abort
+  let filename = matchstr(getline(a:lnum),'^#\t\zs.\{-\}\ze\%( (new commits)\)\=$')
   let lnum = a:lnum
   while lnum && getline(lnum) !~# '^#.*:$'
     let lnum -= 1
   endwhile
   if !lnum
-    return ''
+    return ['', '']
   elseif getline(lnum) ==# '# Changes to be committed:'
-    return 'staged'
+    return [matchstr(filename, ': *\zs.*'), 'staged']
   elseif getline(lnum) ==# '# Untracked files:'
-    return 'untracked'
+    return [filename, 'untracked']
   else
-    return 'unstaged'
+    return [matchstr(filename, ': *\zs.*'), 'unstaged']
   endif
 endfunction
 
@@ -708,14 +709,12 @@ function! s:StageReloadSeek(target,lnum1,lnum2)
 endfunction
 
 function! s:StageDiff(diff) abort
-  let section = s:stage_section(line('.'))
-  let line = getline('.')
-  let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
+  let [filename, section] = s:stage_info(line('.'))
   if filename ==# '' && section ==# 'staged'
     return 'Git! diff --cached'
   elseif filename ==# ''
     return 'Git! diff'
-  elseif line =~# '^#\trenamed:' && filename =~# ' -> '
+  elseif filename =~# ' -> '
     let [old, new] = split(filename,' -> ')
     execute 'Gedit '.s:fnameescape(':0:'.new)
     return a:diff.' HEAD:'.s:fnameescape(old)
@@ -729,9 +728,7 @@ function! s:StageDiff(diff) abort
 endfunction
 
 function! s:StageDiffEdit() abort
-  let section = s:stage_section(line('.'))
-  let line = getline('.')
-  let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
+  let [filename, section] = s:stage_info(line('.'))
   let arg = (filename ==# '' ? '.' : filename)
   if section ==# 'staged'
     return 'Git! diff --cached '.s:shellesc(arg)
@@ -757,10 +754,9 @@ function! s:StageToggle(lnum1,lnum2) abort
   try
     let output = ''
     for lnum in range(a:lnum1,a:lnum2)
-      let line = getline(lnum)
+      let [filename, section] = s:stage_info(lnum)
       let repo = s:repo()
-      if line =~# '^# .*:$'
-        let section = s:stage_section(lnum)
+      if getline('.') =~# '^# .*:$'
         if section ==# 'staged'
           call repo.git_chomp_in_tree('reset','-q')
           silent! edit!
@@ -785,7 +781,6 @@ function! s:StageToggle(lnum1,lnum2) abort
           return ''
         endif
       endif
-      let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (\a\+ [[:alpha:], ]\+)\)\=$')
       if filename ==# ''
         continue
       endif
@@ -793,13 +788,12 @@ function! s:StageToggle(lnum1,lnum2) abort
         let first_filename = filename
       endif
       execute lnum
-      let section = s:stage_section(line('.'))
-      if line =~# '^#\trenamed:' && filename =~ ' -> '
+      if filename =~ ' -> '
         let cmd = ['mv','--'] + reverse(split(filename,' -> '))
         let filename = cmd[-1]
       elseif section ==# 'staged'
         let cmd = ['reset','-q','--',filename]
-      elseif line =~# '^#\tdeleted:'
+      elseif getline(lnum) =~# '^#\tdeleted:'
         let cmd = ['rm','--',filename]
       else
         let cmd = ['add','--',filename]
@@ -821,26 +815,25 @@ function! s:StagePatch(lnum1,lnum2) abort
   let reset = []
 
   for lnum in range(a:lnum1,a:lnum2)
-    let line = getline(lnum)
-    if line ==# '# Changes to be committed:'
+    let [filename, section] = s:stage_info(lnum)
+    if getline('.') =~# '^# .*:$' && section ==# 'staged'
       return 'Git reset --patch'
-    elseif line =~# '^# Change\%(d but not updated\|s not staged for commit\):$'
+    elseif getline('.') =~# '^# .*:$' && section ==# 'unstaged'
       return 'Git add --patch'
-    endif
-    let filename = matchstr(line,'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$')
-    if filename ==# ''
+    elseif getline('.') =~# '^# .*:$' && section ==# 'untracked'
+      return 'Git add -N .'
+    elseif filename ==# ''
       continue
     endif
     if !exists('first_filename')
       let first_filename = filename
     endif
     execute lnum
-    let section = s:stage_section(line('.'))
-    if line =~# '^#\trenamed:' && filename =~ ' -> '
+    if filename =~ ' -> '
       let reset += [split(filename,' -> ')[1]]
     elseif section ==# 'staged'
       let reset += [filename]
-    elseif line !~# '^#\tdeleted:'
+    elseif getline(lnum) !~# '^#\tdeleted:'
       let add += [filename]
     endif
   endfor
