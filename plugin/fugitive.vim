@@ -760,6 +760,7 @@ function! s:StageToggle(lnum1,lnum2) abort
       let line = getline(lnum)
       let repo = s:repo()
       if line =~# '^# .*:$'
+        let section = s:stage_section(lnum)
         if section ==# 'staged'
           call repo.git_chomp_in_tree('reset','-q')
           silent! edit!
