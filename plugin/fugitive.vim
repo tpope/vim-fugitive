@@ -67,7 +67,7 @@ endfunction
 function! s:recall()
   let rev = s:sub(s:buffer().rev(), '^/', '')
   if rev ==# ':'
-    return matchstr(getline('.'),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( (new commits)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
+    return matchstr(getline('.'),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
   endif
   return rev
 endfunction
@@ -680,19 +680,19 @@ function! fugitive#reload_status() abort
 endfunction
 
 function! s:stage_info(lnum) abort
-  let filename = matchstr(getline(a:lnum),'^#\t\zs.\{-\}\ze\%( (new commits)\)\=$')
+  let filename = matchstr(getline(a:lnum),'^#\t\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
   let lnum = a:lnum
   while lnum && getline(lnum) !~# '^#.*:$'
     let lnum -= 1
   endwhile
   if !lnum
     return ['', '']
-  elseif getline(lnum) ==# '# Changes to be committed:'
+  elseif getline(lnum+1) =~# '^#.*"git \%(reset\|rm --cached\) '
     return [matchstr(filename, ': *\zs.*'), 'staged']
-  elseif getline(lnum) ==# '# Untracked files:'
-    return [filename, 'untracked']
-  else
+  elseif getline(lnum+2) =~# '^#.*"git checkout '
     return [matchstr(filename, ': *\zs.*'), 'unstaged']
+  else
+    return [filename, 'untracked']
   endif
 endfunction
 
@@ -705,7 +705,7 @@ function! s:StageReloadSeek(target,lnum1,lnum2)
   silent! edit!
   1
   redraw
-  call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.jump.'\%( (new commits)\)\=\$','W')
+  call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
 endfunction
 
 function! s:StageDiff(diff) abort
@@ -738,7 +738,7 @@ function! s:StageDiffEdit() abort
     if arg ==# '.'
       silent! edit!
       1
-      if !search('^# Change\%(d but not updated\|s not staged for commit\):$','W')
+      if !search('^# .*:\n#.*\n#.*"git checkout ','W')
         call search('^# .*:$','W')
       endif
     else
@@ -761,7 +761,7 @@ function! s:StageToggle(lnum1,lnum2) abort
           call repo.git_chomp_in_tree('reset','-q')
           silent! edit!
           1
-          if !search('^# Untracked files:$','W')
+          if !search('^# .*:\n#.*"git add .*\n#\n','W')
             call search('^# .*:$','W')
           endif
           return ''
@@ -769,7 +769,7 @@ function! s:StageToggle(lnum1,lnum2) abort
           call repo.git_chomp_in_tree('add','-u')
           silent! edit!
           1
-          if !search('^# Untracked files:$','W')
+          if !search('^# .*:\n#.*"git add .*\n#\n','W')
             call search('^# .*:$','W')
           endif
           return ''
@@ -795,8 +795,10 @@ function! s:StageToggle(lnum1,lnum2) abort
         let cmd = ['reset','-q','--',filename]
       elseif getline(lnum) =~# '^#\tdeleted:'
         let cmd = ['rm','--',filename]
-      else
+      elseif getline(lnum) =~# '^#\tmodified:'
         let cmd = ['add','--',filename]
+      else
+        let cmd = ['add','-A','--',filename]
       endif
       let output .= call(repo.git_chomp_in_tree,cmd,s:repo())."\n"
     endfor
@@ -848,7 +850,7 @@ function! s:StagePatch(lnum1,lnum2) abort
       silent! edit!
       1
       redraw
-      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\%( (new commits)\)\=\$','W')
+      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\%( ([^()[:digit:]]\+)\)\=\$','W')
     endif
   catch /^fugitive:/
     return 'echoerr v:errmsg'
@@ -2273,7 +2275,7 @@ function! s:GF(mode) abort
         let file = '/'.matchstr(getline('.'),' -> \zs.*')
         return s:Edit(a:mode,0,file)
       elseif getline('.') =~# '^#\t[[:alpha:] ]\+: *.'
-        let file = '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( (new commits)\)\=$')
+        let file = '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
         return s:Edit(a:mode,0,file)
       elseif getline('.') =~# '^#\t.'
         let file = '/'.matchstr(getline('.'),'#\t\zs.*')
