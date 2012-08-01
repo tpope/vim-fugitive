@@ -2180,7 +2180,7 @@ augroup fugitive_files
   autocmd BufReadCmd  index{,.lock}
         \ if fugitive#is_git_dir(expand('<amatch>:p:h')) |
         \   exe s:BufReadIndex() |
-        \ else |
+        \ elseif filereadable(expand('<amatch>')) |
         \   read <amatch> |
         \   1delete |
         \ endif
