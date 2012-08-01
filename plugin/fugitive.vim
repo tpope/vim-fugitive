@@ -687,9 +687,9 @@ function! s:stage_info(lnum) abort
   endwhile
   if !lnum
     return ['', '']
-  elseif getline(lnum+1) =~# '^#.*"git \%(reset\|rm --cached\) '
+  elseif getline(lnum+1) =~# '^# .*"git \%(reset\|rm --cached\) ' || getline(lnum) ==# '# Changes to be committed:'
     return [matchstr(filename, ': *\zs.*'), 'staged']
-  elseif getline(lnum+2) =~# '^#.*"git checkout '
+  elseif getline(lnum+2) =~# '^# .*"git checkout ' || getline(lnum) ==# '# Changes not staged for commit:'
     return [matchstr(filename, ': *\zs.*'), 'unstaged']
   else
     return [filename, 'untracked']
@@ -738,7 +738,7 @@ function! s:StageDiffEdit() abort
     if arg ==# '.'
       silent! edit!
       1
-      if !search('^# .*:\n#.*\n#.*"git checkout ','W')
+      if !search('^# .*:\n#.*\n# .*"git checkout \|^# Changes not staged for commit:$','W')
         call search('^# .*:$','W')
       endif
     else
@@ -761,7 +761,7 @@ function! s:StageToggle(lnum1,lnum2) abort
           call repo.git_chomp_in_tree('reset','-q')
           silent! edit!
           1
-          if !search('^# .*:\n#.*"git add .*\n#\n','W')
+          if !search('^# .*:\n# .*"git add .*\n#\n\|^# Untracked files:$','W')
             call search('^# .*:$','W')
           endif
           return ''
@@ -769,7 +769,7 @@ function! s:StageToggle(lnum1,lnum2) abort
           call repo.git_chomp_in_tree('add','-u')
           silent! edit!
           1
-          if !search('^# .*:\n#.*"git add .*\n#\n','W')
+          if !search('^# .*:\n# .*"git add .*\n#\n\|^# Untracked files:$','W')
             call search('^# .*:$','W')
           endif
           return ''
