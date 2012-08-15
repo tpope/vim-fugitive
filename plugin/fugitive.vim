@@ -691,6 +691,8 @@ function! s:stage_info(lnum) abort
     return [matchstr(filename, ': *\zs.*'), 'staged']
   elseif getline(lnum+2) =~# '^# .*"git checkout ' || getline(lnum) ==# '# Changes not staged for commit:'
     return [matchstr(filename, ': *\zs.*'), 'unstaged']
+  elseif getline(lnum+1) =~# '^# .*"git add/rm ' || getline(lnum) ==# '# Unmerged paths:'
+    return [matchstr(filename, ': *\zs.*'), 'unmerged']
   else
     return [filename, 'untracked']
   endif
