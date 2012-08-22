@@ -1548,6 +1548,9 @@ function! s:Blame(bang,line1,line2,count,args) abort
     else
       let cmd += ['--contents', '-']
     endif
+    if s:repo().config('blame.date') !~# '\v^(iso|short)$'
+      let cmd += ['--date', 'iso']
+    endif
     let basecmd = escape(call(s:repo().git_command,cmd+['--',s:buffer().path()],s:repo()),'!')
     try
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
