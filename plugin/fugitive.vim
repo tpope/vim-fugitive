@@ -1357,9 +1357,6 @@ function! s:diffoff_all(dir)
       if exists('b:git_dir') && b:git_dir ==# a:dir
         call s:diffoff()
       endif
-      if exists('restorewinnr')
-        wincmd p
-      endif
     endif
   endfor
 endfunction
