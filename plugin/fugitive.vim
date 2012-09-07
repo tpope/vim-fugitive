@@ -706,10 +706,14 @@ function! s:StageNext(count)
 endfunction
 
 function! s:StagePrevious(count)
-  for i in range(a:count)
-    call search('^#\t.*','Wbe')
-  endfor
-  return '.'
+  if line('.') == 1 && exists(':CtrlP')
+    return 'CtrlP '.fnameescape(s:repo().tree())
+  else
+    for i in range(a:count)
+      call search('^#\t.*','Wbe')
+    endfor
+    return '.'
+  endif
 endfunction
 
 function! s:StageReloadSeek(target,lnum1,lnum2)
