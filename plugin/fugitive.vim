@@ -742,13 +742,13 @@ function! s:StageDiff(diff) abort
     return 'Git! diff'
   elseif filename =~# ' -> '
     let [old, new] = split(filename,' -> ')
-    execute 'Gedit '.s:fnameescape(':0:'.new)
+    call s:Edit('edit',0,s:fnameescape(:0:.new))
     return a:diff.' HEAD:'.s:fnameescape(old)
   elseif section ==# 'staged'
-    execute 'Gedit '.s:fnameescape(':0:'.filename)
+    call s:Edit('edit',0,s:fnameescape(':0:'.filename))
     return a:diff.' -'
   else
-    execute 'Gedit '.s:fnameescape('/'.filename)
+    call s:Edit('edit',0,s:fnameescape('/'.filename))
     return a:diff
   endif
 endfunction
@@ -757,7 +757,7 @@ function! s:StageDiffEdit() abort
   let [filename, section] = s:stage_info(line('.'))
   let arg = (filename ==# '' ? '.' : filename)
   if section ==# 'staged'
-    return 'Git! diff --cached '.s:shellesc(arg)
+    return s:Git('!0','diff --cached '.s:shellesc(arg))
   elseif section ==# 'untracked'
     let repo = s:repo()
     call repo.git_chomp_in_tree('add','--intent-to-add',arg)
@@ -772,7 +772,7 @@ function! s:StageDiffEdit() abort
     endif
     return ''
   else
-    return 'Git! diff '.s:shellesc(arg)
+    return s:Git('!0','diff '.s:shellesc(arg))
   endif
 endfunction
 
@@ -867,10 +867,10 @@ function! s:StagePatch(lnum1,lnum2) abort
   endfor
   try
     if !empty(add)
-      execute "Git add --patch -- ".join(map(add,'s:shellesc(v:val)'))
+      call s:Git('0','add --patch -- '.join(map(add,'s:shellesc(v:val)')))
     endif
     if !empty(reset)
-      execute "Git reset --patch -- ".join(map(add,'s:shellesc(v:val)'))
+      call s:Git('0','reset --patch -- '.join(map(add,'s:shellesc(v:val,1)')))
     endif
     if exists('first_filename')
       silent! edit!
@@ -1201,7 +1201,7 @@ function! s:Write(force,...) abort
     elseif a:force
       return 'bdelete'
     else
-      return 'Gedit '.fnameescape(filename)
+      return s:Edit('edit',0,fnameescape(filename))
     endif
   endif
   let mytab = tabpagenr()
