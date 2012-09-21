@@ -1072,6 +1072,7 @@ endfunction
 " Gedit, Gpedit, Gsplit, Gvsplit, Gtabedit, Gread {{{1
 
 function! s:Edit(cmd,bang,...) abort
+  let buffer = s:buffer()
   if a:cmd !~# 'read'
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
       wincmd p
@@ -1091,7 +1092,7 @@ function! s:Edit(cmd,bang,...) abort
   if a:bang
     let args = s:gsub(a:0 ? a:1 : '', '\\@<!%(\\\\)*\zs[%#]', '\=s:buffer().expand(submatch(0))')
     if a:cmd =~# 'read'
-      let git = s:repo().git_command()
+      let git = buffer.repo().git_command()
       let last = line('$')
       silent call s:ExecuteInTree((a:cmd ==# 'read' ? '$read' : a:cmd).'!'.git.' --no-pager '.args)
       if a:cmd ==# 'read'
@@ -1102,7 +1103,7 @@ function! s:Edit(cmd,bang,...) abort
       return 'redraw|echo '.string(':!'.git.' '.args)
     else
       let temp = resolve(tempname())
-      let s:temp_files[temp] = s:repo().dir()
+      let s:temp_files[temp] = buffer.repo().dir()
       silent execute a:cmd.' '.temp
       if a:cmd =~# 'pedit'
         wincmd P
@@ -1124,16 +1125,16 @@ function! s:Edit(cmd,bang,...) abort
   if a:0 && a:1 == ''
     return ''
   elseif a:0
-    let file = s:buffer().expand(a:1)
+    let file = buffer.expand(a:1)
   elseif expand('%') ==# ''
     let file = ':'
-  elseif s:buffer().commit() ==# '' && s:buffer().path('/') !~# '^/.git\>'
-    let file = s:buffer().path(':')
+  elseif buffer.commit() ==# '' && buffer.path('/') !~# '^/.git\>'
+    let file = buffer.path(':')
   else
-    let file = s:buffer().path('/')
+    let file = buffer.path('/')
   endif
   try
-    let file = s:repo().translate(file)
+    let file = buffer.repo().translate(file)
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
