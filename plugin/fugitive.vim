@@ -1072,8 +1072,10 @@ endfunction
 " Gedit, Gpedit, Gsplit, Gvsplit, Gtabedit, Gread {{{1
 
 function! s:Edit(cmd,bang,...) abort
+  let origwinnr = '%'
   if a:cmd !~# 'read'
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
+      let origwinnr = winnr()
       wincmd p
       if &diff
         let mywinnr = winnr()
@@ -1124,13 +1126,13 @@ function! s:Edit(cmd,bang,...) abort
   if a:0 && a:1 == ''
     return ''
   elseif a:0
-    let file = s:buffer().expand(a:1)
+    let file = s:buffer(origwinnr).expand(a:1)
   elseif expand('%') ==# ''
     let file = ':'
-  elseif s:buffer().commit() ==# '' && s:buffer().path('/') !~# '^/.git\>'
-    let file = s:buffer().path(':')
+  elseif s:buffer(origwinnr).commit() ==# '' && s:buffer(origwinnr).path('/') !~# '^/.git\>'
+    let file = s:buffer(origwinnr).path(':')
   else
-    let file = s:buffer().path('/')
+    let file = s:buffer(origwinnr).path('/')
   endif
   try
     let file = s:repo().translate(file)
