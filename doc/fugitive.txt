@@ -171,7 +171,7 @@ that are part of Git repositories).
 :Gblame [flags]         Run git-blame on the file and open the results in a
                         scroll bound vertical split.  Press enter on a line to
                         reblame the file as it was in that commit.  You can
-                        give any of ltwfsMC as flags and they will be passed
+                        give any of ltfnsewMC as flags and they will be passed
                         along to git-blame.  The following maps, which work on
                         the cursor line commit where sensible, are provided:
 
