@@ -1737,6 +1737,7 @@ function! s:BlameJump(suffix) abort
   return ''
 endfunction
 
+let s:load_time = localtime()
 let s:hash_colors = {}
 
 function! s:BlameSyntax() abort
@@ -1765,13 +1766,30 @@ function! s:BlameSyntax() abort
   hi def link FugitiveblameShort              FugitiveblameDelimiter
   hi def link FugitiveblameDelimiter          Delimiter
   hi def link FugitiveblameNotCommittedYet    Comment
+  call s:HighlightBlameDates()
+
   for lnum in range(1, line('$'))
+    let match = matchlist(getline(lnum), '\<\(\d\d\d\d\)-\(\d\d\)-\(\d\d\).\(\d\d\):\(\d\d\):\(\d\d\) \([+-]\d\d\d\d\)\>')[0:7]
+    if !empty(match)
+      let age = s:load_time - call(s:function('s:unixtime'), match[1:7])
+    else
+      let match = matchlist(getline(lnum), '\<\(\d\+\) \([+-]\d\d\d\d\)\>')[0:2]
+      if !empty(match)
+        let age = s:load_time - match[1]
+      endif
+    endif
+    if exists('age') && exists('*log')
+      let staleness = age < 0 ? 0 : float2nr(ceil(log(1+age/86400)))
+      if staleness > 15 | let staleness = 15 | endif
+      exe 'syn match FugitiveblameTime'.staleness.' "\<'.match[0].'\>" contained containedin=FugitiveblameAnnotation'
+    endif
+
     let hash = matchstr(getline(lnum), '^\^\=\zs\x\{6\}')
     if hash ==# '' || hash ==# '000000'
       continue
     endif
     if &t_Co > 16 && exists('*csapprox#per_component#Approximate') && !has_key(s:hash_colors, hash)
-      let [s, r, g, b; __] = map(matchlist(hash, '\(\x\x\)\(\x\x\)\(\x\x\)'), 'str2nr(v:val,16)')
+      let [a, r, g, b; __] = map(matchlist(hash, '\(\x\x\)\(\x\x\)\(\x\x\)'), 'str2nr(v:val,16)')
       let color = csapprox#per_component#Approximate(r, g, b)
       if color == 16 && &background ==# 'dark'
         let color = 8
@@ -1783,10 +1801,35 @@ function! s:BlameSyntax() abort
   endfor
 endfunction
 
-function! s:RehighlightBlame()
+function! s:HighlightBlameDates() abort
+  for i in range(0, 15)
+    let shade = 0x11 * (&background == 'dark' ? 0xf - i : i)
+    if &t_Co > 16 && exists('*csapprox#per_component#Approximate')
+      let cterm = ' ctermfg='.csapprox#per_component#Approximate(shade, shade, shade)
+    else
+      let cterm = ''
+    endif
+    execute 'hi FugitiveblameTime'.i.' guifg=#'.repeat(printf('%02x', shade),3).cterm
+  endfor
+endfunction
+
+function! s:RehighlightBlame() abort
+  call s:HighlightBlameDates()
   for [hash, cterm] in items(s:hash_colors)
     exe 'hi FugitiveblameHash'.hash.' guifg=#'.hash.cterm
   endfor
+endfunction
+
+function! s:unixtime(year,mon,day,hour,min,sec, ...) abort
+  let y = a:year + 4800 - (a:mon <= 2)
+  let m = a:mon + (a:mon <= 2 ? 9 : -3)
+  let jul = a:day + (153*m+2)/5 + 1461*y/4 - 32083
+  let days = jul - y/100 + y/400 + 38 - 2440588
+
+  let offset = a:0 ? a:1 : '0000'
+  let seconds = days * 86400 + a:hour * 3600 + a:min * 60 + a:sec
+  let seconds -= 3600 * matchstr(offset, '[+-]\=\d\d') - 60 * matchstr(offset, '\d\d$')
+  return seconds
 endfunction
 
 " }}}1
