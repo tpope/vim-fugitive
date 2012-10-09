@@ -405,11 +405,11 @@ endfunction
 call s:add_methods('repo',['config', 'user', 'aliases'])
 
 function! s:repo_keywordprg() dict abort
-  let args = ' --git-dir='.escape(self.dir(),"\\\"' ").' show'
+  let args = ' --git-dir='.escape(self.dir(),"\\\"' ")
   if has('gui_running') && !has('win32')
-    return g:fugitive_git_executable . ' --no-pager' . args
+    return g:fugitive_git_executable . ' --no-pager' . args . ' log -1'
   else
-    return g:fugitive_git_executable . args
+    return g:fugitive_git_executable . args . ' show'
   endif
 endfunction
 
