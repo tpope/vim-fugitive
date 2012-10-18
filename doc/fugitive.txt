@@ -198,6 +198,11 @@ that are part of Git repositories).
                         "git instaweb" from a terminal).  If a range is given,
                         it is appropriately appended to the URL as an anchor.
 
+                        To use with MacOS, add web.browser variable to global
+                        git config and set it to the open command:
+
+                        git config --global web.browser open
+                        
                         To use with GitHub FI, point g:fugitive_github_domains
                         at a list of domains:
 >
