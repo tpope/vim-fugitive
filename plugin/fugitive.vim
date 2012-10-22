@@ -2500,6 +2500,9 @@ function! fugitive#foldtext() abort
     if filename ==# ''
       let filename = matchstr(getline(v:foldstart), '^diff .\{-\} a/\zs.*\ze b/')
     endif
+    if filename ==# ''
+      let filename = getline(v:foldstart)[5:-1]
+    endif
     if exists('binary')
       return 'Binary: '.filename
     else
