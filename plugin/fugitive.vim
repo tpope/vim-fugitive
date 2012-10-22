@@ -2486,7 +2486,7 @@ function! fugitive#foldtext() abort
     let [add, remove] = [-1, -1]
     let filename = ''
     for lnum in range(v:foldstart, v:foldend)
-      if filename ==# '' && getline(lnum) =~# '^[+-]\{3\} [ab]/'
+      if filename ==# '' && getline(lnum) =~# '^[+-]\{3\} [abciow12]/'
         let filename = getline(lnum)[6:-1]
       endif
       if getline(lnum) =~# '^+'
