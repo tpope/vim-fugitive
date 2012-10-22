@@ -42,6 +42,7 @@ that are part of Git repositories).
                         C     |:Gcommit|
                         cA    |:Gcommit| --amend --reuse-message=HEAD
                         ca    |:Gcommit| --amend
+                        cv    |:Gcommit| --verbose
                         D     |:Gdiff|
                         ds    |:Gsdiff|
                         dp    |:Git!| diff (p for patch; use :Gw to apply)
