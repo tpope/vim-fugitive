@@ -12,6 +12,10 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
+if !exists('g:fugitive_github_scheme')
+  let g:fugitive_github_scheme = 'https'
+endif
+
 " Utility {{{1
 
 function! s:function(name) abort
@@ -1877,7 +1881,7 @@ function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
   if repo ==# ''
     return ''
   endif
-  let root = 'https://' . s:sub(repo,':','/')
+  let root = g:fugitive_github_scheme . '://' . s:sub(repo,':','/')
   if path =~# '^\.git/refs/heads/'
     let branch = a:repo.git_chomp('config','branch.'.path[16:-1].'.merge')[11:-1]
     if branch ==# ''
