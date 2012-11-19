@@ -203,7 +203,7 @@ that are part of Git repositories).
                         To use with GitHub FI, point g:fugitive_github_domains
                         at a list of domains:
 >
-                        let g:fugitive_github_domains = ['git.example.com']
+                        let g:fugitive_github_domains = ['https://example.com']
 ~
 :[range]Gbrowse!        Like :Gbrowse, but put the URL on the clipboard rather
                         than opening it.

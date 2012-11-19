@@ -1870,14 +1870,19 @@ endfunction
 function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
   let path = a:path
   let domain_pattern = 'github\.com'
-  for domain in exists('g:fugitive_github_domains') ? g:fugitive_github_domains : []
-    let domain_pattern .= '\|' . escape(domain, '.')
+  let domains = exists('g:fugitive_github_domains') ? g:fugitive_github_domains : []
+  for domain in domains
+    let domain_pattern .= '\|' . escape(split(domain, '://')[-1], '.')
   endfor
   let repo = matchstr(a:url,'^\%(https\=://\|git://\|git@\)\zs\('.domain_pattern.'\)[/:].\{-\}\ze\%(\.git\)\=$')
   if repo ==# ''
     return ''
   endif
-  let root = 'https://' . s:sub(repo,':','/')
+  if index(g:fugitive_github_domains, 'http://' . matchstr(repo, '^[^:/]*')) >= 0
+    let root = 'http://' . s:sub(repo,':','/')
+  else
+    let root = 'https://' . s:sub(repo,':','/')
+  endif
   if path =~# '^\.git/refs/heads/'
     let branch = a:repo.git_chomp('config','branch.'.path[16:-1].'.merge')[11:-1]
     if branch ==# ''
