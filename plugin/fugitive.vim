@@ -1878,7 +1878,7 @@ function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
   if repo ==# ''
     return ''
   endif
-  if index(g:fugitive_github_domains, 'http://' . matchstr(repo, '^[^:/]*')) >= 0
+  if index(domains, 'http://' . matchstr(repo, '^[^:/]*')) >= 0
     let root = 'http://' . s:sub(repo,':','/')
   else
     let root = 'https://' . s:sub(repo,':','/')
