@@ -2055,6 +2055,7 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> cc :<C-U>Gcommit<CR>
     nnoremap <buffer> <silent> cva :<C-U>Gcommit --amend --verbose<CR>
     nnoremap <buffer> <silent> cvc :<C-U>Gcommit --verbose<CR>
+    nnoremap <buffer> <silent> r :<C-U>Gstatus<CR>
     nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
