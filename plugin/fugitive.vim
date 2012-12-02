@@ -555,6 +555,24 @@ function! s:buffer_expand(rev) dict abort
   return s:sub(s:sub(file,'\%$',self.path()),'\.\@<=/$','')
 endfunction
 
+function! s:buffer_child() dict abort
+  let branch = self.repo().git_chomp('rev-parse','--verify', '--abbrev-ref', 'HEAD')
+  let commit = self.commit()
+  if branch != "no branch"
+    let chld = self.repo().git_chomp('rev-list','--parents', '^'.commit, branch)
+    if chld != ""
+      let tab = split(chld, "\n")
+      let l = tab[len(tab) - 1]
+      let tab2 = split(l, " ")
+      return tab2[0]
+    else
+      return commit
+    endif
+  else
+    return commit
+  endif
+endfunction
+
 function! s:buffer_containing_commit() dict abort
   if self.commit() =~# '^\d$'
     return ':'
@@ -589,7 +607,7 @@ function! s:buffer_up(...) dict abort
   return rev
 endfunction
 
-call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','name','commit','path','rev','sha1','expand','containing_commit','up'])
+call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','name','commit','path','rev','sha1','expand','containing_commit','up','child'])
 
 " }}}1
 " Git {{{1
