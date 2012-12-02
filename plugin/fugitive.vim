@@ -649,6 +649,15 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :lcd
 " }}}1
 " Gstatus {{{1
 
+call s:command("Gnotes :execute s:Notes()|edit")
+function! s:Notes() abort
+  let buffer = s:buffer()
+  let myhash = buffer.sha1()
+  if strlen(myhash) > 0
+    return 'Git notes edit'
+  endif
+  "`=fugitive#buffer().repo().translate(s:buffer().expand('':2''))`'
+endfunction
 call s:command("-bar Gstatus :execute s:Status()")
 
 function! s:Status() abort
