@@ -122,7 +122,7 @@ that are part of Git repositories).
 
 :{range}Gread! [args]  |:read| the output of a Git command after {range}.
 
-                                                *fugitive-:Gwrite*
+                                        *fugitive-:Gw* *fugitive-:Gwrite*
 :Gwrite                 Write to the current file's path and stage the results.
                         When run in a work tree file, it is effectively git
                         add.  Elsewhere, it is effectively git-checkout.  A
