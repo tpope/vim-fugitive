@@ -1911,7 +1911,8 @@ function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
   if a:type == 'tree'
     let url = s:sub(root . '/tree/' . commit . '/' . path,'/$','')
   elseif a:type == 'blob'
-    let url = root . '/blob/' . commit . '/' . path
+    let blob_url = exists('g:fugitive_gitlab_engine') ? '/tree/': '/blob/'
+    let url = root . blob_url . commit . '/' . path
     if a:line2 > 0 && a:line1 == a:line2
       let url .= '#L' . a:line1
     elseif a:line2 > 0
