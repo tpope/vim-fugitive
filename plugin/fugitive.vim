@@ -151,18 +151,10 @@ function! s:Detect(path)
     if expand('%:p') =~# '//'
       call buffer.setvar('&path', s:sub(buffer.getvar('&path'), '^\.%(,|$)', ''))
     endif
-    " Look for tags file in .git dir and add them to &tags
-    " See http://tbaggery.com/2011/08/08/effortless-ctags-with-git.html
-    let tagsfile = b:git_dir.'/tags'
-    if stridx(buffer.getvar('&tags'), escape(tagsfile, ', ')) == -1
-      if filereadable(tagsfile)
-        call buffer.setvar('&tags', escape(tagsfile, ', ').','.buffer.getvar('&tags'))
-      endif
+    if stridx(buffer.getvar('&tags'), escape(b:git_dir.'/tags', ', ')) == -1
+      call buffer.setvar('&tags', escape(b:git_dir.'/tags', ', ').','.buffer.getvar('&tags'))
       if &filetype !=# ''
-        let tagsfile = b:git_dir.'/'.&filetype.'.tags'
-        if filereadable(tagsfile)
-          call buffer.setvar('&tags', escape(tagsfile, ', ').','.buffer.getvar('&tags'))
-        endif
+        call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
       endif
     endif
   endif
