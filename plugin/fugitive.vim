@@ -640,7 +640,7 @@ endfunction
 " }}}1
 " Gsync {{{1
 
-call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Gsync :execute s:GitSync()")
+call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Gsync :execute s:Sync()")
 function! s:Sync()
 	Gpush
 	Gpull
