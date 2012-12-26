@@ -1478,6 +1478,7 @@ function! s:Diff(bang,...)
     else
       execute 'leftabove '.split.' '.s:fnameescape(spec)
     endif
+    wincmd p
     call s:diffthis()
     wincmd p
     call s:diffthis()
