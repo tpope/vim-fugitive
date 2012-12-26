@@ -648,7 +648,7 @@ endfunction
 
 call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommitsync :execute s:CommitSync(<q-args>)")
 function! s:CommitSync(args)
-	call s:Commit(a:args)
+	return s:Commit(a:args)
 	call s:Sync()
 endfunction
 
