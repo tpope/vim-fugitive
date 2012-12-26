@@ -648,8 +648,8 @@ endfunction
 
 call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommitsync :execute s:CommitSync(<q-args>)")
 function! s:CommitSync(args)
+	let SyncAfterCommit=1
 	return s:Commit(a:args)
-	call s:Sync()
 endfunction
 
 
@@ -1001,7 +1001,11 @@ function! s:FinishCommit()
   let args = getbufvar(+expand('<abuf>'),'fugitive_commit_arguments')
   if !empty(args)
     call setbufvar(+expand('<abuf>'),'fugitive_commit_arguments','')
-    return s:Commit(args)
+	 call s:Commit(args)
+    if exists(SyncAfterCommit)
+		unlet SyncAfterCommit
+		call s:Sync()
+	 endif
   endif
   return ''
 endfunction
