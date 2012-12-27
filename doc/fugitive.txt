@@ -218,6 +218,20 @@ that are part of Git repositories).
                         for the current branch.  The remote is used to
                         determine which GitHub repository to link to.
 
+:Gpull
+								Makes a Git Pull 
+:Gpush						
+								Makes a Git Push 
+:Gsync
+								Makes a Git Push and then a Git Pull. This is usefull 
+								either if you automaticaly process some files after 
+								pushing. Or if your push fails due to a new upstream 
+								version. It then automaticaly trys to merge changes. 
+:Gcommitsync [args]
+								Does first a commit and then a Gsync directly after 
+								the commit if needed. 
+
+
 MAPPINGS                                        *fugitive-mappings*
 
 These maps are available everywhere.

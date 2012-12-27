@@ -595,6 +595,8 @@ call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','n
 " Git {{{1
 
 call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Git :execute s:Git(<bang>0,<q-args>)")
+call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Gpush :Git push")
+call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Gpull :Git pull")
 
 function! s:ExecuteInTree(cmd) abort
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
@@ -634,6 +636,22 @@ function! s:GitComplete(A,L,P) abort
     return filter(sort(cmds+keys(s:repo().aliases())),'v:val[0:strlen(a:A)-1] ==# a:A')
   endif
 endfunction
+
+" }}}1
+" Gsync {{{1
+
+call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Gsync :execute s:Sync()")
+function! s:Sync()
+	Gpush
+	Gpull
+endfunction
+
+call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommitsync :execute s:CommitSync(<q-args>)")
+function! s:CommitSync(args)
+	call s:Commit(a:args)
+	let b:fugitive_sync_after_commit=1
+endfunction
+
 
 " }}}1
 " Gcd, Glcd {{{1
@@ -981,9 +999,13 @@ endfunction
 
 function! s:FinishCommit()
   let args = getbufvar(+expand('<abuf>'),'fugitive_commit_arguments')
+  let sync = getbufvar(+expand('<abuf>'),'fugitive_sync_after_commit')
   if !empty(args)
     call setbufvar(+expand('<abuf>'),'fugitive_commit_arguments','')
-    return s:Commit(args)
+	 call s:Commit(args)
+    if !empty(sync)
+		call s:Sync()
+	 endif
   endif
   return ''
 endfunction
@@ -1456,6 +1478,7 @@ function! s:Diff(bang,...)
     else
       execute 'leftabove '.split.' '.s:fnameescape(spec)
     endif
+    wincmd p
     call s:diffthis()
     wincmd p
     call s:diffthis()
@@ -2534,4 +2557,4 @@ augroup END
 
 " }}}1
 
-" vim:set et sw=2:
+"W vim:set et sw=2:
