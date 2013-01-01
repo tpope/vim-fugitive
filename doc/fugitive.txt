@@ -49,6 +49,7 @@ that are part of Git repositories).
                         dp    |:Git!| diff (p for patch; use :Gw to apply)
                         dp    |:Git| add --intent-to-add (untracked files)
                         dv    |:Gvdiff|
+                        g?    show this help
                         O     |:Gtabedit|
                         o     |:Gsplit|
                         p     |:Git| add --patch
@@ -182,6 +183,7 @@ that are part of Git repositories).
                         D     resize to end of date/time column
                         q     close blame and return to blamed window
                         gq    q, then |:Gedit| to return to work tree version
+                        g?    show this help
                         i     q, then open commit
                         o     open commit in horizontal split
                         O     open commit in new tab
