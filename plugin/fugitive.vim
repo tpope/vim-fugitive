@@ -682,17 +682,18 @@ endfunction
 function! s:stage_info(lnum) abort
   let filename = matchstr(getline(a:lnum),'^#\t\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
   let lnum = a:lnum
-  while lnum && getline(lnum) !~# '^#.*:$'
+  let colon = '\%(:\|\%uff1a\)'
+  while lnum && getline(lnum) !~# colon.'$'
     let lnum -= 1
   endwhile
   if !lnum
     return ['', '']
   elseif getline(lnum+1) =~# '^# .*"git \%(reset\|rm --cached\) ' || getline(lnum) ==# '# Changes to be committed:'
-    return [matchstr(filename, ': *\zs.*'), 'staged']
+    return [matchstr(filename, colon.' *\zs.*'), 'staged']
   elseif getline(lnum+2) =~# '^# .*"git checkout ' || getline(lnum) ==# '# Changes not staged for commit:'
-    return [matchstr(filename, ': *\zs.*'), 'unstaged']
+    return [matchstr(filename, colon.' *\zs.*'), 'unstaged']
   elseif getline(lnum+1) =~# '^# .*"git add/rm ' || getline(lnum) ==# '# Unmerged paths:'
-    return [matchstr(filename, ': *\zs.*'), 'unmerged']
+    return [matchstr(filename, colon.' *\zs.*'), 'unmerged']
   else
     return [filename, 'untracked']
   endif
@@ -718,14 +719,14 @@ endfunction
 
 function! s:StageReloadSeek(target,lnum1,lnum2)
   let jump = a:target
-  let f = matchstr(getline(a:lnum1-1),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+  let f = matchstr(getline(a:lnum1-1),'^#\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
   if f !=# '' | let jump = f | endif
-  let f = matchstr(getline(a:lnum2+1),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.*')
+  let f = matchstr(getline(a:lnum2+1),'^#\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
   if f !=# '' | let jump = f | endif
   silent! edit!
   1
   redraw
-  call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
+  call search('^#\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
 endfunction
 
 function! s:StageDiff(diff) abort
