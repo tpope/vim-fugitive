@@ -646,6 +646,7 @@ call s:command("-bar Gstatus :execute s:Status()")
 function! s:Status() abort
   try
     Gpedit :
+    set foldmethod=syntax foldlevel=1
     wincmd P
     nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
   catch /^fugitive:/
@@ -2027,7 +2028,7 @@ function! s:BufReadIndex()
         execute cd.'`=dir`'
       endtry
       set ft=gitcommit
-      set foldtext=fugitive#foldtext() foldmethod=syntax foldlevel=1
+      set foldtext=fugitive#foldtext()
     endif
     setlocal ro noma nomod noswapfile
     if &bufhidden ==# ''
