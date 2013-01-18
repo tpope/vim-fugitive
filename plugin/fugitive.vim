@@ -903,11 +903,11 @@ function! s:Commit(args) abort
       endif
       let command .= s:repo().git_command('commit').' '.a:args
       if &shell =~# 'csh'
-        silent execute '!('.command.' > '.outfile.') >& '.errorfile
+        silent noautocmd execute '!('.command.' > '.outfile.') >& '.errorfile
       elseif a:args =~# '\%(^\| \)--interactive\>'
-        execute '!'.command.' 2> '.errorfile
+        noautocmd execute '!'.command.' 2> '.errorfile
       else
-        silent execute '!'.command.' > '.outfile.' 2> '.errorfile
+        silent noautocmd execute '!'.command.' > '.outfile.' 2> '.errorfile
       endif
     finally
       execute cd.'`=dir`'
@@ -961,6 +961,7 @@ function! s:Commit(args) abort
     call delete(outfile)
     call delete(errorfile)
     call fugitive#reload_status()
+    call system("test")
   endtry
 endfunction
 
