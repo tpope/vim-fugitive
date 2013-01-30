@@ -646,8 +646,8 @@ call s:command("-bar Gstatus :execute s:Status()")
 function! s:Status() abort
   try
     Gpedit :
-    set foldmethod=syntax foldlevel=1
     wincmd P
+    set foldmethod=syntax foldlevel=1
     nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
