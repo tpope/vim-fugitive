@@ -182,7 +182,7 @@ that are part of Git repositories).
                         D     resize to end of date/time column
                         q     close blame and return to blamed window
                         gq    q, then |:Gedit| to return to work tree version
-                        i     q, then open commit
+                        <CR>  q, then open commit
                         o     open commit in horizontal split
                         O     open commit in new tab
                         -     reblame at commit
