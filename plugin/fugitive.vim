@@ -1105,7 +1105,7 @@ function! s:Edit(cmd,bang,...) abort
       return 'redraw|echo '.string(':!'.git.' '.args)
     else
       let temp = resolve(tempname())
-      let s:temp_files[temp] = buffer.repo().dir()
+      let s:temp_files[substitute(temp,"\\", "/","g")] = buffer.repo().dir()
       silent execute a:cmd.' '.temp
       if a:cmd =~# 'pedit'
         wincmd P
@@ -1613,7 +1613,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
         setlocal scrollbind nowrap nofoldenable
         let top = line('w0') + &scrolloff
         let current = line('.')
-        let s:temp_files[temp] = s:repo().dir()
+        let s:temp_files[substitute(temp,"\\", "/","g")] = s:repo().dir()
         exe 'keepalt leftabove vsplit '.temp
         let b:fugitive_blamed_bufnr = bufnr
         let w:fugitive_leave = restore
