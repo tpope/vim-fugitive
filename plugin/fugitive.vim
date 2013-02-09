@@ -1,6 +1,6 @@
 " fugitive.vim - A Git wrapper so awesome, it should be illegal
 " Maintainer:   Tim Pope <http://tpo.pe/>
-" Version:      1.2
+" Version:      2.0
 " GetLatestVimScripts: 2975 1 :AutoInstall: fugitive.vim
 
 if exists('g:loaded_fugitive') || &cp
@@ -2242,10 +2242,10 @@ endif
 augroup fugitive_temp
   autocmd!
   autocmd BufNewFile,BufReadPost *
-        \ if has_key(s:temp_files,expand('<amatch>:p')) |
-        \   let b:git_dir = s:temp_files[expand('<amatch>:p')] |
+        \ if has_key(s:temp_files,expand('<afile>:p')) |
+        \   let b:git_dir = s:temp_files[expand('<afile>:p')] |
         \   let b:git_type = 'temp' |
-        \   call s:Detect(expand('<amatch>:p')) |
+        \   call s:Detect(expand('<afile>:p')) |
         \   setlocal bufhidden=delete |
         \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>|
         \ endif
