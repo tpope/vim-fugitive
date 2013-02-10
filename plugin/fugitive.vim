@@ -647,7 +647,7 @@ function! s:Status() abort
   try
     Gpedit :
     wincmd P
-    set foldmethod=syntax foldlevel=1
+    setl foldmethod=syntax foldlevel=1
     nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
@@ -1268,7 +1268,7 @@ function! s:Write(force,...) abort
     return 'echoerr v:errmsg'
   endif
   if s:buffer().path() ==# path && s:buffer().commit() =~# '^\d$'
-    set nomodified
+    setl nomodified
   endif
 
   let one = s:repo().translate(':1:'.path)
@@ -1299,7 +1299,7 @@ function! s:Write(force,...) abort
           silent execute '$read '.s:fnameescape(file)
           silent execute '1,'.last.'delete_'
           silent execute lnum
-          set nomodified
+          setl nomodified
           diffupdate
         finally
           if exists('restorewinnr')
@@ -2022,7 +2022,7 @@ function! s:BufReadIndex()
     endif
     if b:fugitive_display_format
       call s:ReplaceCmd(s:repo().git_command('ls-files','--stage'),index)
-      set ft=git nospell
+      setl ft=git nospell
     else
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
       let dir = getcwd()
@@ -2032,8 +2032,8 @@ function! s:BufReadIndex()
       finally
         execute cd.'`=dir`'
       endtry
-      set ft=gitcommit
-      set foldtext=fugitive#foldtext()
+      setl ft=gitcommit
+      setl foldtext=fugitive#foldtext()
     endif
     setlocal ro noma nomod noswapfile
     if &bufhidden ==# ''
@@ -2203,7 +2203,7 @@ function! s:BufReadObject()
         setlocal bufhidden=delete
       endif
       if b:fugitive_type !=# 'blob'
-        set filetype=git
+        setl filetype=git
         nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe <SID>BufReadObject()<CR>
         nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe <SID>BufReadObject()<CR>
       else
@@ -2527,7 +2527,7 @@ augroup fugitive_foldtext
   autocmd!
   autocmd User Fugitive
         \ if &filetype =~# '^git\%(commit\)\=$' && &foldtext ==# 'foldtext()' |
-        \    set foldtext=fugitive#foldtext() |
+        \    setl foldtext=fugitive#foldtext() |
         \ endif
 augroup END
 
