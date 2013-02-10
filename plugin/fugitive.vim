@@ -683,7 +683,11 @@ endfunction
 function! s:stage_info(lnum) abort
   let filename = matchstr(getline(a:lnum),'^#\t\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
   let lnum = a:lnum
-  let colon = '\%(:\|\%uff1a\)'
+  if has('multi_byte_encoding')
+    let colon = '\%(:\|\%uff1a\)'
+  else
+    let colon = ':'
+  endif
   while lnum && getline(lnum) !~# colon.'$'
     let lnum -= 1
   endwhile
