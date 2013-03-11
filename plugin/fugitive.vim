@@ -1912,10 +1912,11 @@ function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
     let url = s:sub(root . '/tree/' . commit . '/' . path,'/$','')
   elseif a:type == 'blob'
     let url = root . '/blob/' . commit . '/' . path
-    if a:line2 > 0 && a:line1 == a:line2
+    if a:line1 > 0
       let url .= '#L' . a:line1
-    elseif a:line2 > 0
-      let url .= '#L' . a:line1 . '-' . a:line2
+      if a:line2 > a:line1
+        let url .= '-' . a:line2
+      endif
     endif
   elseif a:type == 'tag'
     let commit = matchstr(getline(3),'^tag \zs.*')
