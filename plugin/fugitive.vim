@@ -642,6 +642,12 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :lcd
 " Gstatus {{{1
 
 call s:command("-bar Gstatus :execute s:Status()")
+augroup fugitive_status
+  autocmd!
+  if !has('win32')
+    autocmd FocusGained,ShellCmdPost * call fugitive#reload_status()
+  endif
+augroup END
 
 function! s:Status() abort
   try
@@ -656,28 +662,36 @@ function! s:Status() abort
 endfunction
 
 function! fugitive#reload_status() abort
-  let mytab = tabpagenr()
-  for tab in [mytab] + range(1,tabpagenr('$'))
-    for winnr in range(1,tabpagewinnr(tab,'$'))
-      if getbufvar(tabpagebuflist(tab)[winnr-1],'fugitive_type') ==# 'index'
-        execute 'tabnext '.tab
-        if winnr != winnr()
-          execute winnr.'wincmd w'
-          let restorewinnr = 1
+  if exists('s:reloading_status')
+    return
+  endif
+  try
+    let s:reloading_status = 1
+    let mytab = tabpagenr()
+    for tab in [mytab] + range(1,tabpagenr('$'))
+      for winnr in range(1,tabpagewinnr(tab,'$'))
+        if getbufvar(tabpagebuflist(tab)[winnr-1],'fugitive_type') ==# 'index'
+          execute 'tabnext '.tab
+          if winnr != winnr()
+            execute winnr.'wincmd w'
+            let restorewinnr = 1
+          endif
+          try
+            if !&modified
+              call s:BufReadIndex()
+            endif
+          finally
+            if exists('restorewinnr')
+              wincmd p
+            endif
+            execute 'tabnext '.mytab
+          endtry
         endif
-        try
-          if !&modified
-            call s:BufReadIndex()
-          endif
-        finally
-          if exists('restorewinnr')
-            wincmd p
-          endif
-          execute 'tabnext '.mytab
-        endtry
-      endif
+      endfor
     endfor
-  endfor
+  finally
+    unlet! s:reloading_status
+  endtry
 endfunction
 
 function! s:stage_info(lnum) abort
@@ -2269,7 +2283,7 @@ function! s:JumpInit() abort
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
     nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
     nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
-    nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,<SID>buffer().up(v:count1))<CR>
+    nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,<SID>buffer().up(v:count1))<Bar> if fugitive#buffer().type('tree')<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
     nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,<SID>buffer().commit().'^'.v:count1.<SID>buffer().path(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,<SID>buffer().commit().'~'.v:count1.<SID>buffer().path(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe <SID>Edit('edit',0,<SID>buffer().containing_commit())<CR>
