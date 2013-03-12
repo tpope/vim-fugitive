@@ -68,6 +68,16 @@ function! s:recall()
   let rev = s:sub(s:buffer().rev(), '^/', '')
   if rev ==# ':'
     return matchstr(getline('.'),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
+  elseif s:buffer().type('tree')
+    let file = matchstr(getline('.'), '\t\zs.*')
+    if empty(file) && line('.') > 2
+      let file = s:sub(getline('.'), '/$', '')
+    endif
+    if !empty(file) && rev !~# ':$'
+      return rev . '/' . file
+    else
+      return rev . file
+    endif
   endif
   return rev
 endfunction
