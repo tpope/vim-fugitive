@@ -258,6 +258,10 @@ P                       Go to the current file in the [count]th parent.
                                                 *fugitive-C*
 C                       Go to the commit containing the current file.
 
+                                                *fugitive-.*
+.                       Start a |:| command line with the current revision
+                        prepopulated at the end of the line.
+
                                                 *fugitive-a*
 a                       Show the current tag, commit, or tree in an alternate
                         format.
