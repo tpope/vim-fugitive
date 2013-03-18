@@ -1358,6 +1358,9 @@ endfunction
 call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff(<bang>0,<f-args>)")
 call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff(0,<f-args>)")
 call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff(1,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gtdiff :tab sp | execute s:Diff(<bang>0,<f-args>)")
+call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gtvdiff :tab sp | execute s:Diff(0,<f-args>)")
+call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gtsdiff :tab sp | execute s:Diff(1,<f-args>)")
 
 augroup fugitive_diff
   autocmd!
@@ -2083,6 +2086,9 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
     nnoremap <buffer> <silent> ds :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
+    nnoremap <buffer> <silent> dt :<C-U>execute <SID>StageDiff('Gtdiff')<CR>
+    nnoremap <buffer> <silent> dts :<C-U>execute <SID>StageDiff('Gtsdiff')<CR>
+    nnoremap <buffer> <silent> dtv :<C-U>execute <SID>StageDiff('Gtvdiff')<CR>
     nnoremap <buffer> <silent> dp :<C-U>execute <SID>StageDiffEdit()<CR>
     nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>

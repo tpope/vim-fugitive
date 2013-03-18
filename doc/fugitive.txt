@@ -49,6 +49,9 @@ that are part of Git repositories).
                         dp    |:Git!| diff (p for patch; use :Gw to apply)
                         dp    |:Git| add --intent-to-add (untracked files)
                         dv    |:Gvdiff|
+                        dt    |:Gtdiff|
+                        dts    |:Gtsdiff|
+                        dtv    |:Gtvdiff|
                         O     |:Gtabedit|
                         o     |:Gsplit|
                         p     |:Git| add --patch
@@ -156,6 +159,15 @@ that are part of Git repositories).
 
                                                 *fugitive-:Gvdiff*
 :Gvdiff [revision]      Identical to |:Gdiff|.  For symmetry with |:Gsdiff|.
+
+                                                *fugitive-:Gtdiff*
+:Gtdiff [revision]      Like |:Gdiff|, but open a new tab.
+
+                                                *fugitive-:Gtsdiff*
+:Gtsdiff [revision]     Like |:Gtdiff|, but split horizontally.
+
+                                                *fugitive-:Gtvdiff*
+:Gtvdiff [revision]     Identical to |:Gtdiff|. For symmetry with |:Gtsdiff|.
 
                                                 *fugitive-:Gmove*
 :Gmove {destination}    Wrapper around git-mv that renames the buffer
