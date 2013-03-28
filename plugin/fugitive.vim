@@ -1171,7 +1171,7 @@ function! s:Edit(cmd,bang,...) abort
   if a:cmd ==# 'read'
     return 'silent %delete_|read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
   else
-    return a:cmd.' '.s:fnameescape(file)
+    return 'try|'.a:cmd.' '.s:fnameescape(file).'|catch /^Vim\%((\a\+)\)\=:E21/|echo ""|endtry'
   endif
 endfunction
 
