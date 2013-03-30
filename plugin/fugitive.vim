@@ -801,6 +801,9 @@ function! s:StageDiffEdit() abort
 endfunction
 
 function! s:StageToggle(lnum1,lnum2) abort
+  if a:lnum1 == 1 && a:lnum2 == 1
+    return 'Gedit /.git|call search("^index$", "wc")'
+  endif
   try
     let output = ''
     for lnum in range(a:lnum1,a:lnum2)
