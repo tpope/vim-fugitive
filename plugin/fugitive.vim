@@ -1373,17 +1373,22 @@ function! s:diff_window_count()
   return c
 endfunction
 
+function! s:diff_restore()
+  let restore = 'setlocal nodiff noscrollbind'
+        \ . ' scrollopt=' . &l:scrollopt
+        \ . (&l:wrap ? ' wrap' : ' nowrap')
+        \ . ' foldmethod=' . &l:foldmethod
+        \ . ' foldcolumn=' . &l:foldcolumn
+        \ . ' foldlevel=' . &l:foldlevel
+  if has('cursorbind')
+    let restore .= (&l:cursorbind ? ' ' : ' no') . 'cursorbind'
+  endif
+  return restore
+endfunction
+
 function! s:diffthis()
   if !&diff
-    let w:fugitive_diff_restore = 'setlocal nodiff noscrollbind'
-    let w:fugitive_diff_restore .= ' scrollopt=' . &l:scrollopt
-    let w:fugitive_diff_restore .= &l:wrap ? ' wrap' : ' nowrap'
-    let w:fugitive_diff_restore .= ' foldmethod=' . &l:foldmethod
-    let w:fugitive_diff_restore .= ' foldcolumn=' . &l:foldcolumn
-    let w:fugitive_diff_restore .= ' foldlevel=' . &l:foldlevel
-    if has('cursorbind')
-      let w:fugitive_diff_restore .= (&l:cursorbind ? ' ' : ' no') . 'cursorbind'
-    endif
+    let w:fugitive_diff_restore = s:diff_restore()
     diffthis
   endif
 endfunction
@@ -1434,16 +1439,16 @@ endfunction
 call s:add_methods('buffer',['compare_age'])
 
 function! s:Diff(bang,...)
-  let split = a:bang ? 'split' : 'vsplit'
+  let vert = a:bang ? '' : 'vertical '
   if exists(':DiffGitCached')
     return 'DiffGitCached'
   elseif (!a:0 || a:1 == ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().path()) !=# ''
     let nr = bufnr('')
-    execute 'leftabove '.split.' `=fugitive#buffer().repo().translate(s:buffer().expand('':2''))`'
+    execute 'leftabove '.vert.'split `=fugitive#buffer().repo().translate(s:buffer().expand('':2''))`'
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     call s:diffthis()
     wincmd p
-    execute 'rightbelow '.split.' `=fugitive#buffer().repo().translate(s:buffer().expand('':3''))`'
+    execute 'rightbelow '.vert.'split `=fugitive#buffer().repo().translate(s:buffer().expand('':3''))`'
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     call s:diffthis()
     wincmd p
@@ -1476,9 +1481,9 @@ function! s:Diff(bang,...)
     let spec = s:repo().translate(file)
     let commit = matchstr(spec,'\C[^:/]//\zs\x\+')
     if s:buffer().compare_age(commit) < 0
-      execute 'rightbelow '.split.' '.s:fnameescape(spec)
+      execute 'rightbelow '.vert.'split '.s:fnameescape(spec)
     else
-      execute 'leftabove '.split.' '.s:fnameescape(spec)
+      execute 'leftabove '.vert.'split '.s:fnameescape(spec)
     endif
     call s:diffthis()
     wincmd p
