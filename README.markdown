@@ -1,5 +1,4 @@
-fugitive.vim
-============
+# fugitive.vim
 
 I'm not going to lie to you; fugitive.vim may very well be the best
 Git wrapper of all time.  Check out these features:
@@ -46,8 +45,7 @@ with the current branch in (surprise!) your statusline.
 Last but not least, there's `:Git` for running any arbitrary command,
 and `Git!` to open the output of a command in a temp file.
 
-Screencasts
------------
+## Screencasts
 
 * [A complement to command line git](http://vimcasts.org/e/31)
 * [Working with the git index](http://vimcasts.org/e/32)
@@ -55,8 +53,7 @@ Screencasts
 * [Browsing the git object database](http://vimcasts.org/e/34)
 * [Exploring the history of a git repository](http://vimcasts.org/e/35)
 
-Installation
-------------
+## Installation
 
 If you don't have a preferred installation method, I recommend
 installing [pathogen.vim](https://github.com/tpope/vim-pathogen), and
@@ -72,8 +69,7 @@ If your Vim version is below 7.2, I recommend also installing
 [vim-git](https://github.com/tpope/vim-git) for syntax highlighting and
 other Git niceties.
 
-FAQ
----
+## FAQ
 
 > I installed the plugin and started Vim.  Why don't any of the commands
 > exist?
@@ -109,8 +105,7 @@ to open after any grep invocation:
 
     autocmd QuickFixCmdPost *grep* cwindow
 
-Contributing
-------------
+## Contributing
 
 Before reporting a bug, you should try stripping down your Vim
 configuration and removing other plugins.  The sad nature of VimScript
@@ -133,8 +128,7 @@ it a symptom of mental illness.  On the flip side, some ideas I'll
 reject no matter how good the implementation is.  "Send a patch" is an
 edge case answer in my book.
 
-Self-Promotion
---------------
+## Self-Promotion
 
 Like fugitive.vim? Follow the repository on
 [GitHub](https://github.com/tpope/vim-fugitive) and vote for it on
@@ -143,8 +137,7 @@ you're feeling especially charitable, follow [tpope](http://tpo.pe/) on
 [Twitter](http://twitter.com/tpope) and
 [GitHub](https://github.com/tpope).
 
-License
--------
+## License
 
 Copyright (c) Tim Pope.  Distributed under the same terms as Vim itself.
 See `:help license`.
