@@ -15,9 +15,9 @@ Bring up the output of `git status` with `:Gstatus`.  Press `-` to
 mofo.  And guess what `:Gcommit` does!
 
 `:Gblame` brings up an interactive vertical split with `git blame`
-output.  Press enter on a line to reblame the file as it stood in that
-commit, or `o` to open that commit in a split.  When you're done, use
-`:Gedit` in the historic buffer to go back to the work tree version.
+output.  Press enter on a line to edit the commit where the line
+changed, or `o` to open it in a split.  When you're done, use `:Gedit`
+in the historic buffer to go back to the work tree version.
 
 `:Gmove` does a `git mv` on a file and simultaneously renames the
 buffer.  `:Gremove` does a `git rm` on a file and simultaneously deletes
