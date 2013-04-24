@@ -2483,6 +2483,18 @@ function! s:GF(mode) abort
 endfunction
 
 " }}}1
+" Interactive Rebase {{{1
+augroup interactive-git-rebase
+  au!
+  au FileType gitrebase nnoremap <buffer> <silent> <c-p><c-p> :s/^#\?\w\+/pick/<cr>:noh<cr>
+  au FileType gitrebase nnoremap <buffer> <silent> <c-r><c-r> :s/^#\?\w\+/reword/<cr>:noh<cr>
+  au FileType gitrebase nnoremap <buffer> <silent> <c-e><c-e> :s/^#\?\w\+/edit/<cr>:noh<cr>
+  au FileType gitrebase nnoremap <buffer> <silent> <c-s><c-s> :s/^#\?\w\+/squash/<cr>:noh<cr>
+  au FileType gitrebase nnoremap <buffer> <silent> <c-f><c-f> :s/^#\?\w\+/fixup/<cr>:noh<cr>
+  au FileType gitrebase nnoremap <buffer> <silent> <c-x><c-x> :s/^#\?\w\+/exec/<cr>:noh<cr>
+  au FileType gitrebase nnoremap <buffer> <silent> <c-k><c-k> :s/^#\?/#/<cr>:noh<cr>
+augroup END
+" }}}1
 " Statusline {{{1
 
 function! s:repo_head_ref() dict abort
