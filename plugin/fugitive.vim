@@ -2537,6 +2537,10 @@ function! s:GF(mode) abort
 
       elseif line('$') == 1 && getline('.') =~ '^\x\{40\}$'
         let ref = getline('.')
+
+      elseif expand('<cword>') =~# '^\x\{7,40\}\>'
+        return s:Edit(a:mode,0,expand('<cword>'))
+
       else
         let ref = ''
       endif
