@@ -1035,17 +1035,23 @@ function! s:Grep(cmd,bang,arg) abort
   let grepformat = &grepformat
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
   let dir = getcwd()
+  " as arg is passed as a q-args, it is equal to "" if empty
+  if ( a:arg == "" )
+      let l:pattern=expand("<cword>")
+  else
+      let l:pattern=a:arg
+  endif
   try
     execute cd.'`=s:repo().tree()`'
     let &grepprg = s:repo().git_command('--no-pager', 'grep', '-n')
     let &grepformat = '%f:%l:%m'
-    exe a:cmd.'! '.escape(matchstr(a:arg,'\v\C.{-}%($|[''" ]\@=\|)@='),'|')
+    exe a:cmd.'! '.escape(matchstr(l:pattern,'\v\C.{-}%($|[''" ]\@=\|)@='),'|')
     let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
     for entry in list
       if bufname(entry.bufnr) =~ ':'
         let entry.filename = s:repo().translate(bufname(entry.bufnr))
         unlet! entry.bufnr
-      elseif a:arg =~# '\%(^\| \)--cached\>'
+      elseif l:pattern =~# '\%(^\| \)--cached\>'
         let entry.filename = s:repo().translate(':0:'.bufname(entry.bufnr))
         unlet! entry.bufnr
       endif
@@ -1056,9 +1062,9 @@ function! s:Grep(cmd,bang,arg) abort
       call setqflist(list, 'r')
     endif
     if !a:bang && !empty(list)
-      return (a:cmd =~# '^l' ? 'l' : 'c').'first'.matchstr(a:arg,'\v\C[''" ]\zs\|.*')
+      return (a:cmd =~# '^l' ? 'l' : 'c').'first'.matchstr(l:pattern,'\v\C[''" ]\zs\|.*')
     else
-      return matchstr(a:arg,'\v\C[''" ]\|\zs.*')
+      return matchstr(l:pattern,'\v\C[''" ]\|\zs.*')
     endif
   finally
     let &grepprg = grepprg
