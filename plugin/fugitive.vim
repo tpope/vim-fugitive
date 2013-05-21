@@ -761,9 +761,9 @@ endfunction
 function! s:StageDiff(diff) abort
   let [filename, section] = s:stage_info(line('.'))
   if filename ==# '' && section ==# 'staged'
-    return 'Git! diff --cached'
+    return 'Git! diff --no-ext-diff --cached'
   elseif filename ==# ''
-    return 'Git! diff'
+    return 'Git! diff --no-ext-diff'
   elseif filename =~# ' -> '
     let [old, new] = split(filename,' -> ')
     execute 'Gedit '.s:fnameescape(':0:'.new)
@@ -781,7 +781,7 @@ function! s:StageDiffEdit() abort
   let [filename, section] = s:stage_info(line('.'))
   let arg = (filename ==# '' ? '.' : filename)
   if section ==# 'staged'
-    return 'Git! diff --cached '.s:shellesc(arg)
+    return 'Git! diff --no-ext-diff --cached '.s:shellesc(arg)
   elseif section ==# 'untracked'
     let repo = s:repo()
     call repo.git_chomp_in_tree('add','--intent-to-add',arg)
@@ -796,7 +796,7 @@ function! s:StageDiffEdit() abort
     endif
     return ''
   else
-    return 'Git! diff '.s:shellesc(arg)
+    return 'Git! diff --no-ext-diff '.s:shellesc(arg)
   endif
 endfunction
 
