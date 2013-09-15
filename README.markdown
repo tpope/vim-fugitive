@@ -82,6 +82,16 @@ directory.  Edit a file from the repository.
 Fugitive cares about the current file, not the current working
 directory.  Edit a file from the repository.
 
+> Why doesn't the syntax highlighting work correctly?
+
+If you run git with a language other than english, the syntax highlighting
+rules will not match. You can use the following snippet in your shells
+configuration file to fix this.
+
+    export LANGUAGE="en"
+    export LANG="en_US.UTF-8"
+    export LC_ALL="en_US.UTF-8"
+
 > Why is `:Gbrowse` not using the right browser?
 
 `:Gbrowse` delegates to `git web--browse`, which is less than perfect
