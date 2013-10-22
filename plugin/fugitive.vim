@@ -1530,7 +1530,7 @@ function! s:Move(force,destination)
       return 'keepalt saveas! '.s:fnameescape(destination)
     endif
   else
-    return 'file '.s:fnameescape(s:repo().translate(':0:'.destination)
+    return 'file '.s:fnameescape(s:repo().translate(':0:'.destination))
   endif
 endfunction
 
