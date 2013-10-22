@@ -69,6 +69,10 @@ If your Vim version is below 7.2, I recommend also installing
 [vim-git](https://github.com/tpope/vim-git) for syntax highlighting and
 other Git niceties.
 
+If your Git version is 1.8.5 or above you might need to run this:
+`git config --global status.displaycommentprefix true`
+(otherwise :Gstatus command will not work as expected).
+
 ## FAQ
 
 > I installed the plugin and started Vim.  Why don't any of the commands
