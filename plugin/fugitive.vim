@@ -9,7 +9,7 @@ endif
 let g:loaded_fugitive = 1
 
 if !exists('g:fugitive_git_executable')
-  let g:fugitive_git_executable = 'git'
+  let g:fugitive_git_executable = 'git -c status.displaycommentprefix=true'
 endif
 
 " Utility {{{1
