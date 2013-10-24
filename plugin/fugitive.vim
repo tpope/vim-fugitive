@@ -64,6 +64,15 @@ function! s:shellslash(path)
   endif
 endfunction
 
+let s:git_versions = {}
+
+function! fugitive#git_version(...) abort
+  if !has_key(s:git_versions, g:fugitive_git_executable)
+    let s:git_versions[g:fugitive_git_executable] = matchstr(system(g:fugitive_git_executable.' --version'), "\\S\\+\n")
+  endif
+  return s:git_versions[g:fugitive_git_executable]
+endfunction
+
 function! s:recall()
   let rev = s:sub(s:buffer().rev(), '^/', '')
   if rev ==# ':'
