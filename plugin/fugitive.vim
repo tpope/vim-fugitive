@@ -2068,9 +2068,17 @@ function! s:BufReadIndex()
     else
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
       let dir = getcwd()
+      if fugitive#git_version() =~# '^0\|1\.[1-7]\.'
+        let cmd = s:repo().git_command('status')
+      else
+        let cmd = s:repo().git_command(
+              \ '-c', 'status.displayCommentPrefix=true',
+              \ '-c', 'color.status=false',
+              \ 'status')
+      endif
       try
         execute cd.'`=s:repo().tree()`'
-        call s:ReplaceCmd(s:repo().git_command('status'),index)
+        call s:ReplaceCmd(cmd, index)
       finally
         execute cd.'`=dir`'
       endtry
