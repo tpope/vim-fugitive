@@ -1917,7 +1917,7 @@ endfunction
 function! s:bitbucket_url(repo,url,rev,commit,path,type,line1,line2) abort
   let path = a:path
   let domain_pattern = 'bitbucket\.org'
-  let domains = exists('g:fugitive_bigbucket_domains') ? g:fugitive_bitbucket_domains : []
+  let domains = exists('g:fugitive_bitbucket_domains') ? g:fugitive_bitbucket_domains : []
   for domain in domains
     let domain_pattern .= '\|' . escape(split(domain, '://')[-1], '.')
   endfor
