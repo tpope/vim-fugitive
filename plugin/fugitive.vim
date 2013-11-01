@@ -1956,19 +1956,20 @@ function! s:bitbucket_url(repo,url,rev,commit,path,type,line1,line2) abort
     let commit = a:commit
   endif
   if a:type == 'tree'
-    let url = s:sub(root . '/tree/' . commit . '/' . path,'/$','')
+    let url = s:sub(root . '/src/' . commit . '/' . path,'/$','')
   elseif a:type == 'blob'
     let url = root . '/src/' . commit . '/' . path  "works
     if a:line2 > 0 && a:line1 == a:line2
-      let url .= '#L' . a:line1
+      let url .= '#cl-' . a:line1
     elseif a:line2 > 0
-      let url .= '#L' . a:line1 . '-' . a:line2
+      " There doesn't seem to be support for multi-line linking; just link to first line.
+      let url .= '#cl-' . a:line1
     endif
   elseif a:type == 'tag'
     let commit = matchstr(getline(3),'^tag \zs.*')
-    let url = root . '/tree/' . commit
+    let url = root . '/src/' . commit
   else
-    let url = root . '/commit/' . commit
+    let url = root . '/commits/' . commit
   endif
   return url
 endfunction
