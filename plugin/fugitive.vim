@@ -1913,7 +1913,6 @@ function! s:Browse(bang,line1,count,...) abort
   endtry
 endfunction
 
-"work in progress
 function! s:bitbucket_url(repo,url,rev,commit,path,type,line1,line2) abort
   let path = a:path
   let domain_pattern = 'bitbucket\.org'
@@ -1940,9 +1939,9 @@ function! s:bitbucket_url(repo,url,rev,commit,path,type,line1,line2) abort
   elseif path =~# '^\.git/refs/.'
     return root . '/commits/' . matchstr(path,'[^/]\+$')
   elseif path =~# '.git/\%(config$\|hooks\>\)'
-    return root . '/admin' "works
+    return root . '/admin'
   elseif path =~# '^\.git\>'
-    return root "works
+    return root
   endif
   if a:rev =~# '^[[:alnum:]._-]\+:'
     let commit = matchstr(a:rev,'^[^:]*')
@@ -1958,7 +1957,7 @@ function! s:bitbucket_url(repo,url,rev,commit,path,type,line1,line2) abort
   if a:type == 'tree'
     let url = s:sub(root . '/src/' . commit . '/' . path,'/$','')
   elseif a:type == 'blob'
-    let url = root . '/src/' . commit . '/' . path  "works
+    let url = root . '/src/' . commit . '/' . path
     if a:line2 > 0 && a:line1 == a:line2
       let url .= '#cl-' . a:line1
     elseif a:line2 > 0
