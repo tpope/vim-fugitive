@@ -1889,12 +1889,17 @@ function! s:Browse(bang,line1,count,...) abort
     endif
 
     let url = s:github_url(s:repo(),raw,rev,commit,path,type,a:line1,a:count)
+
+    if url == ''
+      let url = s:bitbucket_url(s:repo(),raw,rev,commit,path,type,a:line1,a:count)
+    endif
+
     if url == ''
       let url = s:instaweb_url(s:repo(),rev,commit,path,type,a:count > 0 ? a:line1 : 0)
     endif
 
     if url == ''
-      call s:throw("Instaweb failed to start and '".remote."' is not a GitHub remote")
+      call s:throw("Instaweb failed to start and '".remote."' is not a GitHub or Bitbucket remote")
     endif
 
     if a:bang
@@ -1907,6 +1912,67 @@ function! s:Browse(bang,line1,count,...) abort
     return 'echoerr v:errmsg'
   endtry
 endfunction
+
+function! s:bitbucket_url(repo,url,rev,commit,path,type,line1,line2) abort
+  let path = a:path
+  let domain_pattern = 'bitbucket\.org'
+  let domains = exists('g:fugitive_bitbucket_domains') ? g:fugitive_bitbucket_domains : []
+  for domain in domains
+    let domain_pattern .= '\|' . escape(split(domain, '://')[-1], '.')
+  endfor
+  let repo = matchstr(a:url,'^\%(https\=://\|git://\|git@\)\zs\('.domain_pattern.'\)[/:].\{-\}\ze\%(\.git\)\=$')
+  if repo ==# ''
+    return ''
+  endif
+  if index(domains, 'http://' . matchstr(repo, '^[^:/]*')) >= 0
+    let root = 'http://' . s:sub(repo,':','/')
+  else
+    let root = 'https://' . s:sub(repo,':','/')
+  endif
+  if path =~# '^\.git/refs/heads/'
+    let branch = a:repo.git_chomp('config','branch.'.path[16:-1].'.merge')[11:-1]
+    if branch ==# ''
+      return root . '/commits/' . path[16:-1]
+    else
+      return root . '/commits/' . branch
+    endif
+  elseif path =~# '^\.git/refs/.'
+    return root . '/commits/' . matchstr(path,'[^/]\+$')
+  elseif path =~# '.git/\%(config$\|hooks\>\)'
+    return root . '/admin'
+  elseif path =~# '^\.git\>'
+    return root
+  endif
+  if a:rev =~# '^[[:alnum:]._-]\+:'
+    let commit = matchstr(a:rev,'^[^:]*')
+  elseif a:commit =~# '^\d\=$'
+    let local = matchstr(a:repo.head_ref(),'\<refs/heads/\zs.*')
+    let commit = a:repo.git_chomp('config','branch.'.local.'.merge')[11:-1]
+    if commit ==# ''
+      let commit = local
+    endif
+  else
+    let commit = a:commit
+  endif
+  if a:type == 'tree'
+    let url = s:sub(root . '/src/' . commit . '/' . path,'/$','')
+  elseif a:type == 'blob'
+    let url = root . '/src/' . commit . '/' . path
+    if a:line2 > 0 && a:line1 == a:line2
+      let url .= '#cl-' . a:line1
+    elseif a:line2 > 0
+      " There doesn't seem to be support for multi-line linking; just link to first line.
+      let url .= '#cl-' . a:line1
+    endif
+  elseif a:type == 'tag'
+    let commit = matchstr(getline(3),'^tag \zs.*')
+    let url = root . '/src/' . commit
+  else
+    let url = root . '/commits/' . commit
+  endif
+  return url
+endfunction
+
 
 function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
   let path = a:path
