@@ -12,6 +12,10 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
+if !exists('g:fugitive_ctrlp')
+  let g:fugitive_ctrlp = 1
+endif
+
 " Utility {{{1
 
 function! s:function(name) abort
@@ -745,7 +749,7 @@ function! s:StageNext(count)
 endfunction
 
 function! s:StagePrevious(count)
-  if line('.') == 1 && exists(':CtrlP')
+  if g:fugitive_ctrlp && line('.') == 1 && exists(':CtrlP')
     return 'CtrlP '.fnameescape(s:repo().tree())
   else
     for i in range(a:count)
@@ -2312,7 +2316,7 @@ augroup END
 function! s:JumpInit() abort
   nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
   if !&modifiable
-    if exists(':CtrlP')
+    if g:fugitive_ctrlp && exists(':CtrlP')
       nnoremap <buffer> <silent> <C-P> :<C-U>exe 'CtrlP '.fnameescape(<SID>repo().tree())<CR>
     endif
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
