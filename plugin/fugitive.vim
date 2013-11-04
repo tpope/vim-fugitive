@@ -170,12 +170,14 @@ function! fugitive#detect(path)
     if expand('%:p') =~# '//'
       call buffer.setvar('&path', s:sub(buffer.getvar('&path'), '^\.%(,|$)', ''))
     endif
-    if stridx(buffer.getvar('&tags'), escape(b:git_dir.'/tags', ', ')) == -1
-      call buffer.setvar('&tags', escape(b:git_dir.'/tags', ', ').','.buffer.getvar('&tags'))
-      if &filetype !=# ''
-        call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
-      endif
-    endif
+    if !exists("g:fugitive_git_tags") || g:fugitive_git_tags
+     if stridx(buffer.getvar('&tags'), escape(b:git_dir.'/tags', ', ')) == -1
+       call buffer.setvar('&tags', escape(b:git_dir.'/tags', ', ').','.buffer.getvar('&tags'))
+       if &filetype !=# ''
+         call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
+       endif
+     endif
+   endif
   endif
 endfunction
 
