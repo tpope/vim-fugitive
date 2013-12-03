@@ -169,7 +169,7 @@ function! fugitive#detect(path)
     endif
   endif
   if exists('b:git_dir')
-    silent doautocmd User Fugitive
+    silent doautocmd User FugitiveBoot
     cnoremap <buffer> <expr> <C-R><C-G> fnameescape(<SID>recall())
     nnoremap <buffer> <silent> y<C-G> :call setreg(v:register, <SID>recall())<CR>
     let buffer = fugitive#buffer()
@@ -182,6 +182,7 @@ function! fugitive#detect(path)
         call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
       endif
     endif
+    silent doautocmd User Fugitive
   endif
 endfunction
 
