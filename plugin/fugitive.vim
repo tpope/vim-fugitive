@@ -787,7 +787,9 @@ function! s:StageDiff(diff) abort
 endfunction
 
 function! s:StageDiffTab(diff) abort
-  execute 'tabedit %'
+  let curfile = expand('%:p')
+  execute 'tabnew'
+  execute 'edit' curfile
   return s:StageDiff(a:diff)
 endfunction
 
