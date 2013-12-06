@@ -786,6 +786,11 @@ function! s:StageDiff(diff) abort
   endif
 endfunction
 
+function! s:StageDiffTab(diff) abort
+  execute 'tabedit %'
+  return s:StageDiff(a:diff)
+endfunction
+
 function! s:StageDiffEdit() abort
   let [filename, section] = s:stage_info(line('.'))
   let arg = (filename ==# '' ? '.' : filename)
@@ -1370,6 +1375,7 @@ endfunction
 call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff(<bang>0,<f-args>)")
 call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff(0,<f-args>)")
 call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff(1,<f-args>)")
+call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gtdiff :tabnew %|execute s:Diff(0,<f-args>)")
 
 augroup fugitive_diff
   autocmd!
@@ -2110,6 +2116,7 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> ds :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
     nnoremap <buffer> <silent> dp :<C-U>execute <SID>StageDiffEdit()<CR>
     nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
+    nnoremap <buffer> <silent> dt :<C-U>execute <SID>StageDiffTab('Gvdiff')<CR>
     nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
     nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
