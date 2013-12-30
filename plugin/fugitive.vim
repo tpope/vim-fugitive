@@ -1396,6 +1396,7 @@ function! s:diff_restore()
   let restore = 'setlocal nodiff noscrollbind'
         \ . ' scrollopt=' . &l:scrollopt
         \ . (&l:wrap ? ' wrap' : ' nowrap')
+        \ . ' foldlevel=999'
         \ . ' foldmethod=' . &l:foldmethod
         \ . ' foldcolumn=' . &l:foldcolumn
         \ . ' foldlevel=' . &l:foldlevel
