@@ -1502,11 +1502,14 @@ function! s:Diff(bang,...)
     let commit = matchstr(spec,'\C[^:/]//\zs\x\+')
     let restore = s:diff_restore()
     let w:fugitive_diff_restore = restore
+    let curpos = getpos('.')
     if s:buffer().compare_age(commit) < 0
       execute 'rightbelow '.vert.'diffsplit '.s:fnameescape(spec)
     else
       execute 'leftabove '.vert.'diffsplit '.s:fnameescape(spec)
     endif
+    wincmd p
+    call setpos('.', curpos)
     let w:fugitive_diff_restore = restore
     return ''
   catch /^fugitive:/
