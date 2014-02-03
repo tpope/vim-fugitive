@@ -1389,8 +1389,8 @@ call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execut
 
 augroup fugitive_diff
   autocmd!
-  autocmd BufWinLeave * if s:diff_window_count() == 2 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diffoff_all(getbufvar(+expand('<abuf>'), 'git_dir')) | endif
-  autocmd BufWinEnter * if s:diff_window_count() == 1 && &diff && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diffoff() | endif
+  autocmd BufWinLeave * if &diff && s:diff_window_count() == 2 && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diffoff_all(getbufvar(+expand('<abuf>'), 'git_dir')) | endif
+  autocmd BufWinEnter * if &diff && s:diff_window_count() == 1 && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diffoff() | endif
 augroup END
 
 function! s:diff_window_count()
