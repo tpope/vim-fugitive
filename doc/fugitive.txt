@@ -192,10 +192,11 @@ that are part of Git repositories).
 :[range]Gblame [flags]  Run git-blame on the given range.
 
                                                 *fugitive-:Gbrowse*
-:[range]Gbrowse         If the remote for the current branch is on GitHub,
-                        open the current file, blob, tree, commit, or tag
-                        (with git-web--browse) on GitHub.  Otherwise, open the
-                        current file, blob, tree, commit, or tag in
+:[range]Gbrowse         If the remote for the current branch is on a hosted
+                        service (currently supported: GitHub, Bitbucket), open
+                        the current file, blob, tree, commit, or tag (with
+                        git-web--browse) on the hosted service.  Otherwise,
+                        open the current file, blob, tree, commit, or tag in
                         git-instaweb (if you have issues, verify you can run
                         "git instaweb" from a terminal).  If a range is given,
                         it is appropriately appended to the URL as an anchor.
