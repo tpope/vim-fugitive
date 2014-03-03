@@ -139,6 +139,9 @@ function! fugitive#extract_git_dir(path) abort
     if index(split($GIT_CEILING_DIRECTORIES, ':'), root) >= 0
       break
     endif
+    if root ==# $GIT_WORK_TREE && fugitive#is_git_dir($GIT_DIR)
+      return $GIT_DIR
+    endif
     let dir = s:sub(root, '[\/]$', '') . '/.git'
     let type = getftype(dir)
     if type ==# 'dir' && fugitive#is_git_dir(dir)
