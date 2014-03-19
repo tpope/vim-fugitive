@@ -2164,6 +2164,7 @@ function! s:BufReadIndexFile()
       if &bufhidden ==# ''
         setlocal bufhidden=delete
       endif
+      setlocal noswapfile
     endtry
     return ''
   catch /^fugitive: rev-parse/
@@ -2266,7 +2267,7 @@ function! s:BufReadObject()
       endif
     finally
       call setpos('.',pos)
-      setlocal ro noma nomod
+      setlocal ro noma nomod noswapfile
       if &bufhidden ==# ''
         setlocal bufhidden=delete
       endif
