@@ -959,7 +959,7 @@ function! s:Commit(args) abort
       let command .= s:repo().git_command('commit').' '.a:args
       if &shell =~# 'csh'
         noautocmd silent execute '!('.command.' > '.outfile.') >& '.errorfile
-      elseif a:args =~# '\%(^\| \)--interactive\>'
+      elseif a:args =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>'
         noautocmd execute '!'.command.' 2> '.errorfile
       else
         noautocmd silent execute '!'.command.' > '.outfile.' 2> '.errorfile
