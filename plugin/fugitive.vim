@@ -458,15 +458,15 @@ function! fugitive#buffer(...) abort
 endfunction
 
 function! s:buffer_getvar(var) dict abort
-  return getbufvar(self['#'],a:var)
+  return getbufvar(bufname(self['#']), a:var)
 endfunction
 
 function! s:buffer_setvar(var,value) dict abort
-  return setbufvar(self['#'],a:var,a:value)
+  return setbufvar(bufname(self['#']), a:var, a:value)
 endfunction
 
 function! s:buffer_getline(lnum) dict abort
-  return getbufline(self['#'],a:lnum)[0]
+  return getbufline(bufname(self['#']), a:lnum)[0]
 endfunction
 
 function! s:buffer_repo() dict abort
