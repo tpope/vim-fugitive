@@ -49,14 +49,14 @@ function! s:throw(string) abort
   throw v:errmsg
 endfunction
 
-function! s:warn(str)
+function! s:warn(str) abort
   echohl WarningMsg
   echomsg a:str
   echohl None
   let v:warningmsg = a:str
 endfunction
 
-function! s:shellslash(path)
+function! s:shellslash(path) abort
   if exists('+shellslash') && !&shellslash
     return s:gsub(a:path,'\\','/')
   else
@@ -73,7 +73,7 @@ function! fugitive#git_version(...) abort
   return s:git_versions[g:fugitive_git_executable]
 endfunction
 
-function! s:recall()
+function! s:recall() abort
   let rev = s:sub(s:buffer().rev(), '^/', '')
   if rev ==# ':'
     return matchstr(getline('.'),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
@@ -102,7 +102,7 @@ function! s:command(definition) abort
   let s:commands += [a:definition]
 endfunction
 
-function! s:define_commands()
+function! s:define_commands() abort
   for command in s:commands
     exe 'command! -buffer '.command
   endfor
@@ -164,7 +164,7 @@ function! fugitive#extract_git_dir(path) abort
   return ''
 endfunction
 
-function! fugitive#detect(path)
+function! fugitive#detect(path) abort
   if exists('b:git_dir') && (b:git_dir ==# '' || b:git_dir =~# '/$')
     unlet b:git_dir
   endif
@@ -221,7 +221,7 @@ function! s:repo(...) abort
   call s:throw('not a git repository: '.expand('%:p'))
 endfunction
 
-function! fugitive#repo(...)
+function! fugitive#repo(...) abort
   return call('s:repo', a:000)
 endfunction
 
@@ -752,14 +752,14 @@ function! s:stage_info(lnum) abort
   endif
 endfunction
 
-function! s:StageNext(count)
+function! s:StageNext(count) abort
   for i in range(a:count)
     call search('^#\t.*','W')
   endfor
   return '.'
 endfunction
 
-function! s:StagePrevious(count)
+function! s:StagePrevious(count) abort
   if line('.') == 1 && exists(':CtrlP')
     return 'CtrlP '.fnameescape(s:repo().tree())
   else
@@ -770,7 +770,7 @@ function! s:StagePrevious(count)
   endif
 endfunction
 
-function! s:StageReloadSeek(target,lnum1,lnum2)
+function! s:StageReloadSeek(target,lnum1,lnum2) abort
   let jump = a:target
   let f = matchstr(getline(a:lnum1-1),'^#\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
   if f !=# '' | let jump = f | endif
@@ -1028,7 +1028,7 @@ function! s:CommitComplete(A,L,P) abort
   endif
 endfunction
 
-function! s:FinishCommit()
+function! s:FinishCommit() abort
   let args = getbufvar(+expand('<abuf>'),'fugitive_commit_arguments')
   if !empty(args)
     call setbufvar(+expand('<abuf>'),'fugitive_commit_arguments','')
@@ -1091,7 +1091,7 @@ function! s:Grep(cmd,bang,arg) abort
   endtry
 endfunction
 
-function! s:Log(cmd,...)
+function! s:Log(cmd,...) abort
   let path = s:buffer().path('/')
   if path =~# '^/\.git\%(/\|$\)' || index(a:000,'--') != -1
     let path = ''
@@ -1393,7 +1393,7 @@ augroup fugitive_diff
   autocmd BufWinEnter * if &diff && s:diff_window_count() == 1 && getbufvar(+expand('<abuf>'), 'git_dir') !=# '' | call s:diffoff() | endif
 augroup END
 
-function! s:diff_window_count()
+function! s:diff_window_count() abort
   let c = 0
   for nr in range(1,winnr('$'))
     let c += getwinvar(nr,'&diff')
@@ -1401,7 +1401,7 @@ function! s:diff_window_count()
   return c
 endfunction
 
-function! s:diff_restore()
+function! s:diff_restore() abort
   let restore = 'setlocal nodiff noscrollbind'
         \ . ' scrollopt=' . &l:scrollopt
         \ . (&l:wrap ? ' wrap' : ' nowrap')
@@ -1415,14 +1415,14 @@ function! s:diff_restore()
   return restore
 endfunction
 
-function! s:diffthis()
+function! s:diffthis() abort
   if !&diff
     let w:fugitive_diff_restore = s:diff_restore()
     diffthis
   endif
 endfunction
 
-function! s:diffoff()
+function! s:diffoff() abort
   if exists('w:fugitive_diff_restore')
     execute w:fugitive_diff_restore
     unlet w:fugitive_diff_restore
@@ -1431,7 +1431,7 @@ function! s:diffoff()
   endif
 endfunction
 
-function! s:diffoff_all(dir)
+function! s:diffoff_all(dir) abort
   for nr in range(1,winnr('$'))
     if getwinvar(nr,'&diff')
       if nr != winnr()
@@ -1467,7 +1467,7 @@ endfunction
 
 call s:add_methods('buffer',['compare_age'])
 
-function! s:Diff(bang,...)
+function! s:Diff(bang,...) abort
   let vert = a:bang ? '' : 'vertical '
   if exists(':DiffGitCached')
     return 'DiffGitCached'
@@ -1526,7 +1526,7 @@ endfunction
 " }}}1
 " Gmove, Gremove {{{1
 
-function! s:Move(force,destination)
+function! s:Move(force,destination) abort
   if a:destination =~# '^/'
     let destination = a:destination[1:-1]
   else
@@ -1560,7 +1560,7 @@ function! s:Move(force,destination)
   endif
 endfunction
 
-function! s:MoveComplete(A,L,P)
+function! s:MoveComplete(A,L,P) abort
   if a:A =~ '^/'
     return s:repo().superglob(a:A)
   else
@@ -1570,7 +1570,7 @@ function! s:MoveComplete(A,L,P)
   endif
 endfunction
 
-function! s:Remove(force)
+function! s:Remove(force) abort
   if s:buffer().commit() ==# ''
     let cmd = ['rm']
   elseif s:buffer().commit() ==# '0'
@@ -1611,7 +1611,7 @@ augroup fugitive_blame
   autocmd User Fugitive if s:buffer().type('file', 'blob') | exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,[<f-args>])" | endif
 augroup END
 
-function! s:linechars(pattern)
+function! s:linechars(pattern) abort
   let chars = strlen(s:gsub(matchstr(getline('.'), a:pattern), '.', '.'))
   if exists('*synconcealed') && &conceallevel > 1
     for col in range(1, chars)
@@ -2066,7 +2066,7 @@ function! s:ReplaceCmd(cmd,...) abort
   endtry
 endfunction
 
-function! s:BufReadIndex()
+function! s:BufReadIndex() abort
   if !exists('b:fugitive_display_format')
     let b:fugitive_display_format = filereadable(expand('%').'.lock')
   endif
@@ -2137,7 +2137,7 @@ function! s:BufReadIndex()
   endtry
 endfunction
 
-function! s:FileRead()
+function! s:FileRead() abort
   try
     let repo = s:repo(fugitive#extract_git_dir(expand('<amatch>')))
     let path = s:sub(s:sub(matchstr(expand('<amatch>'),'fugitive://.\{-\}//\zs.*'),'/',':'),'^\d:',':&')
@@ -2154,7 +2154,7 @@ function! s:FileRead()
   endtry
 endfunction
 
-function! s:BufReadIndexFile()
+function! s:BufReadIndexFile() abort
   try
     let b:fugitive_type = 'blob'
     let b:git_dir = s:repo().dir()
@@ -2175,7 +2175,7 @@ function! s:BufReadIndexFile()
   endtry
 endfunction
 
-function! s:BufWriteIndexFile()
+function! s:BufWriteIndexFile() abort
   let tmp = tempname()
   try
     let path = matchstr(expand('<amatch>'),'//\d/\zs.*')
@@ -2206,7 +2206,7 @@ function! s:BufWriteIndexFile()
   endtry
 endfunction
 
-function! s:BufReadObject()
+function! s:BufReadObject() abort
   try
     setlocal noro ma
     let b:git_dir = s:repo().dir()
@@ -2529,7 +2529,7 @@ endfunction
 
 call s:add_methods('repo',['head_ref'])
 
-function! fugitive#statusline(...)
+function! fugitive#statusline(...) abort
   if !exists('b:git_dir')
     return ''
   endif
@@ -2545,7 +2545,7 @@ function! fugitive#statusline(...)
   endif
 endfunction
 
-function! fugitive#head(...)
+function! fugitive#head(...) abort
   if !exists('b:git_dir')
     return ''
   endif
