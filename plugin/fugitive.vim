@@ -322,6 +322,8 @@ function! s:repo_head(...) dict abort
       " truncate hash to a:1 characters if we're in detached head mode
       let len = a:0 ? a:1 : 0
       let branch = len ? head[0:len-1] : ''
+    else
+      return ''
     endif
 
     return branch
@@ -2132,6 +2134,7 @@ function! s:BufReadIndex() abort
     xnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
     nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
     nnoremap <buffer> <silent> R :<C-U>edit<CR>
+    nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
@@ -2524,6 +2527,9 @@ endfunction
 " Statusline {{{1
 
 function! s:repo_head_ref() dict abort
+  if !filereadable(self.dir('HEAD'))
+    return ''
+  endif
   return readfile(self.dir('HEAD'))[0]
 endfunction
 

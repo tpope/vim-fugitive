@@ -34,6 +34,7 @@ that are part of Git repositories).
                         window.  The following maps, which work on the cursor
                         line file where sensible, are provided:
 
+                        <F1>  this help
                         <C-N> next file
                         <C-P> previous file
                         <CR>  |:Gedit|
