@@ -468,7 +468,7 @@ function! s:buffer_setvar(var,value) dict abort
 endfunction
 
 function! s:buffer_getline(lnum) dict abort
-  return getbufline(bufname(self['#']), a:lnum)[0]
+  return get(getbufline(bufname(self['#']), a:lnum), 0, '')
 endfunction
 
 function! s:buffer_repo() dict abort
