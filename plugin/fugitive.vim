@@ -1936,7 +1936,7 @@ function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
   for domain in domains
     let domain_pattern .= '\|' . escape(split(domain, '://')[-1], '.')
   endfor
-  let repo = matchstr(a:url,'^\%(https\=://\|git://\|git@\)\zs\('.domain_pattern.'\)[/:].\{-\}\ze\%(\.git\)\=$')
+  let repo = matchstr(a:url,'^\%(https\=://\|git://\|git@\)\=\zs\('.domain_pattern.'\)[/:].\{-\}\ze\%(\.git\)\=$')
   if repo ==# ''
     return ''
   endif
