@@ -198,6 +198,7 @@ augroup fugitive
   autocmd FileType           netrw call fugitive#detect(expand('%:p'))
   autocmd User NERDTreeInit,NERDTreeNewRoot call fugitive#detect(b:NERDTreeRoot.path.str())
   autocmd VimEnter * if expand('<amatch>')==''|call fugitive#detect(getcwd())|endif
+  autocmd CmdWinEnter * call fugitive#detect(expand('#:p'))
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
 
