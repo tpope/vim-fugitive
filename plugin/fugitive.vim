@@ -2269,6 +2269,7 @@ function! s:BufReadObject() abort
         endif
       elseif b:fugitive_type ==# 'blob'
         call s:ReplaceCmd(s:repo().git_command('cat-file',b:fugitive_type,hash))
+        setlocal nomodeline
       endif
     finally
       keepjumps call setpos('.',pos)
