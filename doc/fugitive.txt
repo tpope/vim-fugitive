@@ -88,6 +88,16 @@ that are part of Git repositories).
 :Gllog [args]           Like |:Glog|, but use the location list instead of the
                         quickfix list.
 
+                                                *fugitive-:Glsfiles*
+:Glsfiles [args]        Load the output of git-ls-files in the quickfix list.
+                        This does not currently work if the output lists
+                        something besides just the path, as is the case with
+                        -s.
+
+                                                *fugitive-:Gllsfiles*
+:Gllsfiles [args]       Like |:Glsfiles|, but use the location list instead of the
+                        quickfix list.
+
                                         *fugitive-:Gedit* *fugitive-:Ge*
 :Gedit [revision]       |:edit| a |fugitive-revision|.
 

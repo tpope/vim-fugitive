@@ -1056,6 +1056,8 @@ call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execut
 call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Glog :execute s:Log('grep<bang>',<f-args>)")
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gllog :execute s:Log('lgrep<bang>',<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Glsfiles :execute s:LsFiles('grep<bang>',<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gllsfiles :execute s:LsFiles('lgrep<bang>',<f-args>)")
 
 function! s:Grep(cmd,bang,arg) abort
   let grepprg = &grepprg
@@ -1128,6 +1130,24 @@ function! s:Log(cmd,...) abort
   endtry
 endfunction
 
+function! s:LsFiles(cmd,...) abort
+  let cmd = ['--no-pager', 'ls-files']
+  let cmd += map(copy(a:000),'s:sub(v:val,"^\\%(%(:\\w)*)","\\=fnamemodify(s:buffer().path(),submatch(1))")')
+  let grepformat = &grepformat
+  let grepprg = &grepprg
+  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
+  let dir = getcwd()
+  try
+    execute cd.'`=s:repo().tree()`'
+    let &grepprg = escape(call(s:repo().git_command,cmd,s:repo()),'%#')
+    let &grepformat = '%f'
+    exe a:cmd
+  finally
+    let &grepformat = grepformat
+    let &grepprg = grepprg
+    execute cd.'`=dir`'
+  endtry
+endfunction
 " }}}1
 " Gedit, Gpedit, Gsplit, Gvsplit, Gtabedit, Gread {{{1
 
