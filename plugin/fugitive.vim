@@ -763,7 +763,7 @@ function! s:StageNext(count) abort
 endfunction
 
 function! s:StagePrevious(count) abort
-  if line('.') == 1 && exists(':CtrlP')
+  if line('.') == 1 && exists(':CtrlP') && get(g:, 'ctrl_p_map') =~? '^<c-p>$'
     return 'CtrlP '.fnameescape(s:repo().tree())
   else
     for i in range(a:count)
