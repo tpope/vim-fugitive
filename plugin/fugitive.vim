@@ -2078,7 +2078,10 @@ function! s:ReplaceCmd(cmd,...) abort
   try
     silent edit!
   finally
-    silent exe 'keepalt file '.s:fnameescape(fn)
+    try
+      silent exe 'keepalt file '.s:fnameescape(fn)
+    catch /^Vim\%((\a\+)\)\=:E302/
+    endtry
     call delete(tmp)
     if fnamemodify(bufname('$'), ':p') ==# tmp
       silent execute 'bwipeout '.bufnr('$')
