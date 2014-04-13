@@ -1513,9 +1513,6 @@ function! s:Diff(bang,...) abort
     let spec = s:repo().translate(file)
     let commit = matchstr(spec,'\C[^:/]//\zs\x\+')
     let restore = s:diff_restore()
-    if exists('+cursorbind')
-      set cursorbind
-    endif
     let w:fugitive_diff_restore = restore
     if s:buffer().compare_age(commit) < 0
       execute 'rightbelow '.vert.'diffsplit '.s:fnameescape(spec)
@@ -1523,11 +1520,6 @@ function! s:Diff(bang,...) abort
       execute 'leftabove '.vert.'diffsplit '.s:fnameescape(spec)
     endif
     let w:fugitive_diff_restore = restore
-    let winnr = winnr()
-    if getwinvar('#', '&diff')
-      wincmd p
-      call feedkeys("\<C-W>p", 'n')
-    endif
     return ''
   catch /^fugitive:/
     return 'echoerr v:errmsg'
