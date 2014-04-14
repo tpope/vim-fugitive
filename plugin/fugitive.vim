@@ -1514,7 +1514,7 @@ function! s:Diff(bang,...) abort
     let commit = matchstr(spec,'\C[^:/]//\zs\x\+')
     let restore = s:diff_restore()
     if exists('+cursorbind')
-      set cursorbind
+      setlocal cursorbind
     endif
     let w:fugitive_diff_restore = restore
     if s:buffer().compare_age(commit) < 0
