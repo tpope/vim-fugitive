@@ -763,7 +763,7 @@ function! s:StageNext(count) abort
 endfunction
 
 function! s:StagePrevious(count) abort
-  if line('.') == 1 && exists(':CtrlP')
+  if line('.') == 1 && exists(':CtrlP') && get(g:, 'ctrl_p_map') =~? '^<c-p>$'
     return 'CtrlP '.fnameescape(s:repo().tree())
   else
     for i in range(a:count)
@@ -1514,7 +1514,7 @@ function! s:Diff(bang,...) abort
     let commit = matchstr(spec,'\C[^:/]//\zs\x\+')
     let restore = s:diff_restore()
     if exists('+cursorbind')
-      set cursorbind
+      setlocal cursorbind
     endif
     let w:fugitive_diff_restore = restore
     if s:buffer().compare_age(commit) < 0
@@ -2352,9 +2352,6 @@ augroup END
 function! s:JumpInit() abort
   nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
   if !&modifiable
-    if exists(':CtrlP')
-      nnoremap <buffer> <silent> <C-P> :<C-U>exe 'CtrlP '.fnameescape(<SID>repo().tree())<CR>
-    endif
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
     nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
     nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
