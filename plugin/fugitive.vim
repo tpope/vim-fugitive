@@ -1164,7 +1164,7 @@ function! s:Edit(cmd,bang,...) abort
       return 'redraw|echo '.string(':!'.git.' '.args)
     else
       let temp = resolve(tempname())
-      let s:temp_files[temp] = { 'dir': buffer.repo().dir(), 'args': arglist }
+      let s:temp_files[tolower(temp)] = { 'dir': buffer.repo().dir(), 'args': arglist }
       silent execute a:cmd.' '.temp
       if a:cmd =~# 'pedit'
         wincmd P
@@ -1689,7 +1689,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
         setlocal scrollbind nowrap nofoldenable
         let top = line('w0') + &scrolloff
         let current = line('.')
-        let s:temp_files[temp] = { 'dir': s:repo().dir(), 'args': cmd }
+        let s:temp_files[tolower(temp)] = { 'dir': s:repo().dir(), 'args': cmd }
         exe 'keepalt leftabove vsplit '.temp
         let b:fugitive_blamed_bufnr = bufnr
         let w:fugitive_leave = restore
@@ -2333,10 +2333,10 @@ endif
 augroup fugitive_temp
   autocmd!
   autocmd BufNewFile,BufReadPost *
-        \ if has_key(s:temp_files,expand('<afile>:p')) |
-        \   let b:git_dir = s:temp_files[expand('<afile>:p')].dir |
+        \ if has_key(s:temp_files,tolower(expand('<afile>:p'))) |
+        \   let b:git_dir = s:temp_files[tolower(expand('<afile>:p'))].dir |
         \   let b:git_type = 'temp' |
-        \   let b:git_args = s:temp_files[expand('<afile>:p')].args |
+        \   let b:git_args = s:temp_files[tolower(expand('<afile>:p'))].args |
         \   call fugitive#detect(expand('<afile>:p')) |
         \   setlocal bufhidden=delete |
         \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>|
