@@ -172,11 +172,10 @@ that are part of Git repositories).
 
                                                 *fugitive-:Gblame*
 :Gblame [flags]         Run git-blame on the file and open the results in a
-                        scroll bound vertical split.  Press enter on a line to
-                        reblame the file as it was in that commit.  You can
-                        give any of ltfnsewMC as flags and they will be passed
-                        along to git-blame.  The following maps, which work on
-                        the cursor line commit where sensible, are provided:
+                        scroll bound vertical split.  You can give any of
+                        ltfnsewMC as flags and they will be passed along to
+                        git-blame.  The following maps, which work on the
+                        cursor line commit where sensible, are provided:
 
                         g?    show this help
                         A     resize to end of author column
