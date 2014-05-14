@@ -689,7 +689,7 @@ function! s:Status() abort
     Gpedit :
     wincmd P
     setlocal foldmethod=syntax foldlevel=1
-    nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
+    nnoremap <buffer> <silent> <nowait> q    :<C-U>bdelete<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
