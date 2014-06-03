@@ -2115,6 +2115,7 @@ function! s:BufReadIndex() abort
         let cmd = s:repo().git_command(
               \ '-c', 'status.displayCommentPrefix=true',
               \ '-c', 'color.status=false',
+              \ '-c', 'status.short=false',
               \ 'status')
       endif
       try
