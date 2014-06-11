@@ -634,18 +634,18 @@ function! s:ExecuteInTree(cmd) abort
   endtry
 endfunction
 
-function! s:Git(bang,cmd) abort
+function! s:Git(bang, args) abort
   if a:bang
-    return s:Edit('edit',1,a:cmd)
+    return s:Edit('edit', 1, a:args)
   endif
-  let git = s:repo().git_command()
+  let git = g:fugitive_git_executable
   if has('gui_running') && !has('win32')
     let git .= ' --no-pager'
   endif
-  let cmd = matchstr(a:cmd,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
-  call s:ExecuteInTree('!'.git.' '.cmd)
+  let args = matchstr(a:args,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
+  call s:ExecuteInTree('!'.git.' '.args)
   call fugitive#reload_status()
-  return matchstr(a:cmd,'\v\C\\@<!%(\\\\)*\|\zs.*')
+  return matchstr(a:args, '\v\C\\@<!%(\\\\)*\|\zs.*')
 endfunction
 
 function! s:GitComplete(A,L,P) abort
