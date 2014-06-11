@@ -70,6 +70,13 @@ that are part of Git repositories).
                         git-add and git-reset while a commit message is
                         pending.
 
+                                                *fugitive-:Gtag*
+:Gtag [args]            A wrapper around git-tag.  Unless the arguments given
+                        would skip the invocation of an editor (e.g., -m), a
+                        split window will be used to obtain a commit message.
+                        Write and close that window (:wq or |:Gwrite|) to
+                        finish the commit.
+
                                                 *fugitive-:Ggrep*
 :Ggrep [args]           |:grep| with git-grep as 'grepprg'.
 

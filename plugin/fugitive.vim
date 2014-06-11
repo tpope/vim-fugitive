@@ -1046,6 +1046,103 @@ augroup fugitive_commit
 augroup END
 
 " }}}1
+" Gtag {{{1
+
+call s:command("-nargs=1 Gtag :execute s:Tag(<q-args>)")
+
+function! s:Tag(args) abort
+  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
+  let dir = getcwd()
+  let msgfile = s:repo().dir('TAG_EDITMSG')
+  let outfile = tempname()
+  let errorfile = tempname()
+  try
+    try
+      if a:args =~ '\v%(%(^| )-- )@<!%(^| )@<=%(-d|--delete|-v|--verify|-n|-l|--list\d*)%($| )'
+            \|| a:args =~ '\v%(%(^| )-- )@<!%(^| )@<=%(--sort|--column|--no-column|--contains|--points-at)%(\s+|\=)%(''[^'']*''|"%(\\.|[^"])*"|\\.|\S)*'
+        call s:throw('unsupported option')
+      endif
+      execute cd.s:fnameescape(s:repo().tree())
+      if &shell =~# 'cmd' || &shell =~# 'power'
+        let command = ''
+        let old_editor = $GIT_EDITOR
+        let $GIT_EDITOR = 'false'
+      else
+        let command = 'env GIT_EDITOR=false '
+      endif
+      let command .= s:repo().git_command('tag','--annotate').' '.a:args
+      if &shell =~# 'csh'
+        noautocmd silent execute '!('.command.' > '.outfile.') >& '.errorfile
+      else
+        noautocmd silent execute '!'.command.' > '.outfile.' 2> '.errorfile
+      endif
+    finally
+      execute cd.'`=dir`'
+    endtry
+    if !has('gui_running')
+      redraw!
+    endif
+    if !v:shell_error
+      if filereadable(outfile)
+        for line in readfile(outfile)
+          echo line
+        endfor
+      endif
+      return ''
+    else
+      let errors = readfile(errorfile)
+      let error = get(errors,-2,get(errors,-1,'!'))
+      if error =~# 'false''\=\.$'
+        let args = a:args
+        let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-a|--annotate)%($| )','')
+        let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-F|--file|-m|--message)%(\s+|\=)%(''[^'']*''|"%(\\.|[^"])*"|\\.|\S)*','')
+        let args = '-F '.s:shellesc(msgfile).' '.args
+        if args !~# '\%(^\| \)--cleanup\>'
+          let args = '--cleanup=strip '.args
+        endif
+        if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&mod
+          execute 'keepalt edit '.s:fnameescape(msgfile)
+        elseif s:buffer().type() ==# 'index'
+          execute 'keepalt edit '.s:fnameescape(msgfile)
+          execute (search('^#','n')+1).'wincmd+'
+          setlocal nopreviewwindow
+        else
+          execute 'keepalt split '.s:fnameescape(msgfile)
+        endif
+        let b:fugitive_tag_arguments = args
+        setlocal bufhidden=wipe filetype=gitcommit
+        return '1'
+      else
+        call s:throw(error)
+      endif
+    endif
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  finally
+    if exists('old_editor')
+      let $GIT_EDITOR = old_editor
+    endif
+    call delete(outfile)
+    call delete(errorfile)
+    call fugitive#reload_status()
+  endtry
+endfunction
+
+function! s:FinishTag() abort
+  let args = getbufvar(+expand('<abuf>'),'fugitive_tag_arguments')
+  if !empty(args)
+    call setbufvar(+expand('<abuf>'),'fugitive_tag_arguments','')
+    return s:Tag(args)
+  endif
+  return ''
+endfunction
+
+augroup fugitive_tag
+  autocmd!
+  autocmd VimLeavePre,BufDelete TAG_EDITMSG execute s:sub(s:FinishTag(), '^echoerr (.*)', 'echohl ErrorMsg|echo \1|echohl NONE')
+augroup END
+
+" }}}1
 " Ggrep, Glog {{{1
 
 if !exists('g:fugitive_summary_format')
