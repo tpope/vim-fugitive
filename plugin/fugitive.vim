@@ -939,14 +939,31 @@ function! s:StagePatch(lnum1,lnum2) abort
 endfunction
 
 " }}}1
-" Gcommit {{{1
+" fugitive#execute_with_message_buffer {{{1
+function! s:RegexForMatchingFlags(flags)
+  let l:single_char = ''
+  let l:multi_char = []
+  for l:flag in a:flags
+    if 1 == len(l:flag)
+      let l:single_char.=l:flag
+    else
+      call add(l:multi_char,l:flag)
+    endif
+  endfor
+  let l:regex_branches = []
+  if !empty(l:single_char)
+    call add(l:regex_branches,'-['.l:single_char.']')
+  endif
+  for l:flag in l:multi_char
+    call add(l:regex_branches,'--'.l:flag)
+  endfor
+  return join(l:regex_branches,'|')
+endfunction
 
-call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit(<q-args>)")
-
-function! s:Commit(args) abort
+function! fugitive#execute_with_message_buffer(args) abort
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
   let dir = getcwd()
-  let msgfile = s:repo().dir('COMMIT_EDITMSG')
+  let msgfile = s:repo().dir(a:args.msgfile)
   let outfile = tempname()
   let errorfile = tempname()
   try
@@ -959,10 +976,10 @@ function! s:Commit(args) abort
       else
         let command = 'env GIT_EDITOR=false '
       endif
-      let command .= s:repo().git_command('commit').' '.a:args
+      let command .= s:repo().git_command(a:args.git_command).' '.get(a:args,'args','')
       if &shell =~# 'csh'
         noautocmd silent execute '!('.command.' > '.outfile.') >& '.errorfile
-      elseif a:args =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>'
+      elseif get(a:args,'no_stdout_redirection')
         noautocmd execute '!'.command.' 2> '.errorfile
       else
         noautocmd silent execute '!'.command.' > '.outfile.' 2> '.errorfile
@@ -979,13 +996,25 @@ function! s:Commit(args) abort
           echo line
         endfor
       endif
+      if has_key(a:args,'post_command_callback')
+        if type(function('tr')) == type(a:args.post_command_callback)
+          call a:args.post_command_callback()
+        else
+          call s:throw('bad type for post_command_callback')
+        end
+      endif
       return ''
     else
       let errors = readfile(errorfile)
       let error = get(errors,-2,get(errors,-1,'!'))
       if error =~# 'false''\=\.$'
-        let args = a:args
-        let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-[esp]|--edit|--interactive|patch|--signoff)%($| )','')
+        let args = get(a:args,'finish_args',get(a:args,'args',''))
+        if !empty(get(a:args,'sanitize_boolean_flags'))
+          let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%('.s:RegexForMatchingFlags(a:args.sanitize_boolean_flags).')%($| )','')
+        endif
+        if !empty(get(a:args,'sanitize_value_flags'))
+          let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%('.s:RegexForMatchingFlags(a:args.sanitize_value_flags).')%(\s+|\=)%(''[^'']*''|"%(\\.|[^"])*"|\\.|\S)*','')
+        endif
         let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-F|--file|-m|--message)%(\s+|\=)%(''[^'']*''|"%(\\.|[^"])*"|\\.|\S)*','')
         let args = s:gsub(args,'%(^| )@<=[%#]%(:\w)*','\=expand(submatch(0))')
         let args = '-F '.s:shellesc(msgfile).' '.args
@@ -1001,8 +1030,20 @@ function! s:Commit(args) abort
         else
           execute 'keepalt split '.s:fnameescape(msgfile)
         endif
-        let b:fugitive_commit_arguments = args
+        let b:fugitive_msg_args = copy(a:args)
+        let b:fugitive_msg_args['args'] = args
+        if has_key(a:args,'finish_git_command')
+          let b:fugitive_msg_args.git_command=a:args.finish_git_command
+        endif
         setlocal bufhidden=wipe filetype=gitcommit
+        autocmd VimLeavePre,BufDelete <buffer> execute s:sub(s:FinishCommandWithMsgBuffer(), '^echoerr (.*)', 'echohl ErrorMsg|echo \1|echohl NONE')
+        if has_key(a:args,'msg_buffer_opened_callback')
+          if type(function('tr')) == type(a:args.msg_buffer_opened_callback)
+            call a:args.msg_buffer_opened_callback()
+          else
+            call s:throw('bad type for msg_buffer_opened_callback')
+          end
+        endif
         return '1'
       elseif error ==# '!'
         return s:Status()
@@ -1022,6 +1063,30 @@ function! s:Commit(args) abort
   endtry
 endfunction
 
+function! s:FinishCommandWithMsgBuffer() abort
+  let args = getbufvar(+expand('<abuf>'),'fugitive_msg_args')
+  if !empty(args)
+    call setbufvar(+expand('<abuf>'),'fugitive_msg_args',{})
+    return fugitive#execute_with_message_buffer(args)
+  endif
+  return ''
+endfunction
+
+" }}}1
+" Gcommit {{{1
+call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit(<q-args>)")
+
+function! s:Commit(args) abort
+  return fugitive#execute_with_message_buffer({
+        \ 'git_command': 'commit',
+        \ 'msgfile': 'COMMIT_EDITMSG',
+        \ 'args': a:args,
+        \ 'sanitize_boolean_flags': ['e', 'edit', 's', 'interactive', 'p', 'patch', 'signoff'],
+        \ 'sanitize_value_flags': [],
+        \ 'no_stdout_redirection' : a:args =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>'
+        \ })
+endfunction
+
 function! s:CommitComplete(A,L,P) abort
   if a:A =~ '^-' || type(a:A) == type(0) " a:A is 0 on :Gcommit -<Tab>
     let args = ['-C', '-F', '-a', '-c', '-e', '-i', '-m', '-n', '-o', '-q', '-s', '-t', '-u', '-v', '--all', '--allow-empty', '--amend', '--author=', '--cleanup=', '--dry-run', '--edit', '--file=', '--include', '--interactive', '--message=', '--no-verify', '--only', '--quiet', '--reedit-message=', '--reuse-message=', '--signoff', '--template=', '--untracked-files', '--verbose']
@@ -1030,20 +1095,6 @@ function! s:CommitComplete(A,L,P) abort
     return s:repo().superglob(a:A)
   endif
 endfunction
-
-function! s:FinishCommit() abort
-  let args = getbufvar(+expand('<abuf>'),'fugitive_commit_arguments')
-  if !empty(args)
-    call setbufvar(+expand('<abuf>'),'fugitive_commit_arguments','')
-    return s:Commit(args)
-  endif
-  return ''
-endfunction
-
-augroup fugitive_commit
-  autocmd!
-  autocmd VimLeavePre,BufDelete COMMIT_EDITMSG execute s:sub(s:FinishCommit(), '^echoerr (.*)', 'echohl ErrorMsg|echo \1|echohl NONE')
-augroup END
 
 " }}}1
 " Ggrep, Glog {{{1
@@ -1234,7 +1285,7 @@ call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gw :exec
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwq :execute s:Wq(<bang>0,<f-args>)")
 
 function! s:Write(force,...) abort
-  if exists('b:fugitive_commit_arguments')
+  if exists('b:fugitive_msg_args')
     return 'write|bdelete'
   elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
     return 'wq'
@@ -1372,7 +1423,7 @@ endfunction
 
 function! s:Wq(force,...) abort
   let bang = a:force ? '!' : ''
-  if exists('b:fugitive_commit_arguments')
+  if exists('b:fugitive_msg_args')
     return 'wq'.bang
   endif
   let result = call(s:function('s:Write'),[a:force]+a:000)
