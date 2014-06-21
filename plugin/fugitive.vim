@@ -26,10 +26,14 @@ function! s:gsub(str,pat,rep) abort
   return substitute(a:str,'\v\C'.a:pat,a:rep,'g')
 endfunction
 
+function! s:winshell() abort
+  return &shell =~# 'cmd' || &shell =~# 'power'
+endfunction
+
 function! s:shellesc(arg) abort
   if a:arg =~ '^[A-Za-z0-9_/.-]\+$'
     return a:arg
-  elseif &shell =~# 'cmd' || &shell =~# 'power'
+  elseif s:winshell()
     return '"'.s:gsub(s:gsub(a:arg, '"', '""'), '\%', '"%"').'"'
   else
     return shellescape(a:arg)
@@ -57,7 +61,7 @@ function! s:warn(str) abort
 endfunction
 
 function! s:shellslash(path) abort
-  if exists('+shellslash') && !&shellslash
+  if s:winshell()
     return s:gsub(a:path,'\\','/')
   else
     return a:path
@@ -965,7 +969,7 @@ function! s:Commit(args) abort
   try
     try
       execute cd.s:fnameescape(s:repo().tree())
-      if &shell =~# 'cmd' || &shell =~# 'power'
+      if s:winshell()
         let command = ''
         let old_editor = $GIT_EDITOR
         let $GIT_EDITOR = 'false'
@@ -2078,14 +2082,14 @@ function! s:ReplaceCmd(cmd,...) abort
   let prefix = ''
   try
     if a:0 && a:1 != ''
-      if &shell =~# 'cmd' || &shell =~# 'power'
+      if s:winshell()
         let old_index = $GIT_INDEX_FILE
         let $GIT_INDEX_FILE = a:1
       else
         let prefix = 'env GIT_INDEX_FILE='.s:shellesc(a:1).' '
       endif
     endif
-    if &shell =~# 'cmd' || &shell =~# 'power'
+    if s:winshell()
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
       call system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', cmd_escape_char.'&').' > '.tmp.'"')
     else
@@ -2239,7 +2243,7 @@ function! s:BufWriteIndexFile() abort
     endif
     let info = old_mode.' '.sha1.' '.stage."\t".path
     call writefile([info],tmp)
-    if &shell =~# 'cmd' || &shell =~# 'power'
+    if s:winshell()
       let error = system('type '.s:gsub(tmp,'/','\\').'|'.s:repo().git_command('update-index','--index-info'))
     else
       let error = system(s:repo().git_command('update-index','--index-info').' < '.tmp)
