@@ -777,6 +777,28 @@ function! s:StageReloadSeek(target,lnum1,lnum2) abort
   call search('^#\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
 endfunction
 
+function! s:StageUndo() abort
+  let [filename, section] = s:stage_info(line('.'))
+  if empty(filename)
+    return ''
+  endif
+  let repo = s:repo()
+  let hash = repo.git_chomp('hash-object', '-w', filename)
+  if !empty(hash)
+    if section ==# 'untracked'
+      call delete(s:repo().tree(filename))
+    elseif section ==# 'unstaged'
+      call repo.get_chomp('checkout', '--', filename)
+    else
+      call repo.get_chomp('checkout', 'HEAD', '--', filename)
+    endif
+    call s:StageReloadSeek(filename, line('.'), line('.'))
+    let @" = hash
+    return 'checktime|redraw|echomsg ' .
+          \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.filename)
+  endif
+endfunction
+
 function! s:StageDiff(diff) abort
   let [filename, section] = s:stage_info(line('.'))
   if filename ==# '' && section ==# 'staged'
@@ -2158,6 +2180,7 @@ function! s:BufReadIndex() abort
     nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
     nnoremap <buffer> <silent> r :<C-U>edit<CR>
     nnoremap <buffer> <silent> R :<C-U>edit<CR>
+    nnoremap <buffer> <silent> U :<C-U>execute <SID>StageUndo()<CR>
     nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
     nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
   catch /^fugitive:/
