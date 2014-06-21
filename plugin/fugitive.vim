@@ -1401,9 +1401,9 @@ endfunction
 
 " Section: Gdiff
 
-call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('',<f-args>)")
-call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff('vert ',<f-args>)")
-call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff(' ',<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('keepalt ',<f-args>)")
+call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff('keepalt vert ',<f-args>)")
+call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff('',<f-args>)")
 
 augroup fugitive_diff
   autocmd!
@@ -1422,13 +1422,15 @@ augroup fugitive_diff
 augroup END
 
 function! s:diff_horizontal(count) abort
+  let fdc = matchstr(&diffopt, 'foldcolumn:\zs\d\+')
   if &diffopt =~# 'horizontal' && &diffopt !~# 'vertical'
-    return 'vert '
+    return 'keepalt vert '
   elseif &diffopt =~# 'vertical'
-    return ' '
+    return 'keepalt '
+  elseif winwidth(0) <= a:count * ((&tw ? &tw : 80) + (empty(fdc) ? 2 : fdc))
+    return 'keepalt '
   else
-    let fdc = matchstr(&diffopt, 'foldcolumn:\zs\d\+')
-    return winwidth(0) <= a:count * ((&tw ? &tw : 80) + (empty(fdc) ? 2 : fdc)) ? ' ' : 'vert '
+    return 'keepalt vert '
   endif
 endfunction
 
