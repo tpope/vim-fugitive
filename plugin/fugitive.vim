@@ -882,9 +882,6 @@ function! s:StageToggle(lnum1,lnum2) abort
       if filename ==# ''
         continue
       endif
-      if !exists('first_filename')
-        let first_filename = filename
-      endif
       execute lnum
       if filename =~ ' -> '
         let cmd = ['mv','--'] + reverse(split(filename,' -> '))
@@ -897,6 +894,9 @@ function! s:StageToggle(lnum1,lnum2) abort
         let cmd = ['add','--',filename]
       else
         let cmd = ['add','-A','--',filename]
+      endif
+      if !exists('first_filename')
+        let first_filename = filename
       endif
       let output .= call(repo.git_chomp_in_tree,cmd,s:repo())."\n"
     endfor
