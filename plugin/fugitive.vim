@@ -12,7 +12,7 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
-" Utility {{{1
+" Section: Utility
 
 function! s:function(name) abort
   return function(substitute(a:name,'^s:',matchstr(expand('<sfile>'), '<SNR>\d\+_'),''))
@@ -115,8 +115,7 @@ augroup END
 
 let s:abstract_prototype = {}
 
-" }}}1
-" Initialization {{{1
+" Section: Initialization
 
 function! fugitive#is_git_dir(path) abort
   let path = s:sub(a:path, '[\/]$', '') . '/'
@@ -202,8 +201,7 @@ augroup fugitive
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
 
-" }}}1
-" Repository {{{1
+" Section: Repository
 
 let s:repo_prototype = {}
 let s:repos = {}
@@ -442,8 +440,7 @@ endfunction
 
 call s:add_methods('repo',['keywordprg'])
 
-" }}}1
-" Buffer {{{1
+" Section: Buffer
 
 let s:buffer_prototype = {}
 
@@ -618,8 +615,7 @@ endfunction
 
 call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','name','commit','path','rev','sha1','expand','containing_commit','up'])
 
-" }}}1
-" Git {{{1
+" Section: Git
 
 call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Git :execute s:Git(<bang>0,<q-args>)")
 
@@ -660,8 +656,7 @@ function! s:GitComplete(A,L,P) abort
   endif
 endfunction
 
-" }}}1
-" Gcd, Glcd {{{1
+" Section: Gcd, Glcd
 
 function! s:DirComplete(A,L,P) abort
   let matches = s:repo().dirglob(a:A)
@@ -671,8 +666,7 @@ endfunction
 call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :cd<bang>  `=s:repo().bare() ? s:repo().dir(<q-args>) : s:repo().tree(<q-args>)`")
 call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :lcd<bang> `=s:repo().bare() ? s:repo().dir(<q-args>) : s:repo().tree(<q-args>)`")
 
-" }}}1
-" Gstatus {{{1
+" Section: Gstatus
 
 call s:command("-bar Gstatus :execute s:Status()")
 augroup fugitive_status
@@ -936,8 +930,7 @@ function! s:StagePatch(lnum1,lnum2) abort
   return 'checktime'
 endfunction
 
-" }}}1
-" Gcommit {{{1
+" Section: Gcommit
 
 call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit(<q-args>)")
 
@@ -1043,8 +1036,7 @@ augroup fugitive_commit
   autocmd VimLeavePre,BufDelete COMMIT_EDITMSG execute s:sub(s:FinishCommit(), '^echoerr (.*)', 'echohl ErrorMsg|echo \1|echohl NONE')
 augroup END
 
-" }}}1
-" Ggrep, Glog {{{1
+" Section: Ggrep, Glog
 
 if !exists('g:fugitive_summary_format')
   let g:fugitive_summary_format = '%s'
@@ -1128,8 +1120,7 @@ function! s:Log(cmd,...) abort
   endtry
 endfunction
 
-" }}}1
-" Gedit, Gpedit, Gsplit, Gvsplit, Gtabedit, Gread {{{1
+" Section: Gedit, Gpedit, Gsplit, Gvsplit, Gtabedit, Gread
 
 function! s:Edit(cmd,bang,...) abort
   let buffer = s:buffer()
@@ -1226,8 +1217,7 @@ call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gvspl
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gtabedit :execute s:Edit('tabedit',<bang>0,<f-args>)")
 call s:command("-bar -bang -nargs=* -count -complete=customlist,s:EditRunComplete Gread :execute s:Edit((!<count> && <line1> ? '' : <count>).'read',<bang>0,<f-args>)")
 
-" }}}1
-" Gwrite, Gwq {{{1
+" Section: Gwrite, Gwq
 
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwrite :execute s:Write(<bang>0,<f-args>)")
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gw :execute s:Write(<bang>0,<f-args>)")
@@ -1383,8 +1373,7 @@ function! s:Wq(force,...) abort
   endif
 endfunction
 
-" }}}1
-" Gdiff {{{1
+" Section: Gdiff
 
 call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('',<f-args>)")
 call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff('vert ',<f-args>)")
@@ -1557,8 +1546,7 @@ function! s:Diff(vert,...) abort
   endtry
 endfunction
 
-" }}}1
-" Gmove, Gremove {{{1
+" Section: Gmove, Gremove
 
 function! s:Move(force,destination) abort
   if a:destination =~# '^/'
@@ -1634,8 +1622,7 @@ augroup fugitive_remove
         \ endif
 augroup END
 
-" }}}1
-" Gblame {{{1
+" Section: Gblame
 
 augroup fugitive_blame
   autocmd!
@@ -1859,8 +1846,7 @@ function! s:BlameSyntax() abort
   hi def link FugitiveblameNotCommittedYet    Comment
 endfunction
 
-" }}}1
-" Gbrowse {{{1
+" Section: Gbrowse
 
 call s:command("-bar -bang -range -nargs=* -complete=customlist,s:EditComplete Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
 
@@ -2062,8 +2048,7 @@ function! s:instaweb_url(repo,rev,commit,path,type,...) abort
   return url
 endfunction
 
-" }}}1
-" File access {{{1
+" Section: File access
 
 function! s:ReplaceCmd(cmd,...) abort
   let fn = expand('%:p')
@@ -2347,8 +2332,7 @@ augroup fugitive_files
         \ endif
 augroup END
 
-" }}}1
-" Temp files {{{1
+" Section: Temp files
 
 if !exists('s:temp_files')
   let s:temp_files = {}
@@ -2367,8 +2351,7 @@ augroup fugitive_temp
         \ endif
 augroup END
 
-" }}}1
-" Go to file {{{1
+" Section: Go to file
 
 function! s:JumpInit() abort
   nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
@@ -2557,8 +2540,7 @@ function! s:GF(mode) abort
   endtry
 endfunction
 
-" }}}1
-" Statusline {{{1
+" Section: Statusline
 
 function! s:repo_head_ref() dict abort
   if !filereadable(self.dir('HEAD'))
@@ -2593,8 +2575,7 @@ function! fugitive#head(...) abort
   return s:repo().head(a:0 ? a:1 : 0)
 endfunction
 
-" }}}1
-" Folding {{{1
+" Section: Folding
 
 function! fugitive#foldtext() abort
   if &foldmethod !=# 'syntax'
@@ -2642,7 +2623,3 @@ augroup fugitive_foldtext
         \    set foldtext=fugitive#foldtext() |
         \ endif
 augroup END
-
-" }}}1
-
-" vim:set et sw=2:
