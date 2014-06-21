@@ -1386,7 +1386,7 @@ endfunction
 " }}}1
 " Gdiff {{{1
 
-call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff(<bang>0,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff(s:diff_horizontal(),<f-args>)")
 call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff(0,<f-args>)")
 call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff(1,<f-args>)")
 
@@ -1405,6 +1405,16 @@ augroup fugitive_diff
         \   call s:diffoff() |
         \ endif
 augroup END
+
+function! s:diff_horizontal() abort
+  if &diffopt =~# 'horizontal' && &diffopt !~# 'vertical'
+    return 1
+  elseif &diffopt =~# 'vertical'
+    return 0
+  else
+    return winwidth(0) <= 2 * (&tw ? &tw : 80)
+  endif
+endfunction
 
 function! s:diff_window_count() abort
   let c = 0
