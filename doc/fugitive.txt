@@ -55,7 +55,7 @@ that are part of Git repositories).
                         p     |:Git| add --patch
                         p     |:Git| reset --patch (staged files)
                         q     close status
-                        R     reload status
+                        r     reload status
                         S     |:Gvsplit|
 
                                                 *fugitive-:Gcommit*
