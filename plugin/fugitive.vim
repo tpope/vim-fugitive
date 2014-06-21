@@ -1963,7 +1963,7 @@ function! s:Browse(bang,line1,count,...) abort
       let @* = url
       return 'echomsg '.string(url)
     else
-      return 'echomsg '.string(url).'|call fugitive#buffer().repo().git_chomp("web--browse",'.string(url).')'
+      return 'echomsg '.string(url).'|call netrw#NetrwBrowseX('.string(url).', 0)'
     endif
   catch /^fugitive:/
     return 'echoerr v:errmsg'
