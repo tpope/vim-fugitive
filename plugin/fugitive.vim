@@ -1408,18 +1408,24 @@ call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execut
 augroup fugitive_diff
   autocmd!
   autocmd BufWinLeave *
-        \ if getwinvar(bufwinnr(+expand('<abuf>')), '&diff') &&
-        \     s:diff_window_count() == 2 &&
-        \     !empty(getbufvar(+expand('<abuf>'), 'git_dir')) |
+        \ if s:can_diffoff(+expand('<abuf>')) && s:diff_window_count() == 2 |
         \   call s:diffoff_all(getbufvar(+expand('<abuf>'), 'git_dir')) |
         \ endif
   autocmd BufWinEnter *
-        \ if getwinvar(bufwinnr(+expand('<abuf>')), '&diff') &&
-        \     s:diff_window_count() == 1 &&
-        \     !empty(getbufvar(+expand('<abuf>'), 'git_dir')) |
+        \ if s:can_diffoff(+expand('<abuf>')) && s:diff_window_count() == 1 |
         \   call s:diffoff() |
         \ endif
 augroup END
+
+function! s:can_diffoff(buf) abort
+  return getwinvar(bufwinnr(a:buf), '&diff') &&
+        \ !empty(getbufvar(a:buf, 'git_dir')) &&
+        \ !empty(getwinvar(bufwinnr(a:buf), 'fugitive_diff_restore'))
+endfunction
+
+function! fugitive#can_diffoff(buf) abort
+  return s:can_diffoff(a:buf)
+endfunction
 
 function! s:diff_horizontal(count) abort
   let fdc = matchstr(&diffopt, 'foldcolumn:\zs\d\+')
