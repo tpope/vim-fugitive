@@ -1386,9 +1386,9 @@ endfunction
 " }}}1
 " Gdiff {{{1
 
-call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff(s:diff_horizontal(),<f-args>)")
-call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff(0,<f-args>)")
-call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff(1,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('',<f-args>)")
+call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff('vert ',<f-args>)")
+call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff(' ',<f-args>)")
 
 augroup fugitive_diff
   autocmd!
@@ -1406,14 +1406,14 @@ augroup fugitive_diff
         \ endif
 augroup END
 
-function! s:diff_horizontal() abort
+function! s:diff_horizontal(count) abort
   if &diffopt =~# 'horizontal' && &diffopt !~# 'vertical'
-    return 1
+    return 'vert '
   elseif &diffopt =~# 'vertical'
-    return 0
+    return ' '
   else
     let fdc = matchstr(&diffopt, 'foldcolumn:\zs\d\+')
-    return winwidth(0) <= 2 * ((&tw ? &tw : 80) + (empty(fdc) ? 2 : fdc))
+    return winwidth(0) <= a:count * ((&tw ? &tw : 80) + (empty(fdc) ? 2 : fdc)) ? ' ' : 'vert '
   endif
 endfunction
 
@@ -1491,11 +1491,12 @@ endfunction
 
 call s:add_methods('buffer',['compare_age'])
 
-function! s:Diff(bang,...) abort
-  let vert = a:bang ? '' : 'vertical '
+function! s:Diff(vert,...) abort
+  let vert = empty(a:vert) ? s:diff_horizontal(2) : a:vert
   if exists(':DiffGitCached')
     return 'DiffGitCached'
   elseif (!a:0 || a:1 == ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().path()) !=# ''
+    let vert = empty(a:vert) ? s:diff_horizontal(3) : a:vert
     let nr = bufnr('')
     execute 'leftabove '.vert.'split `=fugitive#buffer().repo().translate(s:buffer().expand('':2''))`'
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
