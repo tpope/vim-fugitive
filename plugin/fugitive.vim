@@ -2108,7 +2108,7 @@ function! s:ReplaceCmd(cmd,...) abort
       let $GIT_INDEX_FILE = old_index
     endif
   endtry
-  silent exe 'keepalt file '.tmp
+  exe 'keepalt file '.tmp
   try
     silent edit!
   finally
