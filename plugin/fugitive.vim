@@ -1412,7 +1412,8 @@ function! s:diff_horizontal() abort
   elseif &diffopt =~# 'vertical'
     return 0
   else
-    return winwidth(0) <= 2 * (&tw ? &tw : 80)
+    let fdc = matchstr(&diffopt, 'foldcolumn:\zs\d\+')
+    return winwidth(0) <= 2 * ((&tw ? &tw : 80) + (empty(fdc) ? 2 : fdc))
   endif
 endfunction
 
