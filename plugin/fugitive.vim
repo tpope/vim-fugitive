@@ -1066,8 +1066,8 @@ endif
 
 call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
 call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Glog :execute s:Log('grep<bang>',<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gllog :execute s:Log('lgrep<bang>',<f-args>)")
+call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete Glog :call s:Log('grep<bang>',<count>,<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gllog :call s:Log('lgrep<bang>',<count>,<f-args>)")
 
 function! s:Grep(cmd,bang,arg) abort
   let grepprg = &grepprg
@@ -1108,13 +1108,13 @@ function! s:Grep(cmd,bang,arg) abort
   endtry
 endfunction
 
-function! s:Log(cmd,...) abort
+function! s:Log(cmd, count, ...) abort
   let path = s:buffer().path('/')
   if path =~# '^/\.git\%(/\|$\)' || index(a:000,'--') != -1
     let path = ''
   endif
   let cmd = ['--no-pager', 'log', '--no-color']
-  let cmd += ['--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.'::'.g:fugitive_summary_format]
+  let cmd += ['--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.':'.(a:count ? a:count : '').'::'.g:fugitive_summary_format]
   if empty(filter(a:000[0 : index(a:000,'--')],'v:val !~# "^-"'))
     if s:buffer().commit() =~# '\x\{40\}'
       let cmd += [s:buffer().commit()]
@@ -1133,7 +1133,7 @@ function! s:Log(cmd,...) abort
   try
     execute cd.'`=s:repo().tree()`'
     let &grepprg = escape(call(s:repo().git_command,cmd,s:repo()),'%#')
-    let &grepformat = '%f::%m'
+    let &grepformat = '%f:%l::%m,%f:::%m'
     exe a:cmd
   finally
     let &grepformat = grepformat
