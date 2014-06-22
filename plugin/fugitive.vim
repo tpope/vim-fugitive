@@ -27,7 +27,7 @@ function! s:gsub(str,pat,rep) abort
 endfunction
 
 function! s:winshell() abort
-  return exists('+shellslash') && !&shellslash
+  return &shell =~? 'cmd' || exists('+shellslash') && !&shellslash
 endfunction
 
 function! s:shellesc(arg) abort
