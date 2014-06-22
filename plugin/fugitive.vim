@@ -1327,9 +1327,9 @@ function! s:Write(force,...) abort
   endif
 
   if a:force
-    let error = s:repo().git_chomp_in_tree('add', '--force', file)
+    let error = s:repo().git_chomp_in_tree('add', '--force', path)
   else
-    let error = s:repo().git_chomp_in_tree('add', file)
+    let error = s:repo().git_chomp_in_tree('add', path)
   endif
   if v:shell_error
     let v:errmsg = 'fugitive: '.error
