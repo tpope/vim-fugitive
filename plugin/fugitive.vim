@@ -1396,6 +1396,11 @@ function! s:Wq(force,...) abort
   endif
 endfunction
 
+augroup fugitive_commit
+  autocmd!
+  autocmd VimLeavePre,BufDelete COMMIT_EDITMSG execute s:sub(s:FinishCommit(), '^echoerr (.*)', 'echohl ErrorMsg|echo \1|echohl NONE')
+augroup END
+
 " Section: Gdiff
 
 call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('keepalt ',<f-args>)")
