@@ -1565,6 +1565,11 @@ function! s:Diff(vert,...) abort
       setlocal cursorbind
     endif
     let w:fugitive_diff_restore = restore
+    if exists('*winsaveview')  " vim 7.0214
+      let curview = winsaveview()
+    else
+      let curpos = getpos('.')
+    endif
     if s:buffer().compare_age(commit) < 0
       execute 'rightbelow '.vert.'diffsplit '.s:fnameescape(spec)
     else
@@ -1574,6 +1579,11 @@ function! s:Diff(vert,...) abort
     let winnr = winnr()
     if getwinvar('#', '&diff')
       wincmd p
+      if exists('curview')
+        call winrestview(curview)
+      else
+        call setpos('.', curpos)
+      endif
       call feedkeys("\<C-W>p", 'n')
     endif
     return ''
