@@ -84,6 +84,11 @@ that are part of Git repositories).
                         previous commits rather than previous file revisions
                         are loaded.
 
+:{range}Glog [args]     Use git-log -L to load previous revisions of the given
+                        range of the current file into the quickfix list.  The
+                        cursor is positioned on the first line of the first
+                        diff hunk for each commit.
+
                                                 *fugitive-:Gllog*
 :Gllog [args]           Like |:Glog|, but use the location list instead of the
                         quickfix list.
