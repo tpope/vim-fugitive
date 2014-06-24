@@ -1403,9 +1403,9 @@ augroup END
 
 " Section: Gdiff
 
-call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('keepalt ',<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('',<f-args>)")
 call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff('keepalt vert ',<f-args>)")
-call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff('',<f-args>)")
+call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff('keepalt ',<f-args>)")
 
 augroup fugitive_diff
   autocmd!
@@ -1429,12 +1429,12 @@ function! fugitive#can_diffoff(buf) abort
   return s:can_diffoff(a:buf)
 endfunction
 
-function! s:diff_horizontal(count) abort
+function! s:diff_modifier(count) abort
   let fdc = matchstr(&diffopt, 'foldcolumn:\zs\d\+')
   if &diffopt =~# 'horizontal' && &diffopt !~# 'vertical'
-    return 'keepalt vert '
-  elseif &diffopt =~# 'vertical'
     return 'keepalt '
+  elseif &diffopt =~# 'vertical'
+    return 'keepalt vert '
   elseif winwidth(0) <= a:count * ((&tw ? &tw : 80) + (empty(fdc) ? 2 : fdc))
     return 'keepalt '
   else
@@ -1518,11 +1518,11 @@ endfunction
 call s:add_methods('buffer',['compare_age'])
 
 function! s:Diff(vert,...) abort
-  let vert = empty(a:vert) ? s:diff_horizontal(2) : a:vert
+  let vert = empty(a:vert) ? s:diff_modifier(2) : a:vert
   if exists(':DiffGitCached')
     return 'DiffGitCached'
   elseif (!a:0 || a:1 == ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().path()) !=# ''
-    let vert = empty(a:vert) ? s:diff_horizontal(3) : a:vert
+    let vert = empty(a:vert) ? s:diff_modifier(3) : a:vert
     let nr = bufnr('')
     execute 'leftabove '.vert.'split `=fugitive#buffer().repo().translate(s:buffer().expand('':2''))`'
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
