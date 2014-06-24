@@ -1132,7 +1132,7 @@ function! s:Log(cmd, count, ...) abort
   try
     execute cd.'`=s:repo().tree()`'
     let &grepprg = escape(call(s:repo().git_command,cmd,s:repo()),'%#')
-    let &grepformat = '%f:%l::%m,%f:::%m'
+    let &grepformat = '%f:%l::%m,%A%f:::%m,%Cdiff --git %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G%.%#'
     exe a:cmd
   finally
     let &grepformat = grepformat
