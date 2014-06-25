@@ -1725,12 +1725,18 @@ function! s:Blame(bang,line1,line2,count,args) abort
         endif
         for winnr in range(winnr('$'),1,-1)
           call setwinvar(winnr, '&scrollbind', 0)
+          if exists('+cursorbind')
+            call setwinvar(winnr, '&cursorbind', 0)
+          endif
           if getbufvar(winbufnr(winnr), 'fugitive_blamed_bufnr')
             execute winbufnr(winnr).'bdelete'
           endif
         endfor
         let bufnr = bufnr('')
         let restore = 'call setwinvar(bufwinnr('.bufnr.'),"&scrollbind",0)'
+        if exists('+cursorbind')
+          let restore .= '|call setwinvar(bufwinnr('.bufnr.'),"&cursorbind",0)'
+        endif
         if &l:wrap
           let restore .= '|call setwinvar(bufwinnr('.bufnr.'),"&wrap",1)'
         endif
@@ -1738,6 +1744,9 @@ function! s:Blame(bang,line1,line2,count,args) abort
           let restore .= '|call setwinvar(bufwinnr('.bufnr.'),"&foldenable",1)'
         endif
         setlocal scrollbind nowrap nofoldenable
+        if exists('+cursorbind')
+          setlocal cursorbind
+        endif
         let top = line('w0') + &scrolloff
         let current = line('.')
         let s:temp_files[tolower(temp)] = { 'dir': s:repo().dir(), 'args': cmd }
@@ -1748,6 +1757,9 @@ function! s:Blame(bang,line1,line2,count,args) abort
         execute top
         normal! zt
         execute current
+        if exists('+cursorbind')
+          setlocal cursorbind
+        endif
         setlocal nomodified nomodifiable nonumber scrollbind nowrap foldcolumn=0 nofoldenable winfixwidth filetype=fugitiveblame
         if exists('+concealcursor')
           setlocal concealcursor=nc conceallevel=2
