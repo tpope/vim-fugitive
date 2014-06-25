@@ -70,6 +70,17 @@ that are part of Git repositories).
                         git-add and git-reset while a commit message is
                         pending.
 
+                                                *fugitive-:Gmerge*
+:Gmerge [args]          Calls git-merge and loads errors and conflicted files
+                        into the quickfix list.  Opens a |:Gcommit| style
+                        split window for the commit message if the merge
+                        succeeds.  If called during a merge conflict, the
+                        conflicted files from the current index are loaded
+                        into the quickfix list.
+
+                                                *fugitive-:Gpull*
+:Gpull [args]           Like |:Gmerge|, but for git-pull.
+
                                                 *fugitive-:Ggrep*
 :Ggrep [args]           |:grep| with git-grep as 'grepprg'.
 

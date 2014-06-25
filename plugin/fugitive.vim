@@ -1057,6 +1057,124 @@ function! s:FinishCommit() abort
   return ''
 endfunction
 
+" Section: Gmerge, Gpull
+
+call s:command("-nargs=? -bang -complete=custom,s:RevisionComplete Gmerge " .
+      \ "execute s:Merge('merge', <bang>0, <q-args>)")
+call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpull " .
+      \ "execute s:Merge('pull --progress', <bang>0, <q-args>)")
+
+function! s:RevisionComplete(A, L, P) abort
+  return s:repo().git_chomp('rev-parse', '--symbolic', '--branches', '--tags', '--remotes')
+        \ . "\nHEAD\nFETCH_HEAD\nORIG_HEAD"
+endfunction
+
+function! s:RemoteComplete(A, L, P) abort
+  let remote = matchstr(a:L, ' \zs\S\+\ze ')
+  if !empty(remote)
+    let matches = split(s:repo().git_chomp('ls-remote', remote), "\n")
+    call filter(matches, 'v:val =~# "\t" && v:val !~# "{"')
+    call map(matches, 's:sub(v:val, "^.*\t%(refs/%(heads/|tags/)=)=", "")')
+  else
+    let matches = split(s:repo().git_chomp('remote'), "\n")
+  endif
+  return join(matches, "\n")
+endfunction
+
+function! fugitive#cwindow() abort
+  if &buftype == 'quickfix'
+    cwindow
+  else
+    botright cwindow
+    if &buftype == 'quickfix'
+      wincmd p
+    endif
+  endif
+endfunction
+
+let s:common_efm = ''
+      \ . '%+Egit:%.%#,'
+      \ . '%+Eusage:%.%#,'
+      \ . '%+Eerror:%.%#,'
+      \ . '%+Efatal:%.%#,'
+      \ . '%-G%.%#%\r%.%\+'
+
+function! s:Merge(cmd, bang, args) abort
+  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
+  let cwd = getcwd()
+  let [mp, efm] = [&l:mp, &l:efm]
+  let had_merge_msg = filereadable(s:repo().dir('MERGE_MSG'))
+  try
+    let &l:errorformat = ''
+          \ . '%-Gerror:%.%#false''.,'
+          \ . '%-G%.%# ''git commit'' %.%#,'
+          \ . '%+Emerge:%.%#,'
+          \ . s:common_efm . ','
+          \ . '%+ECannot %.%#: You have unstaged changes.,'
+          \ . '%+ECannot %.%#: Your index contains uncommitted changes.,'
+          \ . '%+EThere is no tracking information for the current branch.,'
+          \ . '%+EYou are not currently on a branch. Please specify which,'
+          \ . 'CONFLICT (%m): %f deleted in %.%#,'
+          \ . 'CONFLICT (%m): Merge conflict in %f,'
+          \ . 'CONFLICT (%m): Rename \"%f\"->%.%#,'
+          \ . 'CONFLICT (%m): Rename %.%#->%f %.%#,'
+          \ . 'CONFLICT (%m): There is a directory with name %f in %.%#,'
+          \ . '%+ECONFLICT %.%#,'
+          \ . '%+EKONFLIKT %.%#,'
+          \ . '%+ECONFLIT %.%#,'
+          \ . "%+EXUNG \u0110\u1ed8T %.%#,"
+          \ . "%+E\u51b2\u7a81 %.%#,"
+          \ . 'U%\t%f'
+    if a:cmd =~# '^merge' && empty(a:args) &&
+          \ (had_merge_msg || isdirectory(s:repo().dir('rebase-apply')) ||
+          \  !empty(s:repo().git_chomp('diff-files', '--diff-filter=U')))
+      let &l:makeprg = g:fugitive_git_executable.' diff-files --name-status --diff-filter=U'
+    else
+      let &l:makeprg = s:sub(g:fugitive_git_executable.' -c core.editor=false '.
+            \ a:cmd . (a:args =~# ' \%(--no-edit\|--abort\|-m\)\>' ? '' : ' --edit') . ' ' . a:args,
+            \ ' *$', '')
+    endif
+    if !empty($GIT_EDITOR)
+      let old_editor = $GIT_EDITOR
+      let $GIT_EDITOR = 'false'
+    endif
+    execute cd fnameescape(s:repo().tree())
+    silent noautocmd make!
+  catch /^Vim\%((\a\+)\)\=:E211/
+    let err = v:exception
+  finally
+    redraw!
+    let [&l:mp, &l:efm] = [mp, efm]
+    if exists('old_editor')
+      let $GIT_EDITOR = old_editor
+    endif
+    execute cd fnameescape(cwd)
+  endtry
+  call fugitive#reload_status()
+  if empty(filter(getqflist(),'v:val.valid'))
+    if !had_merge_msg && filereadable(s:repo().dir('MERGE_MSG'))
+      cclose
+      return 'Gcommit --no-status -t '.s:shellesc(s:repo().dir('MERGE_MSG'))
+    endif
+  endif
+  let qflist = getqflist()
+  let found = 0
+  for e in qflist
+    if !empty(e.bufnr)
+      let found = 1
+      let e.pattern = '^<<<<<<<'
+    endif
+  endfor
+  call fugitive#cwindow()
+  if found
+    call setqflist(qflist, 'r')
+    if !a:bang
+      return 'cfirst'
+    endif
+  endif
+  return exists('err') ? 'echoerr '.string(err) : ''
+endfunction
+
 " Section: Ggrep, Glog
 
 if !exists('g:fugitive_summary_format')
