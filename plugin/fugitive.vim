@@ -792,9 +792,9 @@ function! s:StageUndo() abort
     if section ==# 'untracked'
       call delete(s:repo().tree(filename))
     elseif section ==# 'unstaged'
-      call repo.git_chomp('checkout', '--', filename)
+      call repo.git_chomp_in_tree('checkout', '--', filename)
     else
-      call repo.git_chomp('checkout', 'HEAD', '--', filename)
+      call repo.git_chomp_in_tree('checkout', 'HEAD', '--', filename)
     endif
     call s:StageReloadSeek(filename, line('.'), line('.'))
     let @" = hash
