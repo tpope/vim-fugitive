@@ -1802,6 +1802,9 @@ function! s:linechars(pattern) abort
 endfunction
 
 function! s:Blame(bang,line1,line2,count,args) abort
+  if exists('b:fugitive_blamed_bufnr')
+    return 'bdelete'
+  endif
   try
     if s:buffer().path() == ''
       call s:throw('file or blob required')
