@@ -2049,6 +2049,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
         if exists('+relativenumber')
           setlocal norelativenumber
         endif
+        let &l:statusline = '%{fugitive#blame_statusline('.bufnr('').')}%<'
         execute "vertical resize ".(s:linechars('.\{-\}\ze\s\+\d\+)')+1)
         nnoremap <buffer> <silent> <F1> :help fugitive-:Gblame<CR>
         nnoremap <buffer> <silent> g?   :help fugitive-:Gblame<CR>
@@ -2214,6 +2215,25 @@ function! s:RehighlightBlame() abort
       exe 'hi link FugitiveblameHash'.hash.' Identifier'
     endif
   endfor
+endfunction
+
+function! fugitive#blame_statusline(nr) abort
+  if bufnr('%') != a:nr && !getwinvar(0, '&cursorbind')
+    return ''
+  endif
+  let line = getbufline(a:nr, line('.'))[0]
+  let hash = matchstr(line, '^\^\=\zs\x\{7}')
+  if hash =~# '^0*$'
+    return ''
+  endif
+  if type(getbufvar(a:nr, 'fugitive_blame_lookup')) != type({})
+    call setbufvar(a:nr, 'fugitive_blame_lookup', {})
+  endif
+  let lookup = getbufvar(a:nr, 'fugitive_blame_lookup')
+  if !has_key(lookup, hash)
+    let lookup[hash] = s:repo().git_chomp('log', '-1', hash, '--pretty=format:'.g:fugitive_summary_format)
+  endif
+  return get(lookup, hash, '')
 endfunction
 
 " Section: Gbrowse
