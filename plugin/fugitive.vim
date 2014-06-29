@@ -1101,6 +1101,7 @@ let s:common_efm = ''
       \ . '%+Eusage:%.%#,'
       \ . '%+Eerror:%.%#,'
       \ . '%+Efatal:%.%#,'
+      \ . '%-G%.%#%\e[K%.%#,'
       \ . '%-G%.%#%\r%.%\+'
 
 function! s:Merge(cmd, bang, args) abort
