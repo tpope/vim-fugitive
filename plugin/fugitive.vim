@@ -648,11 +648,15 @@ function! s:Git(bang, args) abort
   return matchstr(a:args, '\v\C\\@<!%(\\\\)*\|\zs.*')
 endfunction
 
-function! s:GitComplete(A,L,P) abort
+function! fugitive#git_commands() abort
   if !exists('s:exec_path')
     let s:exec_path = s:sub(system(g:fugitive_git_executable.' --exec-path'),'\n$','')
   endif
-  let cmds = map(split(glob(s:exec_path.'/git-*'),"\n"),'s:sub(v:val[strlen(s:exec_path)+5 : -1],"\\.exe$","")')
+  return map(split(glob(s:exec_path.'/git-*'),"\n"),'s:sub(v:val[strlen(s:exec_path)+5 : -1],"\\.exe$","")')
+endfunction
+
+function! s:GitComplete(A,L,P) abort
+  let cmds = fugitive#git_commands()
   if a:L =~ ' [[:alnum:]-]\+ '
     return s:repo().superglob(a:A)
   else
