@@ -964,15 +964,16 @@ endfunction
 
 call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit(<q-args>)")
 
-function! s:Commit(args) abort
+function! s:Commit(args, ...) abort
+  let repo = a:0 ? a:1 : s:repo()
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
   let dir = getcwd()
-  let msgfile = s:repo().dir('COMMIT_EDITMSG')
+  let msgfile = repo.dir('COMMIT_EDITMSG')
   let outfile = tempname()
   let errorfile = tempname()
   try
     try
-      execute cd.s:fnameescape(s:repo().tree())
+      execute cd.s:fnameescape(repo.tree())
       if s:winshell()
         let command = ''
         let old_editor = $GIT_EDITOR
@@ -980,7 +981,7 @@ function! s:Commit(args) abort
       else
         let command = 'env GIT_EDITOR=false '
       endif
-      let command .= s:repo().git_command('commit').' '.a:args
+      let command .= repo.git_command('commit').' '.a:args
       if &shell =~# 'csh'
         noautocmd silent execute '!('.command.' > '.outfile.') >& '.errorfile
       elseif a:args =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>'
@@ -1058,7 +1059,7 @@ function! s:FinishCommit() abort
   let args = getbufvar(+expand('<abuf>'),'fugitive_commit_arguments')
   if !empty(args)
     call setbufvar(+expand('<abuf>'),'fugitive_commit_arguments','')
-    return s:Commit(args)
+    return s:Commit(args, s:repo(getbufvar(+expand('<abuf>'),'git_dir')))
   endif
   return ''
 endfunction
