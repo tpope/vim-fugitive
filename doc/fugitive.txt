@@ -81,6 +81,15 @@ that are part of Git repositories).
                                                 *fugitive-:Gpull*
 :Gpull [args]           Like |:Gmerge|, but for git-pull.
 
+                                                *fugitive-:Gpush*
+:Gpush [args]           Invoke git-push, load the results into the quickfix
+                        list, and invoke |:cwindow| to reveal any errors.
+                        |:Dispatch| is used if available for asynchronous
+                        invocation.
+
+                                                *fugitive-:Gfetch*
+:Gfetch [args]          Like |:Gpush|, but for git-fetch.
+
                                                 *fugitive-:Ggrep*
 :Ggrep [args]           |:grep| with git-grep as 'grepprg'.
 

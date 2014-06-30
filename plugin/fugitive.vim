@@ -1531,6 +1531,35 @@ augroup fugitive_commit
   autocmd VimLeavePre,BufDelete COMMIT_EDITMSG execute s:sub(s:FinishCommit(), '^echoerr (.*)', 'echohl ErrorMsg|echo \1|echohl NONE')
 augroup END
 
+" Section: Gpush, Gfetch
+
+call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpush  execute s:Dispatch('<bang>', 'push '.<q-args>)")
+call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gfetch execute s:Dispatch('<bang>', 'fetch '.<q-args>)")
+
+function! s:Dispatch(bang, args)
+  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
+  let cwd = getcwd()
+  let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
+  try
+    let b:current_compiler = 'git'
+    let &l:errorformat = s:common_efm
+    let &l:makeprg = g:fugitive_git_executable . ' ' . a:args
+    execute cd fnameescape(s:repo().tree())
+    if exists(':Make') == 2
+      noautocmd Make
+    else
+      silent noautocmd make!
+      redraw!
+      return 'call fugitive#cwindow()'
+    endif
+    return ''
+  finally
+    let [&l:mp, &l:efm, b:current_compiler] = [mp, efm, cc]
+    if empty(cc) | unlet! b:current_compiler | endif
+    execute cd fnameescape(cwd)
+  endtry
+endfunction
+
 " Section: Gdiff
 
 call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('',<f-args>)")
