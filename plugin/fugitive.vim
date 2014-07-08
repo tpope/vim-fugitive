@@ -1165,7 +1165,7 @@ function! s:Merge(cmd, bang, args) abort
   if empty(filter(getqflist(),'v:val.valid'))
     if !had_merge_msg && filereadable(s:repo().dir('MERGE_MSG'))
       cclose
-      return 'Gcommit --no-status -t '.s:shellesc(s:repo().dir('MERGE_MSG'))
+      return 'Gcommit --no-status -n -t '.s:shellesc(s:repo().dir('MERGE_MSG'))
     endif
   endif
   let qflist = getqflist()
