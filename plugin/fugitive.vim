@@ -192,6 +192,7 @@ function! fugitive#detect(path) abort
       if &filetype !=# '' && filereadable(b:git_dir.'/'.&filetype.'.tags')
         call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
       endif
+      call buffer.setvar('&tags', simplify(escape(b:git_dir.'/../tags', ', ')).','.buffer.getvar('&tags'))
     endif
     silent doautocmd User Fugitive
   endif
