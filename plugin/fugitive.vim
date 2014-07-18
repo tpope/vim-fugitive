@@ -2097,13 +2097,6 @@ endfunction
 
 call s:command("-bar -bang -range -nargs=* -complete=customlist,s:EditComplete Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
 
-if !exists('g:fugitive_experimental_browse_handlers')
-  let g:fugitive_experimental_browse_handlers = []
-endif
-
-call extend(g:fugitive_experimental_browse_handlers,
-      \ [s:function('s:github_url'), s:function('s:instaweb_url')])
-
 function! s:Browse(bang,line1,count,...) abort
   try
     let rev = a:0 ? substitute(join(a:000, ' '),'@[[:alnum:]_-]*\%(://.\{-\}\)\=$','','') : ''
@@ -2305,6 +2298,13 @@ function! s:instaweb_url(repo,rev,commit,path,type,...) abort
   endif
   return url
 endfunction
+
+if !exists('g:fugitive_experimental_browse_handlers')
+  let g:fugitive_experimental_browse_handlers = []
+endif
+
+call extend(g:fugitive_experimental_browse_handlers,
+      \ [s:function('s:github_url'), s:function('s:instaweb_url')])
 
 " Section: File access
 
