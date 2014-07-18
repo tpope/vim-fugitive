@@ -228,10 +228,20 @@ that are part of Git repositories).
                         "git instaweb" from a terminal).  If a range is given,
                         it is appropriately appended to the URL as an anchor.
 
-                        To use with GitHub FI, point g:fugitive_github_domains
+                        It also supports GitHub FI and Gitlab Site.
+
+                        To use them with fugitive, point g:fugitive_github_domains
                         at a list of domains:
 >
-                        let g:fugitive_github_domains = ['https://example.com']
+                        let g:fugitive_github_domains = ['https://git.example.com']
+<
+                        To use with Gitlab Site, enable the
+                        g:fugitive_gitlab_engine switch:
+
+>
+                        let g:fugitive_gitlab_engine = '1'
+<
+                        
 ~
 :[range]Gbrowse!        Like :Gbrowse, but put the URL on the clipboard rather
                         than opening it.
