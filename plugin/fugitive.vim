@@ -2097,6 +2097,13 @@ endfunction
 
 call s:command("-bar -bang -range -nargs=* -complete=customlist,s:EditComplete Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
 
+if !exists('g:fugitive_experimental_browse_handlers')
+  let g:fugitive_experimental_browse_handlers = []
+endif
+
+call extend(g:fugitive_experimental_browse_handlers,
+      \ [s:function('s:github_url'), s:function('s:instaweb_url')])
+
 function! s:Browse(bang,line1,count,...) abort
   try
     let rev = a:0 ? substitute(join(a:000, ' '),'@[[:alnum:]_-]*\%(://.\{-\}\)\=$','','') : ''
@@ -2175,13 +2182,15 @@ function! s:Browse(bang,line1,count,...) abort
       let raw = remote
     endif
 
-    let url = s:github_url(s:repo(),raw,rev,commit,path,type,a:line1,a:count)
-    if url == ''
-      let url = s:instaweb_url(s:repo(),rev,commit,path,type,a:count > 0 ? a:line1 : 0)
-    endif
+    for Handler in g:fugitive_experimental_browse_handlers
+      let url = call(Handler, [s:repo(),raw,rev,commit,path,type,a:line1,a:count])
+      if !empty(url)
+        break
+      endif
+    endfor
 
-    if url == ''
-      call s:throw("Instaweb failed to start and '".remote."' is not a GitHub remote")
+    if empty(url)
+      call s:throw("Instaweb failed to start and '".remote."' is not a supported remote")
     endif
 
     if a:bang
