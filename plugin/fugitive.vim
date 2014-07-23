@@ -2622,7 +2622,7 @@ augroup fugitive_temp
         \   let b:git_type = 'temp' |
         \   let b:git_args = s:temp_files[tolower(expand('<afile>:p'))].args |
         \   call fugitive#detect(expand('<afile>:p')) |
-        \   setlocal bufhidden=delete |
+        \   setlocal bufhidden=delete nobuflisted |
         \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>|
         \ endif
 augroup END
