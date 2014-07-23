@@ -2195,7 +2195,9 @@ function! s:Browse(bang,line1,count,...) abort
     endif
 
     if a:bang
-      let @* = url
+      if has('clipboard')
+        let @* = url
+      endif
       return 'echomsg '.string(url)
     elseif exists(':Browse') == 2
       return 'echomsg '.string(url).'|Browse '.url
