@@ -2176,7 +2176,8 @@ function! s:Browse(bang,line1,count,...) abort
     endif
 
     for Handler in g:fugitive_browse_handlers
-      let url = call(Handler, [s:repo(), {
+      let url = call(Handler, [{
+            \ 'repo': s:repo(),
             \ 'remote': raw,
             \ 'revision': rev,
             \ 'commit': commit,
@@ -2206,7 +2207,7 @@ function! s:Browse(bang,line1,count,...) abort
   endtry
 endfunction
 
-function! s:github_url(repo, opts, ...) abort
+function! s:github_url(opts, ...) abort
   if a:0 || type(a:opts) != type({})
     return ''
   endif
@@ -2226,7 +2227,7 @@ function! s:github_url(repo, opts, ...) abort
     let root = 'https://' . s:sub(repo,':','/')
   endif
   if path =~# '^\.git/refs/heads/'
-    let branch = a:repo.git_chomp('config','branch.'.path[16:-1].'.merge')[11:-1]
+    let branch = a:opts.repo.git_chomp('config','branch.'.path[16:-1].'.merge')[11:-1]
     if branch ==# ''
       return root . '/commits/' . path[16:-1]
     else
@@ -2242,8 +2243,8 @@ function! s:github_url(repo, opts, ...) abort
   if a:opts.revision =~# '^[[:alnum:]._-]\+:'
     let commit = matchstr(a:opts.revision,'^[^:]*')
   elseif a:opts.commit =~# '^\d\=$'
-    let local = matchstr(a:repo.head_ref(),'\<refs/heads/\zs.*')
-    let commit = a:repo.git_chomp('config','branch.'.local.'.merge')[11:-1]
+    let local = matchstr(a:opts.repo.head_ref(),'\<refs/heads/\zs.*')
+    let commit = a:opts.repo.git_chomp('config','branch.'.local.'.merge')[11:-1]
     if commit ==# ''
       let commit = local
     endif
@@ -2268,10 +2269,10 @@ function! s:github_url(repo, opts, ...) abort
   return url
 endfunction
 
-function! s:instaweb_url(repo, opts) abort
-  let output = a:repo.git_chomp('instaweb','-b','unknown')
+function! s:instaweb_url(opts) abort
+  let output = a:opts.repo.git_chomp('instaweb','-b','unknown')
   if output =~# 'http://'
-    let root = matchstr(output,'http://.*').'/?p='.fnamemodify(a:repo.dir(),':t')
+    let root = matchstr(output,'http://.*').'/?p='.fnamemodify(a:opts.repo.opts.dir(),':t')
   else
     return ''
   endif
@@ -2285,20 +2286,20 @@ function! s:instaweb_url(repo, opts) abort
     if a:opts.type ==# 'commit'
       let url .= ';a=commit'
     endif
-    let url .= ';h=' . a:repo.rev_parse(a:opts.commit . (a:opts.path == '' ? '' : ':' . a:opts.path))
+    let url .= ';h=' . a:opts.repo.rev_parse(a:opts.commit . (a:opts.path == '' ? '' : ':' . a:opts.path))
   else
     if a:opts.type ==# 'blob'
       let tmp = tempname()
-      silent execute 'write !'.a:repo.git_command('hash-object','-w','--stdin').' > '.tmp
+      silent execute 'write !'.a:opts.repo.git_command('hash-object','-w','--stdin').' > '.tmp
       let url .= ';h=' . readfile(tmp)[0]
     else
       try
-        let url .= ';h=' . a:repo.rev_parse((a:opts.commit == '' ? 'HEAD' : ':' . a:opts.commit) . ':' . a:opts.path)
+        let url .= ';h=' . a:opts.repo.rev_parse((a:opts.commit == '' ? 'HEAD' : ':' . a:opts.commit) . ':' . a:opts.path)
       catch /^fugitive:/
         call s:throw('fugitive: cannot browse uncommitted file')
       endtry
     endif
-    let root .= ';hb=' . matchstr(a:repo.head_ref(),'[^ ]\+$')
+    let root .= ';hb=' . matchstr(a:opts.repo.head_ref(),'[^ ]\+$')
   endif
   if a:opts.path !=# ''
     let url .= ';f=' . a:opts.path
