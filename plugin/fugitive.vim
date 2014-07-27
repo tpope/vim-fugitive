@@ -2183,8 +2183,8 @@ function! s:Browse(bang,line1,count,...) abort
             \ 'commit': commit,
             \ 'path': path,
             \ 'type': type,
-            \ 'line1': a:line1,
-            \ 'line2': a:count}])
+            \ 'line1': a:count > 0 ? a:line1 : 0,
+            \ 'line2': a:count > 0 ? a:count : 0}])
       if !empty(url)
         break
       endif
