@@ -1853,9 +1853,6 @@ function! s:Diff(vert,keepfocus,...) abort
     let spec = s:repo().translate(file)
     let commit = matchstr(spec,'\C[^:/]//\zs\x\+')
     let restore = s:diff_restore()
-    if exists('+cursorbind')
-      setlocal cursorbind
-    endif
     let w:fugitive_diff_restore = restore
     if s:buffer().compare_age(commit) < 0
       execute 'rightbelow '.vert.'diffsplit '.s:fnameescape(spec)
@@ -1864,6 +1861,11 @@ function! s:Diff(vert,keepfocus,...) abort
     endif
     let &l:readonly = &l:readonly
     redraw
+    if exists('+cursorbind')
+      wincmd p
+      setlocal cursorbind
+      wincmd p
+    endif
     let w:fugitive_diff_restore = restore
     let winnr = winnr()
     if getwinvar('#', '&diff')
