@@ -172,7 +172,7 @@ function! fugitive#detect(path) abort
     unlet b:git_dir
   endif
   if !exists('b:git_dir')
-    let dir = fugitive#extract_git_dir(a:path)
+    let dir = fugitive#extract_git_dir(resolve(a:path))
     if dir !=# ''
       let b:git_dir = dir
     endif
