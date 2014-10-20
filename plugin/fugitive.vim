@@ -1373,11 +1373,14 @@ call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gvspl
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gtabedit :execute s:Edit('tabedit',<bang>0,<f-args>)")
 call s:command("-bar -bang -nargs=* -count -complete=customlist,s:EditRunComplete Gread :execute s:Edit((!<count> && <line1> ? '' : <count>).'read',<bang>0,<f-args>)")
 
-" Section: Gwrite, Gwq
+" Section: Gwrite, Gwq, Gwn, Gwp
 
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwrite :execute s:Write(<bang>0,<f-args>)")
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gw :execute s:Write(<bang>0,<f-args>)")
 call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwq :execute s:Wq(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwn :execute s:Wn(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwp :execute s:Wp(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete GwN :execute s:Wp(<bang>0,<f-args>)")
 
 function! s:Write(force,...) abort
   if exists('b:fugitive_commit_arguments')
@@ -1526,6 +1529,32 @@ function! s:Wq(force,...) abort
     return s:sub(result,'^write','wq')
   else
     return result.'|quit'.bang
+  endif
+endfunction
+
+function! s:Wn(force,...) abort
+  let bang = a:force ? '!' : ''
+  if exists('b:fugitive_commit_arguments')
+    return 'wn'.bang
+  endif
+  let result = call(s:function('s:Write'),[a:force]+a:000)
+  if result =~# '^\%(write\|wq\|echoerr\)'
+    return s:sub(result,'^write','wn')
+  else
+    return result.'|next'.bang
+  endif
+endfunction
+
+function! s:Wp(force,...) abort
+  let bang = a:force ? '!' : ''
+  if exists('b:fugitive_commit_arguments')
+    return 'wp'.bang
+  endif
+  let result = call(s:function('s:Write'),[a:force]+a:000)
+  if result =~# '^\%(write\|wq\|echoerr\)'
+    return s:sub(result,'^write','wp')
+  else
+    return result.'|previous'.bang
   endif
 endfunction
 
