@@ -12,6 +12,10 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
+if !exists('g:fugitive_browse_remote')
+  let g:fugitive_browse_remote = 'origin'
+endif
+
 " Section: Utility
 
 function! s:function(name) abort
@@ -2158,7 +2162,7 @@ function! s:Browse(bang,line1,count,...) abort
     elseif path =~# '^\.git/refs/remotes/.'
       let remote = matchstr(path,'^\.git/refs/remotes/\zs[^/]\+')
     else
-      let remote = 'origin'
+      let remote = g:fugitive_browse_remote
       let branch = matchstr(rev,'^[[:alnum:]/._-]\+\ze[:^~@]')
       if branch ==# '' && path =~# '^\.git/refs/\w\+/'
         let branch = s:sub(path,'^\.git/refs/\w+/','')
@@ -2173,7 +2177,7 @@ function! s:Browse(bang,line1,count,...) abort
         if branch != ''
           let remote = s:repo().git_chomp('config','branch.'.branch.'.remote')
           if remote =~# '^\.\=$'
-            let remote = 'origin'
+            let remote = g:fugitive_browse_remote
           elseif rev[0:strlen(branch)-1] ==# branch && rev[strlen(branch)] =~# '[:^~@]'
             let rev = s:repo().git_chomp('config','branch.'.branch.'.merge')[11:-1] . rev[strlen(branch):-1]
           endif
