@@ -185,7 +185,14 @@ function! fugitive#detect(path) abort
     endif
   endif
   if exists('b:git_dir')
-    silent doautocmd User FugitiveBoot
+    if exists('#User#FugitiveBoot')
+      try
+        let [save_mls, &modelines] = [&mls, 0]
+        doautocmd User FugitiveBoot
+      finally
+        let &mls = save_mls
+      endtry
+    endif
     cnoremap <buffer> <expr> <C-R><C-G> fnameescape(<SID>recall())
     nnoremap <buffer> <silent> y<C-G> :call setreg(v:register, <SID>recall())<CR>
     let buffer = fugitive#buffer()
@@ -200,7 +207,12 @@ function! fugitive#detect(path) abort
         call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
       endif
     endif
-    silent doautocmd User Fugitive
+    try
+      let [save_mls, &modelines] = [&mls, 0]
+      doautocmd User Fugitive
+    finally
+      let &mls = save_mls
+    endtry
   endif
 endfunction
 
@@ -2506,7 +2518,9 @@ function! s:BufWriteIndexFile() abort
     endif
     if v:shell_error == 0
       setlocal nomodified
-      silent execute 'doautocmd BufWritePost '.s:fnameescape(expand('%:p'))
+      if exists('#BufWritePost')
+        execute 'doautocmd BufWritePost '.s:fnameescape(expand('%:p'))
+      endif
       call fugitive#reload_status()
       return ''
     else
