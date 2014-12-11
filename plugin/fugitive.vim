@@ -1667,6 +1667,7 @@ function! s:diffoff() abort
 endfunction
 
 function! s:diffoff_all(dir) abort
+  let curwin = winnr()
   for nr in range(1,winnr('$'))
     if getwinvar(nr,'&diff')
       if nr != winnr()
@@ -1678,6 +1679,7 @@ function! s:diffoff_all(dir) abort
       endif
     endif
   endfor
+  execute curwin.'wincmd w'
 endfunction
 
 function! s:buffer_compare_age(commit) dict abort
