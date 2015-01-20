@@ -1,6 +1,6 @@
 " fugitive.vim - A Git wrapper so awesome, it should be illegal
 " Maintainer:   Tim Pope <http://tpo.pe/>
-" Version:      2.1
+" Version:      2.2
 " GetLatestVimScripts: 2975 1 :AutoInstall: fugitive.vim
 
 if exists('g:loaded_fugitive') || &cp
