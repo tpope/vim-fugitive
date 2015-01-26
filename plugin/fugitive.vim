@@ -1759,7 +1759,7 @@ function! s:Diff(vert,...) abort
     let winnr = winnr()
     if getwinvar('#', '&diff')
       wincmd p
-      call feedkeys("\<C-W>p", 'n')
+      call feedkeys(winnr."\<C-W>w", 'n')
     endif
     return ''
   catch /^fugitive:/
