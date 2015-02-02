@@ -1398,11 +1398,11 @@ call s:command("-bar -bang -nargs=* -count -complete=customlist,s:EditRunComplet
 
 " Section: Gwrite, Gwq
 
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwrite :execute s:Write(<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gw :execute s:Write(<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwq :execute s:Wq(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -range=% -complete=customlist,s:EditComplete Gwrite :execute s:Write(<line1>,<line2>,<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -range=% -complete=customlist,s:EditComplete Gw :execute s:Write(<line1>,<line2>,<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -range=% -complete=customlist,s:EditComplete Gwq :execute s:Wq(<line1>,<line2>,<bang>0,<f-args>)")
 
-function! s:Write(force,...) abort
+function! s:Write(line1,line2,force,...) abort
   if exists('b:fugitive_commit_arguments')
     return 'write|bdelete'
   elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
@@ -1539,12 +1539,12 @@ function! s:Write(force,...) abort
   return 'checktime'
 endfunction
 
-function! s:Wq(force,...) abort
+function! s:Wq(line1,line2,force,...) abort
   let bang = a:force ? '!' : ''
   if exists('b:fugitive_commit_arguments')
     return 'wq'.bang
   endif
-  let result = call(s:function('s:Write'),[a:force]+a:000)
+  let result = call(s:function('s:Write'),[a:line1,a:line2,a:force]+a:000)
   if result =~# '^\%(write\|wq\|echoerr\)'
     return s:sub(result,'^write','wq')
   else
