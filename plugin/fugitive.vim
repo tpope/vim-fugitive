@@ -2425,13 +2425,16 @@ function! s:BufReadIndex() abort
     else
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
       let dir = getcwd()
-      if fugitive#git_version() =~# '^0\|^1\.[1-7]\.'
+      if fugitive#git_version() =~# '^0\|^1\.[1-3]\.'
         let cmd = s:repo().git_command('status')
+      elseif fugitive#git_version() =~# '^1\.[4-7]\.'
+        let cmd = s:repo().git_command('status', '-u')
       else
         let cmd = s:repo().git_command(
               \ '-c', 'status.displayCommentPrefix=true',
               \ '-c', 'color.status=false',
               \ '-c', 'status.short=false',
+              \ '-c', 'status.showUntrackedFiles=all',
               \ 'status')
       endif
       try
