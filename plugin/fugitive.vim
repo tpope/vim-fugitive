@@ -670,7 +670,11 @@ function! s:Git(bang, args) abort
     let git .= ' --no-pager'
   endif
   let args = matchstr(a:args,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
-  call s:ExecuteInTree('!'.git.' '.args)
+  if has('nvim')
+    call s:ExecuteInTree("tabnew | term ".git." ".args)
+  else
+    call s:ExecuteInTree('!'.git.' '.args)
+  endif
   call fugitive#reload_status()
   return matchstr(a:args, '\v\C\\@<!%(\\\\)*\|\zs.*')
 endfunction
@@ -708,6 +712,7 @@ augroup fugitive_status
   autocmd!
   if !has('win32')
     autocmd FocusGained,ShellCmdPost * call fugitive#reload_status()
+    autocmd BufDelete term://*:git* call fugitive#reload_status()
   endif
 augroup END
 
