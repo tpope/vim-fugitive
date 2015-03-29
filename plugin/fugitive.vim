@@ -973,7 +973,7 @@ function! s:StagePatch(lnum1,lnum2) abort
       execute "Git add --patch -- ".join(map(add,'s:shellesc(v:val)'))
     endif
     if !empty(reset)
-      execute "Git reset --patch -- ".join(map(add,'s:shellesc(v:val)'))
+      execute "Git reset --patch -- ".join(map(reset,'s:shellesc(v:val)'))
     endif
     if exists('first_filename')
       silent! edit!
