@@ -1,6 +1,6 @@
 " fugitive.vim - A Git wrapper so awesome, it should be illegal
 " Maintainer:   Tim Pope <http://tpo.pe/>
-" Version:      2.1
+" Version:      2.2
 " GetLatestVimScripts: 2975 1 :AutoInstall: fugitive.vim
 
 if exists('g:loaded_fugitive') || &cp
@@ -193,8 +193,10 @@ function! fugitive#detect(path) abort
         let &mls = save_mls
       endtry
     endif
-    cnoremap <buffer> <expr> <C-R><C-G> fnameescape(<SID>recall())
-    nnoremap <buffer> <silent> y<C-G> :call setreg(v:register, <SID>recall())<CR>
+    if !exists('g:fugitive_no_maps')
+      cnoremap <buffer> <expr> <C-R><C-G> fnameescape(<SID>recall())
+      nnoremap <buffer> <silent> y<C-G> :call setreg(v:register, <SID>recall())<CR>
+    endif
     let buffer = fugitive#buffer()
     if expand('%:p') =~# '//'
       call buffer.setvar('&path', s:sub(buffer.getvar('&path'), '^\.%(,|$)', ''))
@@ -668,8 +670,17 @@ function! s:Git(bang, args) abort
     let git .= ' --no-pager'
   endif
   let args = matchstr(a:args,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
-  call s:ExecuteInTree('!'.git.' '.args)
-  call fugitive#reload_status()
+  if exists(':terminal')
+    let dir = s:repo().tree()
+    tabnew
+    execute 'lcd' fnameescape(dir)
+    execute 'terminal' git args
+  else
+    call s:ExecuteInTree('!'.git.' '.args)
+    if has('win32')
+      call fugitive#reload_status()
+    endif
+  endif
   return matchstr(a:args, '\v\C\\@<!%(\\\\)*\|\zs.*')
 endfunction
 
@@ -706,6 +717,7 @@ augroup fugitive_status
   autocmd!
   if !has('win32')
     autocmd FocusGained,ShellCmdPost * call fugitive#reload_status()
+    autocmd BufDelete term://* call fugitive#reload_status()
   endif
 augroup END
 
@@ -971,7 +983,7 @@ function! s:StagePatch(lnum1,lnum2) abort
       execute "Git add --patch -- ".join(map(add,'s:shellesc(v:val)'))
     endif
     if !empty(reset)
-      execute "Git reset --patch -- ".join(map(add,'s:shellesc(v:val)'))
+      execute "Git reset --patch -- ".join(map(reset,'s:shellesc(v:val)'))
     endif
     if exists('first_filename')
       silent! edit!
@@ -1759,7 +1771,7 @@ function! s:Diff(vert,...) abort
     let winnr = winnr()
     if getwinvar('#', '&diff')
       wincmd p
-      call feedkeys("\<C-W>p", 'n')
+      call feedkeys(winnr."\<C-W>w", 'n')
     endif
     return ''
   catch /^fugitive:/
@@ -2226,7 +2238,14 @@ function! s:Browse(bang,line1,count,...) abort
     elseif exists(':Browse') == 2
       return 'echomsg '.string(url).'|Browse '.url
     else
-      return 'echomsg '.string(url).'|call netrw#NetrwBrowseX('.string(url).', 0)'
+      if !exists('g:loaded_netrw')
+        runtime! autoload/netrw.vim
+      endif
+      if exists('*netrw#BrowseX')
+        return 'echomsg '.string(url).'|call netrw#BrowseX('.string(url).', 0)'
+      else
+        return 'echomsg '.string(url).'|call netrw#NetrwBrowseX('.string(url).', 0)'
+      endif
     endif
   catch /^fugitive:/
     return 'echoerr v:errmsg'
