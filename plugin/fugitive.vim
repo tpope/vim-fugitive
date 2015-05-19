@@ -1845,7 +1845,7 @@ function! s:Remove(force) abort
     return 'echoerr '.string(v:errmsg)
   else
     call fugitive#reload_status()
-    return 'bdelete'.(a:force ? '!' : '')
+    return 'edit'.(a:force ? '!' : '')
   endif
 endfunction
 
