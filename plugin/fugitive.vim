@@ -1681,7 +1681,13 @@ function! s:diffoff() abort
 endfunction
 
 function! s:diffoff_all(dir) abort
-  let curwin = winnr()
+  " By entering a window, its height is potentially increased from 0 to 1
+  " (the minimum for the current window). To avoid any modification, save the
+  " window sizes and restore them after visiting all windows.
+  let winrestcmd = winrestcmd()
+  let currwin = winnr()
+  let prevwin = winnr('#') ? winnr('#') : 1
+
   for nr in range(1,winnr('$'))
     if getwinvar(nr,'&diff')
       if nr != winnr()
@@ -1693,7 +1699,10 @@ function! s:diffoff_all(dir) abort
       endif
     endif
   endfor
-  execute curwin.'wincmd w'
+
+  execute prevwin.'wincmd w'
+  execute currwin.'wincmd w'
+  silent! execute winrestcmd
 endfunction
 
 function! s:buffer_compare_age(commit) dict abort
