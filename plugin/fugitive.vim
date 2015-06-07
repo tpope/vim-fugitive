@@ -108,7 +108,7 @@ endfunction
 
 function! s:define_commands() abort
   for command in s:commands
-    exe 'command! -buffer '.command
+    exe 'command! '.command
   endfor
 endfunction
 
