@@ -1854,8 +1854,8 @@ endfunction
 augroup fugitive_remove
   autocmd!
   autocmd User Fugitive if s:buffer().commit() =~# '^0\=$' |
-        \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:MoveComplete Gmove :execute s:Move(<bang>0,<q-args>)" |
-        \ exe "command! -buffer -bar -bang Gremove :execute s:Remove(<bang>0)" |
+        \ exe "command! -bar -bang -nargs=1 -complete=customlist,s:MoveComplete Gmove :execute s:Move(<bang>0,<q-args>)" |
+        \ exe "command! -bar -bang Gremove :execute s:Remove(<bang>0)" |
         \ endif
 augroup END
 
