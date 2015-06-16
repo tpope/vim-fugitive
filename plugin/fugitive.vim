@@ -40,6 +40,16 @@ function! s:shellesc(arg) abort
   endif
 endfunction
 
+function! s:cygfix(file) abort
+  " Replace /cygdrive/x prefix with X: when using Cygwin (this prefix should
+  " never be used in the path otherwise) in order to allow the path work with
+  " non-Cygwin Vim. Notice that we must capitalize the drive name for
+  " comparisons using "==#" to work correctly (it would probably be better to
+  " use case-insensitive comparisons for file names under Windows in the first
+  " place...)
+  return s:sub(a:file, '/cygdrive/([A-Za-z])', '\u\1:')
+endfunction
+
 function! s:fnameescape(file) abort
   if exists('*fnameescape')
     return fnameescape(a:file)
@@ -162,8 +172,13 @@ function! fugitive#extract_git_dir(path) abort
       let line = get(readfile(dir, '', 1), 0, '')
       if line =~# '^gitdir: \.' && fugitive#is_git_dir(root.'/'.line[8:-1])
         return simplify(root.'/'.line[8:-1])
-      elseif line =~# '^gitdir: ' && fugitive#is_git_dir(line[8:-1])
-        return line[8:-1]
+      elseif line =~# '^gitdir: '
+        let gdir = s:cygfix(line[8:-1])
+        if fugitive#is_git_dir(gdir)
+          return gdir
+        else
+          call s:warn('Invalid gitdir in .git file: ' . line[8:-1])
+        endif
       endif
     elseif fugitive#is_git_dir(root)
       return root
@@ -265,7 +280,8 @@ function! s:configured_tree(git_dir) abort
       let config = readfile(config_file,'',10)
       call filter(config,'v:val =~# "^\\s*worktree *="')
       if len(config) == 1
-        let s:worktree_for_dir[a:git_dir] = matchstr(config[0], '= *\zs.*')
+        let worktree = s:cygfix(matchstr(config[0], '= *\zs.*'))
+        let s:worktree_for_dir[a:git_dir] = worktree
         let s:dir_for_worktree[s:worktree_for_dir[a:git_dir]] = a:git_dir
       endif
     endif
