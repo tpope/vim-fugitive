@@ -43,11 +43,19 @@ endfunction
 function! s:cygfix(file) abort
   " Replace /cygdrive/x prefix with X: when using Cygwin (this prefix should
   " never be used in the path otherwise) in order to allow the path work with
-  " non-Cygwin Vim. Notice that we must capitalize the drive name for
-  " comparisons using "==#" to work correctly (it would probably be better to
-  " use case-insensitive comparisons for file names under Windows in the first
-  " place...)
-  return s:sub(a:file, '/cygdrive/([A-Za-z])', '\u\1:')
+  " non-Cygwin Vim.
+  return s:sub(a:file, '/cygdrive/([A-Za-z])', '\1:')
+endfunction
+
+function! s:path_starts_with(path, prefix) abort
+  " Path comparison should be case-insensitive under Windows to avoid problems
+  " due to at least the drive names being sometimes in lower and sometimes in
+  " upper case.
+  if has('win32')
+    return a:path[0 : len(a:prefix) - 1] ==? a:prefix
+  else
+    return a:path[0 : len(a:prefix) - 1] ==# a:prefix
+  endif
 endfunction
 
 function! s:fnameescape(file) abort
@@ -577,9 +585,9 @@ function! s:buffer_path(...) dict abort
   let rev = matchstr(self.spec(),'^fugitive://.\{-\}//\zs.*')
   if rev != ''
     let rev = s:sub(rev,'\w*','')
-  elseif self.spec()[0 : len(self.repo().dir())] ==# self.repo().dir() . '/'
+  elseif s:path_starts_with(self.spec(), self.repo().dir() . '/')
     let rev = '/.git'.self.spec()[strlen(self.repo().dir()) : -1]
-  elseif !self.repo().bare() && self.spec()[0 : len(self.repo().tree())] ==# self.repo().tree() . '/'
+  elseif !self.repo().bare() && s:path_starts_with(self.spec(), self.repo().tree() . '/')
     let rev = self.spec()[strlen(self.repo().tree()) : -1]
   endif
   return s:sub(s:sub(rev,'.\zs/$',''),'^/',a:0 ? a:1 : '')
