@@ -557,13 +557,24 @@ function! s:buffer_commit() dict abort
   return matchstr(self.spec(),'^fugitive://.\{-\}//\zs\w*')
 endfunction
 
+function! s:cpath(path) abort
+  if &fileignorecase
+    return tolower(a:path)
+  else
+    return a:path
+  endif
+endfunction
+
 function! s:buffer_path(...) dict abort
   let rev = matchstr(self.spec(),'^fugitive://.\{-\}//\zs.*')
   if rev != ''
     let rev = s:sub(rev,'\w*','')
-  elseif self.spec()[0 : len(self.repo().dir())] ==# self.repo().dir() . '/'
+  elseif s:cpath(self.spec()[0 : len(self.repo().dir())]) ==#
+        \ s:cpath(self.repo().dir() . '/')
     let rev = '/.git'.self.spec()[strlen(self.repo().dir()) : -1]
-  elseif !self.repo().bare() && self.spec()[0 : len(self.repo().tree())] ==# self.repo().tree() . '/'
+  elseif !self.repo().bare() &&
+        \ s:cpath(self.spec()[0 : len(self.repo().tree())]) ==#
+        \ s:cpath(self.repo().tree() . '/')
     let rev = self.spec()[strlen(self.repo().tree()) : -1]
   endif
   return s:sub(s:sub(rev,'.\zs/$',''),'^/',a:0 ? a:1 : '')
@@ -1348,7 +1359,7 @@ function! s:Edit(cmd,bang,...) abort
       return 'redraw|echo '.string(':!'.git.' '.args)
     else
       let temp = resolve(tempname())
-      let s:temp_files[tolower(temp)] = { 'dir': buffer.repo().dir(), 'args': arglist }
+      let s:temp_files[s:cpath(temp)] = { 'dir': buffer.repo().dir(), 'args': arglist }
       silent execute a:cmd.' '.temp
       if a:cmd =~# 'pedit'
         wincmd P
@@ -1949,7 +1960,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
         endif
         let top = line('w0') + &scrolloff
         let current = line('.')
-        let s:temp_files[tolower(temp)] = { 'dir': s:repo().dir(), 'args': cmd }
+        let s:temp_files[s:cpath(temp)] = { 'dir': s:repo().dir(), 'args': cmd }
         exe 'keepalt leftabove vsplit '.temp
         let b:fugitive_blamed_bufnr = bufnr
         let w:fugitive_leave = restore
@@ -2668,10 +2679,10 @@ endif
 augroup fugitive_temp
   autocmd!
   autocmd BufNewFile,BufReadPost *
-        \ if has_key(s:temp_files,tolower(expand('<afile>:p'))) |
-        \   let b:git_dir = s:temp_files[tolower(expand('<afile>:p'))].dir |
+        \ if has_key(s:temp_files,s:cpath(expand('<afile>:p'))) |
+        \   let b:git_dir = s:temp_files[s:cpath(expand('<afile>:p'))].dir |
         \   let b:git_type = 'temp' |
-        \   let b:git_args = s:temp_files[tolower(expand('<afile>:p'))].args |
+        \   let b:git_args = s:temp_files[s:cpath(expand('<afile>:p'))].args |
         \   call fugitive#detect(expand('<afile>:p')) |
         \   setlocal bufhidden=delete nobuflisted |
         \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>|
