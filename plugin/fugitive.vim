@@ -558,7 +558,7 @@ function! s:buffer_commit() dict abort
 endfunction
 
 function! s:cpath(path) abort
-  if &fileignorecase
+  if exists('+fileignorecase') ? &fileignorecase : &wildignorecase
     return tolower(a:path)
   else
     return a:path
