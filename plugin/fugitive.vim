@@ -1234,55 +1234,127 @@ function! s:Merge(cmd, bang, args) abort
   return exists('err') ? 'echoerr '.string(err) : ''
 endfunction
 
-" Section: Ggrep, Glog
+" Section: Ggrep
+
+augroup fugitive_grep
+  autocmd!
+  autocmd BufReadPost *.fugitivegrep setfiletype fugitivegrep
+  autocmd FileType fugitivegrep setlocal nomodeline | if exists('b:git_dir') | let &l:keywordprg = s:repo().keywordprg() | endif
+  autocmd Syntax fugitivegrep call s:GrepSyntax()
+  autocmd User Fugitive exe "command! -buffer -bar -bang -range=0 -nargs=* Ggrep :execute s:Grep('grep',<bang>0,[<f-args>])"
+augroup END
+
+function! s:Grep(cmd,bang,args) abort
+  if exists('b:fugitive_grepped_bufnr')
+    return 'bdelete'
+  endif
+  try
+    let cmd = ['--no-pager', 'grep', '-I', '--no-color', '--line-number'] + a:args
+    let basecmd = escape(call(s:repo().git_command,cmd,s:repo()),'!')
+    try
+      let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
+      if !s:repo().bare()
+        let dir = getcwd()
+        execute cd.'`=s:repo().tree()`'
+      endif
+        let error = resolve(tempname())
+        let temp = error.'.fugitivegrep'
+        if &shell =~# 'csh'
+          silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
+        else
+          silent! execute '%write !'.basecmd.' > '.temp.' 2> '.error
+        endif
+        if exists('l:dir')
+          execute cd.'`=dir`'
+          unlet dir
+        endif
+        if v:shell_error
+          call s:throw(join(readfile(error),"\n"))
+        endif
+        for winnr in range(winnr('$'),1,-1)
+          if getbufvar(winbufnr(winnr), 'fugitive_grepped_bufnr')
+            execute winbufnr(winnr).'bdelete'
+          endif
+        endfor
+        let bufnr = bufnr('')
+        let restore = 'call setwinvar(bufwinnr('.bufnr.'),"&scrollbind",0)'
+        if &l:wrap
+          let restore .= '|call setwinvar(bufwinnr('.bufnr.'),"&wrap",1)'
+        endif
+        if &l:foldenable
+          let restore .= '|call setwinvar(bufwinnr('.bufnr.'),"&foldenable",1)'
+        endif
+        setlocal nowrap nofoldenable
+        let top = line('w0') + &scrolloff
+        let s:temp_files[s:cpath(temp)] = { 'dir': s:repo().dir(), 'args': cmd }
+        exe 'keepalt belowright split '.temp
+        let b:fugitive_grepped_bufnr = bufnr
+        let w:fugitive_leave = restore
+        execute top
+        normal! zt
+        setlocal nomodified nomodifiable nonumber nowrap foldcolumn=0 nofoldenable winfixwidth filetype=fugitivegrep
+        if exists('+concealcursor')
+          setlocal concealcursor=nc conceallevel=2
+        endif
+        if exists('+relativenumber')
+          setlocal norelativenumber
+        endif
+        execute "resize 15"
+        nnoremap <buffer> <silent> <F1> :help fugitive-:Ggrep<CR>
+        nnoremap <buffer> <silent> g?   :help fugitive-:Ggrep<CR>
+        nnoremap <buffer> <silent> q    :exe substitute(bufwinnr(b:fugitive_grepped_bufnr).' wincmd w<Bar>'.bufnr('').'bdelete','^-1','','')<CR>
+        nnoremap <buffer> <silent> <CR> :<C-U>exe <SID>GrepJump("exe 'norm q'<Bar>edit")<CR>
+        nnoremap <buffer> <silent> -    :<C-u>exe "resize ".(winheight(0) - 5)<CR>
+        nnoremap <buffer> <silent> =    :<C-u>exe "resize ".(winheight(0) + 5)<CR>
+        redraw
+    finally
+      if exists('l:dir')
+        execute cd.'`=dir`'
+      endif
+    endtry
+    return ''
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
+endfunction
+
+function! s:GrepJump(cmd) abort
+  let path = matchstr(getline('.'),'^\zs.\{-}\ze[:-]\d\+[:-]')
+  let lnum = matchstr(getline('.'),'\zs\d\+\ze[:-]')
+  let cmd = s:Edit(a:cmd, 0, path)
+  if cmd =~# '^echoerr'
+    return cmd
+  endif
+  if path ==# ''
+    let path = s:buffer(b:fugitive_grepped_bufnr).path()
+  endif
+  execute cmd
+  execute lnum
+  return ''
+endfunction
+
+function! s:GrepSyntax() abort
+  let b:current_syntax = 'fugitivegrep'
+  let conceal = has('conceal') ? ' conceal' : ''
+  let arg = exists('b:fugitive_grep_arguments') ? b:fugitive_grep_arguments : ''
+  syn match FugitivegrepFile "^\zs.\{-}\ze[:-]\d\+[:-]" nextgroup=FugitivegrepDelimiter skipwhite
+  syn match FugitivegrepLineNumber "\zs\d\+\ze[:-]" nextgroup=FugitivegrepDelimiter skipwhite
+  syn match FugitivegrepOriginalFile "[:-]\zs.\+\ze$" skipwhite
+  syn match FugitivegrepDelimiter "[:-]" nextgroup=FugitivegrepLineNumber,FugitivegrepOriginalFile skipwhite
+  hi def link FugitivegrepFile               Identifier
+  hi def link FugitivegrepLineNumber         Number
+  hi def link FugitivegrepOriginalFile       String
+  hi def link FugitivegrepDelimiter          Delimiter
+endfunction
+
+" Section: Glog
 
 if !exists('g:fugitive_summary_format')
   let g:fugitive_summary_format = '%s'
 endif
 
-call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
-call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
 call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete Glog :call s:Log('grep<bang>',<line1>,<count>,<f-args>)")
 call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete Gllog :call s:Log('lgrep<bang>',<line1>,<count>,<f-args>)")
-
-function! s:Grep(cmd,bang,arg) abort
-  let grepprg = &grepprg
-  let grepformat = &grepformat
-  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
-  let dir = getcwd()
-  try
-    execute cd.'`=s:repo().tree()`'
-    let &grepprg = s:repo().git_command('--no-pager', 'grep', '-n', '--no-color')
-    let &grepformat = '%f:%l:%m'
-    exe a:cmd.'! '.escape(matchstr(a:arg,'\v\C.{-}%($|[''" ]\@=\|)@='),'|')
-    let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
-    for entry in list
-      if bufname(entry.bufnr) =~ ':'
-        let entry.filename = s:repo().translate(bufname(entry.bufnr))
-        unlet! entry.bufnr
-        let changed = 1
-      elseif a:arg =~# '\%(^\| \)--cached\>'
-        let entry.filename = s:repo().translate(':0:'.bufname(entry.bufnr))
-        unlet! entry.bufnr
-        let changed = 1
-      endif
-    endfor
-    if a:cmd =~# '^l' && exists('changed')
-      call setloclist(0, list, 'r')
-    elseif exists('changed')
-      call setqflist(list, 'r')
-    endif
-    if !a:bang && !empty(list)
-      return (a:cmd =~# '^l' ? 'l' : 'c').'first'.matchstr(a:arg,'\v\C[''" ]\zs\|.*')
-    else
-      return matchstr(a:arg,'\v\C[''" ]\|\zs.*')
-    endif
-  finally
-    let &grepprg = grepprg
-    let &grepformat = grepformat
-    execute cd.'`=dir`'
-  endtry
-endfunction
 
 function! s:Log(cmd, line1, line2, ...) abort
   let path = s:buffer().path('/')
