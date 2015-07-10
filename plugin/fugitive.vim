@@ -2398,11 +2398,15 @@ function! s:ReplaceCmd(cmd,...) abort
         let prefix = 'env GIT_INDEX_FILE='.s:shellesc(a:1).' '
       endif
     endif
+    let redir = ' > '.tmp
+    if &shellpipe =~ '2>&1'
+      let redir .= ' 2>&1'
+    endif
     if s:winshell()
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      call system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', cmd_escape_char.'&').' > '.tmp.'"')
+      call system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', cmd_escape_char.'&').redir.'"')
     else
-      call system(' ('.prefix.a:cmd.' > '.tmp.') ')
+      call system(' ('.prefix.a:cmd.redir.') ')
     endif
   finally
     if exists('old_index')
