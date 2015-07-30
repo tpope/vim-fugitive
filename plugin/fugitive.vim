@@ -2317,7 +2317,7 @@ function! s:github_url(opts, ...) abort
     if get(a:opts, 'line2') && a:opts.line1 == a:opts.line2
       let url .= '#L' . a:opts.line1
     elseif get(a:opts, 'line2')
-      let url .= '#L' . a:opts.line1 . '-' . a:opts.line2
+      let url .= '#L' . a:opts.line1 . '-L' . a:opts.line2
     endif
   elseif a:opts.type == 'tag'
     let commit = matchstr(getline(3),'^tag \zs.*')
