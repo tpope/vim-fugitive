@@ -121,9 +121,26 @@ let s:abstract_prototype = {}
 
 " Section: Initialization
 
+function! fugitive#is_git_dir_reg(path) abort
+  " regular gitdir
+  return isdirectory(a:path.'objects') && isdirectory(a:path.'refs')
+endfunction
+
+function! fugitive#is_git_dir_worktree(path) abort
+  return getftype(a:path.'commondir') ==# 'file'
+endfunction
+
+function! fugitive#find_worktree_host(path) abort
+  return simplify(a:path.get(readfile(a:path.'commondir', '', 1), 0, ''))
+endfunction
+
 function! fugitive#is_git_dir(path) abort
   let path = s:sub(a:path, '[\/]$', '') . '/'
-  return isdirectory(path.'objects') && isdirectory(path.'refs') && getfsize(path.'HEAD') > 10
+  " The directory must have a HEAD file
+  if getfsize(path.'HEAD') <= 10
+    return 0
+  endif
+  return fugitive#is_git_dir_reg(path) || fugitive#is_git_dir_worktree(path)
 endfunction
 
 function! fugitive#extract_git_dir(path) abort
@@ -241,7 +258,10 @@ function! s:repo(...) abort
     if has_key(s:repos, dir)
       let repo = get(s:repos, dir)
     else
-      let repo = {'git_dir': dir}
+      let repo = {'git_dir': dir, 'git_commondir': dir}
+      if fugitive#is_git_dir_worktree(dir)
+        repo.git_commondir = fugitive#find_worktree_host(dir)
+      endif
       let s:repos[dir] = repo
     endif
     return extend(extend(repo, s:repo_prototype, 'keep'), s:abstract_prototype, 'keep')
@@ -255,6 +275,10 @@ endfunction
 
 function! s:repo_dir(...) dict abort
   return join([self.git_dir]+a:000,'/')
+endfunction
+
+function! s:repo_commondir(...) dict abort
+  return join([self.git_commondir]+a:000,'/')
 endfunction
 
 function! s:configured_tree(git_dir) abort
@@ -280,6 +304,9 @@ endfunction
 function! s:repo_tree(...) dict abort
   if self.dir() =~# '/\.git$'
     let dir = self.dir()[0:-6]
+  elseif filereadable(self.dir().'/gitdir')
+    let line = get(readfile(self.dir().'/gitdir', '', 1), 0, '')
+    let dir = line[:-6]
   else
     let dir = s:configured_tree(self.git_dir)
   endif
@@ -292,6 +319,8 @@ endfunction
 
 function! s:repo_bare() dict abort
   if self.dir() =~# '/\.git$'
+    return 0
+  elseif self.dir() =~# '/\.git/worktrees/[^/]*$'
     return 0
   else
     return s:configured_tree(self.git_dir) ==# ''
@@ -322,16 +351,19 @@ function! s:repo_translate(spec) dict abort
     return 'fugitive://'.self.dir().'//0/'.a:spec[1:-1]
   elseif a:spec =~# 'HEAD\|^refs/' && a:spec !~ ':' && filereadable(self.dir(a:spec))
     return self.dir(a:spec)
-  elseif filereadable(self.dir('refs/'.a:spec))
-    return self.dir('refs/'.a:spec)
-  elseif filereadable(self.dir('refs/tags/'.a:spec))
-    return self.dir('refs/tags/'.a:spec)
-  elseif filereadable(self.dir('refs/heads/'.a:spec))
-    return self.dir('refs/heads/'.a:spec)
-  elseif filereadable(self.dir('refs/remotes/'.a:spec))
-    return self.dir('refs/remotes/'.a:spec)
-  elseif filereadable(self.dir('refs/remotes/'.a:spec.'/HEAD'))
-    return self.dir('refs/remotes/'.a:spec,'/HEAD')
+  elseif a:spec =~# 'HEAD\|^refs/' && a:spec !~ ':' && filereadable(self.commondir(a:spec))
+    return self.commondir(a:spec)
+  endif
+  if filereadable(self.commondir().'/refs/'.a:spec)
+    return self.commondir().'/refs/'.a:spec
+  elseif filereadable(self.commondir().'/refs/tags/'.a:spec)
+    return self.commondir().'/refs/tags/'.a:spec
+  elseif filereadable(self.commondir().'/refs/heads/'.a:spec)
+    return self.commondir().'/refs/heads/'.a:spec
+  elseif filereadable(self.commondir().'/refs/remotes/'.a:spec)
+    return self.commondir().'/refs/remotes/'.a:spec
+  elseif filereadable(self.commondir().'/refs/remotes/'.a:spec.'/HEAD')
+    return self.commondir().'/refs/remotes/'.a:spec.'/HEAD'
   else
     try
       let ref = self.rev_parse(matchstr(a:spec,'[^:]*'))
@@ -359,7 +391,7 @@ function! s:repo_head(...) dict abort
     return branch
 endfunction
 
-call s:add_methods('repo',['dir','tree','bare','translate','head'])
+call s:add_methods('repo',['dir','commondir','tree','bare','translate','head'])
 
 function! s:repo_git_command(...) dict abort
   let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
