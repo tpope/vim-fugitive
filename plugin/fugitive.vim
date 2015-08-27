@@ -423,7 +423,7 @@ function! s:repo_superglob(base) dict abort
     return results
 
   elseif a:base =~# '^:'
-    let entries = split(self.git_chomp('ls-files','--stage'),"\n")
+    let entries = split(self.git_chomp('ls-files','-z','--stage'),"")
     call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)",":\\1:\\2")')
     if a:base !~# '^:[0-3]\%(:\|$\)'
       call filter(entries,'v:val[1] == "0"')
@@ -434,7 +434,7 @@ function! s:repo_superglob(base) dict abort
 
   else
     let tree = matchstr(a:base,'.*[:/]')
-    let entries = split(self.git_chomp('ls-tree',tree),"\n")
+    let entries = split(self.git_chomp('ls-tree','-z',tree),"")
     call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
     call map(entries,'tree.s:sub(v:val,".*\t","")')
     return filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
