@@ -474,7 +474,7 @@ function! s:repo_superglob(base) dict abort
     let tree = matchstr(a:base,'.*[:/]')
     let entries = split(self.git_chomp('ls-tree','-z',tree),"\001")
     call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
-    call map(entries,'tree.s:sub(v:val,".*\t","")')
+    call map(entries,'tree.fnameescape(s:sub(v:val,".*\t",""))')
     return filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
   endif
 endfunction
@@ -1469,7 +1469,7 @@ function! s:Edit(cmd,bang,...) abort
 endfunction
 
 function! s:EditComplete(A,L,P) abort
-  return map(s:repo().superglob(a:A), 'fnameescape(v:val)')
+  return s:repo().superglob(a:A)
 endfunction
 
 function! s:EditRunComplete(A,L,P) abort
