@@ -404,6 +404,11 @@ function! s:repo_superglob(base) dict abort
     if a:base !~# '^/'
       let heads = ["HEAD","ORIG_HEAD","FETCH_HEAD","MERGE_HEAD"]
       let heads += sort(split(s:repo().git_chomp("rev-parse","--symbolic","--branches","--tags","--remotes"),"\n"))
+      " Add any stashes.
+      if filereadable(s:repo().dir('refs/stash'))
+        let heads += ["stash"]
+        let heads += sort(split(s:repo().git_chomp("stash","list","--pretty=format:%gd"),"\n"))
+      endif
       call filter(heads,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
       let results += heads
     endif
