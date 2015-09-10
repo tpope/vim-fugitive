@@ -683,7 +683,7 @@ function! s:Git(bang, args) abort
   let args = matchstr(a:args,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
   if exists(':terminal')
     let dir = s:repo().tree()
-    tabnew
+    tabedit %
     execute 'lcd' fnameescape(dir)
     execute 'terminal' git args
   else
