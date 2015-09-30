@@ -2070,15 +2070,17 @@ function! s:BlameJump(suffix) abort
   if winnr > 0
     exe bufnr.'bdelete'
   endif
-  execute 'Gblame '.args
-  execute lnum
-  let delta = line('.') - line('w0') - offset
-  if delta > 0
-    execute 'normal! '.delta."\<C-E>"
-  elseif delta < 0
-    execute 'normal! '.(-delta)."\<C-Y>"
+  if exists(':Gblame')
+    execute 'Gblame '.args
+    execute lnum
+    let delta = line('.') - line('w0') - offset
+    if delta > 0
+      execute 'normal! '.delta."\<C-E>"
+    elseif delta < 0
+      execute 'normal! '.(-delta)."\<C-Y>"
+    endif
+    syncbind
   endif
-  syncbind
   return ''
 endfunction
 
