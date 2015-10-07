@@ -2766,6 +2766,8 @@ function! s:cfile() abort
 
     else
 
+      let dcmds = []
+
       " Index
       if getline('.') =~# '^\d\{6\} \x\{40\} \d\t'
         let ref = matchstr(getline('.'),'\x\{40\}')
@@ -2847,13 +2849,20 @@ function! s:cfile() abort
         endwhile
         let offset += matchstr(getline(lnum), type.'\zs\d\+')
         let ref = getline(search('^'.type.'\{3\} [ab]/','bnW'))[4:-1]
-        let dcmd = offset.'|normal!zv'
-        let dref = ''
+        let dcmds = [offset, 'normal!zv']
 
       elseif getline('.') =~# '^rename from '
         let ref = 'a/'.getline('.')[12:]
       elseif getline('.') =~# '^rename to '
         let ref = 'b/'.getline('.')[10:]
+
+      elseif getline('.') =~# '^@@ -\d\+,\d\+ +\d\+,'
+        let diff = getline(search('^diff --git \%(a/.*\|/dev/null\) \%(b/.*\|/dev/null\)', 'bcnW'))
+        let offset = matchstr(getline('.'), '+\zs\d\+')
+
+        let dref = matchstr(diff, '\Cdiff --git \zs\%(a/.*\|/dev/null\)\ze \%(b/.*\|/dev/null\)')
+        let ref = matchstr(diff, '\Cdiff --git \%(a/.*\|/dev/null\) \zs\%(b/.*\|/dev/null\)')
+        let dcmd = 'Gdiff! +'.offset
 
       elseif getline('.') =~# '^diff --git \%(a/.*\|/dev/null\) \%(b/.*\|/dev/null\)'
         let dref = matchstr(getline('.'),'\Cdiff --git \zs\%(a/.*\|/dev/null\)\ze \%(b/.*\|/dev/null\)')
@@ -2896,9 +2905,9 @@ function! s:cfile() abort
       endif
 
       if exists('dref')
-        return [ref, dcmd] + (empty(dref) ? [] : [dref])
+        return [ref, dcmd . ' ' . s:fnameescape(dref)] + dcmds
       elseif ref != ""
-        return [ref]
+        return [ref] + dcmds
       endif
 
     endif
@@ -2912,10 +2921,8 @@ function! s:GF(mode) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
-  if len(results) > 1
-    return s:Edit(a:mode, 0, results[0]).'|'.results[1].join(map(results[2:-1], '" ".s:fnameescape(v:val)'), '')
-  elseif len(results)
-    return s:Edit(a:mode, 0, results[0])
+  if len(results)
+    return s:Edit(a:mode, 0, results[0]).join(map(results[1:-1], '"|".v:val'), '')
   else
     return ''
   endif
