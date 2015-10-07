@@ -1461,6 +1461,9 @@ function! s:Write(force,...) abort
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
   let path = a:0 ? join(a:000, ' ') : s:buffer().path()
+  if empty(path)
+    return 'echoerr '.string('fugitive: cannot determine file path')
+  endif
   if path =~# '^:\d\>'
     return 'write'.(a:force ? '! ' : ' ').s:fnameescape(s:repo().translate(s:buffer().expand(path)))
   endif
