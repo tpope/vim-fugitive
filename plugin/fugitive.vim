@@ -1333,7 +1333,12 @@ function! s:Edit(cmd,bang,...) abort
   let buffer = s:buffer()
   if a:cmd !~# 'read'
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
-      wincmd p
+      if winnr('$') == 1
+        let tabs = (&go =~# 'e' || !has('gui_running')) && &stal && (tabpagenr('$') >= &stal)
+        execute 'rightbelow' (&lines - &previewheight - &cmdheight - tabs - 1 - !!&laststatus).'new'
+      else
+        wincmd p
+      endif
       if &diff
         let mywinnr = winnr()
         for winnr in range(winnr('$'),1,-1)
