@@ -1743,10 +1743,15 @@ endfunction
 call s:add_methods('buffer',['compare_age'])
 
 function! s:Diff(vert,...) abort
+  let args = copy(a:000)
+  let post = ''
+  if get(args, 0) =~# '^+'
+    let post = remove(args, 0)[1:-1]
+  endif
   let vert = empty(a:vert) ? s:diff_modifier(2) : a:vert
   if exists(':DiffGitCached')
     return 'DiffGitCached'
-  elseif (!a:0 || a:1 == ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().path()) !=# ''
+  elseif (empty(args) || args[0] == ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().path()) !=# ''
     let vert = empty(a:vert) ? s:diff_modifier(3) : a:vert
     let nr = bufnr('')
     execute 'leftabove '.vert.'split `=fugitive#buffer().repo().translate(s:buffer().expand('':2''))`'
@@ -1758,11 +1763,11 @@ function! s:Diff(vert,...) abort
     call s:diffthis()
     wincmd p
     call s:diffthis()
-    return ''
-  elseif a:0
-    let arg = join(a:000, ' ')
+    return post
+  elseif len(args)
+    let arg = join(args, ' ')
     if arg ==# ''
-      return ''
+      return post
     elseif arg ==# '/'
       let file = s:buffer().path('/')
     elseif arg ==# ':'
@@ -1801,7 +1806,7 @@ function! s:Diff(vert,...) abort
       wincmd p
       call feedkeys(winnr."\<C-W>w", 'n')
     endif
-    return ''
+    return post
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
