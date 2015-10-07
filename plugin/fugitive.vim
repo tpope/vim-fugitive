@@ -1626,9 +1626,9 @@ endfunction
 
 " Section: Gdiff
 
-call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('',<f-args>)")
-call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff('keepalt vert ',<f-args>)")
-call s:command("-bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff('keepalt ',<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('',<bang>0,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff('keepalt vert ',<bang>0,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff('keepalt ',<bang>0,<f-args>)")
 
 augroup fugitive_diff
   autocmd!
@@ -1742,7 +1742,7 @@ endfunction
 
 call s:add_methods('buffer',['compare_age'])
 
-function! s:Diff(vert,...) abort
+function! s:Diff(vert,keepfocus,...) abort
   let args = copy(a:000)
   let post = ''
   if get(args, 0) =~# '^+'
@@ -1800,11 +1800,15 @@ function! s:Diff(vert,...) abort
     else
       execute 'leftabove '.vert.'diffsplit '.s:fnameescape(spec)
     endif
+    let &l:readonly = &l:readonly
+    redraw
     let w:fugitive_diff_restore = restore
     let winnr = winnr()
     if getwinvar('#', '&diff')
       wincmd p
-      call feedkeys(winnr."\<C-W>w", 'n')
+      if !a:keepfocus
+        call feedkeys(winnr."\<C-W>w", 'n')
+      endif
     endif
     return post
   catch /^fugitive:/
@@ -2779,7 +2783,7 @@ function! s:cfile() abort
         return [file]
       elseif getline('.') =~# ': needs merge$'
         let file = '/'.matchstr(getline('.'),'.*\ze: needs merge$')
-        return [file, 'Gdiff']
+        return [file, 'Gdiff!']
 
       elseif getline('.') ==# '# Not currently on any branch.'
         return ['HEAD']
@@ -2854,7 +2858,7 @@ function! s:cfile() abort
       elseif getline('.') =~# '^diff --git \%(a/.*\|/dev/null\) \%(b/.*\|/dev/null\)'
         let dref = matchstr(getline('.'),'\Cdiff --git \zs\%(a/.*\|/dev/null\)\ze \%(b/.*\|/dev/null\)')
         let ref = matchstr(getline('.'),'\Cdiff --git \%(a/.*\|/dev/null\) \zs\%(b/.*\|/dev/null\)')
-        let dcmd = 'Gdiff'
+        let dcmd = 'Gdiff!'
 
       elseif getline('.') =~# '^index ' && getline(line('.')-1) =~# '^diff --git \%(a/.*\|/dev/null\) \%(b/.*\|/dev/null\)'
         let line = getline(line('.')-1)
