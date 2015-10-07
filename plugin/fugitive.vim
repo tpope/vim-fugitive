@@ -2696,6 +2696,10 @@ augroup fugitive_files
         \ if exists('b:git_dir') |
         \  call s:JumpInit() |
         \ endif
+  autocmd FileType git,gitcommit,gitrebase
+        \ if exists('b:git_dir') |
+        \   call s:GFInit() |
+        \ endif
 augroup END
 
 " Section: Temp files
@@ -2719,7 +2723,18 @@ augroup END
 
 " Section: Go to file
 
-function! s:JumpInit() abort
+nnoremap <SID>: :<C-U><C-R>=v:count ? v:count : ''<CR>
+function! s:GFInit(...) abort
+  cnoremap <buffer> <expr> <Plug><cfile> fugitive#cfile()
+  if !exists('g:fugitive_no_maps') && empty(mapcheck('gf', 'n'))
+    nmap <buffer> <silent> gf          <SID>:find <Plug><cfile><CR>
+    nmap <buffer> <silent> <C-W>f     <SID>:sfind <Plug><cfile><CR>
+    nmap <buffer> <silent> <C-W><C-F> <SID>:sfind <Plug><cfile><CR>
+    nmap <buffer> <silent> <C-W>gf  <SID>:tabfind <Plug><cfile><CR>
+  endif
+endfunction
+
+function! s:JumpInit(...) abort
   nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
   if !&modifiable
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
@@ -2926,6 +2941,17 @@ function! s:GF(mode) abort
   else
     return ''
   endif
+endfunction
+
+function! fugitive#cfile() abort
+  let pre = ''
+  let results = s:cfile()
+  if empty(results)
+    return expand('<cfile>')
+  elseif len(results) > 1
+    let pre = '+' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' '
+  endif
+  return pre . s:fnameescape(fugitive#repo().translate(results[0]))
 endfunction
 
 " Section: Statusline
