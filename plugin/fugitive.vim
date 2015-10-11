@@ -2424,6 +2424,8 @@ function! s:ReplaceCmd(cmd,...) abort
     if s:winshell()
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
       call system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', cmd_escape_char.'&').redir.'"')
+    elseif &shell =~# 'fish'
+      call system(' begin;'.prefix.a:cmd.redir.';end ')
     else
       call system(' ('.prefix.a:cmd.redir.') ')
     endif
