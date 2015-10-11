@@ -30,6 +30,10 @@ function! s:winshell() abort
   return &shell =~? 'cmd' || exists('+shellslash') && !&shellslash
 endfunction
 
+function! s:fishshell() abort
+  return &shell =~? 'fish'
+endfunction
+
 function! s:shellesc(arg) abort
   if a:arg =~ '^[A-Za-z0-9_/.-]\+$'
     return a:arg
@@ -2418,6 +2422,8 @@ function! s:ReplaceCmd(cmd,...) abort
     if s:winshell()
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
       call system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', cmd_escape_char.'&').redir.'"')
+    elseif s:fishshell()
+      call system(' begin;'.prefix.a:cmd.redir.';end ')
     else
       call system(' ('.prefix.a:cmd.redir.') ')
     endif
