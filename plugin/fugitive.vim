@@ -1336,8 +1336,10 @@ function! s:Edit(cmd,bang,...) abort
       if winnr('$') == 1
         let tabs = (&go =~# 'e' || !has('gui_running')) && &stal && (tabpagenr('$') >= &stal)
         execute 'rightbelow' (&lines - &previewheight - &cmdheight - tabs - 1 - !!&laststatus).'new'
-      else
+      elseif winnr('#')
         wincmd p
+      else
+        wincmd w
       endif
       if &diff
         let mywinnr = winnr()
