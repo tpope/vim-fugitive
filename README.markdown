@@ -88,6 +88,12 @@ browser to use with `git config --global web.browser ...`.  On OS X, for
 example, you might want to set this to `open`.  See `git web--browse --help`
 for details.
 
+> How do I get `:Gbrowse` to open files on my enterprise GitHub server?
+
+Add your domain to `g:fugitive_github_domains` like so:
+
+    let g:fugitive_github_domains = ['github.custom.com']
+
 > Here's a patch that automatically opens the quickfix window after
 > `:Ggrep`.
 
