@@ -57,6 +57,9 @@ that are part of Git repositories).
                         q     close status
                         r     reload status
                         S     |:Gvsplit|
+                        U     |:Git| checkout
+                        U     |:Git| checkout HEAD (staged files)
+                        U     |:Git| clean (untracked files)
 
                                                 *fugitive-:Gcommit*
 :Gcommit [args]         A wrapper around git-commit.  If there is nothing
