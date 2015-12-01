@@ -320,6 +320,8 @@ function! s:repo_translate(spec) dict abort
     return 'fugitive://'.self.dir().'//'.ref
   elseif a:spec =~# '^:'
     return 'fugitive://'.self.dir().'//0/'.a:spec[1:-1]
+  elseif a:spec ==# '@'
+    return self.dir('HEAD')
   elseif a:spec =~# 'HEAD\|^refs/' && a:spec !~ ':' && filereadable(self.dir(a:spec))
     return self.dir(a:spec)
   elseif filereadable(self.dir('refs/'.a:spec))
@@ -2175,7 +2177,7 @@ call s:command("-bar -bang -range -nargs=* -complete=customlist,s:EditComplete G
 
 function! s:Browse(bang,line1,count,...) abort
   try
-    let rev = a:0 ? substitute(join(a:000, ' '),'@[[:alnum:]_-]*\%(://.\{-\}\)\=$','','') : ''
+    let rev = a:0 ? substitute(join(a:000, ' '),'@[[:alnum:]_-]\w\+\%(://.\{-\}\)\=$','','') : ''
     if rev ==# ''
       let expanded = s:buffer().rev()
     elseif rev ==# ':'
@@ -2218,7 +2220,7 @@ function! s:Browse(bang,line1,count,...) abort
       endif
     endif
 
-    if a:0 && join(a:000, ' ') =~# '@[[:alnum:]_-]*\%(://.\{-\}\)\=$'
+    if a:0 && join(a:000, ' ') =~# '@[[:alnum:]_-]\+\%(://.\{-\}\)\=$'
       let remote = matchstr(join(a:000, ' '),'@\zs[[:alnum:]_-]\+\%(://.\{-\}\)\=$')
     elseif path =~# '^\.git/refs/remotes/.'
       let remote = matchstr(path,'^\.git/refs/remotes/\zs[^/]\+')
