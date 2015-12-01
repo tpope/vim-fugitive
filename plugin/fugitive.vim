@@ -298,49 +298,86 @@ function! s:repo_bare() dict abort
   endif
 endfunction
 
+function! s:repo_disambiguate(spec) dict abort
+  if a:spec =~# '^:[0-3]:\|^:\=/\|^:\=$\|^\x\{40\}$'
+    return a:spec
+  elseif a:spec =~# '^:'
+    return ':0' . a:spec
+  elseif a:spec ==# '^\.'
+    return '/' . a:spec
+  elseif a:spec =~# '^[^:~^]*\.\.'
+    let before = self.qualify_ref(matchstr(a:spec, '.\{-\}\ze\.\.'))
+    let after = self.qualify_ref(matchstr(a:spec, '\.\.\.\=\zs.*'))
+    if before =~# '^/' || after =~# '^/'
+      return '/' . a:spec
+    else
+      return before . matchstr(a:spec, '\.\.\.\=') . after
+    endif
+  endif
+  let head = s:sub(a:spec, '[:~^].*|\@\{.*', '')
+  let rest = strpart(a:spec, len(head))
+  if head ==# '@'
+    return 'HEAD'.rest
+  endif
+  if head =~# "[[?*\001-\037\177]".'\|\%([./]\|\.lock\)\%(/\|$\)'
+    return '/' . a:spec
+  endif
+  let packed = {}
+  if filereadable(self.dir('packed-refs'))
+    for [v, k] in map(readfile(self.dir('packed-refs')), 'split(v:val, " ")')
+      let packed[k] = v
+    endfor
+  endif
+  for pattern in ['%s', 'refs/%s', 'refs/tags/%s', 'refs/heads/%s', 'refs/remotes/%s', 'refs/remotes/%s/HEAD']
+    let ref = printf(pattern, head)
+    if filereadable(self.dir(ref)) || has_key(packed, ref)
+      return ref . rest
+    endif
+  endfor
+  let tag = matchstr(head, '.*\ze-\d\+-g\x\+$')
+  if !empty(tag) && (filereadable(self.dir('refs/tags/'.tag)) || has_key(packed, ref))
+    return head . rest
+  endif
+  if head =~# '^\x\{4,40\}$'
+    try
+      return self.rev_parse(head) . rest
+    catch /^fugitive:/
+    endtry
+  endif
+  return '/' . a:spec
+endfunction
+
 function! s:repo_translate(spec) dict abort
-  if a:spec ==# '.' || a:spec ==# '/.'
-    return self.bare() ? self.dir() : self.tree()
-  elseif a:spec =~# '^/\=\.git$' && self.bare()
+  let spec = self.disambiguate(a:spec)
+  if spec =~# '^/\=\.git$' && self.bare()
     return self.dir()
-  elseif a:spec =~# '^/\=\.git/'
-    return self.dir(s:sub(a:spec, '^/=\.git/', ''))
-  elseif a:spec =~# '^/'
-    return self.tree().a:spec
-  elseif a:spec =~# '^:[0-3]:'
-    return 'fugitive://'.self.dir().'//'.a:spec[1].'/'.a:spec[3:-1]
-  elseif a:spec ==# ':'
+  elseif spec =~# '^/\=\.git/'
+    return self.dir(s:sub(spec, '^/=\.git/', ''))
+  elseif spec =~# '^/'
+    return self.tree().spec
+  elseif spec =~# '^:[0-3]:'
+    return 'fugitive://'.self.dir().'//'.spec[1].'/'.spec[3:-1]
+  elseif spec ==# ':'
     if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(self.dir())] ==# self.dir('') && filereadable($GIT_INDEX_FILE)
       return fnamemodify($GIT_INDEX_FILE,':p')
     else
       return self.dir('index')
     endif
-  elseif a:spec =~# '^:/'
-    let ref = self.rev_parse(matchstr(a:spec,'.[^:]*'))
+  elseif spec =~# '^:/'
+    let ref = self.rev_parse(matchstr(spec,'.[^:]*'))
     return 'fugitive://'.self.dir().'//'.ref
-  elseif a:spec =~# '^:'
-    return 'fugitive://'.self.dir().'//0/'.a:spec[1:-1]
-  elseif a:spec =~# 'HEAD\|^refs/' && a:spec !~ ':' && filereadable(self.dir(a:spec))
-    return self.dir(a:spec)
-  elseif filereadable(self.dir('refs/'.a:spec))
-    return self.dir('refs/'.a:spec)
-  elseif filereadable(self.dir('refs/tags/'.a:spec))
-    return self.dir('refs/tags/'.a:spec)
-  elseif filereadable(self.dir('refs/heads/'.a:spec))
-    return self.dir('refs/heads/'.a:spec)
-  elseif filereadable(self.dir('refs/remotes/'.a:spec))
-    return self.dir('refs/remotes/'.a:spec)
-  elseif filereadable(self.dir('refs/remotes/'.a:spec.'/HEAD'))
-    return self.dir('refs/remotes/'.a:spec,'/HEAD')
-  else
-    try
-      let ref = self.rev_parse(matchstr(a:spec,'[^:]*'))
-      let path = s:sub(matchstr(a:spec,':.*'),'^:','/')
-      return 'fugitive://'.self.dir().'//'.ref.path
-    catch /^fugitive:/
-      return self.tree(a:spec)
-    endtry
   endif
+
+  let ref = matchstr(spec,'[^:]*')
+  let path = s:sub(matchstr(spec,':.*'),'^:','/')
+  if empty(path) && ref !~# '[~^]'
+    if filereadable(self.dir(ref))
+      return self.dir(ref)
+    else
+      return self.dir('packed-refs')
+    endif
+  endif
+  return 'fugitive://'.self.dir().'//'.self.rev_parse(ref).path
 endfunction
 
 function! s:repo_head(...) dict abort
@@ -359,7 +396,7 @@ function! s:repo_head(...) dict abort
     return branch
 endfunction
 
-call s:add_methods('repo',['dir','tree','bare','translate','head'])
+call s:add_methods('repo',['dir','tree','bare','disambiguate','translate','head'])
 
 function! s:repo_git_command(...) dict abort
   let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
