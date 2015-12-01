@@ -2375,10 +2375,8 @@ function! s:instaweb_url(opts) abort
     endif
     let url .= ';h=' . a:opts.repo.rev_parse(a:opts.commit . (a:opts.path == '' ? '' : ':' . a:opts.path))
   else
-    if a:opts.type ==# 'blob'
-      let tmp = tempname()
-      silent execute 'write !'.a:opts.repo.git_command('hash-object','-w','--stdin').' > '.tmp
-      let url .= ';h=' . readfile(tmp)[0]
+    if a:opts.type ==# 'blob' && empty(a:opts.commit)
+      let url .= ';h='.a:opts.repo.git_chomp('hash-object', '-w', a:opts.path)
     else
       try
         let url .= ';h=' . a:opts.repo.rev_parse((a:opts.commit == '' ? 'HEAD' : ':' . a:opts.commit) . ':' . a:opts.path)
