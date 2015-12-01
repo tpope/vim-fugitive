@@ -1408,6 +1408,7 @@ function! s:Edit(cmd,bang,...) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
+  let file = s:sub(file, '/$', '')
   if a:cmd ==# 'read'
     return 'silent %delete_|read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
   else
