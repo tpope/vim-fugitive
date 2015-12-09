@@ -2330,10 +2330,16 @@ function! s:github_url(opts, ...) abort
   if a:opts.revision =~# '^[[:alnum:]._-]\+:'
     let commit = matchstr(a:opts.revision,'^[^:]*')
   elseif a:opts.commit =~# '^\d\=$'
-    let local = matchstr(a:opts.repo.head_ref(),'\<refs/heads/\zs.*')
-    let commit = a:opts.repo.git_chomp('config','branch.'.local.'.merge')[11:-1]
-    if commit ==# ''
-      let commit = local
+    let ref = a:opts.repo.head_ref()
+    let local = matchstr(ref,'\<refs/heads/\zs.*')
+    if !empty(local)
+      let commit = a:opts.repo.git_chomp('config','branch.'.local.'.merge')[11:-1]
+      if commit ==# ''
+        let commit = local
+      endif
+    else
+      let tag = a:opts.repo.git_chomp('describe','--exact-match','--tags')
+      let commit = v:shell_error ? ref : tag
     endif
   else
     let commit = a:opts.commit
