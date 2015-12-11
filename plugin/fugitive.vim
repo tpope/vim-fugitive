@@ -2322,27 +2322,21 @@ function! s:github_url(opts, ...) abort
       return root . '/commits/' . branch
     endif
   elseif path =~# '^\.git/refs/tags/'
-    return root . '/releases/tag/' . matchstr(path,'[^/]\+$')
-  elseif path =~# '^\.git/refs/.'
-    return root . '/commits/' . matchstr(path,'[^/]\+$')
+    return root . '/releases/tag/' . path[15:-1]
+  elseif path =~# '^\.git/refs/remotes/[^/]\+/.'
+    return root . '/commits/' . matchstr(path,'remotes/[^/]\+/\zs.*')
   elseif path =~# '.git/\%(config$\|hooks\>\)'
     return root . '/admin'
   elseif path =~# '^\.git\>'
     return root
   endif
-  if a:opts.revision =~# '^[[:alnum:]._-]\+:'
-    let commit = matchstr(a:opts.revision,'^[^:]*')
-  elseif a:opts.commit =~# '^\d\=$'
-    let local = matchstr(a:opts.repo.head_ref(),'\<refs/heads/\zs.*')
-    let commit = a:opts.repo.git_chomp('config','branch.'.local.'.merge')[11:-1]
-    if commit ==# ''
-      let commit = local
-    endif
+  if a:opts.commit =~# '^\d\=$'
+    let commit = a:opts.repo.rev_parse('HEAD')
   else
     let commit = a:opts.commit
   endif
-  if a:opts.type == 'tree'
-    let url = s:sub(root . '/tree/' . commit . '/' . path,'/$','')
+  if get(a:opts, 'type', '') ==# 'tree' || a:opts.path =~# '/$'
+    let url = substitute(root . '/tree/' . commit . '/' . path, '/$', '', 'g')
   elseif a:opts.type == 'blob'
     let url = root . '/blob/' . commit . '/' . path
     if get(a:opts, 'line2') && a:opts.line1 == a:opts.line2
