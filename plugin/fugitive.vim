@@ -2850,7 +2850,7 @@ function! s:cfile() abort
       elseif getline('.') =~# '^[+-]' && search('^@@ -\d\+,\d\+ +\d\+,','bnW')
         let type = getline('.')[0]
         let lnum = line('.') - 1
-        let offset = -1
+        let offset = 0
         while getline(lnum) !~# '^@@ -\d\+,\d\+ +\d\+,'
           if getline(lnum) =~# '^[ '.type.']'
             let offset += 1
