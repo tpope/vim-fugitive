@@ -2215,6 +2215,9 @@ function! s:Browse(bang,line1,count,...) abort
     if type ==# 'tree' && !empty(path)
       let path = s:sub(path, '/\=$', '/')
     endif
+    if empty(commit) && path !~# '^\.git/'
+      let commit = s:repo().rev_parse('HEAD')
+    endif
     if path =~# '^\.git/.*HEAD' && filereadable(s:repo().dir(path[5:-1]))
       let body = readfile(s:repo().dir(path[5:-1]))[0]
       if body =~# '^\x\{40\}$'
