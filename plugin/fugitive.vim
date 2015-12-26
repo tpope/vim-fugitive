@@ -2212,6 +2212,9 @@ function! s:Browse(bang,line1,count,...) abort
         let type = 'blob'
       endif
     endif
+    if type ==# 'tree' && !empty(path)
+      let path = s:sub(path, '/\=$', '/')
+    endif
     if path =~# '^\.git/.*HEAD' && filereadable(s:repo().dir(path[5:-1]))
       let body = readfile(s:repo().dir(path[5:-1]))[0]
       if body =~# '^\x\{40\}$'
@@ -2311,7 +2314,7 @@ function! s:github_url(opts, ...) abort
   if repo ==# ''
     return ''
   endif
-  let path = a:opts.path
+  let path = substitute(a:opts.path, '^/', '', '')
   if index(domains, 'http://' . matchstr(repo, '^[^:/]*')) >= 0
     let root = 'http://' . s:sub(repo,':','/')
   else
@@ -2336,7 +2339,7 @@ function! s:github_url(opts, ...) abort
   let commit = a:opts.commit
   if get(a:opts, 'type', '') ==# 'tree' || a:opts.path =~# '/$'
     let url = substitute(root . '/tree/' . commit . '/' . path, '/$', '', 'g')
-  elseif a:opts.type == 'blob'
+  elseif get(a:opts, 'type', '') ==# 'blob' || a:opts.path =~# '[^/]$'
     let url = root . '/blob/' . commit . '/' . path
     if get(a:opts, 'line2') && a:opts.line1 == a:opts.line2
       let url .= '#L' . a:opts.line1
