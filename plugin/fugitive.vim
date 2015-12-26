@@ -2275,6 +2275,7 @@ function! s:Browse(bang,line1,count,...) abort
       call s:throw("Instaweb failed to start and '".remote."' is not a supported remote")
     endif
 
+    let url = s:gsub(url, '[ <>]', '\="%".printf("%02X",char2nr(submatch(0)))')
     if a:bang
       if has('clipboard')
         let @* = url
