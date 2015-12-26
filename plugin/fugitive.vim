@@ -2191,7 +2191,7 @@ function! s:Browse(bang,line1,count,...) abort
     let full = s:repo().translate(expanded)
     let commit = ''
     if full =~# '^fugitive://'
-      let commit = matchstr(full,'://.*//\zs\w\+')
+      let commit = matchstr(full,'://.*//\zs\w\w\+')
       let path = matchstr(full,'://.*//\w\+\zs/.*')
       if commit =~ '..'
         let type = s:repo().git_chomp('cat-file','-t',commit.s:sub(path,'^/',':'))
