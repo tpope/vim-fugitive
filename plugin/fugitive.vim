@@ -2333,11 +2333,7 @@ function! s:github_url(opts, ...) abort
   elseif path =~# '^\.git\>'
     return root
   endif
-  if a:opts.commit =~# '^\d\=$'
-    let commit = a:opts.repo.rev_parse('HEAD')
-  else
-    let commit = a:opts.commit
-  endif
+  let commit = a:opts.commit
   if get(a:opts, 'type', '') ==# 'tree' || a:opts.path =~# '/$'
     let url = substitute(root . '/tree/' . commit . '/' . path, '/$', '', 'g')
   elseif a:opts.type == 'blob'
