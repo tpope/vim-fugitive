@@ -2180,7 +2180,7 @@ call s:command("-bar -bang -range=0 -nargs=* -complete=customlist,s:EditComplete
 
 function! s:Browse(bang,line1,count,...) abort
   try
-    let validremote = '\.\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)'
+    let validremote = '\.\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)\='
     if a:0
       let remote = matchstr(join(a:000, ' '),'@\zs\%('.validremote.'\)$')
       let rev = substitute(join(a:000, ' '),'@\%('.validremote.'\)$','','')
