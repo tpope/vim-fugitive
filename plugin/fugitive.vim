@@ -2982,7 +2982,11 @@ function! fugitive#cfile() abort
   let pre = ''
   let results = s:cfile()
   if empty(results)
-    return expand('<cfile>')
+    let cfile = expand('<cfile>')
+    if &includeexpr =~# '\<v:fname\>'
+      sandbox let cfile = eval(substitute(&includeexpr, '\C\<v:fname\>', '\=string(cfile)', 'g'))
+    endif
+    return cfile
   elseif len(results) > 1
     let pre = '+' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' '
   endif
