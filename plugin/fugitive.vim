@@ -123,7 +123,9 @@ let s:abstract_prototype = {}
 
 function! fugitive#is_git_dir(path) abort
   let path = s:sub(a:path, '[\/]$', '') . '/'
-  return isdirectory(path.'objects') && isdirectory(path.'refs') && getfsize(path.'HEAD') > 10
+  return getfsize(path.'HEAD') > 10 && (
+        \ isdirectory(path.'objects') && isdirectory(path.'refs') ||
+        \ getftype(path.'commondir') ==# 'file')
 endfunction
 
 function! fugitive#extract_git_dir(path) abort
@@ -265,9 +267,14 @@ function! s:configured_tree(git_dir) abort
       let config = readfile(config_file,'',10)
       call filter(config,'v:val =~# "^\\s*worktree *="')
       if len(config) == 1
-        let s:worktree_for_dir[a:git_dir] = matchstr(config[0], '= *\zs.*')
-        let s:dir_for_worktree[s:worktree_for_dir[a:git_dir]] = a:git_dir
+        let worktree = matchstr(config[0], '= *\zs.*')
       endif
+    elseif filereadable(a:git_dir . '/gitdir')
+      let worktree = fnamemodify(readfile(a:git_dir . '/gitdir')[0], ':h')
+    endif
+    if exists('worktree')
+      let s:worktree_for_dir[a:git_dir] = worktree
+      let s:dir_for_worktree[s:worktree_for_dir[a:git_dir]] = a:git_dir
     endif
   endif
   if s:worktree_for_dir[a:git_dir] =~# '^\.'
@@ -300,6 +307,9 @@ endfunction
 
 function! s:repo_translate(spec) dict abort
   let refs = self.dir('refs/')
+  if filereadable(self.dir('commondir'))
+    let refs = simplify(self.dir(get(readfile(self.dir('commondir'), 1), 0, ''))) . '/refs/'
+  endif
   if a:spec ==# '.' || a:spec ==# '/.'
     return self.bare() ? self.dir() : self.tree()
   elseif a:spec =~# '^/\=\.git$' && self.bare()
