@@ -863,7 +863,7 @@ function! s:StageUndo() abort
   let hash = repo.git_chomp('hash-object', '-w', filename)
   if !empty(hash)
     if section ==# 'untracked'
-      call delete(s:repo().tree(filename))
+      call repo.git_chomp_in_tree('clean', '--', filename)
     elseif section ==# 'unstaged'
       call repo.git_chomp_in_tree('checkout', '--', filename)
     else
