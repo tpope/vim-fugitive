@@ -864,6 +864,8 @@ function! s:StageUndo() abort
   if !empty(hash)
     if section ==# 'untracked'
       call repo.git_chomp_in_tree('clean', '--', filename)
+    elseif section ==# 'unmerged'
+      call repo.git_chomp_in_tree('rm', '--', filename)
     elseif section ==# 'unstaged'
       call repo.git_chomp_in_tree('checkout', '--', filename)
     else
