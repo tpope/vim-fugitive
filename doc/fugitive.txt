@@ -95,7 +95,9 @@ that are part of Git repositories).
 :Gfetch [args]          Like |:Gpush|, but for git-fetch.
 
                                                 *fugitive-:Ggrep*
-:Ggrep [args]           |:grep| with git-grep as 'grepprg'.
+:Ggrep[!] [args]        |:grep| with git-grep as 'grepprg'.
+                        |:Ggrep!| has the same behavior as |:grep!|, it
+                        doesn't jump to the first match automatically.
 
                                                 *fugitive-:Glgrep*
 :Glgrep [args]          |:lgrep| with git-grep as 'grepprg'.
