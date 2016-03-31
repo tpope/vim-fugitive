@@ -272,6 +272,7 @@ function! s:configured_tree(git_dir) abort
     elseif filereadable(a:git_dir . '/gitdir')
       let worktree = fnamemodify(readfile(a:git_dir . '/gitdir')[0], ':h')
       if worktree ==# '.'
+        echo "Found a broken worktree. Please fix ".readfile(a:git_dir)."/gitdir to contain an absolute path to the worktree's .git file."
         unlet! worktree
       endif
     endif
