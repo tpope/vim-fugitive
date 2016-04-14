@@ -1089,7 +1089,7 @@ function! s:Commit(args, ...) abort
         if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&mod
           execute 'keepalt edit '.s:fnameescape(msgfile)
         elseif a:args =~# '\%(^\| \)-\%(-verbose\|\w*v\)\>'
-          execute 'keepalt '.(tabpagenr()-1).'tabedit '.s:fnameescape(msgfile)
+          execute 'keepalt -tabedit '.s:fnameescape(msgfile)
         elseif s:buffer().type() ==# 'index'
           execute 'keepalt edit '.s:fnameescape(msgfile)
           execute (search('^#','n')+1).'wincmd+'
