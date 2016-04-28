@@ -42,6 +42,7 @@ that are part of Git repositories).
                         -     |:Git| reset (staged files)
                         cA    |:Gcommit| --amend --reuse-message=HEAD
                         ca    |:Gcommit| --amend
+                        cF    |:Gcommit| --fixup=HEAD
                         cc    |:Gcommit|
                         cva   |:Gcommit| --amend --verbose
                         cvc   |:Gcommit| --verbose
