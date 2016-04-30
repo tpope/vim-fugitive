@@ -378,7 +378,11 @@ endfunction
 call s:add_methods('repo',['dir','tree','bare','translate','head'])
 
 function! s:repo_git_command(...) dict abort
-  let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
+  let git_dir = s:shellesc(self.git_dir)
+  let git_worktree = fnamemodify(git_dir, ":h")
+  let git = g:fugitive_git_executable .
+    \ ' --git-dir='.git_dir .
+    \ ' --work-tree='.git_worktree
   return git.join(map(copy(a:000),'" ".s:shellesc(v:val)'),'')
 endfunction
 
@@ -1274,7 +1278,6 @@ function! s:Grep(cmd,bang,arg) abort
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd ' : 'cd '
   let dir = getcwd()
   try
-    execute cd.'`=s:repo().tree()`'
     let &grepprg = s:repo().git_command('--no-pager', 'grep', '-n', '--no-color')
     let &grepformat = '%f:%l:%m,%m %f match%ts,%f'
     exe a:cmd.'! '.escape(matchstr(a:arg,'\v\C.{-}%($|[''" ]\@=\|)@='),'|')
@@ -1303,7 +1306,6 @@ function! s:Grep(cmd,bang,arg) abort
   finally
     let &grepprg = grepprg
     let &grepformat = grepformat
-    execute cd.'`=dir`'
   endtry
 endfunction
 
