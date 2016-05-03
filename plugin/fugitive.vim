@@ -728,7 +728,7 @@ function! s:GitComplete(A, L, P) abort
   endif
 endfunction
 
-" Section: Gcd, Glcd
+" Section: Gcd, Glcd, Gtcd
 
 function! s:DirComplete(A,L,P) abort
   let matches = s:repo().dirglob(a:A)
@@ -737,6 +737,11 @@ endfunction
 
 call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :cd<bang>  `=s:repo().bare() ? s:repo().dir(<q-args>) : s:repo().tree(<q-args>)`")
 call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :lcd<bang> `=s:repo().bare() ? s:repo().dir(<q-args>) : s:repo().tree(<q-args>)`")
+
+" tcd support for neovim users
+if exists(':tcd')
+  call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gtcd :tcd<bang> `=s:repo().bare() ? s:repo().dir(<q-args>) : s:repo().tree(<q-args>)`")
+endif
 
 " Section: Gstatus
 

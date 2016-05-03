@@ -29,6 +29,9 @@ that are part of Git repositories).
                                                 *fugitive-:Glcd*
 :Glcd [directory]       |:lcd| relative to the repository.
 
+                                                *fugitive-:Gtcd*
+:Gtcd [directory]       |:tcd| relative to the repository. (Neovim only)
+
                                                 *fugitive-:Gstatus*
 :Gstatus                Bring up the output of git-status in the preview
                         window.  The following maps, which work on the cursor
