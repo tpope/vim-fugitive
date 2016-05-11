@@ -347,7 +347,7 @@ function! s:repo_translate(spec) dict abort
   elseif filereadable(refs.'remotes/'.a:spec)
     return refs.'remotes/'.a:spec
   elseif filereadable(refs.'remotes/'.a:spec.'/HEAD')
-    return refs.'remotes/'.a:spec,'/HEAD'
+    return refs.'remotes/'.a:spec.'/HEAD'
   else
     try
       let ref = self.rev_parse(matchstr(a:spec,'[^:]*'))
