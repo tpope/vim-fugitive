@@ -112,11 +112,6 @@ function! s:define_commands() abort
   endfor
 endfunction
 
-augroup fugitive_utility
-  autocmd!
-  autocmd User Fugitive call s:define_commands()
-augroup END
-
 let s:abstract_prototype = {}
 
 " Section: Initialization
@@ -213,6 +208,7 @@ function! fugitive#detect(path) abort
     endif
     try
       let [save_mls, &modelines] = [&mls, 0]
+      call s:define_commands()
       doautocmd User Fugitive
     finally
       let &mls = save_mls
