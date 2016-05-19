@@ -796,7 +796,7 @@ endfunction
 
 function! s:stage_info(lnum) abort
   let comment = b:comment_char
-  let filename = matchstr(getline(a:lnum),'^['.comment.']\t\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
+  let filename = matchstr(getline(a:lnum),'^\%d'.char2nr(comment).'\t\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
   let lnum = a:lnum
   if has('multi_byte_encoding')
     let colon = '\%(:\|\%uff1a\)'
@@ -808,13 +808,13 @@ function! s:stage_info(lnum) abort
   endwhile
   if !lnum
     return ['', '']
-  elseif (getline(lnum+1) =~# '^['.comment.'] .*\<git \%(reset\|rm --cached\) ' && getline(lnum+2) ==# comment) || getline(lnum) ==# comment.' Changes to be committed:'
+  elseif (getline(lnum+1) =~# '^\%d'.char2nr(comment).' .*\<git \%(reset\|rm --cached\) ' && getline(lnum+2) ==# comment) || getline(lnum) ==# comment.' Changes to be committed:'
     return [matchstr(filename, colon.' *\zs.*'), 'staged']
-  elseif (getline(lnum+1) =~# '^['.comment.'] .*\<git add ' && getline(lnum+2) ==# comment && getline(lnum+3) !~# colon.'  ') || getline(lnum) ==# comment.' Untracked files:'
+  elseif (getline(lnum+1) =~# '^\%d'.char2nr(comment).' .*\<git add ' && getline(lnum+2) ==# comment && getline(lnum+3) !~# colon.'  ') || getline(lnum) ==# comment.' Untracked files:'
     return [filename, 'untracked']
-  elseif getline(lnum+2) =~# '^['.comment.'] .*\<git checkout ' || getline(lnum) ==# comment.' Changes not staged for commit:'
+  elseif getline(lnum+2) =~# '^\%d'.char2nr(comment).' .*\<git checkout ' || getline(lnum) ==# comment.' Changes not staged for commit:'
     return [matchstr(filename, colon.' *\zs.*'), 'unstaged']
-  elseif getline(lnum+2) =~# '^['.comment.'] .*\<git \%(add\|rm\)' || getline(lnum) ==# comment.' Unmerged paths:'
+  elseif getline(lnum+2) =~# '^\%d'.char2nr(comment).' .*\<git \%(add\|rm\)' || getline(lnum) ==# comment.' Unmerged paths:'
     return [matchstr(filename, colon.' *\zs.*'), 'unmerged']
   else
     return ['', 'unknown']
@@ -823,7 +823,7 @@ endfunction
 
 function! s:StageNext(count) abort
   for i in range(a:count)
-    call search('^['.b:comment_char.']\t.*','W')
+    call search('^\%d'.char2nr(b:comment_char).'\t.*','W')
   endfor
   return '.'
 endfunction
@@ -833,7 +833,7 @@ function! s:StagePrevious(count) abort
     return 'CtrlP '.fnameescape(s:repo().tree())
   else
     for i in range(a:count)
-      call search('^['.b:comment_char.']\t.*','Wbe')
+      call search('^\%d'.char2nr(b:comment_char).'\t.*','Wbe')
     endfor
     return '.'
   endif
@@ -842,14 +842,14 @@ endfunction
 function! s:StageReloadSeek(target,lnum1,lnum2) abort
   let jump = a:target
   let comment = b:comment_char
-  let f = matchstr(getline(a:lnum1-1),'^['.comment.']\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
+  let f = matchstr(getline(a:lnum1-1),'^\%d'.char2nr(comment).'\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
   if f !=# '' | let jump = f | endif
-  let f = matchstr(getline(a:lnum2+1),'^['.comment.']\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
+  let f = matchstr(getline(a:lnum2+1),'^\%d'.char2nr(comment).'\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
   if f !=# '' | let jump = f | endif
   silent! edit!
   1
   redraw
-  call search('^['.comment.']\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
+  call search('^\%d'.char2nr(comment).'\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
 endfunction
 
 function! s:StageUndo() abort
@@ -928,20 +928,20 @@ function! s:StageToggle(lnum1,lnum2) abort
     for lnum in range(a:lnum1,a:lnum2)
       let [filename, section] = s:stage_info(lnum)
       let repo = s:repo()
-      if getline('.') =~# '^['.comment.'] .*:$'
+      if getline('.') =~# '^\%d'.char2nr(comment).' .*:$'
         if section ==# 'staged'
           call repo.git_chomp_in_tree('reset','-q')
           silent! edit!
           1
-          if !search('^['.comment.'] .*:\n['.comment.'] .*"git add .*\n['.comment.']\n\|^['.comment.'] Untracked files:$','W')
-            call search('^['.comment.'] .*:$','W')
+          if !search('^\%d'.char2nr(comment).' .*:\n\%d'.char2nr(comment).' .*"git add .*\n\%d'.char2nr(comment).'\n\|^\%d'.char2nr(comment).' Untracked files:$','W')
+            call search('^\%d'.char2nr(comment).' .*:$','W')
           endif
           return ''
         elseif section ==# 'unstaged'
           call repo.git_chomp_in_tree('add','-u')
           silent! edit!
           1
-          if !search('^['.comment.'] .*:\n['.comment.'] .*"git add .*\n['.comment.']\n\|^['.comment.'] Untracked files:$','W')
+          if !search('^\%d'.char2nr(comment).' .*:\n\%d'.char2nr(comment).' .*"git add .*\n\%d'.char2nr(comment).'\n\|^\%d'.char2nr(comment).' Untracked files:$','W')
             call search('^# .*:$','W')
           endif
           return ''
@@ -949,7 +949,7 @@ function! s:StageToggle(lnum1,lnum2) abort
           call repo.git_chomp_in_tree('add','.')
           silent! edit!
           1
-          call search('^['.comment.'] .*:$','W')
+          call search('^\%d'.char2nr(comment).' .*:$','W')
           return ''
         endif
       endif
@@ -2843,14 +2843,14 @@ function! s:cfile() abort
         let file = ':'.s:sub(matchstr(getline('.'),'\d\t.*'),'\t',':')
         return [file]
 
-      elseif getline('.') =~# '^'.comment.'\trenamed:.* -> '
+      elseif getline('.') =~# '^\%d'.char2nr(comment).'\trenamed:.* -> '
         let file = '/'.matchstr(getline('.'),' -> \zs.*')
         return [file]
-      elseif getline('.') =~# '^'.comment.'\t[[:alpha:] ]\+: *.'
+      elseif getline('.') =~# '^\%d'.char2nr(comment).'\t[[:alpha:] ]\+: *.'
         let file = '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
         return [file]
-      elseif getline('.') =~# '^'.comment.'\t.'
-        let file = '/'.matchstr(getline('.'),''.comment.'\t\zs.*')
+      elseif getline('.') =~# '^\%d'.char2nr(comment).'\t.'
+        let file = '/'.matchstr(getline('.'),'\%d'.char2nr(comment).'\t\zs.*')
         return [file]
       elseif getline('.') =~# ': needs merge$'
         let file = '/'.matchstr(getline('.'),'.*\ze: needs merge$')
@@ -2861,7 +2861,7 @@ function! s:cfile() abort
       elseif getline('.') =~# '^# On branch '
         let file = 'refs/heads/'.getline('.')[12:]
         return [file]
-      elseif getline('.') =~# "^".comment." Your branch .*'"
+      elseif getline('.') =~# "^\%d".char2nr(comment)." Your branch .*'"
         let file = matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
         return [file]
       endif
