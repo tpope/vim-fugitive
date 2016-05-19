@@ -2835,6 +2835,7 @@ function! s:cfile() abort
     else
 
       let dcmds = []
+      let comment = b:comment_char
 
       " Index
       if getline('.') =~# '^\d\{6\} \x\{40\} \d\t'
@@ -2842,14 +2843,14 @@ function! s:cfile() abort
         let file = ':'.s:sub(matchstr(getline('.'),'\d\t.*'),'\t',':')
         return [file]
 
-      elseif getline('.') =~# '^#\trenamed:.* -> '
+      elseif getline('.') =~# '^'.comment.'\trenamed:.* -> '
         let file = '/'.matchstr(getline('.'),' -> \zs.*')
         return [file]
-      elseif getline('.') =~# '^#\t[[:alpha:] ]\+: *.'
+      elseif getline('.') =~# '^'.comment.'\t[[:alpha:] ]\+: *.'
         let file = '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
         return [file]
-      elseif getline('.') =~# '^#\t.'
-        let file = '/'.matchstr(getline('.'),'#\t\zs.*')
+      elseif getline('.') =~# '^'.comment.'\t.'
+        let file = '/'.matchstr(getline('.'),''.comment.'\t\zs.*')
         return [file]
       elseif getline('.') =~# ': needs merge$'
         let file = '/'.matchstr(getline('.'),'.*\ze: needs merge$')
@@ -2860,7 +2861,7 @@ function! s:cfile() abort
       elseif getline('.') =~# '^# On branch '
         let file = 'refs/heads/'.getline('.')[12:]
         return [file]
-      elseif getline('.') =~# "^# Your branch .*'"
+      elseif getline('.') =~# "^".comment." Your branch .*'"
         let file = matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
         return [file]
       endif
