@@ -1806,7 +1806,6 @@ function! s:Diff(vert,keepfocus,...) abort
   if get(args, 0) =~# '^+'
     let post = remove(args, 0)[1:-1]
   endif
-  let vert = empty(a:vert) ? s:diff_modifier(2) : a:vert
   if exists(':DiffGitCached')
     return 'DiffGitCached'
   elseif (empty(args) || args[0] == ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().path()) !=# ''
@@ -1826,7 +1825,9 @@ function! s:Diff(vert,keepfocus,...) abort
     execute 'nnoremap <buffer> <silent> d2o :diffget '.nr2.'<Bar>diffupdate<CR>'
     execute 'nnoremap <buffer> <silent> d3o :diffget '.nr3.'<Bar>diffupdate<CR>'
     return post
-  elseif len(args)
+  endif
+  let vert = empty(a:vert) ? s:diff_modifier(2) : a:vert
+  if len(args)
     let arg = join(args, ' ')
     if arg ==# ''
       return post
