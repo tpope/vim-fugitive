@@ -1858,6 +1858,10 @@ function! s:Diff(vert,keepfocus,...) abort
       setlocal cursorbind
     endif
     let w:fugitive_diff_restore = restore
+    if !empty(a:vert) && &diffopt =~# 'vertical' && a:vert !~# ' vert '
+      let l:diffopt_vert_removed = 1
+      set diffopt-=vertical
+    endif
     if s:buffer().compare_age(commit) < 0
       execute 'rightbelow '.vert.'diffsplit '.s:fnameescape(spec)
     else
@@ -1865,6 +1869,10 @@ function! s:Diff(vert,keepfocus,...) abort
     endif
     let &l:readonly = &l:readonly
     redraw
+    if exists('l:diffopt_vert_removed')
+      set diffopt+=vertical
+      unlet l:diffopt_vert_removed
+    endif
     let w:fugitive_diff_restore = restore
     let winnr = winnr()
     if getwinvar('#', '&diff')
