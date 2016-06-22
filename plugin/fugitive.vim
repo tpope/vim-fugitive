@@ -1116,7 +1116,7 @@ endfunction
 
 function! s:CommitComplete(A,L,P) abort
   if a:A =~ '^-' || type(a:A) == type(0) " a:A is 0 on :Gcommit -<Tab>
-    let args = ['-C', '-F', '-a', '-c', '-e', '-i', '-m', '-n', '-o', '-q', '-s', '-t', '-u', '-v', '--all', '--allow-empty', '--amend', '--author=', '--cleanup=', '--dry-run', '--edit', '--file=', '--include', '--interactive', '--message=', '--no-verify', '--only', '--quiet', '--reedit-message=', '--reuse-message=', '--signoff', '--template=', '--untracked-files', '--verbose']
+    let args = ['-C', '-F', '-a', '-c', '-e', '-i', '-m', '-n', '-o', '-q', '-s', '-t', '-u', '-v', '--all', '--allow-empty', '--amend', '--author=', '--cleanup=', '--dry-run', '--edit', '--file=', '--fixup=', '--include', '--interactive', '--message=', '--no-verify', '--only', '--quiet', '--reedit-message=', '--reuse-message=', '--signoff', '--template=', '--untracked-files', '--verbose']
     return filter(args,'v:val[0 : strlen(a:A)-1] ==# a:A')
   else
     return s:repo().superglob(a:A)
@@ -2549,6 +2549,7 @@ function! s:BufReadIndex() abort
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>
     nnoremap <buffer> <silent> cA :<C-U>Gcommit --amend --reuse-message=HEAD<CR>
     nnoremap <buffer> <silent> ca :<C-U>Gcommit --amend<CR>
+    nnoremap <buffer> <silent> cF :<C-U>Gcommit --fixup=HEAD<CR>
     nnoremap <buffer> <silent> cc :<C-U>Gcommit<CR>
     nnoremap <buffer> <silent> cva :<C-U>Gcommit --amend --verbose<CR>
     nnoremap <buffer> <silent> cvc :<C-U>Gcommit --verbose<CR>
