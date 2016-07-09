@@ -2784,6 +2784,8 @@ endfunction
 
 function! s:JumpInit(...) abort
   nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
+  nnoremap <buffer> <expr> } filter([search('\%(\_^#\?\s*\_$\)\\|\%$', 'nW'), line('$')], 'v:val')[0].'G'
+  nnoremap <buffer> <expr> { max([1, search('\%(\_^#\?\s*\_$\)\\|\%^', 'nbW')]).'G'
   if !&modifiable
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
     nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
