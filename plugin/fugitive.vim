@@ -753,6 +753,7 @@ function! s:Status() abort
   try
     Gpedit :
     wincmd P
+    wincmd K
     setlocal foldmethod=syntax foldlevel=1
     nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
   catch /^fugitive:/
