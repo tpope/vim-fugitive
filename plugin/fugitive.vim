@@ -753,7 +753,6 @@ function! s:Status() abort
   try
     Gpedit :
     wincmd P
-    wincmd K
     setlocal foldmethod=syntax foldlevel=1
     nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
   catch /^fugitive:/
@@ -1427,7 +1426,7 @@ function! s:Edit(cmd,bang,...) abort
   if a:cmd ==# 'read'
     return 'silent %delete_|read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
   else
-    return a:cmd.' '.s:fnameescape(file)
+    return (&splitbelow ? 'botright ' : 'topleft ').a:cmd.' '.s:fnameescape(file)
   endif
 endfunction
 
