@@ -202,6 +202,9 @@ function! fugitive#detect(path) abort
       if filereadable(b:git_dir.'/tags')
         call buffer.setvar('&tags', escape(b:git_dir.'/tags', ', ').','.buffer.getvar('&tags'))
       endif
+      if isdirectory(b:git_dir.'/modules')
+        call buffer.setvar('&tags', buffer.getvar('&tags').','.escape(b:git_dir.'/modules/**/tags', ', '))
+      endif
       if &filetype !=# '' && filereadable(b:git_dir.'/'.&filetype.'.tags')
         call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
       endif
