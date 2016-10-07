@@ -1132,6 +1132,30 @@ function! s:FinishCommit() abort
   return ''
 endfunction
 
+" Section: GcommitFixup
+call s:command("GcommitFixup :call s:CommitFixup()")
+
+function! s:CommitFixup()
+  call s:Git(1, "log")
+  nnoremap <buffer> f :call fugitive#commit_fixup_with_commit_id_from_current_line()<CR>
+  nnoremap <buffer> n :call search('^commit ')<CR>
+  nnoremap <buffer> N :call search('^commit ', 'b')<CR>
+endfunction
+
+function! fugitive#commit_fixup_with_commit_id_from_current_line()
+  normal! ^w
+  let commit_id = expand('<cword>')
+  bdelete
+  call s:Commit('--fixup='.commit_id)
+  call inputsave() " avoid problems with Vim's typeahead mechanism by calling this before input()
+  let rebase_parameters = 'rebase -i --autosquash '.commit_id.'^'
+  let rebase_autosquash = input('Would you also like to perform an interactive autosquash rebase on that commits parent now? (git '.rebase_parameters.')? (y/n):')
+  call inputrestore() " avoid problems with Vim's typeahead mechanism by calling this after input()
+  if rebase_autosquash ==? 'y' " Play it safe. Anything other than 'y' or 'Y' means no.
+    call s:Git(0, rebase_parameters)
+  endif
+endfunction
+
 " Section: Gmerge, Gpull
 
 call s:command("-nargs=? -bang -complete=custom,s:RevisionComplete Gmerge " .
@@ -2550,6 +2574,7 @@ function! s:BufReadIndex() abort
     nnoremap <buffer> <silent> cA :<C-U>Gcommit --amend --reuse-message=HEAD<CR>
     nnoremap <buffer> <silent> ca :<C-U>Gcommit --amend<CR>
     nnoremap <buffer> <silent> cc :<C-U>Gcommit<CR>
+    nnoremap <buffer> <silent> cf :<C-U>bdelete<CR> :GcommitFixup<CR>
     nnoremap <buffer> <silent> cva :<C-U>Gcommit --amend --verbose<CR>
     nnoremap <buffer> <silent> cvc :<C-U>Gcommit --verbose<CR>
     nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff('Gdiff')<CR>

@@ -43,6 +43,7 @@ that are part of Git repositories).
                         cA    |:Gcommit| --amend --reuse-message=HEAD
                         ca    |:Gcommit| --amend
                         cc    |:Gcommit|
+                        cf close status and |:GcommitFixup|
                         cva   |:Gcommit| --amend --verbose
                         cvc   |:Gcommit| --verbose
                         D     |:Gdiff|
@@ -73,6 +74,16 @@ that are part of Git repositories).
                         command, it is possible (but unadvisable) to alter the
                         index with commands like git-add and git-reset while a
                         commit message is pending.
+
+                                                *fugitive-:GcommitFixup*
+:GcommitFixup           A wrapper around git-commit --fixup=commitID. Brings
+                        up the git log. First move the cursor to the line with
+                        the commit ID you want to use with --fixup, then press
+                        f. Press n to jump to the next commit, and N to
+                        jump to the previous commit. At the end you get a
+                        chance to merge this fixup commit into the commit
+                        being fixed up. Alternatively, you can run this
+                        command via cf from the |:Gstatus| buffer.
 
                                                 *fugitive-:Gmerge*
 :Gmerge [args]          Calls git-merge and loads errors and conflicted files
