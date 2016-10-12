@@ -2352,7 +2352,7 @@ function! s:github_url(opts, ...) abort
   for domain in domains
     let domain_pattern .= '\|' . escape(split(domain, '://')[-1], '.')
   endfor
-  let repo = matchstr(get(a:opts, 'remote'), '^\%(https\=://\|git://\|git@\)\=\zs\('.domain_pattern.'\)[/:].\{-\}\ze\%(\.git\)\=$')
+  let repo = matchstr(get(a:opts, 'remote'), '^\%(ssh://git@\|https\=://\|git://\|git@\)\=\zs\('.domain_pattern.'\)[/:].\{-\}\ze\%(\.git\)\=$')
   if repo ==# ''
     return ''
   endif
