@@ -468,8 +468,8 @@ endfun
 function! s:repo_aliases() dict abort
   if !has_key(self,'_aliases')
     let self._aliases = {}
-    for line in split(self.git_chomp('config','--get-regexp','^alias[.]'),"\n")
-      let self._aliases[matchstr(line,'\.\zs\S\+')] = matchstr(line,' \zs.*')
+    for line in split(self.git_chomp('config','-z','--get-regexp','^alias[.]'),"\1")
+      let self._aliases[matchstr(line, '\.\zs.\{-}\ze\n')] = matchstr(line, '\n\zs.*')
     endfor
   endif
   return self._aliases
