@@ -181,7 +181,9 @@ that are part of Git repositories).
                         to the right or bottom, depending on 'diffopt' and
                         the width of the window relative to 'textwidth'.  Use
                         |do| and |dp| and write to the index file to simulate
-                        "git add --patch".
+                        "git add --patch". For the three-way diff, there is
+                        also d2o and d3o pulling the hunk to the middle from
+                        the left or the right window, respectively.
 
                                                 *fugitive-:Gsdiff*
 :Gsdiff [revision]      Like |:Gdiff|, but always split horizontally.
