@@ -68,6 +68,30 @@ function! s:shellslash(path) abort
   endif
 endfunction
 
+function! s:parse_dotgitfile(fpath) abort
+  let line = get(readfile(a:fpath, '', 1), 0, '')
+  " Git-for-Windows records Windows path names in '<work-dir>/.git' FILE
+  " However, the VIM from Cygwin/MSYS2 fails to 'cd <windows-path>'
+  " Convert the windows path to unix path to address this issue
+  if has('win32unix') && line =~# '^gitdir: ' && executable('cygpath')
+    let windir = substitute(line, '^gitdir: ', '', '')
+    let cygdir = substitute(system('cygpath -u ' . windir), '\n\+$', '', '')
+    let line = 'gitdir: ' . cygdir
+  endif
+  return line
+endfunction
+
+function! s:parse_gitdirfile(fpath) abort
+  let worktree = fnamemodify(readfile(a:fpath)[0], ':h')
+  " Git-for-Windows records Windows path names in '<git-repo>/.git/worktree/gitdir' FILE
+  " However, the VIM from Cygwin/MSYS2 fails to 'cd <windows-path>'
+  " Convert the windows path to unix path to address this issue
+  if has('win32unix') && worktree !=# '.' && executable('cygpath')
+    let worktree = substitute(system('cygpath -u ' . worktree), '\n\+$', '', '')
+  endif
+  return worktree
+endfunction
+
 let s:git_versions = {}
 
 function! fugitive#git_version(...) abort
@@ -156,7 +180,7 @@ function! fugitive#extract_git_dir(path) abort
     elseif type ==# 'link' && fugitive#is_git_dir(dir)
       return resolve(dir)
     elseif type !=# '' && filereadable(dir)
-      let line = get(readfile(dir, '', 1), 0, '')
+      let line = s:parse_dotgitfile(dir)
       if line =~# '^gitdir: \.' && fugitive#is_git_dir(root.'/'.line[8:-1])
         return simplify(root.'/'.line[8:-1])
       elseif line =~# '^gitdir: ' && fugitive#is_git_dir(line[8:-1])
@@ -266,7 +290,7 @@ function! s:configured_tree(git_dir) abort
         let worktree = matchstr(config[0], '= *\zs.*')
       endif
     elseif filereadable(a:git_dir . '/gitdir')
-      let worktree = fnamemodify(readfile(a:git_dir . '/gitdir')[0], ':h')
+      let worktree = s:parse_gitdirfile(a:git_dir . '/gitdir')
       if worktree ==# '.'
         unlet! worktree
       endif
