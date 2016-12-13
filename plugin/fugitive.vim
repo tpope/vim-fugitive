@@ -1577,9 +1577,7 @@ function! s:Write(force,...) abort
         endif
         try
           let lnum = line('.')
-          let last = line('$')
-          silent execute '$read '.s:fnameescape(file)
-          silent execute '1,'.last.'delete_'
+          execute 'silent %delete_|silent read '.s:fnameescape(file).'|silent 1delete_'
           silent execute lnum
           set nomodified
           diffupdate
