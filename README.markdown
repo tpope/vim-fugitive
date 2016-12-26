@@ -103,6 +103,12 @@ to open after any grep invocation:
 
     autocmd QuickFixCmdPost *grep* cwindow
 
+> How can I make it work with GitHub for Windows?
+
+Open `Edit -> Startup Settings` and add the following line: 
+
+    let g:fugitive_git_executable = glob($LOCALAPPDATA.'\GitHub\PortableGit_*\cmd\git.exe')
+
 ## Self-Promotion
 
 Like fugitive.vim? Follow the repository on
