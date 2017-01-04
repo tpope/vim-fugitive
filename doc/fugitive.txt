@@ -352,6 +352,6 @@ ABOUT                                           *fugitive-about*
 
 Grab the latest version or report a bug on GitHub:
 
-http://github.com/tpope/vim-fugitive
+https://github.com/tpope/vim-fugitive
 
  vim:tw=78:et:ft=help:norl:
