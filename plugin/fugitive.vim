@@ -3097,3 +3097,17 @@ augroup fugitive_foldtext
         \    set foldtext=fugitive#foldtext() |
         \ endif
 augroup END
+
+" Section: Interactive Rebase
+
+augroup fugitive_interactive_rebase
+  autocmd!
+  let b:fugitive_rebase_commands="^(pick|reword|edit|squash|fixup|exec|drop)"
+  autocmd FileType gitrebase nnoremap <buffer> <silent> I :s/\v<c-r>=b:fugitive_rebase_commands<cr>/pick/<cr>:nohlsearch<cr>
+  autocmd FileType gitrebase nnoremap <buffer> <silent> R :s/\v<c-r>=b:fugitive_rebase_commands<cr>/reword/<cr>:nohlsearch<cr>
+  autocmd FileType gitrebase nnoremap <buffer> <silent> E :s/\v<c-r>=b:fugitive_rebase_commands<cr>/edit/<cr>:nohlsearch<cr>
+  autocmd FileType gitrebase nnoremap <buffer> <silent> S :s/\v<c-r>=b:fugitive_rebase_commands<cr>/squash/<cr>:nohlsearch<cr>
+  autocmd FileType gitrebase nnoremap <buffer> <silent> F :s/\v<c-r>=b:fugitive_rebase_commands<cr>/fixup/<cr>:nohlsearch<cr>
+  autocmd FileType gitrebase nnoremap <buffer> <silent> X :s/\v<c-r>=b:fugitive_rebase_commands<cr>/exec/<cr>:nohlsearch<cr>
+  autocmd FileType gitrebase nnoremap <buffer> <silent> D :s/\v<c-r>=b:fugitive_rebase_commands<cr>/drop/<cr>:nohlsearch<cr>
+augroup END
