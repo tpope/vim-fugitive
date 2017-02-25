@@ -1060,14 +1060,14 @@ function! s:Commit(args, ...) abort
       else
         noautocmd silent execute '!'.command.' > '.outfile.' 2> '.errorfile
       endif
-      let shell_error = v:shell_error
+      let error = v:shell_error
     finally
       execute cd.'`=dir`'
     endtry
     if !has('gui_running')
       redraw!
     endif
-    if !shell_error
+    if !error
       if filereadable(outfile)
         for line in readfile(outfile)
           echo line
