@@ -1634,8 +1634,8 @@ function! s:Dispatch(bang, args)
     let &l:errorformat = s:common_efm
     let &l:makeprg = g:fugitive_git_executable . ' ' . a:args
     execute cd fnameescape(s:repo().tree())
-    if exists(':Make') == 2
-      noautocmd Make
+    if exists(':FugitiveMake') == 2
+      noautocmd FugitiveMake
     else
       silent noautocmd make!
       redraw!
