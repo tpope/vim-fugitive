@@ -748,8 +748,8 @@ call s:command("-bar Gstatus :execute s:Status()")
 augroup fugitive_status
   autocmd!
   if !has('win32')
-    autocmd FocusGained,ShellCmdPost * call fugitive#reload_status()
-    autocmd BufDelete term://* call fugitive#reload_status()
+    autocmd FocusGained,ShellCmdPost * call fugitive#reload_status(1)
+    autocmd BufDelete term://* call fugitive#reload_status(1)
   endif
 augroup END
 
@@ -765,7 +765,7 @@ function! s:Status() abort
   return ''
 endfunction
 
-function! fugitive#reload_status() abort
+function! fugitive#reload_status(...) abort
   if exists('s:reloading_status')
     return
   endif
@@ -795,6 +795,10 @@ function! fugitive#reload_status() abort
     endfor
   finally
     unlet! s:reloading_status
+    if exists('restorewinnr') && len(a:000)
+    " since autocommands do not nest, trigger WinEnter now
+      doauto WinEnter
+    endif
   endtry
 endfunction
 
