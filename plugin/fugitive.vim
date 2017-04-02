@@ -2662,7 +2662,7 @@ function! s:BufReadObject() abort
       let b:fugitive_type = s:repo().git_chomp('cat-file','-t',hash)
     endif
     if b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
-      return "echoerr 'fugitive: unrecognized git type'"
+      return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
     endif
     let firstline = getline('.')
     if !exists('b:fugitive_display_format') && b:fugitive_type != 'blob'
