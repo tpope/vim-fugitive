@@ -2260,10 +2260,11 @@ function! s:Browse(bang,line1,count,...) abort
     if path =~# '^\.git/refs/remotes/.'
       if empty(remote)
         let remote = matchstr(path, '^\.git/refs/remotes/\zs[^/]\+')
+        let branch = matchstr(path, '^\.git/refs/remotes/[^/]\+/\zs.\+')
+      else
+        let merge = matchstr(path, '^\.git/refs/remotes/[^/]\+/\zs.\+')
+        let path = '.git/refs/heads/'.merge
       endif
-      let merge = matchstr(path, '^\.git/refs/remotes/[^/]\+/\zs.\+')
-      let branch = ''
-      let path = '.git/refs/heads/'.merge
     elseif path =~# '^\.git/refs/heads/.'
       let branch = path[16:-1]
     elseif !exists('branch')
