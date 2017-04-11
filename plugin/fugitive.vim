@@ -2372,46 +2372,8 @@ function! s:github_url(opts, ...) abort
   if repo ==# ''
     return ''
   endif
-  let path = substitute(a:opts.path, '^/', '', '')
-  if index(domains, 'http://' . matchstr(repo, '^[^:/]*')) >= 0
-    let root = 'http://' . s:sub(repo,':','/')
-  else
-    let root = 'https://' . s:sub(repo,':','/')
-  endif
-  if path =~# '^\.git/refs/heads/'
-    let branch = a:opts.repo.git_chomp('config','branch.'.path[16:-1].'.merge')[11:-1]
-    if branch ==# ''
-      return root . '/commits/' . path[16:-1]
-    else
-      return root . '/commits/' . branch
-    endif
-  elseif path =~# '^\.git/refs/tags/'
-    return root . '/releases/tag/' . path[15:-1]
-  elseif path =~# '^\.git/refs/remotes/[^/]\+/.'
-    return root . '/commits/' . matchstr(path,'remotes/[^/]\+/\zs.*')
-  elseif path =~# '.git/\%(config$\|hooks\>\)'
-    return root . '/admin'
-  elseif path =~# '^\.git\>'
-    return root
-  endif
-  if a:opts.commit =~# '^\d\=$'
-    let commit = a:opts.repo.rev_parse('HEAD')
-  else
-    let commit = a:opts.commit
-  endif
-  if get(a:opts, 'type', '') ==# 'tree' || a:opts.path =~# '/$'
-    let url = substitute(root . '/tree/' . commit . '/' . path, '/$', '', 'g')
-  elseif get(a:opts, 'type', '') ==# 'blob' || a:opts.path =~# '[^/]$'
-    let url = root . '/blob/' . commit . '/' . path
-    if get(a:opts, 'line2') && a:opts.line1 == a:opts.line2
-      let url .= '#L' . a:opts.line1
-    elseif get(a:opts, 'line2')
-      let url .= '#L' . a:opts.line1 . '-L' . a:opts.line2
-    endif
-  else
-    let url = root . '/commit/' . commit
-  endif
-  return url
+  call s:warn('Install rhubarb.vim for GitHub support')
+  return 'https://github.com/tpope/vim-rhubarb'
 endfunction
 
 function! s:instaweb_url(opts) abort

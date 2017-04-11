@@ -232,9 +232,7 @@ that are part of Git repositories).
                         Upstream providers can be added by installing an
                         appropriate Vim plugin.  For example, GitHub can be
                         supported by installing rhubarb.vim, available at
-                        <https://github.com/tpope/vim-rhubarb>.  (Native
-                        support for GitHub is currently included, but that is
-                        slated to be removed.)
+                        <https://github.com/tpope/vim-rhubarb>.
 
                         The hosting provider is determined by looking at the
                         remote for the current or specified branch and falls
