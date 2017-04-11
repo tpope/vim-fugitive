@@ -70,6 +70,10 @@ endfunction
 
 let s:git_versions = {}
 
+function! s:git_command() abort
+  return get(g:, 'fugitive_git_command', g:fugitive_git_executable)
+endfunction
+
 function! fugitive#git_version(...) abort
   if !has_key(s:git_versions, g:fugitive_git_executable)
     let s:git_versions[g:fugitive_git_executable] = matchstr(system(g:fugitive_git_executable.' --version'), "\\S\\+\n")
@@ -374,12 +378,14 @@ endfunction
 call s:add_methods('repo',['dir','tree','bare','translate','head'])
 
 function! s:repo_git_command(...) dict abort
-  let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
+  let git = s:git_command() . ' --git-dir='.s:shellesc(self.git_dir)
   return git.join(map(copy(a:000),'" ".s:shellesc(v:val)'),'')
 endfunction
 
 function! s:repo_git_chomp(...) dict abort
-  return s:sub(system(call(self.git_command,a:000,self)),'\n$','')
+  let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
+  let output = git.join(map(copy(a:000),'" ".s:shellesc(v:val)'),'')
+  return s:sub(system(output),'\n$','')
 endfunction
 
 function! s:repo_git_chomp_in_tree(...) dict abort
@@ -456,7 +462,7 @@ endfunction
 call s:add_methods('repo',['dirglob','superglob'])
 
 function! s:repo_config(conf) dict abort
-  return matchstr(system(s:repo().git_command('config').' '.a:conf),"[^\r\n]*")
+  return matchstr(s:repo().git_chomp('config',a:conf),"[^\r\n]*")
 endfun
 
 function! s:repo_user() dict abort
@@ -480,9 +486,9 @@ call s:add_methods('repo',['config', 'user', 'aliases'])
 function! s:repo_keywordprg() dict abort
   let args = ' --git-dir='.escape(self.dir(),"\\\"' ")
   if has('gui_running') && !has('win32')
-    return g:fugitive_git_executable . ' --no-pager' . args . ' log -1'
+    return s:git_command() . ' --no-pager' . args . ' log -1'
   else
-    return g:fugitive_git_executable . args . ' show'
+    return s:git_command() . args . ' show'
   endif
 endfunction
 
@@ -693,7 +699,7 @@ function! s:Git(bang, args) abort
   if a:bang
     return s:Edit('edit', 1, a:args)
   endif
-  let git = g:fugitive_git_executable
+  let git = s:git_command()
   if has('gui_running') && !has('win32')
     let git .= ' --no-pager'
   endif
@@ -1211,7 +1217,7 @@ function! s:Merge(cmd, bang, args) abort
           \  !empty(s:repo().git_chomp('diff-files', '--diff-filter=U')))
       let &l:makeprg = g:fugitive_git_executable.' diff-files --name-status --diff-filter=U'
     else
-      let &l:makeprg = s:sub(g:fugitive_git_executable . ' ' . a:cmd .
+      let &l:makeprg = s:sub(s:git_command() . ' ' . a:cmd .
             \ (a:args =~# ' \%(--no-edit\|--abort\|-m\)\>' ? '' : ' --edit') .
             \ ' ' . a:args, ' *$', '')
     endif
@@ -1635,7 +1641,7 @@ function! s:Dispatch(bang, args)
   try
     let b:current_compiler = 'git'
     let &l:errorformat = s:common_efm
-    let &l:makeprg = g:fugitive_git_executable . ' ' . a:args
+    let &l:makeprg = s:git_command() . ' ' . a:args
     execute cd fnameescape(s:repo().tree())
     if exists(':Make') == 2
       noautocmd Make
