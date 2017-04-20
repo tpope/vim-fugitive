@@ -2821,6 +2821,9 @@ function! s:cfile() abort
         let file = ':'.s:sub(matchstr(getline('.'),'\d\t.*'),'\t',':')
         return [file]
 
+      elseif getline('.') =~# '^#\tcopied:.* -> '
+        let file = '/'.matchstr(getline('.'),' -> \zs.*')
+        return s:Edit(a:mode,0,file)
       elseif getline('.') =~# '^#\trenamed:.* -> '
         let file = '/'.matchstr(getline('.'),' -> \zs.*')
         return [file]
