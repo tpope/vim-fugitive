@@ -1641,7 +1641,7 @@ function! s:Dispatch(bang, args)
   try
     let b:current_compiler = 'git'
     let &l:errorformat = s:common_efm
-    let &l:makeprg = s:git_command() . (empty(a:args) ? '' : ' ' . a:args)
+    let &l:makeprg = substitute(s:git_command() . ' ' . a:args, '\s\+$', '', '')
     execute cd fnameescape(s:repo().tree())
     if exists(':Make') == 2
       noautocmd Make
