@@ -2313,9 +2313,14 @@ function! s:Browse(bang,line1,count,...) abort
 
     if empty(remote)
       let remote = '.'
-      let raw = s:repo().git_chomp('remote','get-url','origin')
+      let remote_for_url = 'origin'
     else
-      let raw = s:repo().git_chomp('remote','get-url',remote)
+      let remote_for_url = remote
+    endif
+    if fugitive#git_version() =~# '^[01]\.|^2\.[0-6]\.'
+      let raw = s:repo().git_chomp('config','remote.'.remote_for_url.'.url')
+    else
+      let raw = s:repo().git_chomp('remote','get-url',remote_for_url)
     endif
     if raw ==# ''
       let raw = remote
