@@ -595,10 +595,17 @@ function! s:buffer_path(...) dict abort
   elseif s:cpath(self.spec()[0 : len(self.repo().dir())]) ==#
         \ s:cpath(self.repo().dir() . '/')
     let rev = '/.git'.self.spec()[strlen(self.repo().dir()) : -1]
-  elseif !self.repo().bare() &&
-        \ s:cpath(self.spec()[0 : len(self.repo().tree())]) ==#
+  elseif !self.repo().bare()
+    if s:cpath(self.spec()[0 : len(self.repo().tree())]) ==#
         \ s:cpath(self.repo().tree() . '/')
-    let rev = self.spec()[strlen(self.repo().tree()) : -1]
+      let rev = self.spec()[strlen(self.repo().tree()) : -1]
+    else
+      let resolved_tree = resolve(self.repo().tree())
+      if s:cpath(self.spec()[0 : len(resolved_tree)]) ==#
+        \ s:cpath(resolved_tree . '/')
+        let rev = self.spec()[strlen(resolved_tree) : -1]
+      endif
+    endif
   endif
   return s:sub(s:sub(rev,'.\zs/$',''),'^/',a:0 ? a:1 : '')
 endfunction
