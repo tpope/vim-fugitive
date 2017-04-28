@@ -2200,7 +2200,7 @@ endfunction
 
 function! s:RehighlightBlame() abort
   for [hash, cterm] in items(s:hash_colors)
-    if !empty(cterm) || has('gui_running')
+    if !empty(cterm) || has('gui_running') || has('termguicolors') && &termguicolors
       exe 'hi FugitiveblameHash'.hash.' guifg=#'.hash.get(s:hash_colors, hash, '')
     else
       exe 'hi link FugitiveblameHash'.hash.' Identifier'
