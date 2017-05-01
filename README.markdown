@@ -41,9 +41,9 @@ support is provided for `git instaweb`, and plugins are available for popular
 providers such as [GitHub][rhubarb.vim], [GitLab][fugitive-gitlab.vim], and
 [Bitbucket][fubitive.vim].
 
-[rhubarb.vim](https://github.com/tpope/vim-rhubarb)
-[fugitive-gitlab.vim](https://github.com/shumphrey/fugitive-gitlab.vim)
-[fubitive.vim](https://github.com/tommcdo/vim-fubitive)
+[rhubarb.vim]: https://github.com/tpope/vim-rhubarb
+[fugitive-gitlab.vim]: https://github.com/shumphrey/fugitive-gitlab.vim
+[fubitive.vim]: https://github.com/tommcdo/vim-fubitive
 
 Add `%{fugitive#statusline()}` to `'statusline'` to get an indicator
 with the current branch in (surprise!) your statusline.
