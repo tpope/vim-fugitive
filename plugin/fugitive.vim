@@ -2894,7 +2894,7 @@ function! s:cfile() abort
         let ref = matchstr(getline('.'),'\x\{40\}')
         echoerr "warning: unknown context ".matchstr(getline('.'),'^\l*')
 
-      elseif getline('.') =~# '^[+-]\{3\} [ab/]'
+      elseif getline('.') =~# '^[+-]\{3\} [abciwo12]\=/'
         let ref = getline('.')[4:]
 
       elseif getline('.') =~# '^[+-]' && search('^@@ -\d\+,\d\+ +\d\+,','bnW')
@@ -2908,7 +2908,7 @@ function! s:cfile() abort
           let lnum -= 1
         endwhile
         let offset += matchstr(getline(lnum), type.'\zs\d\+')
-        let ref = getline(search('^'.type.'\{3\} [ab]/','bnW'))[4:-1]
+        let ref = getline(search('^'.type.'\{3\} [abciwo12]/','bnW'))[4:-1]
         let dcmds = [offset, 'normal!zv']
 
       elseif getline('.') =~# '^rename from '
@@ -2917,22 +2917,22 @@ function! s:cfile() abort
         let ref = 'b/'.getline('.')[10:]
 
       elseif getline('.') =~# '^@@ -\d\+,\d\+ +\d\+,'
-        let diff = getline(search('^diff --git \%(a/.*\|/dev/null\) \%(b/.*\|/dev/null\)', 'bcnW'))
+        let diff = getline(search('^diff --git \%([abciwo12]/.*\|/dev/null\) \%([abciwo12]/.*\|/dev/null\)', 'bcnW'))
         let offset = matchstr(getline('.'), '+\zs\d\+')
 
-        let dref = matchstr(diff, '\Cdiff --git \zs\%(a/.*\|/dev/null\)\ze \%(b/.*\|/dev/null\)')
-        let ref = matchstr(diff, '\Cdiff --git \%(a/.*\|/dev/null\) \zs\%(b/.*\|/dev/null\)')
+        let dref = matchstr(diff, '\Cdiff --git \zs\%([abciwo12]/.*\|/dev/null\)\ze \%([abciwo12]/.*\|/dev/null\)')
+        let ref = matchstr(diff, '\Cdiff --git \%([abciwo12]/.*\|/dev/null\) \zs\%([abciwo12]/.*\|/dev/null\)')
         let dcmd = 'Gdiff! +'.offset
 
-      elseif getline('.') =~# '^diff --git \%(a/.*\|/dev/null\) \%(b/.*\|/dev/null\)'
-        let dref = matchstr(getline('.'),'\Cdiff --git \zs\%(a/.*\|/dev/null\)\ze \%(b/.*\|/dev/null\)')
-        let ref = matchstr(getline('.'),'\Cdiff --git \%(a/.*\|/dev/null\) \zs\%(b/.*\|/dev/null\)')
+      elseif getline('.') =~# '^diff --git \%([abciwo12]/.*\|/dev/null\) \%([abciwo12]/.*\|/dev/null\)'
+        let dref = matchstr(getline('.'),'\Cdiff --git \zs\%([abciwo12]/.*\|/dev/null\)\ze \%([abciwo12]/.*\|/dev/null\)')
+        let ref = matchstr(getline('.'),'\Cdiff --git \%([abciwo12]/.*\|/dev/null\) \zs\%([abciwo12]/.*\|/dev/null\)')
         let dcmd = 'Gdiff!'
 
-      elseif getline('.') =~# '^index ' && getline(line('.')-1) =~# '^diff --git \%(a/.*\|/dev/null\) \%(b/.*\|/dev/null\)'
+      elseif getline('.') =~# '^index ' && getline(line('.')-1) =~# '^diff --git \%([abciwo12]/.*\|/dev/null\) \%([abciwo12]/.*\|/dev/null\)'
         let line = getline(line('.')-1)
-        let dref = matchstr(line,'\Cdiff --git \zs\%(a/.*\|/dev/null\)\ze \%(b/.*\|/dev/null\)')
-        let ref = matchstr(line,'\Cdiff --git \%(a/.*\|/dev/null\) \zs\%(b/.*\|/dev/null\)')
+        let dref = matchstr(line,'\Cdiff --git \zs\%([abciwo12]/.*\|/dev/null\)\ze \%([abciwo12]/.*\|/dev/null\)')
+        let ref = matchstr(line,'\Cdiff --git \%([abciwo12]/.*\|/dev/null\) \zs\%([abciwo12]/.*\|/dev/null\)')
         let dcmd = 'Gdiff!'
 
       elseif line('$') == 1 && getline('.') =~ '^\x\{40\}$'
@@ -2945,18 +2945,21 @@ function! s:cfile() abort
         let ref = ''
       endif
 
-      if myhash ==# ''
-        let ref = s:sub(ref,'^a/','HEAD:')
-        let ref = s:sub(ref,'^b/',':0:')
-        if exists('dref')
-          let dref = s:sub(dref,'^a/','HEAD:')
-        endif
-      else
-        let ref = s:sub(ref,'^a/',myhash.'^:')
-        let ref = s:sub(ref,'^b/',myhash.':')
-        if exists('dref')
-          let dref = s:sub(dref,'^a/',myhash.'^:')
-        endif
+      let prefixes = {
+            \ '1': '',
+            \ '2': '',
+            \ 'b': ':0:',
+            \ 'i': ':0:',
+            \ 'o': '',
+            \ 'w': ''}
+
+      if len(myhash)
+        let prefixes.a = myhash.'^:'
+        let prefixes.b = myhash.':'
+      endif
+      let ref = s:sub(ref, '^\(\w\)/', 'get(prefixes, submatch(1), "HEAD:")')
+      if exists('dref')
+        let dref = s:sub(dref, '^\(\w\)/', 'get(prefixes, submatch(1), "HEAD:")')
       endif
 
       if ref ==# '/dev/null'
@@ -3064,7 +3067,7 @@ function! fugitive#foldtext() abort
       endif
     endfor
     if filename ==# ''
-      let filename = matchstr(getline(v:foldstart), '^diff .\{-\} a/\zs.*\ze b/')
+      let filename = matchstr(getline(v:foldstart), '^diff .\{-\} [abciow12]/\zs.*\ze [abciow12]/')
     endif
     if filename ==# ''
       let filename = getline(v:foldstart)[5:-1]
