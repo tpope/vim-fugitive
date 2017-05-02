@@ -2957,9 +2957,9 @@ function! s:cfile() abort
         let prefixes.a = myhash.'^:'
         let prefixes.b = myhash.':'
       endif
-      let ref = s:sub(ref, '^(\w)/', '\=get(prefixes, submatch(1), "HEAD:")')
+      let ref = substitute(ref, '^\(\w\)/', '\=get(prefixes, submatch(1), "HEAD:")', '')
       if exists('dref')
-        let dref = s:sub(dref, '^(\w)/', '\=get(prefixes, submatch(1), "HEAD:")')
+        let dref = substitute(dref, '^\(\w\)/', '\=get(prefixes, submatch(1), "HEAD:")', '')
       endif
 
       if ref ==# '/dev/null'
