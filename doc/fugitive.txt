@@ -74,6 +74,12 @@ that are part of Git repositories).
                         index with commands like git-add and git-reset while a
                         commit message is pending.
 
+                        To open the commit message in a separate tab, useful
+                        with :Gcommit -v:
+>
+                        let g:fugitive_commit_tab = 1
+~
+
                                                 *fugitive-:Gmerge*
 :Gmerge [args]          Calls git-merge and loads errors and conflicted files
                         into the quickfix list.  Opens a |:Gcommit| style

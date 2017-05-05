@@ -1110,7 +1110,11 @@ function! s:Commit(args, ...) abort
           execute (search('^#','n')+1).'wincmd+'
           setlocal nopreviewwindow
         else
-          execute 'keepalt split '.s:fnameescape(msgfile)
+          if exists('g:fugitive_commit_tab')
+            execute 'keepalt tabedit '.s:fnameescape(msgfile)
+          else
+            execute 'keepalt split '.s:fnameescape(msgfile)
+          endif
         endif
         let b:fugitive_commit_arguments = args
         setlocal bufhidden=wipe filetype=gitcommit
