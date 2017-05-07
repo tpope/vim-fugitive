@@ -298,6 +298,9 @@ endfunction
 function! s:repo_tree(...) dict abort
   if self.dir() =~# '/\.git$'
     let dir = self.dir()[0:-6]
+    if dir !~# '/'
+      let dir .= '/'
+    endif
   else
     let dir = s:configured_tree(self.git_dir)
   endif
