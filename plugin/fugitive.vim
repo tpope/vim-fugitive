@@ -1118,7 +1118,7 @@ function! s:Commit(args, ...) abort
       elseif error ==# '!'
         return s:Status()
       else
-        call s:throw(error)
+        call s:throw(error?error:join(errors, ' '))
       endif
     endif
   catch /^fugitive:/
