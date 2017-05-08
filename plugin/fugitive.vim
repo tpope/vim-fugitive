@@ -1656,6 +1656,38 @@ function! s:Dispatch(bang, args)
     execute cd fnameescape(s:repo().tree())
     if exists(':Make') == 2
       noautocmd Make
+    elseif exists(':terminal')
+      function! s:WaitForTerminal(job_id, data, event) dict
+        let l:async_quickfix = getbufvar(self.bufnr, 'async_quickfix')
+        if a:event == 'stdout' || a:event == 'stderr'
+          call add(l:async_quickfix, join(a:data, "\n"))
+          call setbufvar(self.bufnr, 'async_quickfix', l:async_quickfix)
+        else
+          call map(l:async_quickfix, 'substitute(v:val, nr2char(10), "\r", "g")')
+          call map(l:async_quickfix, 'substitute(v:val, "\r", "", "g")')
+          " cexpr validates against global errorformat
+          set errorformat<
+          let l:g_efm = &errorformat
+          let &errorformat = s:common_efm
+          silent! cexpr l:async_quickfix
+          silent! cexpr map(filter(getqflist(), 'v:val.valid'), 'v:val.text')
+          let &errorformat = l:g_efm
+          call setqflist([], 'a', { 'title': self.title })
+          " Automatically open/close related buffers
+          call fugitive#cwindow()
+          execute 'bdelete! ' . self.bufnr
+        endif
+      endfunction
+      belowright split | enew
+      let b:async_quickfix = []
+      call termopen(extend([g:fugitive_git_executable], split(a:args)), {
+            \ 'on_stdout': function('s:WaitForTerminal'),
+            \ 'on_stderr': function('s:WaitForTerminal'),
+            \ 'on_exit': function('s:WaitForTerminal'),
+            \ 'bufnr': bufnr('%'),
+            \ 'title': ':' . g:fugitive_git_executable . ' ' . a:args
+            \ })
+      startinsert
     else
       silent noautocmd make!
       redraw!
