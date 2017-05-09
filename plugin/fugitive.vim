@@ -2345,6 +2345,7 @@ function! s:Browse(bang,line1,count,...) abort
             \ 'commit': commit,
             \ 'path': path,
             \ 'type': type,
+            \ 'branch' : branch,
             \ 'line1': a:count > 0 ? a:line1 : 0,
             \ 'line2': a:count > 0 ? a:count : 0}])
       if !empty(url)
@@ -2398,6 +2399,15 @@ function! s:github_url(opts, ...) abort
   return 'https://github.com/tpope/vim-rhubarb'
 endfunction
 
+function! s:gitlab_url(opts) abort
+    let repo=substitute(get(a:opts, 'remote'), '\(http\|https\|ssh\)://git@\(.*\).git', '\2', 'g')
+    let url="https://" . repo . "/" .
+            \ get(a:opts, 'type') . '/' .
+            \ get(a:opts, 'branch') . '/' .
+            \ get(a:opts, 'path'). "#L" . line(".")
+    return url
+endfunction
+
 function! s:instaweb_url(opts) abort
   if a:opts.remote !=# '.'
     return ''
@@ -2445,7 +2455,7 @@ if !exists('g:fugitive_browse_handlers')
 endif
 
 call extend(g:fugitive_browse_handlers,
-      \ [s:function('s:github_url'), s:function('s:instaweb_url')])
+      \ [s:function('s:github_url'), s:function('s:instaweb_url'), s:function('s:gitlab_url')])
 
 " Section: File access
 
