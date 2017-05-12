@@ -1827,6 +1827,13 @@ function! s:Diff(vert,keepfocus,...) abort
       catch /^fugitive:/
         return 'echoerr v:errmsg'
       endtry
+    elseif arg =~# '[^.]\.\.\.$'
+        let base = s:repo().git_chomp('merge-base',matchstr(arg, '\S*[^.]'),'HEAD')
+        try
+            let file = s:repo().rev_parse(base).s:buffer().path(':')
+        catch /^fugitive:/
+            return 'echoerr v:errmsg'
+        endtry
     else
       let file = s:buffer().expand(arg)
     endif

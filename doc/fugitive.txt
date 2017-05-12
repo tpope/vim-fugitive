@@ -316,6 +316,7 @@ and the work tree file for everything else.  Example revisions follow.
 Revision        Meaning ~
 HEAD            .git/HEAD
 master          .git/refs/heads/master
+commit...       The common ancestor between commit and HEAD
 HEAD^{}         The commit referenced by HEAD
 HEAD^           The parent of the commit referenced by HEAD
 HEAD:           The tree referenced by HEAD
