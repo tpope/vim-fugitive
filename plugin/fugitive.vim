@@ -975,11 +975,14 @@ function! s:StageToggle(lnum1,lnum2) abort
         continue
       endif
       execute lnum
-      if filename =~ ' -> '
-        let cmd = ['mv','--'] + reverse(split(filename,' -> '))
-        let filename = cmd[-1]
-      elseif section ==# 'staged'
-        let cmd = ['reset','-q','--',filename]
+      if section ==# 'staged'
+        if filename =~ ' -> '
+          let files_to_unstage = split(filename,' -> ')
+        else
+          let files_to_unstage = [filename]
+        endif
+        let filename = files_to_unstage[-1]
+        let cmd = ['reset','-q','--'] + files_to_unstage
       elseif getline(lnum) =~# '^#\tdeleted:'
         let cmd = ['rm','--',filename]
       elseif getline(lnum) =~# '^#\tmodified:'
