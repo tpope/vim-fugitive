@@ -306,6 +306,24 @@ C                       Go to the commit containing the current file.
 a                       Show the current tag, commit, or tree in an alternate
                         format.
 
+                                                *fugitive-interactive-rebase*
+These maps are available during an interactive rebase, and change the command
+selected for the current line.
+
+I                       pick: use commit
+
+R                       reword: use commit, but edit the commit message
+
+E                       edit: use commit, but stop for amending
+
+S                       squash: use commit, but meld into previous commit
+
+F                       fixup: "squash", but discard this commit's log message
+
+X                       exec = run command (the rest of the line) using shell
+
+D                       drop = remove commit
+
 SPECIFYING REVISIONS                            *fugitive-revision*
 
 Fugitive revisions are similar to Git revisions as defined in the "SPECIFYING
