@@ -1391,6 +1391,7 @@ function! s:Edit(cmd,bang,...) abort
             endif
           endif
         endfor
+        diffoff!
       endif
     endif
   endif
