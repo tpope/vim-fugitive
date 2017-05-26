@@ -2197,7 +2197,7 @@ function! s:BlameSyntax() abort
       continue
     endif
     let seen[hash] = 1
-    if &t_Co > 16 && exists('g:CSApprox_loaded')
+    if &t_Co > 16 && get(g:, 'CSApprox_loaded') && !empty(findfile('autoload/csapprox/per_component.vim', escape(&rtp, ' ')))
           \ && empty(get(s:hash_colors, hash))
       let [s, r, g, b; __] = map(matchlist(hash, '\(\x\x\)\(\x\x\)\(\x\x\)'), 'str2nr(v:val,16)')
       let color = csapprox#per_component#Approximate(r, g, b)
