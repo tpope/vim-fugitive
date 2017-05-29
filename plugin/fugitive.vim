@@ -180,6 +180,12 @@ function! fugitive#extract_git_dir(path) abort
   return ''
 endfunction
 
+function! fugitive#file_is_tracked() abort
+  let file = expand("%")
+  let is_tracked = (system('git status ' . file) =~ 'Untracked') ? 0 : 1
+  return is_tracked
+endfunction
+
 function! fugitive#detect(path) abort
   if exists('b:git_dir') && (b:git_dir ==# '' || b:git_dir =~# '/$')
     unlet b:git_dir
