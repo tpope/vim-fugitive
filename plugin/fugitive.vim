@@ -1843,7 +1843,6 @@ function! s:Diff(vert,keepfocus,...) abort
     else
       let file = s:buffer().expand(arg)
     endif
-    throw file
     if file !~# ':' && file !~# '^/' && s:repo().git_chomp('cat-file','-t',file) =~# '^\%(tag\|commit\)$'
       let file = file.s:buffer().path(':')
     endif
