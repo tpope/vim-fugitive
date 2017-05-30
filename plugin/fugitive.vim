@@ -68,6 +68,15 @@ function! s:shellslash(path) abort
   endif
 endfunction
 
+let s:executables = {}
+
+function! s:executable(binary) abort
+  if !has_key(s:executables, a:binary)
+    let s:executables[a:binary] = executable(a:binary)
+  endif
+  return s:executables[a:binary]
+endfunction
+
 let s:git_versions = {}
 
 function! s:git_command() abort
@@ -2228,6 +2237,8 @@ endfunction
 
 call s:command("-bar -bang -range=0 -nargs=* -complete=customlist,s:EditComplete Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
 
+let s:redirects = {}
+
 function! s:Browse(bang,line1,count,...) abort
   try
     let validremote = '\.\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)\='
@@ -2340,6 +2351,17 @@ function! s:Browse(bang,line1,count,...) abort
     endif
     if raw ==# ''
       let raw = remote
+    endif
+
+    if raw =~# '^https\=://' && s:executable('curl')
+      if !has_key(s:redirects, raw)
+        let s:redirects[raw] = matchstr(system('curl -I ' .
+              \ s:shellesc(raw . '/info/refs?service=git-upload-pack')),
+              \ 'Location: \zs\S\+\ze/info/refs?')
+      endif
+      if len(s:redirects[raw])
+        let raw = s:redirects[raw]
+      endif
     endif
 
     for Handler in g:fugitive_browse_handlers
