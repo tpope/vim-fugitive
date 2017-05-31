@@ -1,0 +1,14 @@
+# Browse Handlers
+
+Fugitive incorporates extensibility for the :Gbrowse command, by the way of
+_browse handlers_.
+
+The following are known browse handler extensions:
+
+* Atlassian; Bitbucket, Stash
+    * vim-fubitive (Bitbucket) - https://github.com/tommcdo/vim-fubitive
+    * fugitive-stash (Stash) - https://github.com/mobiushorizons/fugitive-stash.vim
+* GitHub (included w/ vim-fugitive)
+    * rhubarb.vim - https://github.com/tpope/vim-rhubarb
+* GitLab
+    * fugitive-gitlab.vim - https://github.com/shumphrey/fugitive-gitlab.vim
