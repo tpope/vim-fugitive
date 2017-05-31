@@ -461,8 +461,8 @@ function! s:repo_superglob(base) dict abort
     return results
 
   elseif a:base =~# '^:'
-    let entries = split(self.git_chomp('ls-files','--stage'),"\n")
-    call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)",":\\1:\\2")')
+    let entries = split(self.git_chomp('ls-files','-z','--stage'),"")
+    call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)","\\=\":\".submatch(1).\":\".fnameescape(submatch(2))")')
     if a:base !~# '^:[0-3]\%(:\|$\)'
       call filter(entries,'v:val[1] == "0"')
       call map(entries,'v:val[2:-1]')
@@ -472,9 +472,9 @@ function! s:repo_superglob(base) dict abort
 
   else
     let tree = matchstr(a:base,'.*[:/]')
-    let entries = split(self.git_chomp('ls-tree',tree),"\n")
+    let entries = split(self.git_chomp('ls-tree','-z',tree),"")
     call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
-    call map(entries,'tree.s:sub(v:val,".*\t","")')
+    call map(entries,'tree.fnameescape(s:sub(v:val,".*\t",""))')
     return filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
   endif
 endfunction
@@ -1469,7 +1469,7 @@ function! s:Edit(cmd,bang,...) abort
 endfunction
 
 function! s:EditComplete(A,L,P) abort
-  return map(s:repo().superglob(a:A), 'fnameescape(v:val)')
+  return s:repo().superglob(a:A)
 endfunction
 
 function! s:EditRunComplete(A,L,P) abort
