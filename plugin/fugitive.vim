@@ -1924,7 +1924,7 @@ function! s:MoveComplete(A,L,P) abort
   endif
 endfunction
 
-function! s:Remove(force) abort
+function! s:Remove(after, force) abort
   if s:buffer().commit() ==# ''
     let cmd = ['rm']
   elseif s:buffer().commit() ==# '0'
@@ -1942,7 +1942,7 @@ function! s:Remove(force) abort
     return 'echoerr '.string(v:errmsg)
   else
     call fugitive#reload_status()
-    return 'edit'.(a:force ? '!' : '')
+    return a:after . (a:force ? '!' : '')
   endif
 endfunction
 
@@ -1950,7 +1950,8 @@ augroup fugitive_remove
   autocmd!
   autocmd User Fugitive if s:buffer().commit() =~# '^0\=$' |
         \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:MoveComplete Gmove :execute s:Move(<bang>0,<q-args>)" |
-        \ exe "command! -buffer -bar -bang Gremove :execute s:Remove(<bang>0)" |
+        \ exe "command! -buffer -bar -bang Gremove :execute s:Remove('edit',<bang>0)" |
+        \ exe "command! -buffer -bar -bang Gdelete :execute s:Remove('bdelete',<bang>0)" |
         \ endif
 augroup END
 
