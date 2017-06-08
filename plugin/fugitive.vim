@@ -1988,7 +1988,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
       call s:throw('unsupported option')
     endif
     call map(a:args,'s:sub(v:val,"^\\ze[^-]","-")')
-    let cmd = ['--no-pager', 'blame', '--show-number'] + a:args
+    let cmd = ['--no-pager', 'blame', '--show-number', '-w'] + a:args
     if s:buffer().commit() =~# '\D\|..'
       let cmd += [s:buffer().commit()]
     else
