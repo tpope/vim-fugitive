@@ -3051,15 +3051,20 @@ function! fugitive#statusline(...) abort
   if !exists('b:git_dir')
     return ''
   endif
-  let status = ''
+
+  let template = (a:0 ? a:1 : '[Git%c(%b)]')
+
+  let commit = ''
   if s:buffer().commit() != ''
-    let status .= ':' . s:buffer().commit()[0:7]
+    let commit = ':' . s:buffer().commit()[0:7]
   endif
-  let status .= '('.fugitive#head(7).')'
+
+  let branch = fugitive#head(7)
   if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
-    return ',GIT'.status
+    return ',GIT'.commit.'('.branch.')'
   else
-    return '[Git'.status.']'
+    return substitute(substitute(template, '%b', branch, 'g'), '%c', commit, 'g')
+ "   return '[Git'.status.']'
   endif
 endfunction
 
