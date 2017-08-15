@@ -1687,6 +1687,9 @@ endfunction
 call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('',<bang>0,<f-args>)")
 call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff('keepalt vert ',<bang>0,<f-args>)")
 call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff('keepalt ',<bang>0,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gtdiff :execute tabpagenr() - 1 . 'tab split' | execute s:Diff('',<bang>0,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gtvdiff :execute tabpagenr() - 1 . 'tab split' | execute s:Diff('keepalt vert ',<bang>0,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gtsdiff :execute tabpagenr() - 1 . 'tab split' | execute s:Diff('keepalt ',<bang>0,<f-args>)")
 
 augroup fugitive_diff
   autocmd!

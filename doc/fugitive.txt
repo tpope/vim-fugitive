@@ -192,6 +192,16 @@ that are part of Git repositories).
                                                 *fugitive-:Gvdiff*
 :Gvdiff [revision]      Like |:Gdiff|, but always split vertically.
 
+                                                *fugitive-:Gtdiff*
+:Gtdiff [revision]      Like |:Gdiff|, but open the diff in a new tab before
+                        the current working tab.
+
+                                                *fugitive-:Gtsdiff*
+:Gtsdiff [revision]     Like |:Gtdiff|, but split the new tab horizontally.
+
+                                                *fugitive-:Gtvdiff*
+:Gtvdiff [revision]     Like |:Gtdiff|, but split the new tab vertically.
+
                                                 *fugitive-:Gmove*
 :Gmove {destination}    Wrapper around git-mv that renames the buffer
                         afterward.  The destination is relative to the current
