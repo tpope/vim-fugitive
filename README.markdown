@@ -66,7 +66,7 @@ If you don't have a preferred installation method, one option is to install
 and paste:
 
     git clone git://github.com/tpope/vim-fugitive.git ~/.vim/bundle/vim-fugitive
-    vim -u NONE -c "helptags vim-fugitive/doc" -c q
+    vim -u NONE -c "helptags ~/.vim/bundle/vim-fugitive/doc" -c q
 
 If your Vim version is below 7.2, I recommend also installing
 [vim-git](https://github.com/tpope/vim-git) for syntax highlighting and
