@@ -316,7 +316,7 @@ function! s:repo_tree(...) dict abort
   if dir ==# ''
     call s:throw('no work tree')
   else
-    return join([dir]+a:000,'/')
+    return join([resolve(dir)]+a:000,'/')
   endif
 endfunction
 
