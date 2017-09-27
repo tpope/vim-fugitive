@@ -324,6 +324,7 @@ HEAD^{}         The commit referenced by HEAD
 HEAD^           The parent of the commit referenced by HEAD
 HEAD:           The tree referenced by HEAD
 /HEAD           The file named HEAD in the work tree
+/%              The current file in the work tree
 Makefile        The file named Makefile in the work tree
 HEAD^:Makefile  The file named Makefile in the parent of HEAD
 :Makefile       The file named Makefile in the index (writable)
