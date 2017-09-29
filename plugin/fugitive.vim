@@ -2518,7 +2518,12 @@ function! s:ReplaceCmd(cmd,...) abort
     if fnamemodify(bufname('$'), ':p') ==# tmp
       silent execute 'bwipeout '.bufnr('$')
     endif
+    let winnr = winnr()
+    " might trigger a windo command (e.g. from the LargeFile plugin)
     silent exe 'doau BufReadPost '.s:fnameescape(fn)
+    if winnr != winnr()
+      exe "noa ".winnr."wincmd w"
+    endif
   endtry
 endfunction
 
