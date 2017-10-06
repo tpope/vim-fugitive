@@ -880,28 +880,40 @@ function! s:StageReloadSeek(target,lnum1,lnum2) abort
   call search('^#\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
 endfunction
 
-function! s:StageUndo() abort
-  let [filename, section] = s:stage_info(line('.'))
-  if empty(filename)
-    return ''
-  endif
-  let repo = s:repo()
-  let hash = repo.git_chomp('hash-object', '-w', filename)
-  if !empty(hash)
-    if section ==# 'untracked'
-      call repo.git_chomp_in_tree('clean', '-f', '--', filename)
-    elseif section ==# 'unmerged'
-      call repo.git_chomp_in_tree('rm', '--', filename)
-    elseif section ==# 'unstaged'
-      call repo.git_chomp_in_tree('checkout', '--', filename)
-    else
-      call repo.git_chomp_in_tree('checkout', 'HEAD', '--', filename)
+function! s:StageUndo(lnum1,lnum2) abort
+  try
+    let output = ''
+    for lnum in range(a:lnum1,a:lnum2)
+      let [filename, section] = s:stage_info(lnum)
+      if empty(filename)
+        return ''
+      endif
+      let repo = s:repo()
+      let hash = repo.git_chomp('hash-object', '-w', filename)
+      if !empty(hash)
+        if section ==# 'untracked'
+          call repo.git_chomp_in_tree('clean', '-f', '--', filename)
+        elseif section ==# 'unmerged'
+          call repo.git_chomp_in_tree('rm', '--', filename)
+        elseif section ==# 'unstaged'
+          call repo.git_chomp_in_tree('checkout', '--', filename)
+        else
+          call repo.git_chomp_in_tree('checkout', 'HEAD', '--', filename)
+        endif
+        if !exists('first_filename')
+          let first_filename = filename
+        endif
+        echomsg 'To restore, :Git cat-file blob '.hash[0:6].' > '.filename
+      endif
+    endfor
+    if exists('first_filename')
+      call s:StageReloadSeek(filename,a:lnum1,a:lnum2)
     endif
-    call s:StageReloadSeek(filename, line('.'), line('.'))
-    let @" = hash
-    return 'checktime|redraw|echomsg ' .
-          \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.filename)
-  endif
+    echo s:sub(s:gsub(output,'\n+','\n'),'\n$','')
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
+  return 'checktime|redraw'
 endfunction
 
 function! s:StageDiff(diff) abort
@@ -2592,7 +2604,8 @@ function! s:BufReadIndex() abort
     nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
     nnoremap <buffer> <silent> r :<C-U>edit<CR>
     nnoremap <buffer> <silent> R :<C-U>edit<CR>
-    nnoremap <buffer> <silent> U :<C-U>execute <SID>StageUndo()<CR>
+    nnoremap <buffer> <silent> U :<C-U>execute <SID>StageUndo(line('.'),line('.')+v:count1-1)<CR>
+    xnoremap <buffer> <silent> U :<C-U>execute <SID>StageUndo(line("'<"),line("'>"))<CR>
     nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
     nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
   catch /^fugitive:/
