@@ -1995,7 +1995,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
       let cmd += ['--contents', '-']
     endif
     let cmd += ['--', s:buffer().path()]
-    let basecmd = escape(call(s:repo().git_command,cmd,s:repo()),'!')
+    let basecmd = escape(call(s:repo().git_command,cmd,s:repo()),'!%#')
     try
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
       if !s:repo().bare()
