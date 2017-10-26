@@ -49,7 +49,7 @@ Add `%{fugitive#statusline()}` to `'statusline'` to get an indicator
 with the current branch in (surprise!) your statusline.
 
 Last but not least, there's `:Git` for running any arbitrary command,
-and `Git!` to open the output of a command in a temp file.
+and `:Git!` to open the output of a command in a temp file.
 
 ## Screencasts
 
