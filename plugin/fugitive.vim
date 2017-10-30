@@ -3056,7 +3056,9 @@ function! fugitive#statusline(...) abort
     let status .= ':' . s:buffer().commit()[0:7]
   endif
   let status .= '('.fugitive#head(7).')'
-  if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
+  if a:0
+    return a:1.status.(a:0 > 1 ? a:2 : '')
+  elseif &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
     return ',GIT'.status
   else
     return '[Git'.status.']'

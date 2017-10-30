@@ -346,6 +346,9 @@ a statusline, this one matches the default when 'ruler' is set:
 >
     set statusline=%<%f\ %h%m%r%{fugitive#statusline()}%=%-14.(%l,%c%V%)\ %P
 <
+Two optional parameters can be given to define a custom prefix and suffix for
+the indicator.
+
                                                 *fugitive#head(...)*
 Use fugitive#head() to return the name of the current branch. If the current
 HEAD is detached, fugitive#head() will return the empty string, unless the
