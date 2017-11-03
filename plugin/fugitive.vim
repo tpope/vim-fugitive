@@ -12,6 +12,10 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
+if !exists('g:fugitive_short_shorten')
+    let g:fugitive_short_shorten = 0
+endif
+
 " Section: Utility
 
 function! s:function(name) abort
@@ -106,6 +110,27 @@ function! s:recall() abort
     endif
   endif
   return rev
+endfunction
+
+function! s:shorten_url(long_url) abort
+    let domain = substitute(a:long_url, 'https\?://\([^/]\+\)/.*$', '\1', '')
+    let sbase = "https://da.gd/s?url="
+
+    if exists('g:fugitive_short_private_domains')
+        for dompat in keys(g:fugitive_short_private_domains)
+            if match(domain, dompat) != -1
+                let sbase = g:fugitive_short_private_domains[dompat]
+            endif
+        endfor
+    else
+        return ''
+    endif
+
+    if !s:executable('curl')
+        echoerr "curl executable is required"
+    endif
+
+    return s:sub(system("curl -s '" . sbase . a:long_url . "'"), '\n$', '')
 endfunction
 
 function! s:add_methods(namespace, method_names) abort
@@ -2388,21 +2413,30 @@ function! s:Browse(bang,line1,count,...) abort
     endif
 
     let url = s:gsub(url, '[ <>]', '\="%".printf("%02X",char2nr(submatch(0)))')
+
+    if g:fugitive_short_shorten
+        let s_url = s:shorten_url(url)
+        let echo_str = string(s_url).' ('.string(url).')'
+    else
+        let s_url = url
+        let echo_str = string(url)
+    endif
+
     if a:bang
       if has('clipboard')
-        let @+ = url
+        let @+ = s_url
       endif
-      return 'echomsg '.string(url)
+      return 'echomsg '.echo_str
     elseif exists(':Browse') == 2
-      return 'echomsg '.string(url).'|Browse '.url
+      return 'echomsg '.echo_str.'|Browse '.url
     else
       if !exists('g:loaded_netrw')
         runtime! autoload/netrw.vim
       endif
       if exists('*netrw#BrowseX')
-        return 'echomsg '.string(url).'|call netrw#BrowseX('.string(url).', 0)'
+        return 'echomsg '.echo_str.'|call netrw#BrowseX('.string(url).', 0)'
       else
-        return 'echomsg '.string(url).'|call netrw#NetrwBrowseX('.string(url).', 0)'
+        return 'echomsg '.echo_str.'|call netrw#NetrwBrowseX('.string(url).', 0)'
       endif
     endif
   catch /^fugitive:/
