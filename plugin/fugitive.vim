@@ -2479,6 +2479,9 @@ call extend(g:fugitive_browse_handlers,
 function! s:ReplaceCmd(cmd,...) abort
   let fn = expand('%:p')
   let tmp = tempname()
+  if has('win32')
+    let tmp = fnamemodify(fnamemodify(tmp, ':h'), ':p').fnamemodify(tmp, ':t')
+  endif
   let prefix = ''
   try
     if a:0 && a:1 != ''
