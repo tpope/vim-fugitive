@@ -51,6 +51,10 @@ with the current branch in (surprise!) your statusline.
 Last but not least, there's `:Git` for running any arbitrary command,
 and `Git!` to open the output of a command in a temp file.
 
+## Complete docs
+
+For complete docs see `:help fugitive` from within Vim, or [browse the vim help file online](https://github.com/tpope/vim-fugitive/blob/master/doc/fugitive.txt)
+
 ## Screencasts
 
 * [A complement to command line git](http://vimcasts.org/e/31)
