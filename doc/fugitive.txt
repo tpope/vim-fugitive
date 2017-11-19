@@ -75,6 +75,13 @@ that are part of Git repositories).
                         index with commands like git-add and git-reset while a
                         commit message is pending.
 
+                        Using '%' as a shorthand for the current file name
+                        will only work if your current directory is the same
+                        as the repository root. To reference the current file
+                        as an argument to :Gcommit, you can use <C-R><C-G> to
+                        insert a repo-relative path to the file.
+
+
                                                 *fugitive-:Gmerge*
 :Gmerge [args]          Calls git-merge and loads errors and conflicted files
                         into the quickfix list.  Opens a |:Gcommit| style
