@@ -661,7 +661,9 @@ function! s:buffer_expand(rev) dict abort
   else
     let file = a:rev
   endif
-  return s:sub(s:sub(file,'\%$',self.path()),'\.\@<=/$','')
+  return s:sub(substitute(file,
+        \ '%$\|\\\([[:punct:]]\)','\=len(submatch(1)) ? submatch(1) : self.path()','g'),
+        \ '\.\@<=/$','')
 endfunction
 
 function! s:buffer_containing_commit() dict abort
