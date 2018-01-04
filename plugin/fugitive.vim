@@ -2202,27 +2202,28 @@ function! s:BlameSyntax() abort
   hi def link FugitiveblameShort              FugitiveblameDelimiter
   hi def link FugitiveblameDelimiter          Delimiter
   hi def link FugitiveblameNotCommittedYet    Comment
-  let seen = {}
-  for lnum in range(1, line('$'))
-    let hash = matchstr(getline(lnum), '^\^\=\zs\x\{6\}')
-    if hash ==# '' || hash ==# '000000' || has_key(seen, hash)
-      continue
-    endif
-    let seen[hash] = 1
-    if &t_Co > 16 && get(g:, 'CSApprox_loaded') && !empty(findfile('autoload/csapprox/per_component.vim', escape(&rtp, ' ')))
-          \ && empty(get(s:hash_colors, hash))
-      let [s, r, g, b; __] = map(matchlist(hash, '\(\x\x\)\(\x\x\)\(\x\x\)'), 'str2nr(v:val,16)')
-      let color = csapprox#per_component#Approximate(r, g, b)
-      if color == 16 && &background ==# 'dark'
-        let color = 8
+  if (&t_Co > 16 || has('gui_running')) && get(g:, 'CSApprox_loaded') && !empty(findfile('autoload/csapprox/per_component.vim', escape(&rtp, ' ')))
+    let seen = {}
+    for lnum in range(1, line('$'))
+      let hash = matchstr(getline(lnum), '^\^\=\zs\x\{6\}')
+      if hash ==# '' || hash ==# '000000' || has_key(seen, hash)
+        continue
       endif
-      let s:hash_colors[hash] = ' ctermfg='.color
-    else
-      let s:hash_colors[hash] = ''
-    endif
-    exe 'syn match FugitiveblameHash'.hash.'       "\%(^\^\=\)\@<='.hash.'\x\{1,34\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameOriginalLineNumber,fugitiveblameOriginalFile skipwhite'
-  endfor
-  call s:RehighlightBlame()
+      let seen[hash] = 1
+      if empty(get(s:hash_colors, hash))
+        let [s, r, g, b; __] = map(matchlist(hash, '\(\x\x\)\(\x\x\)\(\x\x\)'), 'str2nr(v:val,16)')
+        let color = csapprox#per_component#Approximate(r, g, b)
+        if color == 16 && &background ==# 'dark'
+          let color = 8
+        endif
+        let s:hash_colors[hash] = ' ctermfg='.color
+      else
+        let s:hash_colors[hash] = ''
+      endif
+      exe 'syn match FugitiveblameHash'.hash.'       "\%(^\^\=\)\@<='.hash.'\x\{1,34\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameOriginalLineNumber,fugitiveblameOriginalFile skipwhite'
+    endfor
+    call s:RehighlightBlame()
+  endif
 endfunction
 
 function! s:RehighlightBlame() abort
