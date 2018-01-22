@@ -243,7 +243,7 @@ augroup fugitive
   autocmd FileType           netrw call fugitive#detect(expand('%:p'))
   if exists("b:NERDTree.root")
     autocmd User NERDTreeInit,NERDTreeNewRoot call fugitive#detect(b:NERDTree.root.path.str())
-  elseif exists("b:NERDTReeRoot")
+  elseif exists("b:NERDTreeRoot")
     " for backwards compatibility with older versions of NERDTree
     autocmd User NERDTreeInit,NERDTreeNewRoot call fugitive#detect(b:NERDTreeRoot.path.str())
   endif
