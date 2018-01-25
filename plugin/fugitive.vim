@@ -726,15 +726,19 @@ function! s:Git(bang, args) abort
     let git .= ' --no-pager'
   endif
   let args = matchstr(a:args,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
-  if exists(':terminal') && has('nvim')
+  if (exists(':terminal') && has('nvim')) || has('terminal')
     let dir = s:repo().tree()
-    if expand('%') != ''
-      -tabedit %
-    else
-      -tabnew
-    endif
     execute 'lcd' fnameescape(dir)
-    execute 'terminal' git args
+    if expand('%') != ''
+        -tabedit %
+    else
+        -tabnew
+    endif
+    if has('nvim')
+        execute 'terminal' git args
+    else
+        execute 'terminal ++curwin ++close' git args
+    endif
   else
     call s:ExecuteInTree('!'.git.' '.args)
     if has('win32')
