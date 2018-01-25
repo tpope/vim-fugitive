@@ -1657,8 +1657,17 @@ augroup END
 
 " Section: Gpush, Gfetch
 
+function! s:Head(...) abort
+  if !exists('b:git_dir')
+    return ''
+  endif
+
+  return s:repo().head(a:0 ? a:1 : 0)
+endfunction
+
 call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpush  execute s:Dispatch('<bang>', 'push '.<q-args>)")
 call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gfetch execute s:Dispatch('<bang>', 'fetch '.<q-args>)")
+call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpushup execute s:Dispatch('<bang>','push -u origin ".s:Head(7)." '.<q-args>)")
 
 function! s:Dispatch(bang, args)
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
