@@ -1859,11 +1859,13 @@ function! s:Diff(vert,keepfocus,...) abort
       setlocal cursorbind
     endif
     let w:fugitive_diff_restore = restore
+    call s:diffthis()
     if s:buffer().compare_age(commit) < 0
-      execute 'rightbelow '.vert.'diffsplit '.s:fnameescape(spec)
+      execute 'rightbelow '.vert.'split '.s:fnameescape(spec)
     else
-      execute 'leftabove '.vert.'diffsplit '.s:fnameescape(spec)
+      execute 'leftabove '.vert.'split '.s:fnameescape(spec)
     endif
+    call s:diffthis()
     let &l:readonly = &l:readonly
     redraw
     let w:fugitive_diff_restore = restore
