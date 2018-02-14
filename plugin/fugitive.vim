@@ -906,6 +906,26 @@ function! s:StageUndo() abort
   endif
 endfunction
 
+function! s:UnstagedCheckoutPatch() abort
+  let [filename, section] = s:stage_info(line('.'))
+  if empty(filename)
+    return ''
+  endif
+  let repo = s:repo()
+  let hash = repo.git_chomp('hash-object', '-w', filename)
+  if !empty(hash)
+    if section ==# 'unstaged'
+      let res  = 'Git checkout --patch -- ' . s:shellesc(filename)
+      let res .= '|checktime|redraw|echomsg ' .
+        \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.filename)
+      return res
+    else
+      return 'echoerr ' .
+                  \ string('You cannot partially checkout an untracked file.')
+    endif
+  endif
+endfunction
+
 function! s:StageDiff(diff) abort
   let [filename, section] = s:stage_info(line('.'))
   if filename ==# '' && section ==# 'staged'
@@ -2595,6 +2615,7 @@ function! s:BufReadIndex() abort
     nnoremap <buffer> <silent> r :<C-U>edit<CR>
     nnoremap <buffer> <silent> R :<C-U>edit<CR>
     nnoremap <buffer> <silent> U :<C-U>execute <SID>StageUndo()<CR>
+    nnoremap <buffer> <silent> u :<C-U>execute <SID>UnstagedCheckoutPatch()<CR>
     nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
     nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
   catch /^fugitive:/
