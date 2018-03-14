@@ -12,6 +12,10 @@ if !exists('g:fugitive_git_executable')
   let g:fugitive_git_executable = 'git'
 endif
 
+if !exists('g:fugitive_git_grep_options')
+  let g:fugitive_git_grep_options= '-n --no-color'
+endif
+
 " Section: Utility
 
 function! s:function(name) abort
@@ -1303,11 +1307,12 @@ call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete
 function! s:Grep(cmd,bang,arg) abort
   let grepprg = &grepprg
   let grepformat = &grepformat
+  let options = ['--no-pager', 'grep'] + split(g:fugitive_git_grep_options)
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
   let dir = getcwd()
   try
     execute cd s:fnameescape(s:repo().tree())
-    let &grepprg = s:repo().git_command('--no-pager', 'grep', '-n', '--no-color')
+    let &grepprg = escape(call(s:repo().git_command, options, s:repo()), '%#')
     let &grepformat = '%f:%l:%m,%m %f match%ts,%f'
     exe a:cmd.'! '.escape(matchstr(a:arg,'\v\C.{-}%($|[''" ]\@=\|)@='),'|')
     let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
