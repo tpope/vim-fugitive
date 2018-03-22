@@ -1424,11 +1424,19 @@ function! s:Edit(cmd,bang,...) abort
   let buffer = s:buffer()
   if a:cmd !~# 'read'
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
+      let prev_winnr = winnr('#')
       if winnr('$') == 1
         let tabs = (&go =~# 'e' || !has('gui_running')) && &stal && (tabpagenr('$') >= &stal)
         execute 'rightbelow' (&lines - &previewheight - &cmdheight - tabs - 1 - !!&laststatus).'new'
-      elseif winnr('#')
+      elseif prev_winnr
         wincmd p
+        let skipbufs = ['nofile','help','quickfix']
+        while &previewwindow || index(skipbufs, &buftype) >= 0
+          wincmd w
+          if winnr() ==# prev_winnr
+            break
+          endif
+        endwhile
       else
         wincmd w
       endif
