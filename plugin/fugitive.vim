@@ -3085,38 +3085,42 @@ augroup END
 function! fugitive#foldtext() abort
   if &foldmethod !=# 'syntax'
     return foldtext()
-  elseif getline(v:foldstart) =~# '^diff '
+  endif
+
+  let line_foldstart = getline(v:foldstart)
+  if line_foldstart =~# '^diff '
     let [add, remove] = [-1, -1]
     let filename = ''
     for lnum in range(v:foldstart, v:foldend)
-      if filename ==# '' && getline(lnum) =~# '^[+-]\{3\} [abciow12]/'
-        let filename = getline(lnum)[6:-1]
+      let line = getline(lnum)
+      if filename ==# '' && line =~# '^[+-]\{3\} [abciow12]/'
+        let filename = line[6:-1]
       endif
-      if getline(lnum) =~# '^+'
+      if line =~# '^+'
         let add += 1
-      elseif getline(lnum) =~# '^-'
+      elseif line =~# '^-'
         let remove += 1
-      elseif getline(lnum) =~# '^Binary '
+      elseif line =~# '^Binary '
         let binary = 1
       endif
     endfor
     if filename ==# ''
-      let filename = matchstr(getline(v:foldstart), '^diff .\{-\} [abciow12]/\zs.*\ze [abciow12]/')
+      let filename = matchstr(line_foldstart, '^diff .\{-\} [abciow12]/\zs.*\ze [abciow12]/')
     endif
     if filename ==# ''
-      let filename = getline(v:foldstart)[5:-1]
+      let filename = line_foldstart[5:-1]
     endif
     if exists('binary')
       return 'Binary: '.filename
     else
       return (add<10&&remove<100?' ':'') . add . '+ ' . (remove<10&&add<100?' ':'') . remove . '- ' . filename
     endif
-  elseif getline(v:foldstart) =~# '^# .*:$'
+  elseif line_foldstart =~# '^# .*:$'
     let lines = getline(v:foldstart, v:foldend)
     call filter(lines, 'v:val =~# "^#\t"')
-    cal map(lines,'s:sub(v:val, "^#\t%(modified: +|renamed: +)=", "")')
-    cal map(lines,'s:sub(v:val, "^([[:alpha:] ]+): +(.*)", "\\2 (\\1)")')
-    return getline(v:foldstart).' '.join(lines, ', ')
+    cal map(lines, "s:sub(v:val, '^#\t%(modified: +|renamed: +)=', '')")
+    cal map(lines, "s:sub(v:val, '^([[:alpha:] ]+): +(.*)', '\\2 (\\1)')")
+    return line_foldstart.' '.join(lines, ', ')
   endif
   return foldtext()
 endfunction
