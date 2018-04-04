@@ -2728,6 +2728,7 @@ function! s:BufReadObject() abort
           if lnum
             silent keepjumps delete_
           end
+          silent keepjumps 1,/^diff --git\|\%$/g/\r$/s///
           keepjumps 1
         endif
       elseif b:fugitive_type ==# 'blob'
