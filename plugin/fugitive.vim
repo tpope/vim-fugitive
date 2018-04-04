@@ -2685,7 +2685,6 @@ function! s:BufReadObject() abort
     if b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
       return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
     endif
-    let firstline = getline('.')
     if !exists('b:fugitive_display_format') && b:fugitive_type != 'blob'
       let b:fugitive_display_format = +getbufvar('#','fugitive_display_format')
     endif
