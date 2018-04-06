@@ -1121,7 +1121,7 @@ function! s:Commit(mods, args, ...) abort
         endif
         if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&mod
           execute mods 'keepalt edit' s:fnameescape(msgfile)
-        elseif a:args =~# '\%(^\| \)-\%(-verbose\|\w*v\)\>' || mods =~# '\<tab\>'
+        elseif a:args =~# '\%(^\| \)-\w*v' || mods =~# '\<tab\>'
           execute mods 'keepalt -tabedit' s:fnameescape(msgfile)
         elseif s:buffer().type() ==# 'index'
           execute mods 'keepalt edit' s:fnameescape(msgfile)
