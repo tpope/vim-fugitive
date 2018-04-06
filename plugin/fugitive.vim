@@ -1064,9 +1064,10 @@ endfunction
 
 " Section: Gcommit
 
-call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit(<q-args>)")
+call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit('<mods>', <q-args>)")
 
-function! s:Commit(args, ...) abort
+function! s:Commit(mods, args, ...) abort
+  let mods = s:gsub(a:mods ==# '<mods>' ? '' : a:mods, '<tab>', '-tab')
   let repo = a:0 ? a:1 : s:repo()
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
   let dir = getcwd()
@@ -1119,15 +1120,15 @@ function! s:Commit(args, ...) abort
           let args = '--cleanup=strip '.args
         endif
         if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&mod
-          execute 'keepalt edit '.s:fnameescape(msgfile)
-        elseif a:args =~# '\%(^\| \)-\%(-verbose\|\w*v\)\>'
-          execute 'keepalt -tabedit '.s:fnameescape(msgfile)
+          execute mods 'keepalt edit' s:fnameescape(msgfile)
+        elseif a:args =~# '\%(^\| \)-\%(-verbose\|\w*v\)\>' || mods =~# '\<tab\>'
+          execute mods 'keepalt -tabedit' s:fnameescape(msgfile)
         elseif s:buffer().type() ==# 'index'
-          execute 'keepalt edit '.s:fnameescape(msgfile)
+          execute mods 'keepalt edit' s:fnameescape(msgfile)
           execute (search('^#','n')+1).'wincmd+'
           setlocal nopreviewwindow
         else
-          execute 'keepalt split '.s:fnameescape(msgfile)
+          execute mods 'keepalt split' s:fnameescape(msgfile)
         endif
         let b:fugitive_commit_arguments = args
         setlocal bufhidden=wipe filetype=gitcommit
@@ -1163,7 +1164,7 @@ function! s:FinishCommit() abort
   let args = getbufvar(+expand('<abuf>'),'fugitive_commit_arguments')
   if !empty(args)
     call setbufvar(+expand('<abuf>'),'fugitive_commit_arguments','')
-    return s:Commit(args, s:repo(getbufvar(+expand('<abuf>'),'git_dir')))
+    return s:Commit('', args, s:repo(getbufvar(+expand('<abuf>'),'git_dir')))
   endif
   return ''
 endfunction
