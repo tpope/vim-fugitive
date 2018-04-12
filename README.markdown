@@ -86,14 +86,6 @@ directory.  Edit a file from the repository.
 Fugitive cares about the current file, not the current working
 directory.  Edit a file from the repository.
 
-> Why is `:Gbrowse` not using the right browser?
-
-`:Gbrowse` delegates to `git web--browse`, which is less than perfect
-when it comes to finding the right browser.  You can tell it the correct
-browser to use with `git config --global web.browser ...`.  On macOS, for
-example, you might want to set this to `open`.  See `git web--browse --help`
-for details.
-
 > Here's a patch that automatically opens the quickfix window after
 > `:Ggrep`.
 
