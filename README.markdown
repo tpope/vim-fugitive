@@ -75,16 +75,11 @@ other Git niceties.
 
 ## FAQ
 
-> I installed the plugin and started Vim.  Why don't any of the commands
-> exist?
+> Why don't any of the commands exist?
 
-Fugitive cares about the current file, not the current working
-directory.  Edit a file from the repository.
-
-> I opened a new tab.  Why don't any of the commands exist?
-
-Fugitive cares about the current file, not the current working
-directory.  Edit a file from the repository.
+Fugitive cares about the current file, not the current working directory.
+Edit a file from the repository.  To avoid the blank window problem, favor
+commands like `:split` and `:tabedit` over commands like `:new` and `:tabnew`.
 
 > Here's a patch that automatically opens the quickfix window after
 > `:Ggrep`.
