@@ -93,7 +93,7 @@ endfunction
 function! s:recall() abort
   let rev = s:sub(s:buffer().rev(), '^/', '')
   if rev ==# ':'
-    return matchstr(getline('.'),'^#\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
+    return matchstr(getline('.'),'^'.s:repo_commentchar_escaped().'\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
   elseif s:buffer().type('tree')
     let file = matchstr(getline('.'), '\t\zs.*')
     if empty(file) && line('.') > 2
@@ -491,6 +491,14 @@ function! s:repo_user() dict abort
   return username.' <'.useremail.'>'
 endfun
 
+function! s:repo_commentchar() abort
+  return s:repo().config('core.commentChar')
+endfun
+
+function! s:repo_commentchar_escaped() abort
+  return '['.s:repo_commentchar().']'
+endfun
+
 function! s:repo_aliases() dict abort
   if !has_key(self,'_aliases')
     let self._aliases = {}
@@ -827,7 +835,7 @@ function! fugitive#reload_status() abort
 endfunction
 
 function! s:stage_info(lnum) abort
-  let filename = matchstr(getline(a:lnum),'^#\t\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
+  let filename = matchstr(getline(a:lnum),'^'.s:repo_commentchar_escaped().'\t\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
   let lnum = a:lnum
   if has('multi_byte_encoding')
     let colon = '\%(:\|\%uff1a\)'
@@ -839,13 +847,13 @@ function! s:stage_info(lnum) abort
   endwhile
   if !lnum
     return ['', '']
-  elseif (getline(lnum+1) =~# '^# .*\<git \%(reset\|rm --cached\) ' && getline(lnum+2) ==# '#') || getline(lnum) ==# '# Changes to be committed:'
+  elseif (getline(lnum+1) =~# '^. .*\<git \%(reset\|rm --cached\) ' && getline(lnum+2) ==# s:repo_commentchar_escaped()) || getline(lnum) ==# '. Changes to be committed:'
     return [matchstr(filename, colon.' *\zs.*'), 'staged']
-  elseif (getline(lnum+1) =~# '^# .*\<git add ' && getline(lnum+2) ==# '#' && getline(lnum+3) !~# colon.'  ') || getline(lnum) ==# '# Untracked files:'
+  elseif (getline(lnum+1) =~# '^. .*\<git add ' && getline(lnum+2) ==# s:repo_commentchar_escaped() && getline(lnum+3) !~# colon.'  ') || getline(lnum) ==# '. Untracked files:'
     return [filename, 'untracked']
-  elseif getline(lnum+2) =~# '^# .*\<git checkout ' || getline(lnum) ==# '# Changes not staged for commit:'
+  elseif getline(lnum+2) =~# '^. .*\<git checkout ' || getline(lnum) ==# '. Changes not staged for commit:'
     return [matchstr(filename, colon.' *\zs.*'), 'unstaged']
-  elseif getline(lnum+2) =~# '^# .*\<git \%(add\|rm\)' || getline(lnum) ==# '# Unmerged paths:'
+  elseif getline(lnum+2) =~# '^. .*\<git \%(add\|rm\)' || getline(lnum) ==# '. Unmerged paths:'
     return [matchstr(filename, colon.' *\zs.*'), 'unmerged']
   else
     return ['', 'unknown']
@@ -854,7 +862,7 @@ endfunction
 
 function! s:StageNext(count) abort
   for i in range(a:count)
-    call search('^#\t.*','W')
+    call search('^'.s:repo_commentchar_escaped().'\t.*','W')
   endfor
   return '.'
 endfunction
@@ -864,7 +872,7 @@ function! s:StagePrevious(count) abort
     return 'CtrlP '.fnameescape(s:repo().tree())
   else
     for i in range(a:count)
-      call search('^#\t.*','Wbe')
+      call search('^'.s:repo_commentchar_escaped().'\t.*','Wbe')
     endfor
     return '.'
   endif
@@ -872,14 +880,14 @@ endfunction
 
 function! s:StageReloadSeek(target,lnum1,lnum2) abort
   let jump = a:target
-  let f = matchstr(getline(a:lnum1-1),'^#\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
+  let f = matchstr(getline(a:lnum1-1),'^'.s:repo_commentchar_escaped().'\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
   if f !=# '' | let jump = f | endif
-  let f = matchstr(getline(a:lnum2+1),'^#\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
+  let f = matchstr(getline(a:lnum2+1),'^'.s:repo_commentchar_escaped().'\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
   if f !=# '' | let jump = f | endif
   silent! edit!
   1
   redraw
-  call search('^#\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
+  call search('^'.s:repo_commentchar_escaped().'\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
 endfunction
 
 function! s:StageUndo() abort
@@ -936,8 +944,8 @@ function! s:StageDiffEdit() abort
     if arg ==# '.'
       silent! edit!
       1
-      if !search('^# .*:\n#.*\n# .*"git checkout \|^# Changes not staged for commit:$','W')
-        call search('^# .*:$','W')
+      if !search('^. .*:\n..*\n. .*"git checkout \|^. Changes not staged for commit:$','W')
+        call search('^'.s:repo_commentchar_escaped().' .*:$','W')
       endif
     else
       call s:StageReloadSeek(arg,line('.'),line('.'))
@@ -957,28 +965,28 @@ function! s:StageToggle(lnum1,lnum2) abort
     for lnum in range(a:lnum1,a:lnum2)
       let [filename, section] = s:stage_info(lnum)
       let repo = s:repo()
-      if getline('.') =~# '^# .*:$'
+      if getline('.') =~# '^'.s:repo_commentchar_escaped().' .*:$'
         if section ==# 'staged'
           call repo.git_chomp_in_tree('reset','-q')
           silent! edit!
           1
-          if !search('^# .*:\n# .*"git add .*\n#\n\|^# Untracked files:$','W')
-            call search('^# .*:$','W')
+          if !search('^. .*:\n. .*"git add .*\n#\n\|^. Untracked files:$','W')
+            call search('^'.s:repo_commentchar_escaped().' .*:$','W')
           endif
           return ''
         elseif section ==# 'unstaged'
           call repo.git_chomp_in_tree('add','-u')
           silent! edit!
           1
-          if !search('^# .*:\n# .*"git add .*\n#\n\|^# Untracked files:$','W')
-            call search('^# .*:$','W')
+          if !search('^. .*:\n. .*"git add .*\n.\n\|^. Untracked files:$','W')
+            call search('^'.s:repo_commentchar_escaped().' .*:$','W')
           endif
           return ''
         else
           call repo.git_chomp_in_tree('add','.')
           silent! edit!
           1
-          call search('^# .*:$','W')
+          call search('^'.s:repo_commentchar_escaped().' .*:$','W')
           return ''
         endif
       endif
@@ -994,9 +1002,9 @@ function! s:StageToggle(lnum1,lnum2) abort
         endif
         let filename = files_to_unstage[-1]
         let cmd = ['reset','-q','--'] + files_to_unstage
-      elseif getline(lnum) =~# '^#\tdeleted:'
+      elseif getline(lnum) =~# '^.\tdeleted:'
         let cmd = ['rm','--',filename]
-      elseif getline(lnum) =~# '^#\tmodified:'
+      elseif getline(lnum) =~# '^.\tmodified:'
         let cmd = ['add','--',filename]
       else
         let cmd = ['add','-A','--',filename]
@@ -1022,11 +1030,11 @@ function! s:StagePatch(lnum1,lnum2) abort
 
   for lnum in range(a:lnum1,a:lnum2)
     let [filename, section] = s:stage_info(lnum)
-    if getline('.') =~# '^# .*:$' && section ==# 'staged'
+    if getline('.') =~# '^'.s:repo_commentchar_escaped().' .*:$' && section ==# 'staged'
       return 'Git reset --patch'
-    elseif getline('.') =~# '^# .*:$' && section ==# 'unstaged'
+    elseif getline('.') =~# '^'.s:repo_commentchar_escaped().' .*:$' && section ==# 'unstaged'
       return 'Git add --patch'
-    elseif getline('.') =~# '^# .*:$' && section ==# 'untracked'
+    elseif getline('.') =~# '^'.s:repo_commentchar_escaped().' .*:$' && section ==# 'untracked'
       return 'Git add -N .'
     elseif filename ==# ''
       continue
@@ -1039,7 +1047,7 @@ function! s:StagePatch(lnum1,lnum2) abort
       let reset += [split(filename,' -> ')[1]]
     elseif section ==# 'staged'
       let reset += [filename]
-    elseif getline(lnum) !~# '^#\tdeleted:'
+    elseif getline(lnum) !~# '^.\tdeleted:'
       let add += [filename]
     endif
   endfor
@@ -1054,7 +1062,7 @@ function! s:StagePatch(lnum1,lnum2) abort
       silent! edit!
       1
       redraw
-      call search('^#\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\%( ([^()[:digit:]]\+)\)\=\$','W')
+      call search('^'.s:repo_commentchar_escaped().'\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\%( ([^()[:digit:]]\+)\)\=\$','W')
     endif
   catch /^fugitive:/
     return 'echoerr v:errmsg'
@@ -1125,7 +1133,7 @@ function! s:Commit(mods, args, ...) abort
           execute mods 'keepalt -tabedit' s:fnameescape(msgfile)
         elseif s:buffer().type() ==# 'index'
           execute mods 'keepalt edit' s:fnameescape(msgfile)
-          execute (search('^#','n')+1).'wincmd+'
+          execute (search('^'.s:repo_commentchar_escaped().'','n')+1).'wincmd+'
           setlocal nopreviewwindow
         else
           execute mods 'keepalt split' s:fnameescape(msgfile)
@@ -2869,25 +2877,25 @@ function! s:cfile() abort
         let file = ':'.s:sub(matchstr(getline('.'),'\d\t.*'),'\t',':')
         return [file]
 
-      elseif getline('.') =~# '^#\trenamed:.* -> '
+      elseif getline('.') =~# '^.\trenamed:.* -> '
         let file = '/'.matchstr(getline('.'),' -> \zs.*')
         return [file]
-      elseif getline('.') =~# '^#\t\(\k\| \)\+\p\?: *.'
+      elseif getline('.') =~# '^'.s:repo_commentchar_escaped().'\t\(\k\| \)\+\p\?: *.'
         let file = '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
         return [file]
-      elseif getline('.') =~# '^#\t.'
-        let file = '/'.matchstr(getline('.'),'#\t\zs.*')
+      elseif getline('.') =~# '^'.s:repo_commentchar_escaped().'\t.'
+        let file = '/'.matchstr(getline('.'),s:repo_commentchar_escaped().'\t\zs.*')
         return [file]
       elseif getline('.') =~# ': needs merge$'
         let file = '/'.matchstr(getline('.'),'.*\ze: needs merge$')
         return [file, 'Gdiff!']
 
-      elseif getline('.') ==# '# Not currently on any branch.'
+      elseif getline('.') ==# '. Not currently on any branch.'
         return ['HEAD']
-      elseif getline('.') =~# '^# On branch '
+      elseif getline('.') =~# '^. On branch '
         let file = 'refs/heads/'.getline('.')[12:]
         return [file]
-      elseif getline('.') =~# "^# Your branch .*'"
+      elseif getline('.') =~# "^. Your branch .*'"
         let file = matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
         return [file]
       endif
@@ -3116,10 +3124,10 @@ function! fugitive#foldtext() abort
     else
       return (add<10&&remove<100?' ':'') . add . '+ ' . (remove<10&&add<100?' ':'') . remove . '- ' . filename
     endif
-  elseif line_foldstart =~# '^# .*:$'
+  elseif line_foldstart =~# '^'.s:repo_commentchar_escaped().' .*:$'
     let lines = getline(v:foldstart, v:foldend)
-    call filter(lines, 'v:val =~# "^#\t"')
-    cal map(lines, "s:sub(v:val, '^#\t%(modified: +|renamed: +)=', '')")
+    call filter(lines, 'v:val =~# "^".s:repo_commentchar_escaped()."\t"')
+    cal map(lines, "s:sub(v:val, '^'.s:repo_commentchar_escaped().'\t%(modified: +|renamed: +)=', '')")
     cal map(lines, "s:sub(v:val, '^([[:alpha:] ]+): +(.*)', '\\2 (\\1)')")
     return line_foldstart.' '.join(lines, ', ')
   endif
