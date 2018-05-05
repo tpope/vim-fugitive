@@ -1883,9 +1883,11 @@ endfunction
 
 " Section: Gmove, Gremove
 
-function! s:Move(force,destination) abort
+function! s:Move(force, rename, destination) abort
   if a:destination =~# '^/'
     let destination = a:destination[1:-1]
+  elseif a:rename
+    let destination = fnamemodify(s:buffer().path(), ':h') . '/' . a:destination
   else
     let destination = s:shellslash(fnamemodify(s:sub(a:destination,'[%#]%(:\w)*','\=expand(submatch(0))'),':p'))
     if destination[0:strlen(s:repo().tree())] ==# s:repo().tree('')
@@ -1906,7 +1908,7 @@ function! s:Move(force,destination) abort
     let destination = fnamemodify(s:sub(destination,'/$','').'/'.expand('%:t'),':.')
   endif
   call fugitive#reload_status()
-  if s:buffer().commit() == ''
+  if empty(s:buffer().commit())
     if isdirectory(destination)
       return 'keepalt edit '.s:fnameescape(destination)
     else
@@ -1918,12 +1920,21 @@ function! s:Move(force,destination) abort
 endfunction
 
 function! s:MoveComplete(A,L,P) abort
-  if a:A =~ '^/'
+  if a:A =~# '^/'
     return s:repo().superglob(a:A)
   else
     let matches = split(glob(a:A.'*'),"\n")
-    call map(matches,'v:val !~ "/$" && isdirectory(v:val) ? v:val."/" : v:val')
+    call map(matches,'v:val !~# "/$" && isdirectory(v:val) ? v:val."/" : v:val')
     return matches
+  endif
+endfunction
+
+function! s:RenameComplete(A,L,P) abort
+  if a:A =~# '^/'
+    return s:repo().superglob(a:A)
+  else
+    let pre = '/'. fnamemodify(s:buffer().path(), ':h') . '/'
+    return map(s:repo().superglob(pre.a:A), 'strpart(v:val, len(pre))')
   endif
 endfunction
 
@@ -1952,7 +1963,8 @@ endfunction
 augroup fugitive_remove
   autocmd!
   autocmd User Fugitive if s:buffer().commit() =~# '^0\=$' |
-        \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:MoveComplete Gmove :execute s:Move(<bang>0,<q-args>)" |
+        \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:MoveComplete Gmove :execute s:Move(<bang>0,0,<q-args>)" |
+        \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:RenameComplete Grename :execute s:Move(<bang>0,1,<q-args>)" |
         \ exe "command! -buffer -bar -bang Gremove :execute s:Remove('edit',<bang>0)" |
         \ exe "command! -buffer -bar -bang Gdelete :execute s:Remove('bdelete',<bang>0)" |
         \ endif
