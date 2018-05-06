@@ -108,6 +108,31 @@ function! s:recall() abort
   return rev
 endfunction
 
+function! s:map(mode, lhs, rhs, ...) abort
+  let flags = (a:0 ? a:1 : '') . (a:rhs =~# '^<Plug>' ? '' : '<script>')
+  if flags =~# '<unique>' && !empty(mapcheck(a:lhs, a:mode))
+    return
+  endif
+  let head = a:lhs
+  let tail = ''
+  let keys = get(g:, a:mode.'remap', {})
+  if type(keys) != type({})
+    return
+  endif
+  while !empty(head)
+    if has_key(keys, head)
+      let head = keys[head]
+      if empty(head)
+        return
+      endif
+      break
+    endif
+    let tail = matchstr(head, '<[^<>]*>$\|.$') . tail
+    let head = substitute(head, '<[^<>]*>$\|.$', '', '')
+  endwhile
+  exe a:mode.'map <buffer>' flags head.tail a:rhs
+endfunction
+
 function! s:add_methods(namespace, method_names) abort
   for name in a:method_names
     let s:{a:namespace}_prototype[name] = s:function('s:'.a:namespace.'_'.name)
@@ -212,8 +237,8 @@ function! fugitive#detect(path) abort
       endtry
     endif
     if !exists('g:fugitive_no_maps')
-      cnoremap <buffer> <expr> <C-R><C-G> fnameescape(<SID>recall())
-      nnoremap <buffer> <silent> y<C-G> :call setreg(v:register, <SID>recall())<CR>
+      call s:map('c', '<C-R><C-G>', 'fnameescape(<SID>recall())', '<expr>')
+      call s:map('n', 'y<C-G>', ':call setreg(v:register, <SID>recall())<CR>', '<silent>')
     endif
     let buffer = fugitive#buffer()
     if expand('%:p') =~# '://'
@@ -2818,11 +2843,12 @@ augroup END
 nnoremap <SID>: :<C-U><C-R>=v:count ? v:count : ''<CR>
 function! s:GFInit(...) abort
   cnoremap <buffer> <expr> <Plug><cfile> fugitive#cfile()
-  if !exists('g:fugitive_no_maps') && empty(mapcheck('gf', 'n'))
-    nmap <buffer> <silent> gf          <SID>:find <Plug><cfile><CR>
-    nmap <buffer> <silent> <C-W>f     <SID>:sfind <Plug><cfile><CR>
-    nmap <buffer> <silent> <C-W><C-F> <SID>:sfind <Plug><cfile><CR>
-    nmap <buffer> <silent> <C-W>gf  <SID>:tabfind <Plug><cfile><CR>
+  if !exists('g:fugitive_no_maps')
+    call s:map('n', 'gf',          '<SID>:find <Plug><cfile><CR>', '<silent><unique>')
+    call s:map('n', '<C-W>f',     '<SID>:sfind <Plug><cfile><CR>', '<silent><unique>')
+    call s:map('n', '<C-W><C-F>', '<SID>:sfind <Plug><cfile><CR>', '<silent><unique>')
+    call s:map('n', '<C-W>gf',  '<SID>:tabfind <Plug><cfile><CR>', '<silent><unique>')
+    call s:map('c', '<C-R><C-F>', '<Plug><cfile>', '<silent><unique>')
   endif
 endfunction
 
