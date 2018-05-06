@@ -2734,7 +2734,7 @@ function! s:BufReadObject() abort
           if getline('.') ==# 'parent '
             silent keepjumps delete_
           else
-            silent keepjumps s/\%(^parent\)\@<! /\rparent /ge
+            silent exe 'keepjumps s/\m\C\%(^parent\)\@<! /\rparent /e' . (&gdefault ? '' : 'g')
           endif
           keepjumps let lnum = search('^encoding \%(<unknown>\)\=$','W',line('.')+3)
           if lnum
