@@ -2445,11 +2445,7 @@ function! s:instaweb_url(opts) abort
     if a:opts.type ==# 'blob' && empty(a:opts.commit)
       let url .= ';h='.a:opts.repo.git_chomp('hash-object', '-w', a:opts.path)
     else
-      try
-        let url .= ';h=' . a:opts.repo.rev_parse((a:opts.commit == '' ? 'HEAD' : ':' . a:opts.commit) . ':' . a:opts.path)
-      catch /^fugitive:/
-        call s:throw('fugitive: cannot browse uncommitted file')
-      endtry
+      let url .= ';a=blob'
     endif
     let root .= ';hb=' . matchstr(a:opts.repo.head_ref(),'[^ ]\+$')
   endif
