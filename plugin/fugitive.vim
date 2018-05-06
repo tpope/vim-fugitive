@@ -2424,6 +2424,9 @@ function! s:Browse(bang,line1,count,...) abort
 endfunction
 
 function! s:instaweb_url(opts) abort
+  if a:opts.remote !=# '.'
+    call s:warn('There are handlers for common git providers, install one or implement yours. More info blablabla')
+  endif
   let output = a:opts.repo.git_chomp('instaweb','-b','unknown')
   if output =~# 'http://'
     let root = matchstr(output,'http://.*').'/?p='.fnamemodify(a:opts.repo.dir(),':t')
