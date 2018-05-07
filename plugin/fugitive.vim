@@ -2448,26 +2448,9 @@ function! s:Browse(bang,line1,count,...) abort
   endtry
 endfunction
 
-function! s:github_url(opts, ...) abort
-  if a:0 || type(a:opts) != type({})
-    return ''
-  endif
-  let domain_pattern = 'github\.com'
-  let domains = exists('g:fugitive_github_domains') ? g:fugitive_github_domains : []
-  for domain in domains
-    let domain_pattern .= '\|' . escape(split(domain, '://')[-1], '.')
-  endfor
-  let repo = matchstr(get(a:opts, 'remote'), '^\%(https\=://\|git://\|git@\)\=\zs\('.domain_pattern.'\)[/:].\{-\}\ze\%(\.git\)\=$')
-  if repo ==# ''
-    return ''
-  endif
-  call s:warn('Install rhubarb.vim for GitHub support')
-  return 'https://github.com/tpope/vim-rhubarb'
-endfunction
-
 function! s:instaweb_url(opts) abort
   if a:opts.remote !=# '.'
-    return ''
+    call s:warn('There are handlers for common git providers, install one or implement yours. More info blablabla')
   endif
   let output = a:opts.repo.git_chomp('instaweb','-b','unknown')
   if output =~# 'http://'
@@ -2490,11 +2473,7 @@ function! s:instaweb_url(opts) abort
     if a:opts.type ==# 'blob' && empty(a:opts.commit)
       let url .= ';h='.a:opts.repo.git_chomp('hash-object', '-w', a:opts.path)
     else
-      try
-        let url .= ';h=' . a:opts.repo.rev_parse((a:opts.commit == '' ? 'HEAD' : ':' . a:opts.commit) . ':' . a:opts.path)
-      catch /^fugitive:/
-        call s:throw('fugitive: cannot browse uncommitted file')
-      endtry
+      let url .= ';a=blob'
     endif
     let root .= ';hb=' . matchstr(a:opts.repo.head_ref(),'[^ ]\+$')
   endif
@@ -2512,7 +2491,7 @@ if !exists('g:fugitive_browse_handlers')
 endif
 
 call extend(g:fugitive_browse_handlers,
-      \ [s:function('s:github_url'), s:function('s:instaweb_url')])
+      \ [s:function('s:instaweb_url')])
 
 " Section: File access
 
