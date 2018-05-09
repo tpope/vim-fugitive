@@ -12,7 +12,7 @@ changes.
 
 Bring up the output of `git status` with `:Gstatus`.  Press `-` to
 `add`/`reset` a file's changes, or `p` to `add`/`reset` `--patch`.  And guess
-what `:Gcommit` does!
+what `:Gcommit` does! You can even commit the current file with `:Gcommit %`.
 
 `:Gblame` brings up an interactive vertical split with `git blame`
 output.  Press enter on a line to edit the commit where the line
