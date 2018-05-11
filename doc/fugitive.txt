@@ -41,10 +41,11 @@ that are part of Git repositories).
                         -     |:Git| add
                         -     |:Git| reset (staged files)
                         a     Show alternative format
-                        cA    |:Gcommit| --amend --reuse-message=HEAD
                         ca    |:Gcommit| --amend
                         cc    |:Gcommit|
-                        cva   |:Gcommit| --amend --verbose
+                        ce    |:Gcommit| --amend --no-edit
+                        cw    |:Gcommit| --amend --only
+                        cva   |:Gcommit| --verbose --amend
                         cvc   |:Gcommit| --verbose
                         D     |:Gdiff|
                         ds    |:Gsdiff|

@@ -2612,12 +2612,14 @@ function! s:BufReadIndex() abort
     xnoremap <buffer> <silent> - :<C-U>silent execute <SID>StageToggle(line("'<"),line("'>"))<CR>
     nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe <SID>BufReadIndex()<CR>
     nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe <SID>BufReadIndex()<CR>
-    nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>
+    nnoremap <buffer> <silent> C :<C-U>echoerr 'Use cc instead'<CR>
     nnoremap <buffer> <silent> cA :<C-U>Gcommit --amend --reuse-message=HEAD<CR>
     nnoremap <buffer> <silent> ca :<C-U>Gcommit --amend<CR>
     nnoremap <buffer> <silent> cc :<C-U>Gcommit<CR>
-    nnoremap <buffer> <silent> cva :<C-U>Gcommit --amend --verbose<CR>
-    nnoremap <buffer> <silent> cvc :<C-U>Gcommit --verbose<CR>
+    nnoremap <buffer> <silent> ce :<C-U>Gcommit --amend --no-edit<CR>
+    nnoremap <buffer> <silent> cw :<C-U>Gcommit --amend --only<CR>
+    nnoremap <buffer> <silent> cva :<C-U>Gcommit -v --amend<CR>
+    nnoremap <buffer> <silent> cvc :<C-U>Gcommit -v<CR>
     nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff('Gdiff')<CR>
     nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gdiff')<CR>
     nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
