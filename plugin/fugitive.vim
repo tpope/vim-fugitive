@@ -308,7 +308,7 @@ function! fugitive#repo(...) abort
   return call('s:repo', a:000)
 endfunction
 
-function fugitive#Repo(...) abort
+function! fugitive#Repo(...) abort
   return call('s:repo', a:000)
 endfunction
 
