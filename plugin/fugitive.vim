@@ -113,7 +113,7 @@ function! s:map(mode, lhs, rhs, ...) abort
   let head = a:lhs
   let tail = ''
   let keys = get(g:, a:mode.'remap', {})
-  if type(keys) != type({})
+  if type(keys) == type([])
     return
   endif
   while !empty(head)
