@@ -308,10 +308,6 @@ function! fugitive#repo(...) abort
   return call('s:repo', a:000)
 endfunction
 
-function! fugitive#Repo(...) abort
-  return call('s:repo', a:000)
-endfunction
-
 function! s:repo_dir(...) dict abort
   return join([self.git_dir]+a:000,'/')
 endfunction
@@ -568,10 +564,6 @@ function! s:buffer(...) abort
 endfunction
 
 function! fugitive#buffer(...) abort
-  return s:buffer(a:0 ? a:1 : '%')
-endfunction
-
-function! fugitive#Buffer(...) abort
   return s:buffer(a:0 ? a:1 : '%')
 endfunction
 
