@@ -2563,7 +2563,7 @@ function! s:ReplaceCmd(cmd,...) abort
   endtry
   silent exe 'keepalt file '.tmp
   try
-    silent edit!
+    silent noautocmd edit!
   finally
     try
       silent exe 'keepalt file '.s:fnameescape(fn)
