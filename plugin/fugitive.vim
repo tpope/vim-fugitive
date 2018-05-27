@@ -1431,7 +1431,7 @@ function! s:Edit(cmd,bang,...) abort
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
       let winnrs = filter([winnr('#')] + range(1, winnr('$')), 's:UsableWin(v:val)')
       if len(winnrs)
-        exe winnrs[1].'wincmd w'
+        exe winnrs[0].'wincmd w'
       elseif winnr('$') == 1
         let tabs = (&go =~# 'e' || !has('gui_running')) && &stal && (tabpagenr('$') >= &stal)
         execute 'rightbelow' (&lines - &previewheight - &cmdheight - tabs - 1 - !!&laststatus).'new'
