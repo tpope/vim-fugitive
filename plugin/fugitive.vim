@@ -1,6 +1,6 @@
 " fugitive.vim - A Git wrapper so awesome, it should be illegal
 " Maintainer:   Tim Pope <http://tpo.pe/>
-" Version:      2.2
+" Version:      2.3
 " GetLatestVimScripts: 2975 1 :AutoInstall: fugitive.vim
 
 if exists('g:loaded_fugitive') || &cp
@@ -1420,17 +1420,23 @@ endfunction
 
 " Section: Gedit, Gpedit, Gsplit, Gvsplit, Gtabedit, Gread
 
+function! s:UsableWin(nr) abort
+  return a:nr && !getwinvar(a:nr, '&previewwindow') &&
+        \ index(['nofile','help','quickfix'], getbufvar(winbufnr(a:nr), '&buftype')) < 0
+endfunction
+
 function! s:Edit(cmd,bang,...) abort
   let buffer = s:buffer()
   if a:cmd !~# 'read'
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
-      if winnr('$') == 1
+      let winnrs = filter([winnr('#')] + range(1, winnr('$')), 's:UsableWin(v:val)')
+      if len(winnrs)
+        exe winnrs[1].'wincmd w'
+      elseif winnr('$') == 1
         let tabs = (&go =~# 'e' || !has('gui_running')) && &stal && (tabpagenr('$') >= &stal)
         execute 'rightbelow' (&lines - &previewheight - &cmdheight - tabs - 1 - !!&laststatus).'new'
-      elseif winnr('#')
-        wincmd p
       else
-        wincmd w
+        rightbelow new
       endif
       if &diff
         let mywinnr = winnr()
