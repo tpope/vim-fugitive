@@ -740,7 +740,7 @@ call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','n
 
 " Section: Git
 
-call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Git :execute s:Git(<bang>0,<q-args>)")
+call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Git :execute s:Git(<bang>0,'<mods>',<q-args>)")
 
 function! s:ExecuteInTree(cmd) abort
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
@@ -753,9 +753,9 @@ function! s:ExecuteInTree(cmd) abort
   endtry
 endfunction
 
-function! s:Git(bang, args) abort
+function! s:Git(bang, mods, args) abort
   if a:bang
-    return s:Edit('edit', 1, a:args)
+    return s:Edit('edit', 1, a:mods, a:args)
   endif
   let git = s:git_command()
   if has('gui_running') && !has('win32')
@@ -808,7 +808,7 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe
 
 " Section: Gstatus
 
-call s:command("-bar Gstatus :execute s:Status()")
+call s:command("-bar -bang -range=-1 Gstatus :execute s:Status(<bang>0, <count>, '<mods>')")
 augroup fugitive_status
   autocmd!
   if !has('win32')
@@ -817,9 +817,9 @@ augroup fugitive_status
   endif
 augroup END
 
-function! s:Status() abort
+function! s:Status(bang, count, mods) abort
   try
-    Gpedit :
+    exe (a:mods ==# '<mods>' ? '' : a:mods) 'Gpedit :'
     wincmd P
     setlocal foldmethod=syntax foldlevel=1
     nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
@@ -1425,7 +1425,8 @@ function! s:UsableWin(nr) abort
         \ index(['nofile','help','quickfix'], getbufvar(winbufnr(a:nr), '&buftype')) < 0
 endfunction
 
-function! s:Edit(cmd,bang,...) abort
+function! s:Edit(cmd, bang, mods, ...) abort
+  let mods = a:mods ==# '<mods>' ? '' : a:mods
   let buffer = s:buffer()
   if a:cmd !~# 'read'
     if &previewwindow && getbufvar('','fugitive_type') ==# 'index'
@@ -1460,7 +1461,7 @@ function! s:Edit(cmd,bang,...) abort
     if a:cmd =~# 'read'
       let git = buffer.repo().git_command()
       let last = line('$')
-      silent call s:ExecuteInTree((a:cmd ==# 'read' ? '$read' : a:cmd).'!'.git.' --no-pager '.args)
+      silent call s:ExecuteInTree(mods.' '.(a:cmd ==# 'read' ? 'keepalt $read' : a:cmd).'!'.git.' --no-pager '.args)
       if a:cmd ==# 'read'
         silent execute '1,'.last.'delete_'
       endif
@@ -1473,11 +1474,11 @@ function! s:Edit(cmd,bang,...) abort
         let temp = fnamemodify(fnamemodify(temp, ':h'), ':p').fnamemodify(temp, ':t')
       endif
       let s:temp_files[s:cpath(temp)] = { 'dir': buffer.repo().dir(), 'args': arglist }
-      silent execute a:cmd.' '.temp
+      silent execute mods a:cmd temp
       if a:cmd =~# 'pedit'
         wincmd P
       endif
-      let echo = s:Edit('read',1,args)
+      let echo = s:Edit('read', 1, mods, args)
       silent write!
       setlocal buftype=nowrite nomodified filetype=git foldmarker=<<<<<<<,>>>>>>>
       if getline(1) !~# '^diff '
@@ -1511,9 +1512,9 @@ function! s:Edit(cmd,bang,...) abort
     let file = s:sub(file, '/$', '')
   endif
   if a:cmd ==# 'read'
-    return 'silent %delete_|read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
+    return 'silent %delete_|'.mods.' read '.s:fnameescape(file).'|silent 1delete_|diffupdate|'.line('.')
   else
-    return a:cmd.' '.s:fnameescape(file)
+    return mods.' '.a:cmd.' '.s:fnameescape(file)
   endif
 endfunction
 
@@ -1529,13 +1530,13 @@ function! s:EditRunComplete(A,L,P) abort
   endif
 endfunction
 
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Ge       :execute s:Edit('edit<bang>',0,<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gedit    :execute s:Edit('edit<bang>',0,<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gpedit   :execute s:Edit('pedit',<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gsplit   :execute s:Edit('split',<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gvsplit  :execute s:Edit('vsplit',<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gtabedit :execute s:Edit('tabedit',<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:EditRunComplete Gread :execute s:Edit((<count> == -1 ? '' : <count>).'read',<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Ge       :execute s:Edit('edit<bang>',0,'<mods>',<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gedit    :execute s:Edit('edit<bang>',0,'<mods>',<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gpedit   :execute s:Edit('pedit',<bang>0,'<mods>',<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gsplit   :execute s:Edit('split',<bang>0,'<mods>',<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gvsplit  :execute s:Edit('vsplit',<bang>0,'<mods>',<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,s:EditRunComplete Gtabedit :execute s:Edit('tabedit',<bang>0,'<mods>',<f-args>)")
+call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:EditRunComplete Gread :execute s:Edit((<count> == -1 ? '' : <count>).'read',<bang>0,'<mods>',<f-args>)")
 
 " Section: Gwrite, Gwq
 
@@ -2157,7 +2158,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
 endfunction
 
 function! s:BlameCommit(cmd) abort
-  let cmd = s:Edit(a:cmd, 0, matchstr(getline('.'),'\x\+'))
+  let cmd = s:Edit(a:cmd, 0, '', matchstr(getline('.'),'\x\+'))
   if cmd =~# '^echoerr'
     return cmd
   endif
@@ -2214,7 +2215,7 @@ function! s:BlameJump(suffix) abort
   if winnr > 0
     exe winnr.'wincmd w'
   endif
-  execute s:Edit('edit', 0, commit.a:suffix.':'.path)
+  execute s:Edit('edit', 0, '', commit.a:suffix.':'.path)
   execute lnum
   if winnr > 0
     exe bufnr.'bdelete'
@@ -3082,7 +3083,7 @@ function! s:GF(mode) abort
     return 'echoerr v:errmsg'
   endtry
   if len(results)
-    return s:Edit(a:mode, 0, results[0]).join(map(results[1:-1], '"|".v:val'), '')
+    return s:Edit(a:mode, 0, '', results[0]).join(map(results[1:-1], '"|".v:val'), '')
   else
     return ''
   endif
