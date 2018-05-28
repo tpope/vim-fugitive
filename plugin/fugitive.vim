@@ -153,18 +153,18 @@ let s:abstract_prototype = {}
 
 " Section: Initialization
 
-function! fugitive#is_git_dir(path) abort
+function! FugitiveIsGitDir(path) abort
   let path = s:sub(a:path, '[\/]$', '') . '/'
   return getfsize(path.'HEAD') > 10 && (
         \ isdirectory(path.'objects') && isdirectory(path.'refs') ||
         \ getftype(path.'commondir') ==# 'file')
 endfunction
 
-function! FugitiveIsGitDir(path) abort
-  return fugitive#is_git_dir(a:path)
+function! fugitive#is_git_dir(path) abort
+  return FugitiveIsGitDir(a:path)
 endfunction
 
-function! fugitive#extract_git_dir(path) abort
+function! FugitiveExtractGitDir(path) abort
   if s:shellslash(a:path) =~# '^fugitive://.*//'
     return matchstr(s:shellslash(a:path), '\C^fugitive://\zs.\{-\}\ze//')
   endif
@@ -185,10 +185,10 @@ function! fugitive#extract_git_dir(path) abort
     if index(split($GIT_CEILING_DIRECTORIES, ':'), root) >= 0
       break
     endif
-    if root ==# $GIT_WORK_TREE && fugitive#is_git_dir($GIT_DIR)
+    if root ==# $GIT_WORK_TREE && FugitiveIsGitDir($GIT_DIR)
       return simplify(fnamemodify(expand($GIT_DIR), ':p:s?[\/]$??'))
     endif
-    if fugitive#is_git_dir($GIT_DIR)
+    if FugitiveIsGitDir($GIT_DIR)
       " Ensure that we've cached the worktree
       call s:configured_tree(simplify(fnamemodify(expand($GIT_DIR), ':p:s?[\/]$??')))
       if has_key(s:dir_for_worktree, root)
@@ -197,18 +197,18 @@ function! fugitive#extract_git_dir(path) abort
     endif
     let dir = s:sub(root, '[\/]$', '') . '/.git'
     let type = getftype(dir)
-    if type ==# 'dir' && fugitive#is_git_dir(dir)
+    if type ==# 'dir' && FugitiveIsGitDir(dir)
       return dir
-    elseif type ==# 'link' && fugitive#is_git_dir(dir)
+    elseif type ==# 'link' && FugitiveIsGitDir(dir)
       return resolve(dir)
     elseif type !=# '' && filereadable(dir)
       let line = get(readfile(dir, '', 1), 0, '')
-      if line =~# '^gitdir: \.' && fugitive#is_git_dir(root.'/'.line[8:-1])
+      if line =~# '^gitdir: \.' && FugitiveIsGitDir(root.'/'.line[8:-1])
         return simplify(root.'/'.line[8:-1])
-      elseif line =~# '^gitdir: ' && fugitive#is_git_dir(line[8:-1])
+      elseif line =~# '^gitdir: ' && FugitiveIsGitDir(line[8:-1])
         return line[8:-1]
       endif
-    elseif fugitive#is_git_dir(root)
+    elseif FugitiveIsGitDir(root)
       return root
     endif
     let previous = root
@@ -217,16 +217,16 @@ function! fugitive#extract_git_dir(path) abort
   return ''
 endfunction
 
-function! FugitiveExtractGitDir(path) abort
-  return fugitive#extract_git_dir(a:path)
+function! fugitive#extract_git_dir(path) abort
+  return FugitiveExtractGitDir(a:path)
 endfunction
 
-function! fugitive#detect(path) abort
+function! FugitiveDetect(path) abort
   if exists('b:git_dir') && (b:git_dir ==# '' || b:git_dir =~# '/$')
     unlet b:git_dir
   endif
   if !exists('b:git_dir')
-    let dir = fugitive#extract_git_dir(a:path)
+    let dir = FugitiveExtractGitDir(a:path)
     if dir !=# ''
       let b:git_dir = dir
       if empty(fugitive#buffer().path())
@@ -269,17 +269,17 @@ function! fugitive#detect(path) abort
   endif
 endfunction
 
-function! FugitiveDetect(path) abort
-  return fugitive#detect(a:path)
+function! fugitive#detect(path) abort
+  return FugitiveDetect(a:path)
 endfunction
 
 augroup fugitive
   autocmd!
-  autocmd BufNewFile,BufReadPost * call fugitive#detect(expand('%:p'))
-  autocmd FileType           netrw call fugitive#detect(expand('%:p'))
-  autocmd User NERDTreeInit,NERDTreeNewRoot call fugitive#detect(b:NERDTree.root.path.str())
-  autocmd VimEnter * if expand('<amatch>')==''|call fugitive#detect(getcwd())|endif
-  autocmd CmdWinEnter * call fugitive#detect(expand('#:p'))
+  autocmd BufNewFile,BufReadPost * call FugitiveDetect(expand('%:p'))
+  autocmd FileType           netrw call FugitiveDetect(expand('%:p'))
+  autocmd User NERDTreeInit,NERDTreeNewRoot call FugitiveDetect(b:NERDTree.root.path.str())
+  autocmd VimEnter * if expand('<amatch>')==''|call FugitiveDetect(getcwd())|endif
+  autocmd CmdWinEnter * call FugitiveDetect(expand('#:p'))
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
 
@@ -291,7 +291,7 @@ let s:worktree_for_dir = {}
 let s:dir_for_worktree = {}
 
 function! s:repo(...) abort
-  let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : fugitive#extract_git_dir(expand('%:p')))
+  let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : FugitiveExtractGitDir(expand('%:p')))
   if dir !=# ''
     if has_key(s:repos, dir)
       let repo = get(s:repos, dir)
@@ -774,7 +774,7 @@ function! s:Git(bang, mods, args) abort
   else
     call s:ExecuteInTree('!'.git.' '.args)
     if has('win32')
-      call fugitive#reload_status()
+      call fugitive#ReloadStatus()
     endif
   endif
   return matchstr(a:args, '\v\C\\@<!%(\\\\)*\|\zs.*')
@@ -812,8 +812,8 @@ call s:command("-bar -bang -range=-1 Gstatus :execute s:Status(<bang>0, <count>,
 augroup fugitive_status
   autocmd!
   if !has('win32')
-    autocmd FocusGained,ShellCmdPost * call fugitive#reload_status()
-    autocmd BufDelete term://* call fugitive#reload_status()
+    autocmd FocusGained,ShellCmdPost * call fugitive#ReloadStatus()
+    autocmd BufDelete term://* call fugitive#ReloadStatus()
   endif
 augroup END
 
@@ -829,7 +829,7 @@ function! s:Status(bang, count, mods) abort
   return ''
 endfunction
 
-function! fugitive#reload_status() abort
+function! fugitive#ReloadStatus() abort
   if exists('s:reloading_status')
     return
   endif
@@ -862,8 +862,8 @@ function! fugitive#reload_status() abort
   endtry
 endfunction
 
-function! fugitive#ReloadStatus() abort
-  return fugitive#reload_status()
+function! fugitive#reload_status() abort
+  return fugitive#ReloadStatus()
 endfunction
 
 function! s:stage_info(lnum) abort
@@ -1187,7 +1187,7 @@ function! s:Commit(mods, args, ...) abort
     endif
     call delete(outfile)
     call delete(errorfile)
-    call fugitive#reload_status()
+    call fugitive#ReloadStatus()
   endtry
 endfunction
 
@@ -1305,7 +1305,7 @@ function! s:Merge(cmd, bang, args) abort
     endif
     execute cd fnameescape(cwd)
   endtry
-  call fugitive#reload_status()
+  call fugitive#ReloadStatus()
   if empty(filter(getqflist(),'v:val.valid'))
     if !had_merge_msg && filereadable(s:repo().dir('MERGE_MSG'))
       cclose
@@ -1465,7 +1465,7 @@ function! s:Edit(cmd, bang, mods, ...) abort
       if a:cmd ==# 'read'
         silent execute '1,'.last.'delete_'
       endif
-      call fugitive#reload_status()
+      call fugitive#ReloadStatus()
       diffupdate
       return 'redraw|echo '.string(':!'.git.' '.args)
     else
@@ -1681,7 +1681,7 @@ function! s:Write(force,...) abort
       endif
     endfor
   endfor
-  call fugitive#reload_status()
+  call fugitive#ReloadStatus()
   return 'checktime'
 endfunction
 
@@ -1954,7 +1954,7 @@ function! s:Move(force, rename, destination) abort
   if isdirectory(destination)
     let destination = fnamemodify(s:sub(destination,'/$','').'/'.expand('%:t'),':.')
   endif
-  call fugitive#reload_status()
+  call fugitive#ReloadStatus()
   if empty(s:buffer().commit())
     if isdirectory(destination)
       return 'keepalt edit '.s:fnameescape(destination)
@@ -2002,7 +2002,7 @@ function! s:Remove(after, force) abort
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
   else
-    call fugitive#reload_status()
+    call fugitive#ReloadStatus()
     return a:after . (a:force ? '!' : '')
   endif
 endfunction
@@ -2621,7 +2621,7 @@ function! s:BufReadIndex() abort
         execute cd s:fnameescape(dir)
       endtry
       set ft=gitcommit
-      set foldtext=fugitive#foldtext()
+      set foldtext=fugitive#Foldtext()
     endif
     setlocal ro noma nomod noswapfile
     if &bufhidden ==# ''
@@ -2667,7 +2667,7 @@ endfunction
 
 function! s:FileRead() abort
   try
-    let repo = s:repo(fugitive#extract_git_dir(expand('<amatch>')))
+    let repo = s:repo(FugitiveExtractGitDir(expand('<amatch>')))
     let path = s:sub(s:sub(matchstr(expand('<amatch>'),'fugitive://.\{-\}//\zs.*'),'/',':'),'^\d:',':&')
     let hash = repo.rev_parse(path)
     if path =~ '^:'
@@ -2726,7 +2726,7 @@ function! s:BufWriteIndexFile() abort
       if exists('#BufWritePost')
         execute 'doautocmd BufWritePost '.s:fnameescape(expand('%:p'))
       endif
-      call fugitive#reload_status()
+      call fugitive#ReloadStatus()
       return ''
     else
       return 'echoerr '.string('fugitive: '.error)
@@ -2823,7 +2823,7 @@ endfunction
 augroup fugitive_files
   autocmd!
   autocmd BufReadCmd  index{,.lock}
-        \ if fugitive#is_git_dir(expand('<amatch>:p:h')) |
+        \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
         \   exe s:BufReadIndex() |
         \ elseif filereadable(expand('<amatch>')) |
         \   read <amatch> |
@@ -2857,7 +2857,7 @@ augroup fugitive_temp
         \   let b:git_dir = s:temp_files[s:cpath(expand('<afile>:p'))].dir |
         \   let b:git_type = 'temp' |
         \   let b:git_args = s:temp_files[s:cpath(expand('<afile>:p'))].args |
-        \   call fugitive#detect(expand('<afile>:p')) |
+        \   call FugitiveDetect(expand('<afile>:p')) |
         \   setlocal bufhidden=delete nobuflisted |
         \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>|
         \ endif
@@ -2867,7 +2867,7 @@ augroup END
 
 nnoremap <SID>: :<C-U><C-R>=v:count ? v:count : ''<CR>
 function! s:GFInit(...) abort
-  cnoremap <buffer> <expr> <Plug><cfile> fugitive#cfile()
+  cnoremap <buffer> <expr> <Plug><cfile> fugitive#Cfile()
   if !exists('g:fugitive_no_maps')
     call s:map('n', 'gf',          '<SID>:find <Plug><cfile><CR>', '<silent><unique>')
     call s:map('n', '<C-W>f',     '<SID>:sfind <Plug><cfile><CR>', '<silent><unique>')
@@ -3089,7 +3089,7 @@ function! s:GF(mode) abort
   endif
 endfunction
 
-function! fugitive#cfile() abort
+function! fugitive#Cfile() abort
   let pre = ''
   let results = s:cfile()
   if empty(results)
@@ -3104,8 +3104,8 @@ function! fugitive#cfile() abort
   return pre . s:fnameescape(fugitive#repo().translate(results[0]))
 endfunction
 
-function! fugitive#Cfile() abort
-  return fugitive#cfile()
+function! fugitive#cfile() abort
+  return fugitive#Cfile()
 endfunction
 
 " Section: Statusline
@@ -3119,7 +3119,7 @@ endfunction
 
 call s:add_methods('repo',['head_ref'])
 
-function! fugitive#statusline(...) abort
+function! fugitive#Statusline(...) abort
   if !exists('b:git_dir')
     return ''
   endif
@@ -3127,7 +3127,7 @@ function! fugitive#statusline(...) abort
   if s:buffer().commit() != ''
     let status .= ':' . s:buffer().commit()[0:7]
   endif
-  let status .= '('.fugitive#head(7).')'
+  let status .= '('.FugitiveHead(7).')'
   if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
     return ',GIT'.status
   else
@@ -3135,12 +3135,24 @@ function! fugitive#statusline(...) abort
   endif
 endfunction
 
-function! fugitive#Statusline(...) abort
-  return fugitive#statusline()
+function! fugitive#statusline(...) abort
+  return fugitive#Statusline()
 endfunction
 
 function! FugitiveStatusline(...) abort
-  return fugitive#statusline()
+  if !exists('b:git_dir')
+    return ''
+  endif
+
+  return fugitive#Statusline()
+endfunction
+
+function! FugitiveHead(...) abort
+  if !exists('b:git_dir')
+    return ''
+  endif
+
+  return fugitive#repo().head(a:0 ? a:1 : 0)
 endfunction
 
 function! fugitive#head(...) abort
@@ -3151,18 +3163,14 @@ function! fugitive#head(...) abort
   return s:repo().head(a:0 ? a:1 : 0)
 endfunction
 
-function! FugitiveHead(...) abort
-  return fugitive#head(a:0 ? a:1 : 0)
-endfunction
-
 augroup fugitive_statusline
   autocmd!
-  autocmd User Flags call Hoist('buffer', function('fugitive#statusline'))
+  autocmd User Flags call Hoist('buffer', function('FugitiveStatusline'))
 augroup END
 
 " Section: Folding
 
-function! fugitive#foldtext() abort
+function! fugitive#Foldtext() abort
   if &foldmethod !=# 'syntax'
     return foldtext()
   endif
@@ -3205,8 +3213,8 @@ function! fugitive#foldtext() abort
   return foldtext()
 endfunction
 
-function! fugitive#Foldtext() abort
-  return fugitive#foldtext()
+function! fugitive#foldtext() abort
+  return fugitive#Foldtext()
 endfunction
 
 augroup fugitive_foldtext

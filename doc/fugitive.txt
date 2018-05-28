@@ -346,16 +346,16 @@ HEAD^:Makefile  The file named Makefile in the parent of HEAD
 
 STATUSLINE                                      *fugitive-statusline*
 
-                                                *fugitive#statusline()*
-Add %{fugitive#statusline()} to your statusline to get an indicator including
+                                *FugitiveStatusline()* *fugitive#statusline()*
+Add %{FugitiveStatusline()} to your statusline to get an indicator including
 the current branch and the currently edited file's commit.  If you don't have
 a statusline, this one matches the default when 'ruler' is set:
 >
-    set statusline=%<%f\ %h%m%r%{fugitive#statusline()}%=%-14.(%l,%c%V%)\ %P
+    set statusline=%<%f\ %h%m%r%{FugitiveStatusline()}%=%-14.(%l,%c%V%)\ %P
 <
-                                                *fugitive#head(...)*
-Use fugitive#head() to return the name of the current branch. If the current
-HEAD is detached, fugitive#head() will return the empty string, unless the
+                                *FugitiveHead(...)* *fugitive#head(...)*
+Use FugitiveHead() to return the name of the current branch. If the current
+HEAD is detached, FugitiveHead() will return the empty string, unless the
 optional argument is given, in which case the hash of the current commit will
 be truncated to the given number of characters.
 
