@@ -160,6 +160,40 @@ function! FugitiveIsGitDir(path) abort
         \ getftype(path.'commondir') ==# 'file')
 endfunction
 
+let s:worktree_for_dir = {}
+let s:dir_for_worktree = {}
+function! FugitiveTreeForGitDir(git_dir) abort
+  let dir = substitute(s:shellslash(a:git_dir), '/$', '', '')
+  if dir =~# '/\.git$'
+    return len(dir) ==# 5 ? '/' : dir[0:-6]
+  endif
+  if !has_key(s:worktree_for_dir, dir)
+    let s:worktree_for_dir[dir] = ''
+    let config_file = dir . '/config'
+    if filereadable(config_file)
+      let config = readfile(config_file,'',10)
+      call filter(config,'v:val =~# "^\\s*worktree *="')
+      if len(config) == 1
+        let worktree = matchstr(config[0], '= *\zs.*')
+      endif
+    elseif filereadable(dir . '/gitdir')
+      let worktree = fnamemodify(readfile(dir . '/gitdir')[0], ':h')
+      if worktree ==# '.'
+        unlet! worktree
+      endif
+    endif
+    if exists('worktree')
+      let s:worktree_for_dir[dir] = worktree
+      let s:dir_for_worktree[s:worktree_for_dir[dir]] = dir
+    endif
+  endif
+  if s:worktree_for_dir[dir] =~# '^\.'
+    return simplify(dir . '/' . s:worktree_for_dir[dir])
+  else
+    return s:worktree_for_dir[dir]
+  endif
+endfunction
+
 function! FugitiveExtractGitDir(path) abort
   if s:shellslash(a:path) =~# '^fugitive://.*//'
     return matchstr(s:shellslash(a:path), '\C^fugitive://\zs.\{-\}\ze//')
@@ -179,11 +213,10 @@ function! FugitiveExtractGitDir(path) abort
       break
     endif
     if root ==# $GIT_WORK_TREE && FugitiveIsGitDir($GIT_DIR)
-      return simplify(fnamemodify(expand($GIT_DIR), ':p:s?[\/]$??'))
+      return simplify(fnamemodify($GIT_DIR, ':p:s?[\/]$??'))
     endif
     if FugitiveIsGitDir($GIT_DIR)
-      " Ensure that we've cached the worktree
-      call s:configured_tree(simplify(fnamemodify(expand($GIT_DIR), ':p:s?[\/]$??')))
+      call FugitiveTreeForGitDir(simplify(fnamemodify($GIT_DIR, ':p:s?[\/]$??')))
       if has_key(s:dir_for_worktree, root)
         return s:dir_for_worktree[root]
       endif
@@ -290,8 +323,6 @@ endfunction
 
 let s:repo_prototype = {}
 let s:repos = {}
-let s:worktree_for_dir = {}
-let s:dir_for_worktree = {}
 
 function! s:repo(...) abort
   let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : FugitiveExtractGitDir(expand('%:p')))
@@ -315,43 +346,8 @@ function! s:repo_dir(...) dict abort
   return join([self.git_dir]+a:000,'/')
 endfunction
 
-function! s:configured_tree(git_dir) abort
-  if !has_key(s:worktree_for_dir, a:git_dir)
-    let s:worktree_for_dir[a:git_dir] = ''
-    let config_file = a:git_dir . '/config'
-    if filereadable(config_file)
-      let config = readfile(config_file,'',10)
-      call filter(config,'v:val =~# "^\\s*worktree *="')
-      if len(config) == 1
-        let worktree = matchstr(config[0], '= *\zs.*')
-      endif
-    elseif filereadable(a:git_dir . '/gitdir')
-      let worktree = fnamemodify(readfile(a:git_dir . '/gitdir')[0], ':h')
-      if worktree ==# '.'
-        unlet! worktree
-      endif
-    endif
-    if exists('worktree')
-      let s:worktree_for_dir[a:git_dir] = worktree
-      let s:dir_for_worktree[s:worktree_for_dir[a:git_dir]] = a:git_dir
-    endif
-  endif
-  if s:worktree_for_dir[a:git_dir] =~# '^\.'
-    return simplify(a:git_dir . '/' . s:worktree_for_dir[a:git_dir])
-  else
-    return s:worktree_for_dir[a:git_dir]
-  endif
-endfunction
-
 function! s:repo_tree(...) dict abort
-  if self.dir() =~# '/\.git$'
-    let dir = self.dir()[0:-6]
-    if dir !~# '/'
-      let dir .= '/'
-    endif
-  else
-    let dir = s:configured_tree(self.git_dir)
-  endif
+  let dir = FugitiveTreeForGitDir(self.git_dir)
   if dir ==# ''
     call s:throw('no work tree')
   else
@@ -363,7 +359,7 @@ function! s:repo_bare() dict abort
   if self.dir() =~# '/\.git$'
     return 0
   else
-    return s:configured_tree(self.git_dir) ==# ''
+    return FugitiveTreeForGitDir(self.git_dir) ==# ''
   endif
 endfunction
 
