@@ -62,7 +62,7 @@ endfunction
 
 function! s:shellslash(path) abort
   if s:winshell()
-    return s:gsub(a:path,'\\','/')
+    return tr(a:path, '\', '/')
   else
     return a:path
   endif
@@ -151,17 +151,13 @@ endfunction
 
 let s:abstract_prototype = {}
 
-" Section: Initialization
+" Section: Detection
 
 function! FugitiveIsGitDir(path) abort
-  let path = s:sub(a:path, '[\/]$', '') . '/'
+  let path = substitute(a:path, '[\/]$', '', '') . '/'
   return getfsize(path.'HEAD') > 10 && (
         \ isdirectory(path.'objects') && isdirectory(path.'refs') ||
         \ getftype(path.'commondir') ==# 'file')
-endfunction
-
-function! fugitive#is_git_dir(path) abort
-  return FugitiveIsGitDir(a:path)
 endfunction
 
 function! FugitiveExtractGitDir(path) abort
@@ -195,7 +191,7 @@ function! FugitiveExtractGitDir(path) abort
         return s:dir_for_worktree[root]
       endif
     endif
-    let dir = s:sub(root, '[\/]$', '') . '/.git'
+    let dir = substitute(root, '[\/]$', '', '') . '/.git'
     let type = getftype(dir)
     if type ==# 'dir' && FugitiveIsGitDir(dir)
       return dir
@@ -217,10 +213,6 @@ function! FugitiveExtractGitDir(path) abort
   return ''
 endfunction
 
-function! fugitive#extract_git_dir(path) abort
-  return FugitiveExtractGitDir(a:path)
-endfunction
-
 function! FugitiveDetect(path) abort
   if exists('b:git_dir') && (b:git_dir ==# '' || b:git_dir =~# '/$')
     unlet b:git_dir
@@ -235,42 +227,8 @@ function! FugitiveDetect(path) abort
     endif
   endif
   if exists('b:git_dir')
-    if exists('#User#FugitiveBoot')
-      try
-        let [save_mls, &modelines] = [&mls, 0]
-        doautocmd User FugitiveBoot
-      finally
-        let &mls = save_mls
-      endtry
-    endif
-    if !exists('g:fugitive_no_maps')
-      call s:map('c', '<C-R><C-G>', 'fnameescape(<SID>recall())', '<expr>')
-      call s:map('n', 'y<C-G>', ':call setreg(v:register, <SID>recall())<CR>', '<silent>')
-    endif
-    let buffer = fugitive#buffer()
-    if expand('%:p') =~# '://'
-      call buffer.setvar('&path', s:sub(buffer.getvar('&path'), '^\.%(,|$)', ''))
-    endif
-    if stridx(buffer.getvar('&tags'), escape(b:git_dir, ', ')) == -1
-      if filereadable(b:git_dir.'/tags')
-        call buffer.setvar('&tags', escape(b:git_dir.'/tags', ', ').','.buffer.getvar('&tags'))
-      endif
-      if &filetype !=# '' && filereadable(b:git_dir.'/'.&filetype.'.tags')
-        call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
-      endif
-    endif
-    try
-      let [save_mls, &modelines] = [&mls, 0]
-      call s:define_commands()
-      doautocmd User Fugitive
-    finally
-      let &mls = save_mls
-    endtry
+    return fugitive#Init()
   endif
-endfunction
-
-function! fugitive#detect(path) abort
-  return FugitiveDetect(a:path)
 endfunction
 
 augroup fugitive
@@ -282,6 +240,54 @@ augroup fugitive
   autocmd CmdWinEnter * call FugitiveDetect(expand('#:p'))
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
+
+" Section: Initialization
+
+function! fugitive#Init() abort
+  if exists('#User#FugitiveBoot')
+    try
+      let [save_mls, &modelines] = [&mls, 0]
+      doautocmd User FugitiveBoot
+    finally
+      let &mls = save_mls
+    endtry
+  endif
+  if !exists('g:fugitive_no_maps')
+    call s:map('c', '<C-R><C-G>', 'fnameescape(<SID>recall())', '<expr>')
+    call s:map('n', 'y<C-G>', ':call setreg(v:register, <SID>recall())<CR>', '<silent>')
+  endif
+  let buffer = fugitive#buffer()
+  if expand('%:p') =~# '://'
+    call buffer.setvar('&path', s:sub(buffer.getvar('&path'), '^\.%(,|$)', ''))
+  endif
+  if stridx(buffer.getvar('&tags'), escape(b:git_dir, ', ')) == -1
+    if filereadable(b:git_dir.'/tags')
+      call buffer.setvar('&tags', escape(b:git_dir.'/tags', ', ').','.buffer.getvar('&tags'))
+    endif
+    if &filetype !=# '' && filereadable(b:git_dir.'/'.&filetype.'.tags')
+      call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
+    endif
+  endif
+  try
+    let [save_mls, &modelines] = [&mls, 0]
+    call s:define_commands()
+    doautocmd User Fugitive
+  finally
+    let &mls = save_mls
+  endtry
+endfunction
+
+function! fugitive#is_git_dir(path) abort
+  return FugitiveIsGitDir(a:path)
+endfunction
+
+function! fugitive#extract_git_dir(path) abort
+  return FugitiveExtractGitDir(a:path)
+endfunction
+
+function! fugitive#detect(path) abort
+  return FugitiveDetect(a:path)
+endfunction
 
 " Section: Repository
 
