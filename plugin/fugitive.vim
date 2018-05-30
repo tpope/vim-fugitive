@@ -261,14 +261,48 @@ function! FugitiveDetect(path) abort
   endif
 endfunction
 
+function! FugitiveStatusline(...) abort
+  if !exists('b:git_dir')
+    return ''
+  endif
+  return fugitive#Statusline()
+endfunction
+
+function! FugitiveHead(...) abort
+  if !exists('b:git_dir')
+    return ''
+  endif
+  return fugitive#repo().head(a:0 ? a:1 : 0)
+endfunction
+
 augroup fugitive
   autocmd!
+
   autocmd BufNewFile,BufReadPost * call FugitiveDetect(expand('%:p'))
   autocmd FileType           netrw call FugitiveDetect(fnamemodify(get(b:, 'netrw_curdir', @%), ':p'))
   autocmd User NERDTreeInit,NERDTreeNewRoot call FugitiveDetect(b:NERDTree.root.path.str())
   autocmd VimEnter * if expand('<amatch>')==''|call FugitiveDetect(getcwd())|endif
   autocmd CmdWinEnter * call FugitiveDetect(expand('#:p'))
-  autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
+
+  autocmd BufReadCmd  index{,.lock}
+        \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
+        \   exe fugitive#BufReadStatus() |
+        \ elseif filereadable(expand('<amatch>')) |
+        \   read <amatch> |
+        \   1delete |
+        \ endif
+  autocmd FileReadCmd fugitive://**//[0-3]/**          exe fugitive#FileRead()
+  autocmd BufReadCmd  fugitive://**//[0-3]/**          exe fugitive#BufReadIndex()
+  autocmd BufWriteCmd fugitive://**//[0-3]/**          exe fugitive#BufWriteIndex()
+  autocmd BufReadCmd  fugitive://**//[0-9a-f][0-9a-f]* exe fugitive#BufReadObject()
+  autocmd FileReadCmd fugitive://**//[0-9a-f][0-9a-f]* exe fugitive#FileRead()
+
+  autocmd User Flags call Hoist('buffer', function('FugitiveStatusline'))
+
+  autocmd User Fugitive
+        \ if &filetype =~# '^git\%(commit\)\=$' && &foldtext ==# 'foldtext()' |
+        \    set foldtext=fugitive#Foldtext() |
+        \ endif
 augroup END
 
 " Section: Initialization
@@ -2030,6 +2064,7 @@ augroup fugitive_blame
   autocmd Syntax fugitiveblame call s:BlameSyntax()
   autocmd User Fugitive if s:buffer().type('file', 'blob') | exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,[<f-args>])" | endif
   autocmd ColorScheme,GUIEnter * call s:RehighlightBlame()
+  autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
 
 function! s:linechars(pattern) abort
@@ -2826,18 +2861,6 @@ endfunction
 
 augroup fugitive_files
   autocmd!
-  autocmd BufReadCmd  index{,.lock}
-        \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
-        \   exe fugitive#BufReadStatus() |
-        \ elseif filereadable(expand('<amatch>')) |
-        \   read <amatch> |
-        \   1delete |
-        \ endif
-  autocmd FileReadCmd fugitive://**//[0-3]/**          exe fugitive#FileRead()
-  autocmd BufReadCmd  fugitive://**//[0-3]/**          exe fugitive#BufReadIndex()
-  autocmd BufWriteCmd fugitive://**//[0-3]/**          exe fugitive#BufWriteIndex()
-  autocmd BufReadCmd  fugitive://**//[0-9a-f][0-9a-f]* exe fugitive#BufReadObject()
-  autocmd FileReadCmd fugitive://**//[0-9a-f][0-9a-f]* exe fugitive#FileRead()
   autocmd FileType git
         \ if exists('b:git_dir') |
         \  call s:JumpInit() |
@@ -3143,22 +3166,6 @@ function! fugitive#statusline(...) abort
   return fugitive#Statusline()
 endfunction
 
-function! FugitiveStatusline(...) abort
-  if !exists('b:git_dir')
-    return ''
-  endif
-
-  return fugitive#Statusline()
-endfunction
-
-function! FugitiveHead(...) abort
-  if !exists('b:git_dir')
-    return ''
-  endif
-
-  return fugitive#repo().head(a:0 ? a:1 : 0)
-endfunction
-
 function! fugitive#head(...) abort
   if !exists('b:git_dir')
     return ''
@@ -3166,11 +3173,6 @@ function! fugitive#head(...) abort
 
   return s:repo().head(a:0 ? a:1 : 0)
 endfunction
-
-augroup fugitive_statusline
-  autocmd!
-  autocmd User Flags call Hoist('buffer', function('FugitiveStatusline'))
-augroup END
 
 " Section: Folding
 
@@ -3220,11 +3222,3 @@ endfunction
 function! fugitive#foldtext() abort
   return fugitive#Foldtext()
 endfunction
-
-augroup fugitive_foldtext
-  autocmd!
-  autocmd User Fugitive
-        \ if &filetype =~# '^git\%(commit\)\=$' && &foldtext ==# 'foldtext()' |
-        \    set foldtext=fugitive#Foldtext() |
-        \ endif
-augroup END
