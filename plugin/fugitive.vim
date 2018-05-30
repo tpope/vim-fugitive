@@ -845,7 +845,7 @@ function! fugitive#ReloadStatus() abort
           endif
           try
             if !&modified
-              call s:BufReadIndex()
+              call fugitive#BufReadStatus()
             endif
           finally
             if exists('restorewinnr')
@@ -2589,7 +2589,7 @@ function! s:ReplaceCmd(cmd,...) abort
   endtry
 endfunction
 
-function! s:BufReadIndex() abort
+function! fugitive#BufReadStatus() abort
   if !exists('b:fugitive_display_format')
     let b:fugitive_display_format = filereadable(expand('%').'.lock')
   endif
@@ -2669,7 +2669,7 @@ function! s:BufReadIndex() abort
   endtry
 endfunction
 
-function! s:FileRead() abort
+function! fugitive#FileRead() abort
   try
     let repo = s:repo(FugitiveExtractGitDir(expand('<amatch>')))
     let path = s:sub(s:sub(matchstr(expand('<amatch>'),'fugitive://.\{-\}//\zs.*'),'/',':'),'^\d:',':&')
@@ -2686,7 +2686,7 @@ function! s:FileRead() abort
   endtry
 endfunction
 
-function! s:BufReadIndexFile() abort
+function! fugitive#BufReadIndex() abort
   try
     let b:fugitive_type = 'blob'
     let b:git_dir = s:repo().dir()
@@ -2707,7 +2707,7 @@ function! s:BufReadIndexFile() abort
   endtry
 endfunction
 
-function! s:BufWriteIndexFile() abort
+function! fugitive#BufWriteIndex() abort
   let tmp = tempname()
   try
     let path = matchstr(expand('<amatch>'),'//\d/\zs.*')
@@ -2740,7 +2740,7 @@ function! s:BufWriteIndexFile() abort
   endtry
 endfunction
 
-function! s:BufReadObject() abort
+function! fugitive#BufReadObject() abort
   try
     setlocal noro ma
     let b:git_dir = s:repo().dir()
@@ -2828,16 +2828,16 @@ augroup fugitive_files
   autocmd!
   autocmd BufReadCmd  index{,.lock}
         \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
-        \   exe s:BufReadIndex() |
+        \   exe fugitive#BufReadStatus() |
         \ elseif filereadable(expand('<amatch>')) |
         \   read <amatch> |
         \   1delete |
         \ endif
-  autocmd FileReadCmd fugitive://**//[0-3]/**          exe s:FileRead()
-  autocmd BufReadCmd  fugitive://**//[0-3]/**          exe s:BufReadIndexFile()
-  autocmd BufWriteCmd fugitive://**//[0-3]/**          exe s:BufWriteIndexFile()
-  autocmd BufReadCmd  fugitive://**//[0-9a-f][0-9a-f]* exe s:BufReadObject()
-  autocmd FileReadCmd fugitive://**//[0-9a-f][0-9a-f]* exe s:FileRead()
+  autocmd FileReadCmd fugitive://**//[0-3]/**          exe fugitive#FileRead()
+  autocmd BufReadCmd  fugitive://**//[0-3]/**          exe fugitive#BufReadIndex()
+  autocmd BufWriteCmd fugitive://**//[0-3]/**          exe fugitive#BufWriteIndex()
+  autocmd BufReadCmd  fugitive://**//[0-9a-f][0-9a-f]* exe fugitive#BufReadObject()
+  autocmd FileReadCmd fugitive://**//[0-9a-f][0-9a-f]* exe fugitive#FileRead()
   autocmd FileType git
         \ if exists('b:git_dir') |
         \  call s:JumpInit() |
