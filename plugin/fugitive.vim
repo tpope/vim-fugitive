@@ -1213,6 +1213,8 @@ endfunction
 
 call s:command("-nargs=? -bang -complete=custom,s:RevisionComplete Gmerge " .
       \ "execute s:Merge('merge', <bang>0, <q-args>)")
+call s:command("-nargs=? -bang -complete=custom,s:RevisionComplete Grebase " .
+      \ "execute s:Merge('rebase', <bang>0, <q-args>)")
 call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpull " .
       \ "execute s:Merge('pull --progress', <bang>0, <q-args>)")
 
@@ -1253,6 +1255,9 @@ let s:common_efm = ''
       \ . '%-G%.%#%\r%.%\+'
 
 function! s:Merge(cmd, bang, args) abort
+  if a:cmd =~# '^rebase' && ' '.a:args =~# ' -i\| --interactive\| --edit-todo'
+    return 'echoerr "git rebase --interactive not supported"'
+  endif
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
   let cwd = getcwd()
   let [mp, efm] = [&l:mp, &l:efm]
@@ -1284,7 +1289,7 @@ function! s:Merge(cmd, bang, args) abort
       let &l:makeprg = g:fugitive_git_executable.' diff-files --name-status --diff-filter=U'
     else
       let &l:makeprg = s:sub(s:git_command() . ' ' . a:cmd .
-            \ (a:args =~# ' \%(--no-edit\|--abort\|-m\)\>' ? '' : ' --edit') .
+            \ (a:args =~# ' \%(--no-edit\|--abort\|-m\)\>' || a:cmd =~# '^rebase' ? '' : ' --edit') .
             \ ' ' . a:args, ' *$', '')
     endif
     if !empty($GIT_EDITOR) || has('win32')

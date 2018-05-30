@@ -87,6 +87,10 @@ that are part of Git repositories).
                                                 *fugitive-:Gpull*
 :Gpull [args]           Like |:Gmerge|, but for git-pull.
 
+                                                *fugitive-:Grebase*
+:Grebase [args]         Like |:Gmerge|, but for git-rebase.  Interactive
+                        rebase not suppported.
+
                                                 *fugitive-:Gpush*
 :Gpush [args]           Invoke git-push, load the results into the |quickfix|
                         list, and invoke |:cwindow| to reveal any errors.
