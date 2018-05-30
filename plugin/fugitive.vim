@@ -195,15 +195,18 @@ function! FugitiveTreeForGitDir(git_dir) abort
 endfunction
 
 function! FugitiveExtractGitDir(path) abort
-  if s:shellslash(a:path) =~# '^fugitive://.*//'
-    return matchstr(s:shellslash(a:path), '\C^fugitive://\zs.\{-\}\ze//')
-  endif
-  if isdirectory(a:path)
-    let path = fnamemodify(a:path, ':p:s?[\/]$??')
+  let path = s:shellslash(a:path)
+  if path =~# '^fugitive://.*//'
+    return matchstr(path, '\C^fugitive://\zs.\{-\}\ze//')
+  elseif isdirectory(path)
+    let path = fnamemodify(path, ':p:s?/$??')
   else
-    let path = fnamemodify(a:path, ':p:h:s?[\/]$??')
+    let path = fnamemodify(path, ':p:h:s?/$??')
   endif
-  let root = s:shellslash(resolve(path))
+  let root = resolve(path)
+  if root !=# path
+    silent! exe haslocaldir() ? 'lcd .' : 'cd .'
+  endif
   let previous = ""
   while root !=# previous
     if root =~# '\v^//%([^/]+/?)?$'
@@ -251,9 +254,6 @@ function! FugitiveDetect(path) abort
     let dir = FugitiveExtractGitDir(a:path)
     if dir !=# ''
       let b:git_dir = dir
-      if empty(fugitive#buffer().path())
-        silent! exe haslocaldir() ? 'lcd .' : 'cd .'
-      endif
     endif
   endif
   if exists('b:git_dir')
