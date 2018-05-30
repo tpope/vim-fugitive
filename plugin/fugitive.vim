@@ -173,9 +173,6 @@ function! FugitiveExtractGitDir(path) abort
   let previous = ""
   while root !=# previous
     if root =~# '\v^//%([^/]+/?)?$'
-      " This is for accessing network shares from Cygwin Vim. There won't be
-      " any git directory called //.git or //serverName/.git so let's avoid
-      " checking for them since such checks are extremely slow.
       break
     endif
     if index(split($GIT_CEILING_DIRECTORIES, ':'), root) >= 0
