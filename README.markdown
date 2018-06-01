@@ -45,7 +45,7 @@ providers such as [GitHub][rhubarb.vim], [GitLab][fugitive-gitlab.vim], and
 [fugitive-gitlab.vim]: https://github.com/shumphrey/fugitive-gitlab.vim
 [fubitive.vim]: https://github.com/tommcdo/vim-fubitive
 
-Add `%{fugitive#statusline()}` to `'statusline'` to get an indicator
+Add `%{FugitiveStatusline()}` to `'statusline'` to get an indicator
 with the current branch in (surprise!) your statusline.
 
 Last but not least, there's `:Git` for running any arbitrary command,
