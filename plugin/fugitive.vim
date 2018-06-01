@@ -3,7 +3,7 @@
 " Version:      2.3
 " GetLatestVimScripts: 2975 1 :AutoInstall: fugitive.vim
 
-if exists('g:loaded_fugitive') || &cp
+if exists('g:loaded_fugitive')
   finish
 endif
 let g:loaded_fugitive = 1
