@@ -1204,6 +1204,9 @@ function! s:Commit(mods, args, ...) abort
       elseif error ==# '!'
         return 'Gstatus'
       else
+        if exists('*FugitiveCommitError')
+          call FugitiveCommitError(error, errorfile)
+        endif
         call s:throw(empty(error)?join(errors, ' '):error)
       endif
     endif
