@@ -81,7 +81,7 @@ function! s:git_command() abort
   return get(g:, 'fugitive_git_command', g:fugitive_git_executable)
 endfunction
 
-function! fugitive#git_version(...) abort
+function! fugitive#GitVersion(...) abort
   if !has_key(s:git_versions, g:fugitive_git_executable)
     let s:git_versions[g:fugitive_git_executable] = matchstr(system(g:fugitive_git_executable.' --version'), "\\S\\+\n")
   endif
@@ -1112,7 +1112,7 @@ function! s:RemoteComplete(A, L, P) abort
   return join(matches, "\n")
 endfunction
 
-function! fugitive#cwindow() abort
+function! fugitive#Cwindow() abort
   if &buftype == 'quickfix'
     cwindow
   else
@@ -1202,7 +1202,7 @@ function! s:Merge(cmd, bang, args) abort
       let e.pattern = '^<<<<<<<'
     endif
   endfor
-  call fugitive#cwindow()
+  call fugitive#Cwindow()
   if found
     call setqflist(qflist, 'r')
     if !a:bang
@@ -1604,7 +1604,7 @@ function! s:Dispatch(bang, args)
     else
       silent noautocmd make!
       redraw!
-      return 'call fugitive#cwindow()'
+      return 'call fugitive#Cwindow()'
     endif
     return ''
   finally
@@ -1638,7 +1638,7 @@ function! s:can_diffoff(buf) abort
         \ !empty(getwinvar(bufwinnr(a:buf), 'fugitive_diff_restore'))
 endfunction
 
-function! fugitive#can_diffoff(buf) abort
+function! fugitive#CanDiffoff(buf) abort
   return s:can_diffoff(a:buf)
 endfunction
 
@@ -2289,7 +2289,7 @@ function! s:Browse(bang,line1,count,...) abort
     else
       let remote_for_url = remote
     endif
-    if fugitive#git_version() =~# '^[01]\.\|^2\.[0-6]\.'
+    if fugitive#GitVersion() =~# '^[01]\.\|^2\.[0-6]\.'
       let raw = s:repo().git_chomp('config','remote.'.remote_for_url.'.url')
     else
       let raw = s:repo().git_chomp('remote','get-url',remote_for_url)
@@ -2488,7 +2488,7 @@ function! fugitive#BufReadStatus() abort
     else
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
       let dir = getcwd()
-      if fugitive#git_version() =~# '^0\|^1\.[1-7]\.'
+      if fugitive#GitVersion() =~# '^0\|^1\.[1-7]\.'
         let cmd = s:repo().git_command('status')
       else
         let cmd = s:repo().git_command(
