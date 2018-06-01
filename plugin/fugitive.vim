@@ -1207,7 +1207,7 @@ function! s:Commit(mods, args, ...) abort
         setlocal bufhidden=wipe filetype=gitcommit
         return '1'
       elseif error ==# '!'
-        return s:Status()
+        return 'Gstatus'
       else
         call s:throw(empty(error)?join(errors, ' '):error)
       endif
