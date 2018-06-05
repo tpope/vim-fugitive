@@ -66,6 +66,14 @@ function! s:shellslash(path) abort
   endif
 endfunction
 
+function! s:PlatformSlash(path) abort
+  if exists('+shellslash') && !&shellslash
+    return tr(a:path, '/', '\')
+  else
+    return a:path
+  endif
+endfunction
+
 let s:executables = {}
 
 function! s:executable(binary) abort
@@ -428,6 +436,25 @@ endfunction
 call s:add_methods('repo',['keywordprg'])
 
 " Section: Buffer
+
+function! s:UrlSplit(path) abort
+  let vals = matchlist(s:shellslash(a:path), '\c^fugitive://\(.\{-\}\)//\(\w\+\)\(/.*\)\=$')
+  if empty(vals)
+    return ['', '', '']
+  endif
+  return [vals[1], (vals[2] =~# '^.$' ? ':' : '') . vals[2], vals[3]]
+endfunction
+
+function! fugitive#Filename(url) abort
+  let [dir, rev, file] = s:UrlSplit(a:url)
+  if len(dir)
+    return s:PlatformSlash(FugitiveTreeForGitDir(dir) . file)
+  elseif a:url =~# '^[\\/]\|^\a:[\\/]'
+    return s:PlatformSlash(a:url)
+  else
+    return ''
+  endif
+endfunction
 
 let s:buffer_prototype = {}
 

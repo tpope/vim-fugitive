@@ -138,6 +138,15 @@ function! FugitiveHead(...) abort
   return fugitive#repo().head(a:0 ? a:1 : 0)
 endfunction
 
+function! FugitiveFilename(...) abort
+  let file = fnamemodify(a:0 ? a:1 : @%, ':p')
+  if file =~? '^fugitive:'
+    return fugitive#Filename(file)
+  else
+    return file
+  endif
+endfunction
+
 augroup fugitive
   autocmd!
 
