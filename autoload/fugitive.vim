@@ -698,7 +698,7 @@ function! s:Status(bang, count, mods) abort
   try
     exe (a:mods ==# '<mods>' ? '' : a:mods) 'Gpedit :'
     wincmd P
-    setlocal foldmethod=syntax foldlevel=1
+    setlocal foldmethod=syntax foldlevel=1 buftype=nowrite
     nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
   catch /^fugitive:/
     return 'echoerr v:errmsg'
@@ -2004,7 +2004,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
         if exists('+cursorbind')
           setlocal cursorbind
         endif
-        setlocal nomodified nomodifiable nonumber scrollbind nowrap foldcolumn=0 nofoldenable winfixwidth filetype=fugitiveblame
+        setlocal nomodified nomodifiable nonumber scrollbind nowrap foldcolumn=0 nofoldenable winfixwidth filetype=fugitiveblame buftype=nowrite
         if exists('+concealcursor')
           setlocal concealcursor=nc conceallevel=2
         endif
