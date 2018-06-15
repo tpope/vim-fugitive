@@ -275,23 +275,13 @@ function! s:repo_translate(spec) dict abort
     return 'fugitive://'.self.dir().'//'.ref
   elseif a:spec =~# '^:'
     return 'fugitive://'.self.dir().'//0/'.a:spec[1:-1]
-  elseif a:spec ==# '@'
-    return self.dir('HEAD')
   elseif a:spec =~# 'HEAD\|^refs/' && a:spec !~ ':' && filereadable(refs . '../' . a:spec)
     return simplify(refs . '../' . a:spec)
   elseif filereadable(refs.a:spec)
     return refs.a:spec
-  elseif filereadable(refs.'tags/'.a:spec)
-    return refs.'tags/'.a:spec
-  elseif filereadable(refs.'heads/'.a:spec)
-    return refs.'heads/'.a:spec
-  elseif filereadable(refs.'remotes/'.a:spec)
-    return refs.'remotes/'.a:spec
-  elseif filereadable(refs.'remotes/'.a:spec.'/HEAD')
-    return refs.'remotes/'.a:spec.'/HEAD'
   else
     try
-      let ref = self.rev_parse(matchstr(a:spec,'[^:]*'))
+      let ref = self.rev_parse(s:sub(matchstr(a:spec,'[^:]*'), '^\@%($|[^~])@=', 'HEAD'))
       let path = s:sub(matchstr(a:spec,':.*'),'^:','/')
       return 'fugitive://'.self.dir().'//'.ref.path
     catch /^fugitive:/
