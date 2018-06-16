@@ -59,8 +59,8 @@ endfunction
 
 function! FugitiveExtractGitDir(path) abort
   let path = s:shellslash(a:path)
-  if path =~# '^fugitive://.*//'
-    return matchstr(path, '\C^fugitive://\zs.\{-\}\ze//')
+  if path =~# '^fugitive:'
+    return matchstr(path, '\C^fugitive:\%(//\)\=\zs.\{-\}\ze\%(//\|::\|$\)')
   elseif isdirectory(path)
     let path = fnamemodify(path, ':p:s?/$??')
   else
