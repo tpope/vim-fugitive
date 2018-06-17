@@ -1800,7 +1800,7 @@ function! s:Diff(vert,keepfocus,...) abort
   endif
   try
     let spec = s:repo().translate(file)
-    let commit = matchstr(spec,'\C[^:/]//\zs\x\+')
+    let commit = matchstr(spec,'\C[^:/]\%(//\|::\)\zs\x\+')
     let restore = s:diff_restore()
     if exists('+cursorbind')
       setlocal cursorbind
@@ -2882,11 +2882,11 @@ function! s:cfile() abort
       elseif getline('.') =~# '^[+-]\{3\} [abciow12]\=/'
         let ref = getline('.')[4:]
 
-      elseif getline('.') =~# '^[+-]' && search('^@@ -\d\+,\d\+ +\d\+,','bnW')
+      elseif getline('.') =~# '^[+-]' && search('^@@ -\d\+\%(,\d\+\)\= +\d\+','bnW')
         let type = getline('.')[0]
         let lnum = line('.') - 1
         let offset = 0
-        while getline(lnum) !~# '^@@ -\d\+,\d\+ +\d\+,'
+        while getline(lnum) !~# '^@@ -\d\+\%(,\d\+\)\= +\d\+'
           if getline(lnum) =~# '^[ '.type.']'
             let offset += 1
           endif
@@ -2901,7 +2901,7 @@ function! s:cfile() abort
       elseif getline('.') =~# '^rename to '
         let ref = 'b/'.getline('.')[10:]
 
-      elseif getline('.') =~# '^@@ -\d\+,\d\+ +\d\+,'
+      elseif getline('.') =~# '^@@ -\d\+\%(,\d\+\)\= +\d\+'
         let diff = getline(search('^diff --git \%([abciow12]/.*\|/dev/null\) \%([abciow12]/.*\|/dev/null\)', 'bcnW'))
         let offset = matchstr(getline('.'), '+\zs\d\+')
 
