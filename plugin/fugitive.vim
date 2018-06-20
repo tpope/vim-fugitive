@@ -156,6 +156,15 @@ augroup fugitive
   autocmd VimEnter * if expand('<amatch>')==''|call FugitiveDetect(getcwd())|endif
   autocmd CmdWinEnter * call FugitiveDetect(expand('#:p'))
 
+  autocmd FileType git
+        \ if exists('b:git_dir') |
+        \  call fugitive#MapJumps() |
+        \ endif
+  autocmd FileType git,gitcommit,gitrebase
+        \ if exists('b:git_dir') |
+        \   call fugitive#MapCfile() |
+        \ endif
+
   autocmd BufReadCmd  index{,.lock}
         \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
         \   exe fugitive#BufReadStatus() |

@@ -2526,7 +2526,7 @@ function! fugitive#BufReadStatus() abort
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
-    call s:JumpInit()
+    call fugitive#MapJumps()
     nunmap   <buffer>          P
     nunmap   <buffer>          ~
     nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>StageNext(v:count1)<CR>
@@ -2707,7 +2707,7 @@ function! fugitive#BufReadObject() abort
         nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe <SID>BufReadObject()<CR>
         nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe <SID>BufReadObject()<CR>
       else
-        call s:JumpInit()
+        call fugitive#MapJumps()
       endif
     endtry
 
@@ -2721,14 +2721,6 @@ endfunction
 
 augroup fugitive_files
   autocmd!
-  autocmd FileType git
-        \ if exists('b:git_dir') |
-        \  call s:JumpInit() |
-        \ endif
-  autocmd FileType git,gitcommit,gitrebase
-        \ if exists('b:git_dir') |
-        \   call s:GFInit() |
-        \ endif
 augroup END
 
 " Section: Temp files
@@ -2753,7 +2745,7 @@ augroup END
 " Section: Go to file
 
 nnoremap <SID>: :<C-U><C-R>=v:count ? v:count : ''<CR>
-function! s:GFInit(...) abort
+function! fugitive#MapCfile(...) abort
   cnoremap <buffer> <expr> <Plug><cfile> fugitive#Cfile()
   if !exists('g:fugitive_no_maps')
     call s:map('n', 'gf',          '<SID>:find <Plug><cfile><CR>', '<silent><unique>')
@@ -2764,7 +2756,7 @@ function! s:GFInit(...) abort
   endif
 endfunction
 
-function! s:JumpInit(...) abort
+function! fugitive#MapJumps(...) abort
   nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
   if !&modifiable
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
