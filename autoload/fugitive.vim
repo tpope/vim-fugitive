@@ -451,6 +451,181 @@ function! fugitive#Real(url) abort
   return fugitive#Path(a:url)
 endfunction
 
+let s:trees = {}
+let s:indexes = {}
+function! s:TreeInfo(dir, commit) abort
+  let git = g:fugitive_git_executable . ' --git-dir=' . s:shellesc(a:dir)
+  if a:commit =~# '^:\=[0-3]$'
+    let index = get(s:indexes, a:dir, [])
+    let newftime = getftime(a:dir . '/index')
+    if get(index, 0, -1) < newftime
+      let out = system(git . ' ls-files --stage')
+      let s:indexes[a:dir] = [newftime, {'0': {}, '1': {}, '2': {}, '3': {}}]
+      if v:shell_error
+        return [{}, -1]
+      endif
+      for line in split(out, "\n")
+        let [info, filename] = split(line, "\t")
+        let [mode, sha, stage] = split(info, '\s\+')
+        let s:indexes[a:dir][1][stage][filename] = [newftime, mode, 'blob', sha, -2]
+        while filename =~# '/'
+          let filename = substitute(filename, '/[^/]*$', '', '')
+          let s:indexes[a:dir][1][stage][filename] = [newftime, '040000', 'tree', '', 0]
+        endwhile
+      endfor
+    endif
+    return [get(s:indexes[a:dir][1], a:commit[-1:-1], {}), newftime]
+  elseif a:commit =~# '^\x\{40\}$'
+    if !has_key(s:trees, a:dir)
+      let ftime = +system(git . ' log -1 --pretty=format:%ct ' . a:commit)
+      if v:shell_error
+        let s:trees[a:dir] = [{}, -1]
+        return s:trees[a:dir]
+      endif
+      let s:trees[a:dir] = [{}, +ftime]
+      let out = system(git . ' ls-tree -rtl --full-name ' . a:commit)
+      if v:shell_error
+        return s:trees[a:dir]
+      endif
+      for line in split(out, "\n")
+        let [info, filename] = split(line, "\t")
+        let [mode, type, sha, size] = split(info, '\s\+')
+        let s:trees[a:dir][0][filename] = [ftime, mode, type, sha, +size, filename]
+      endfor
+    endif
+    return s:trees[a:dir]
+  endif
+  return [{}, -1]
+endfunction
+
+function! s:PathInfo(url) abort
+  let [dir, commit, file] = s:DirCommitFile(a:url)
+  if empty(dir) || !get(g:, 'fugitive_file_api', 1)
+    return [-1, '000000', '', '', -1]
+  endif
+  let path = substitute(file[1:-1], '/*$', '', '')
+  let [tree, ftime] = s:TreeInfo(dir, commit)
+  let entry = empty(path) ? [ftime, '040000', 'tree', '', -1] : get(tree, path, [])
+  if empty(entry) || file =~# '/$' && entry[1] !=# 'tree'
+    return [-1, '000000', '', '', -1]
+  else
+    return entry
+  endif
+endfunction
+
+function! fugitive#simplify(url) abort
+  let [dir, commit, file] = s:DirCommitFile(a:url)
+  if empty(dir)
+    return ''
+  endif
+  if file =~# '/\.\.\%(/\|$\)'
+    let tree = FugitiveTreeForGitDir(dir)
+    if len(tree)
+      let path = simplify(tree . file)
+      if strpart(path . '/', 0, len(tree) + 1) !=# tree . '/'
+        return s:PlatformSlash(path)
+      endif
+    endif
+  endif
+  return s:PlatformSlash('fugitive://' . simplify(dir) . '//' . commit . simplify(file))
+endfunction
+
+function! fugitive#resolve(url) abort
+  let url = fugitive#simplify(a:url)
+  if url =~? '^fugitive:'
+    return url
+  else
+    return resolve(url)
+  endif
+endfunction
+
+function! fugitive#getftime(url) abort
+  return s:PathInfo(a:url)[0]
+endfunction
+
+function! fugitive#getfsize(url) abort
+  let entry = s:PathInfo(a:url)
+  if entry[4] == -2 && entry[2] ==# 'blob' && len(entry[3])
+    let dir = s:DirCommitFile(a:url)[0]
+    let size = +system(g:fugitive_git_executable . ' ' . s:shellesc('--git-dir=' . dir) . ' cat-file -s ' . entry[3])
+    let entry[4] = v:shell_error ? -1 : size
+  endif
+  return entry[4]
+endfunction
+
+function! fugitive#getftype(url) abort
+  return get({'tree': 'dir', 'blob': 'file'}, s:PathInfo(a:url)[2], '')
+endfunction
+
+function! fugitive#filereadable(url) abort
+  return s:PathInfo(a:url)[2] ==# 'blob'
+endfunction
+
+function! fugitive#isdirectory(url) abort
+  return s:PathInfo(a:url)[2] ==# 'tree'
+endfunction
+
+function! fugitive#readfile(url, ...) abort
+  let bin = a:0 && a:1 ==# 'b'
+  let max = a:0 > 1 ? a:2 : 'all'
+  let entry = s:PathInfo(a:url)
+  if entry[2] !=# 'blob'
+    return []
+  endif
+  let [dir, commit, file] = s:DirCommitFile(a:url)
+  let cmd = g:fugitive_git_executable . ' --git-dir=' . s:shellesc(dir) .
+        \ ' cat-file blob ' . s:shellesc(commit . ':' . file[1:-1])
+  if max > 0 && s:executable('head')
+    let cmd .= '|head -' . max
+  endif
+  if exists('systemlist') && !bin
+    let lines = systemlist(cmd)
+  else
+    let lines = split(system(cmd), "\n", 1)
+    if !bin && empty(lines[-1])
+      call remove(lines, -1)
+    endif
+  endif
+  if v:shell_error || max is# 0
+    return []
+  elseif max > 0 && max < len(lines)
+    return lines[0 : max - 1]
+  elseif max < 0
+    return lines[max : -1]
+  else
+    return lines
+  endif
+endfunction
+
+let s:globsubs = {'*': '[^/]*', '**': '.*', '**/': '\%(.*/\)\=', '?': '[^/]'}
+function! fugitive#glob(url, ...) abort
+  let [dirglob, commit, glob] = s:DirCommitFile(a:url)
+  let append = matchstr(glob, '/*$')
+  let glob = substitute(glob, '/*$', '', '')
+  let pattern = '^' . substitute(glob[1:-1], '\*\*/\=\|[.?*\^$]', '\=get(s:globsubs, submatch(0), "\\" . submatch(0))', 'g') . '$'
+  let results = []
+  for dir in dirglob =~# '[*?]' ? split(glob(dirglob), "\n") : [dirglob]
+    if empty(dir) || !get(g:, 'fugitive_file_api', 1) || !filereadable(dir . '/HEAD')
+      continue
+    endif
+    let files = items(s:TreeInfo(dir, commit)[0])
+    if len(append)
+      call filter(files, 'v:val[1][2] ==# "tree"')
+    endif
+    call map(files, 'v:val[0]')
+    call filter(files, 'v:val =~# pattern')
+    let prepend = 'fugitive://' . dir . '//' . substitute(commit, '^:', '', '') . '/'
+    call sort(files)
+    call map(files, 's:PlatformSlash(prepend . v:val . append)')
+    call extend(results, files)
+  endfor
+  if a:0 > 1 && a:2
+    return results
+  else
+    return join(results, "\n")
+  endif
+endfunction
+
 let s:buffer_prototype = {}
 
 function! s:buffer(...) abort
