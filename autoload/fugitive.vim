@@ -1009,7 +1009,11 @@ function! s:Commit(mods, args, ...) abort
   let outfile = tempname()
   let errorfile = tempname()
   try
+    let guioptions = &guioptions
     try
+      if &guioptions =~# '!'
+        setglobal guioptions-=!
+      endif
       execute cd s:fnameescape(repo.tree())
       if s:winshell()
         let command = ''
@@ -1029,6 +1033,7 @@ function! s:Commit(mods, args, ...) abort
       let error = v:shell_error
     finally
       execute cd s:fnameescape(dir)
+      let &guioptions = guioptions
     endtry
     if !has('gui_running')
       redraw!
