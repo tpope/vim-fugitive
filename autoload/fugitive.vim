@@ -538,7 +538,7 @@ function! s:cpath(path) abort
   endif
 endfunction
 
-function! s:buffer_blob(...) dict abort
+function! s:buffer_relative(...) dict abort
   let rev = matchstr(self.spec(),'^fugitive:\%(//\)\=.\{-\}\%(//\|::\)\zs.*')
   if rev != ''
     let rev = s:sub(rev,'\w*','')
@@ -630,8 +630,8 @@ function! s:buffer_up(...) dict abort
   return rev
 endfunction
 
-call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','name','commit','blob','rev','sha1','expand','containing_commit','up'])
-let s:buffer_prototype.path = s:function('s:buffer_blob')
+call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','name','commit','relative','rev','sha1','expand','containing_commit','up'])
+let s:buffer_prototype.path = s:function('s:buffer_relative')
 
 " Section: Git
 
