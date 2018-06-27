@@ -435,7 +435,7 @@ function! s:DirCommitFile(path) abort
   return [vals[1], (vals[2] =~# '^.$' ? ':' : '') . vals[2], vals[3]]
 endfunction
 
-function! fugitive#Filename(url) abort
+function! fugitive#Path(url) abort
   let [dir, commit, file] = s:DirCommitFile(a:url)
   if len(dir)
     return s:PlatformSlash(FugitiveTreeForGitDir(dir) . file)
