@@ -250,10 +250,6 @@ function! s:repo_bare() dict abort
 endfunction
 
 function! s:repo_translate(spec) dict abort
-  let refs = self.dir('refs/')
-  if filereadable(self.dir('commondir'))
-    let refs = simplify(self.dir(get(readfile(self.dir('commondir'), 1), 0, ''))) . '/refs/'
-  endif
   if a:spec ==# '.' || a:spec ==# '/.'
     return self.bare() ? self.dir() : self.tree()
   elseif a:spec =~# '^/\=\.git$' && self.bare()
@@ -275,11 +271,16 @@ function! s:repo_translate(spec) dict abort
     return 'fugitive://'.self.dir().'//'.ref
   elseif a:spec =~# '^:'
     return 'fugitive://'.self.dir().'//0/'.a:spec[1:-1]
-  elseif a:spec =~# 'HEAD\|^refs/' && a:spec !~ ':' && filereadable(refs . '../' . a:spec)
-    return simplify(refs . '../' . a:spec)
-  elseif filereadable(refs.a:spec)
-    return refs.a:spec
   else
+    let refs = self.dir('refs/')
+    if filereadable(self.dir('commondir'))
+      let refs = simplify(self.dir(get(readfile(self.dir('commondir'), 1), 0, ''))) . '/refs/'
+    endif
+    if a:spec =~# 'HEAD\|^refs/' && a:spec !~ ':' && filereadable(refs . '../' . a:spec)
+      return simplify(refs . '../' . a:spec)
+    elseif filereadable(refs.a:spec)
+      return refs.a:spec
+    endif
     try
       let ref = self.rev_parse(s:sub(matchstr(a:spec,'[^:]*'), '^\@%($|[^~])@=', 'HEAD'))
       let path = s:sub(matchstr(a:spec,':.*'),'^:','/')
