@@ -439,12 +439,12 @@ endfunction
 function! fugitive#Path(url) abort
   let [dir, commit, file] = s:DirCommitFile(a:url)
   if len(dir)
-    return s:PlatformSlash(FugitiveTreeForGitDir(dir) . file)
+    let tree = FugitiveTreeForGitDir(dir)
+    return s:PlatformSlash((len(tree) ? tree : dir) . file)
   elseif a:url =~# '^[\\/]\|^\a:[\\/]'
     return s:PlatformSlash(a:url)
-  else
-    return ''
   endif
+  return ''
 endfunction
 
 let s:buffer_prototype = {}
