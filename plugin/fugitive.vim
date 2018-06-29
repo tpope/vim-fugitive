@@ -147,6 +147,10 @@ function! FugitivePath(...) abort
   endif
 endfunction
 
+function! FugitiveReal(...) abort
+  return call('FugitivePath', a:000)
+endfunction
+
 augroup fugitive
   autocmd!
 

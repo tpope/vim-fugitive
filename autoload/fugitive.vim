@@ -447,6 +447,10 @@ function! fugitive#Path(url) abort
   return ''
 endfunction
 
+function! fugitive#Real(url) abort
+  return fugitive#Path(a:url)
+endfunction
+
 let s:buffer_prototype = {}
 
 function! s:buffer(...) abort
