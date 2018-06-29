@@ -2959,6 +2959,7 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
     nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
     nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
+    nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
     nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,'',<SID>buffer().up(v:count1))<Bar> if fugitive#buffer().type('tree')<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
     nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,'',<SID>buffer().commit().'^'.v:count1.<SID>buffer().relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,'',<SID>buffer().commit().'~'.v:count1.<SID>buffer().relative(':'))<CR>
