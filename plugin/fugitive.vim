@@ -156,7 +156,10 @@ augroup fugitive
 
   autocmd BufNewFile,BufReadPost * call FugitiveDetect(expand('%:p'))
   autocmd FileType           netrw call FugitiveDetect(fnamemodify(get(b:, 'netrw_curdir', @%), ':p'))
-  autocmd User NERDTreeInit,NERDTreeNewRoot call FugitiveDetect(b:NERDTree.root.path.str())
+  autocmd User NERDTreeInit,NERDTreeNewRoot
+        \ if exists('b:NERDTree.root.path.str') |
+        \   call FugitiveDetect(b:NERDTree.root.path.str()) |
+        \ endif
   autocmd VimEnter * if expand('<amatch>')==''|call FugitiveDetect(getcwd())|endif
   autocmd CmdWinEnter * call FugitiveDetect(expand('#:p'))
 
