@@ -660,7 +660,7 @@ endfunction
 function! s:buffer_type(...) dict abort
   if self.getvar('fugitive_type') != ''
     let type = self.getvar('fugitive_type')
-  elseif fnamemodify(self.spec(),':p') =~# '.\git/refs/\|\.git/\w*HEAD$'
+  elseif fnamemodify(self.spec(),':p') =~# '\.git/refs/\|\.git/\w*HEAD$'
     let type = 'head'
   elseif self.getline(1) =~ '^tree \x\{40\}$' && self.getline(2) == ''
     let type = 'tree'
