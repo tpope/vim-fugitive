@@ -843,9 +843,9 @@ function! s:Git(bang, mods, args) abort
     let git .= ' --no-pager'
   endif
   let args = matchstr(a:args,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
-  if exists(':terminal') && has('nvim')
+  if exists(':terminal') && has('nvim') && !get(g:, 'fugitive_force_bang_command')
     let dir = s:repo().tree()
-    if expand('%') != ''
+    if len(@%)
       -tabedit %
     else
       -tabnew
