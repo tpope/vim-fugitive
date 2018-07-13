@@ -46,6 +46,14 @@ function! s:fnameescape(file) abort
   endif
 endfunction
 
+function! s:tempname() abort
+  let temp = resolve(tempname())
+  if has('win32')
+    let temp = fnamemodify(fnamemodify(temp, ':h'), ':p').fnamemodify(temp, ':t')
+  endif
+  return temp
+endfunction
+
 function! s:throw(string) abort
   let v:errmsg = 'fugitive: '.a:string
   throw v:errmsg
@@ -1572,10 +1580,7 @@ function! s:Edit(cmd, bang, mods, ...) abort
       diffupdate
       return 'redraw|echo '.string(':!'.git.' '.args)
     else
-      let temp = resolve(tempname())
-      if has('win32')
-        let temp = fnamemodify(fnamemodify(temp, ':h'), ':p').fnamemodify(temp, ':t')
-      endif
+      let temp = s:tempname()
       let s:temp_files[s:cpath(temp)] = { 'dir': buffer.repo().dir(), 'args': arglist }
       silent execute mods a:cmd temp
       if a:cmd =~# 'pedit'
@@ -2169,7 +2174,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
       if a:count
         execute 'write !'.substitute(basecmd,' blame ',' blame -L '.a:line1.','.a:line2.' ','g')
       else
-        let error = resolve(tempname())
+        let error = s:tempname()
         let temp = error.'.fugitiveblame'
         if &shell =~# 'csh'
           silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
@@ -2209,9 +2214,6 @@ function! s:Blame(bang,line1,line2,count,args) abort
         endif
         let top = line('w0') + &scrolloff
         let current = line('.')
-        if has('win32')
-          let temp = fnamemodify(fnamemodify(temp, ':h'), ':p').fnamemodify(temp, ':t')
-        endif
         let s:temp_files[s:cpath(temp)] = { 'dir': s:repo().dir(), 'args': cmd }
         exe 'keepalt leftabove vsplit '.temp
         let b:fugitive_blamed_bufnr = bufnr
