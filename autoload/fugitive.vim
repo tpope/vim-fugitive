@@ -2640,12 +2640,10 @@ call extend(g:fugitive_browse_handlers,
 
 " Section: File access
 
-function! s:ReplaceCmd(cmd,...) abort
-  let fn = expand('%:p')
-  let tmp = tempname()
+function! s:WriteCmd(out, cmd, ...) abort
   let prefix = ''
   try
-    if a:0 && a:1 != ''
+    if a:0 && len(a:1)
       if s:winshell()
         let old_index = $GIT_INDEX_FILE
         let $GIT_INDEX_FILE = a:1
@@ -2653,23 +2651,29 @@ function! s:ReplaceCmd(cmd,...) abort
         let prefix = 'env GIT_INDEX_FILE='.s:shellesc(a:1).' '
       endif
     endif
-    let redir = ' > '.tmp
-    if &shellpipe =~ '2>&1'
-      let redir .= ' 2>&1'
-    endif
+    let redir = ' > '.a:out
     if s:winshell()
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      call system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', cmd_escape_char.'&').redir.'"')
+      return system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', cmd_escape_char.'&').redir.'"')
     elseif &shell =~# 'fish'
-      call system(' begin;'.prefix.a:cmd.redir.';end ')
+      return system(' begin;'.prefix.a:cmd.redir.';end ')
     else
-      call system(' ('.prefix.a:cmd.redir.') ')
+      return system(' ('.prefix.a:cmd.redir.') ')
     endif
   finally
     if exists('old_index')
       let $GIT_INDEX_FILE = old_index
     endif
   endtry
+endfunction
+
+function! s:ReplaceCmd(cmd, ...) abort
+  let tmp = tempname()
+  let err = s:WriteCmd(tmp, a:cmd, a:0 ? a:1 : '')
+  if v:shell_error
+    throw 'fugitive: ' . (len(err) ? err : filereadable(tmp) ? join(readfile(tmp), ' | ') : 'unknown error running ' . a:cmd)
+  endif
+  let fn = expand('%:p')
   silent exe 'doau BufReadPre '.s:fnameescape(fn)
   silent exe 'keepalt file '.tmp
   try
