@@ -444,7 +444,7 @@ call s:add_methods('repo',['keywordprg'])
 " Section: Buffer
 
 function! s:DirCommitFile(path) abort
-  let vals = matchlist(s:shellslash(a:path), '\c^fugitive:\%(//\)\=\(.\{-\}\)\%(//\|::\)\(\w\+\)\(/.*\)\=$')
+  let vals = matchlist(s:shellslash(a:path), '\c^fugitive:\%(//\)\=\(.\{-\}\)\%(//\|::\)\(\x\{40\}\|[0-3]\)\(/.*\)\=$')
   if empty(vals)
     return ['', '', '']
   endif
@@ -2785,21 +2785,16 @@ function! fugitive#BufReadStatus() abort
 endfunction
 
 function! fugitive#FileRead() abort
-  try
-    let [dir, commit, file] = s:DirCommitFile(expand('<amatch>'))
-    let repo = s:repo(dir)
-    let path = commit . substitute(file, '^/', ':', '')
-    let hash = repo.rev_parse(path)
-    if path =~ '^:'
-      let type = 'blob'
-    else
-      let type = repo.git_chomp('cat-file','-t',hash)
-    endif
-    " TODO: use count, if possible
-    return "read !".escape(repo.git_command('cat-file',type,hash),'%#\')
-  catch /^fugitive:/
-    return 'echoerr v:errmsg'
-  endtry
+  let [dir, rev] = s:DirRev(expand('<amatch>'))
+  if empty(dir)
+    return "noautocmd '[read <amatch>"
+  endif
+  if rev !~# ':'
+    let cmd = fugitive#Prepare(dir, 'log', '--pretty=format:%B', '-1', rev)
+  else
+    let cmd = fugitive#Prepare(dir, 'cat-file', '-p', rev)
+  endif
+  return "'[read !" . escape(cmd, '!#%')
 endfunction
 
 function! fugitive#BufReadIndex() abort
@@ -2939,10 +2934,6 @@ function! fugitive#BufReadObject() abort
     return 'echoerr v:errmsg'
   endtry
 endfunction
-
-augroup fugitive_files
-  autocmd!
-augroup END
 
 " Section: Temp files
 
