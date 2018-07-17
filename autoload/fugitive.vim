@@ -433,7 +433,12 @@ function! s:DirCommitFile(path) abort
   if empty(vals)
     return ['', '', '']
   endif
-  return [vals[1], (vals[2] =~# '^.$' ? ':' : '') . vals[2], vals[3]]
+  return vals[1:3]
+endfunction
+
+function! s:DirRev(url) abort
+  let [dir, commit, file] = s:DirCommitFile(a:url)
+  return [dir, (commit =~# '^.$' ? ':' : '') . commit . substitute(file, '^/', ':', '')]
 endfunction
 
 function! fugitive#Path(url) abort
