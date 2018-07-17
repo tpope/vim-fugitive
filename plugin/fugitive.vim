@@ -179,11 +179,11 @@ augroup fugitive
         \   read <amatch> |
         \   1delete |
         \ endif
-  autocmd FileReadCmd fugitive://**//[0-3]/**          exe fugitive#FileRead()
-  autocmd BufReadCmd  fugitive://**//[0-3]/**          exe fugitive#BufReadIndex()
-  autocmd BufWriteCmd fugitive://**//[0-3]/**          exe fugitive#BufWriteIndex()
-  autocmd BufReadCmd  fugitive://**//[0-9a-f][0-9a-f]* exe fugitive#BufReadObject()
-  autocmd FileReadCmd fugitive://**//[0-9a-f][0-9a-f]* exe fugitive#FileRead()
+  autocmd BufReadCmd  fugitive://*//[0-3]/*           exe fugitive#BufReadIndex()
+  autocmd BufWriteCmd fugitive://*//[0-3]/*           exe fugitive#BufWriteIndex()
+  autocmd BufReadCmd  fugitive://*//[0-9a-f][0-9a-f]* exe fugitive#BufReadObject()
+  autocmd FileReadCmd fugitive://*//*                 exe fugitive#FileReadCmd()
+  autocmd SourceCmd   fugitive://*//*          nested exe fugitive#SourceCmd()
 
   autocmd User Flags call Hoist('buffer', function('FugitiveStatusline'))
 augroup END

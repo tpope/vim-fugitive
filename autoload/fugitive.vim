@@ -2785,17 +2785,19 @@ function! fugitive#BufReadStatus() abort
   endtry
 endfunction
 
-function! fugitive#FileRead() abort
-  let [dir, rev] = s:DirRev(expand('<amatch>'))
+function! fugitive#FileReadCmd(...) abort
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  let [dir, rev] = s:DirRev(amatch)
+  let line = a:0 > 1 ? a:2 : line("'[")
   if empty(dir)
-    return "noautocmd '[read <amatch>"
+    return 'noautocmd ' . line . 'read ' . s:fnameescape(amatch)
   endif
   if rev !~# ':'
     let cmd = fugitive#Prepare(dir, 'log', '--pretty=format:%B', '-1', rev)
   else
     let cmd = fugitive#Prepare(dir, 'cat-file', '-p', rev)
   endif
-  return "'[read !" . escape(cmd, '!#%')
+  return line . 'read !' . escape(cmd, '!#%')
 endfunction
 
 function! fugitive#BufReadIndex() abort
