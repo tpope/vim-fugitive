@@ -110,7 +110,7 @@ function! FugitiveExtractGitDir(path) abort
 endfunction
 
 function! FugitiveDetect(path) abort
-  if exists('b:git_dir') && (b:git_dir ==# '' || b:git_dir =~# '/$')
+  if exists('b:git_dir') && b:git_dir =~# '^$\|/$\|^fugitive:'
     unlet b:git_dir
   endif
   if !exists('b:git_dir')
