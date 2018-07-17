@@ -572,9 +572,9 @@ function! fugitive#readfile(url, ...) abort
   if entry[2] !=# 'blob'
     return []
   endif
-  let [dir, commit, file] = s:DirCommitFile(a:url)
+  let [dir, rev] = s:DirRev(a:url)
   let cmd = g:fugitive_git_executable . ' --git-dir=' . s:shellesc(dir) .
-        \ ' cat-file blob ' . s:shellesc(commit . ':' . file[1:-1])
+        \ ' cat-file blob ' . s:shellesc(rev)
   if max > 0 && s:executable('head')
     let cmd .= '|head -' . max
   endif
