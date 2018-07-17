@@ -2674,14 +2674,15 @@ function! s:TempCmd(out, cmd, ...) abort
         let prefix = 'env GIT_INDEX_FILE='.s:shellesc(a:1).' '
       endif
     endif
-    let redir = ' > '.a:out
+    let cmd = (type(a:cmd) == type([]) ? call('fugitive#Prepare', a:cmd) : a:cmd)
+    let redir = ' > ' . a:out
     if s:winshell()
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      return system('cmd /c "'.prefix.s:gsub(a:cmd,'[<>]', cmd_escape_char.'&').redir.'"')
+      return system('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
     elseif &shell =~# 'fish'
-      return system(' begin;'.prefix.a:cmd.redir.';end ')
+      return system(' begin;' . prefix . cmd . redir . ';end ')
     else
-      return system(' ('.prefix.a:cmd.redir.') ')
+      return system(' (' . prefix . cmd . redir . ') ')
     endif
   finally
     if exists('old_index')
@@ -2715,44 +2716,45 @@ function! s:ReplaceCmd(cmd, ...) abort
 endfunction
 
 function! fugitive#BufReadStatus() abort
+  let amatch = s:shellslash(expand('%:p'))
   if !exists('b:fugitive_display_format')
     let b:fugitive_display_format = filereadable(expand('%').'.lock')
   endif
   let b:fugitive_display_format = b:fugitive_display_format % 2
   let b:fugitive_type = 'index'
   try
-    let b:git_dir = s:repo().dir()
+    let dir = fnamemodify(amatch, ':h')
     setlocal noro ma nomodeline
-    if fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p') ==# expand('%:p')
+    if s:shellslash(fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p')) ==# amatch
       let index = ''
     else
-      let index = expand('%:p')
+      let index = amatch
     endif
     if b:fugitive_display_format
-      call s:ReplaceCmd(s:repo().git_command('ls-files','--stage'),index)
+      call s:ReplaceCmd([dir, 'ls-files', '--stage'], index)
       set ft=git nospell
     else
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
-      let dir = getcwd()
+      let cwd = getcwd()
       if fugitive#GitVersion() =~# '^0\|^1\.[1-7]\.'
-        let cmd = s:repo().git_command('status')
+        let cmd = ['status']
       else
-        let cmd = s:repo().git_command(
+        let cmd = [
               \ '-c', 'status.displayCommentPrefix=true',
               \ '-c', 'color.status=false',
               \ '-c', 'status.short=false',
-              \ 'status')
+              \ 'status']
       endif
       try
-        execute cd s:fnameescape(s:repo().tree())
-        call s:ReplaceCmd(cmd, index)
+        execute cd s:fnameescape(FugitiveTreeForGitDir(dir))
+        call s:ReplaceCmd([dir] + cmd, index)
       finally
-        execute cd s:fnameescape(dir)
+        execute cd s:fnameescape(cwd)
       endtry
       set ft=gitcommit
       set foldtext=fugitive#Foldtext()
     endif
-    setlocal ro noma nomod noswapfile
+    setlocal readonly nomodifiable nomodified noswapfile
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
@@ -2809,44 +2811,26 @@ function! fugitive#FileReadCmd(...) abort
   return line . 'read !' . escape(cmd, '!#%')
 endfunction
 
-function! fugitive#BufReadIndex() abort
-  try
-    let b:fugitive_type = 'blob'
-    let b:git_dir = s:repo().dir()
-    try
-      call s:ReplaceCmd(s:repo().git_command('cat-file','blob',s:buffer().sha1()))
-    finally
-      if &bufhidden ==# ''
-        setlocal bufhidden=delete
-      endif
-      setlocal noswapfile
-    endtry
-    return ''
-  catch /^fugitive: rev-parse/
-    silent exe 'doau BufNewFile '.s:fnameescape(expand('%:p'))
-    return ''
-  catch /^fugitive:/
-    return 'echoerr v:errmsg'
-  endtry
-endfunction
-
-function! fugitive#BufWriteIndex() abort
+function! fugitive#BufWriteCmd(...) abort
   let tmp = tempname()
+  let amatch = a:0 ? a:1 : expand('<amatch>')
   try
-    let [dir, commit, file] = s:DirCommitFile(expand('<amatch>'))
-    let path = file[1:-1]
-    silent execute 'write !'.s:repo().git_command('hash-object','-w','--stdin').' > '.tmp
-    let sha1 = readfile(tmp)[0]
-    let old_mode = matchstr(s:repo().git_chomp('ls-files','--stage',path),'^\d\+')
-    if old_mode == ''
-      let old_mode = executable(s:repo().tree(path)) ? '100755' : '100644'
+    let [dir, commit, file] = s:DirCommitFile(amatch)
+    if commit !~# '^[0-3]$'
+      return 'noautocmd write' . (v:cmdbang ? '!' : '') . ' ' . s:fnameescape(amatch)
     endif
-    let info = old_mode.' '.sha1.' '.commit[-1:-1]."\t".path
+    silent execute 'write !'.fugitive#Prepare(dir, 'hash-object', '-w', '--stdin').' > '.tmp
+    let sha1 = readfile(tmp)[0]
+    let old_mode = matchstr(system(fugitive#Prepare(dir, 'ls-files', '--stage', file[1:-1])), '^\d\+')
+    if old_mode == ''
+      let old_mode = executable(FugitiveTreeForGitDir(dir) . file) ? '100755' : '100644'
+    endif
+    let info = old_mode.' '.sha1.' '.commit."\t".file[1:-1]
     call writefile([info],tmp)
     if s:winshell()
-      let error = system('type '.s:gsub(tmp,'/','\\').'|'.s:repo().git_command('update-index','--index-info'))
+      let error = system('type '.s:gsub(tmp,'/','\\').'|'.fugitive#Prepare(dir, 'update-index', '--index-info'))
     else
-      let error = system(s:repo().git_command('update-index','--index-info').' < '.tmp)
+      let error = system(fugitive#Prepare(dir, 'update-index', '--index-info').' < '.tmp)
     endif
     if v:shell_error == 0
       setlocal nomodified
@@ -2863,15 +2847,15 @@ function! fugitive#BufWriteIndex() abort
   endtry
 endfunction
 
-function! fugitive#BufReadObject() abort
+function! fugitive#BufReadCmd(...) abort
+  let amatch = a:0 ? a:1 : expand('<amatch>')
   try
-    setlocal noro ma
-    let b:git_dir = s:repo().dir()
-    let hash = s:buffer().sha1()
-    if !exists("b:fugitive_type")
-      let b:fugitive_type = s:repo().git_chomp('cat-file','-t',hash)
-    endif
-    if b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
+    let [dir, rev] = s:DirRev(amatch)
+    let b:fugitive_type = system(fugitive#Prepare(dir, 'cat-file', '-t', rev))[0:-2]
+    if v:shell_error
+      unlet b:fugitive_type
+      return 'silent doautocmd BufNewFile '.s:fnameescape(amatch)
+    elseif b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
       return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
     endif
     if !exists('b:fugitive_display_format') && b:fugitive_type != 'blob'
@@ -2882,6 +2866,7 @@ function! fugitive#BufReadObject() abort
       setlocal nomodeline
     endif
 
+    setlocal noreadonly modifiable
     let pos = getpos('.')
     silent keepjumps %delete_
     setlocal endofline
@@ -2890,23 +2875,24 @@ function! fugitive#BufReadObject() abort
       if b:fugitive_type ==# 'tree'
         let b:fugitive_display_format = b:fugitive_display_format % 2
         if b:fugitive_display_format
-          call s:ReplaceCmd(s:repo().git_command('ls-tree',hash))
+          call s:ReplaceCmd([dir, 'ls-tree', rev])
         else
-          call s:ReplaceCmd(s:repo().git_command('show','--no-color',hash))
+          let sha = system(fugitive#Prepare(dir, 'rev-parse', '--verify', rev))[0:-2]
+          call s:ReplaceCmd([dir, 'show', '--no-color', sha])
         endif
       elseif b:fugitive_type ==# 'tag'
         let b:fugitive_display_format = b:fugitive_display_format % 2
         if b:fugitive_display_format
-          call s:ReplaceCmd(s:repo().git_command('cat-file',b:fugitive_type,hash))
+          call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
         else
-          call s:ReplaceCmd(s:repo().git_command('cat-file','-p',hash))
+          call s:ReplaceCmd([dir, 'cat-file', '-p', rev])
         endif
       elseif b:fugitive_type ==# 'commit'
         let b:fugitive_display_format = b:fugitive_display_format % 2
         if b:fugitive_display_format
-          call s:ReplaceCmd(s:repo().git_command('cat-file',b:fugitive_type,hash))
+          call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
         else
-          call s:ReplaceCmd(s:repo().git_command('show','--no-color','--pretty=format:tree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%s%n%n%b',hash))
+          call s:ReplaceCmd([dir, 'show', '--no-color', '--pretty=format:tree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%s%n%n%b', rev])
           keepjumps call search('^parent ')
           if getline('.') ==# 'parent '
             silent keepjumps delete_
@@ -2921,26 +2907,27 @@ function! fugitive#BufReadObject() abort
           keepjumps 1
         endif
       elseif b:fugitive_type ==# 'blob'
-        call s:ReplaceCmd(s:repo().git_command('cat-file',b:fugitive_type,hash))
+        call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
         setlocal nomodeline
       endif
     finally
       keepjumps call setpos('.',pos)
-      setlocal ro noma nomod noswapfile
+      setlocal nomodified noswapfile
+      if rev !~# '^:.'
+        setlocal readonly nomodifiable
+      endif
       if &bufhidden ==# ''
         setlocal bufhidden=delete
       endif
       if b:fugitive_type !=# 'blob'
         setlocal filetype=git foldmethod=syntax
-        nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe fugitive#BufReadObject()<CR>
-        nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe fugitive#BufReadObject()<CR>
+        nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
+        nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
       else
         call fugitive#MapJumps()
       endif
     endtry
 
-    return ''
-  catch /^fugitive: rev-parse/
     return ''
   catch /^fugitive:/
     return 'echoerr v:errmsg'
