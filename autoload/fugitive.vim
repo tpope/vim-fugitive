@@ -1228,7 +1228,7 @@ function! s:Commit(mods, args, ...) abort
       else
         let command = 'env GIT_EDITOR=false '
       endif
-      let command .= repo.git_command('commit').' '.a:args
+      let command .= s:git_command() . ' commit ' . a:args
       if &shell =~# 'csh'
         noautocmd silent execute '!('.command.' > '.outfile.') >& '.errorfile
       elseif a:args =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>'
@@ -1465,7 +1465,7 @@ function! s:Grep(cmd,bang,arg) abort
   let dir = getcwd()
   try
     execute cd s:fnameescape(s:repo().tree())
-    let &grepprg = s:repo().git_command('--no-pager', 'grep', '-n', '--no-color')
+    let &grepprg = s:git_command() . ' --no-pager grep -n --no-color'
     let &grepformat = '%f:%l:%m,%m %f match%ts,%f'
     exe a:cmd.'! '.escape(matchstr(a:arg,'\v\C.{-}%($|[''" ]\@=\|)@='),'|')
     let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
@@ -1525,7 +1525,7 @@ function! s:Log(cmd, line1, line2, ...) abort
   let dir = getcwd()
   try
     execute cd s:fnameescape(s:repo().tree())
-    let &grepprg = escape(call(s:repo().git_command,cmd,s:repo()),'%#')
+    let &grepprg = escape(s:git_command() + join(map(cmd, '" ".s:shellesc(v:val)'), ''), '%#')
     let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f::%m,%-G%.%#'
     exe a:cmd
   finally
@@ -1576,7 +1576,7 @@ function! s:Edit(cmd, bang, mods, ...) abort
     let arglist = map(copy(a:000), 's:gsub(v:val, ''\\@<!%(\\\\)*\zs[%#]'', ''\=s:buffer().expand(submatch(0))'')')
     let args = join(arglist, ' ')
     if a:cmd =~# 'read'
-      let git = buffer.repo().git_command()
+      let git = s:git_command()
       let last = line('$')
       silent call s:ExecuteInTree(mods.' '.(a:cmd ==# 'read' ? 'keepalt $read' : a:cmd).'!'.git.' --no-pager '.args)
       if a:cmd ==# 'read'
@@ -2170,7 +2170,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
       let cmd += ['--contents', '-']
     endif
     let cmd += ['--', s:buffer().relative()]
-    let basecmd = escape(call(s:repo().git_command,cmd,s:repo()),'!%#')
+    let basecmd = escape(call('fugitive#Prepare', cmd), '!#%')
     try
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
       if !s:repo().bare()
