@@ -91,12 +91,21 @@ function! s:executable(binary) abort
   return s:executables[a:binary]
 endfunction
 
-let s:git_versions = {}
-
 function! s:git_command() abort
   return get(g:, 'fugitive_git_command', g:fugitive_git_executable)
 endfunction
 
+function! fugitive#Prepare(...) abort
+  let args = copy(a:000)
+  if empty(args)
+    return g:fugitive_git_executable
+  elseif args[0] !~# '^-' && args[0] =~# '[\/.]'
+    let args[0] = '--git-dir=' . args[0]
+  endif
+  return g:fugitive_git_executable . ' ' . join(map(args, 's:shellesc(v:val)'), ' ')
+endfunction
+
+let s:git_versions = {}
 function! fugitive#GitVersion(...) abort
   if !has_key(s:git_versions, g:fugitive_git_executable)
     let s:git_versions[g:fugitive_git_executable] = matchstr(system(g:fugitive_git_executable.' --version'), "\\S\\+\\ze\n")
@@ -323,9 +332,7 @@ function! s:repo_git_command(...) dict abort
 endfunction
 
 function! s:repo_git_chomp(...) dict abort
-  let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
-  let output = git.join(map(copy(a:000),'" ".s:shellesc(v:val)'),'')
-  return s:sub(system(output),'\n$','')
+  return s:sub(system(call('fugitive#Prepare', [self.git_dir] + a:000)),'\n$','')
 endfunction
 
 function! s:repo_git_chomp_in_tree(...) dict abort
@@ -467,7 +474,7 @@ endfunction
 let s:trees = {}
 let s:indexes = {}
 function! s:TreeInfo(dir, commit) abort
-  let git = g:fugitive_git_executable . ' --git-dir=' . s:shellesc(a:dir)
+  let git = fugitive#Prepare(a:dir)
   if a:commit =~# '^:\=[0-3]$'
     let index = get(s:indexes, a:dir, [])
     let newftime = getftime(a:dir . '/index')
@@ -560,7 +567,7 @@ function! fugitive#getfsize(url) abort
   let entry = s:PathInfo(a:url)
   if entry[4] == -2 && entry[2] ==# 'blob' && len(entry[3])
     let dir = s:DirCommitFile(a:url)[0]
-    let size = +system(g:fugitive_git_executable . ' ' . s:shellesc('--git-dir=' . dir) . ' cat-file -s ' . entry[3])
+    let size = +system(fugitive#Prepare(dir, 'cat-file', '-s', entry[3]))
     let entry[4] = v:shell_error ? -1 : size
   endif
   return entry[4]
@@ -586,8 +593,7 @@ function! fugitive#readfile(url, ...) abort
     return []
   endif
   let [dir, rev] = s:DirRev(a:url)
-  let cmd = g:fugitive_git_executable . ' --git-dir=' . s:shellesc(dir) .
-        \ ' cat-file blob ' . s:shellesc(rev)
+  let cmd = fugitive#Prepare(dir, 'cat-file', 'blob', rev)
   if max > 0 && s:executable('head')
     let cmd .= '|head -' . max
   endif
