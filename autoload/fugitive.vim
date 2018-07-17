@@ -585,35 +585,44 @@ function! fugitive#isdirectory(url) abort
   return s:PathInfo(a:url)[2] ==# 'tree'
 endfunction
 
+if !exists('s:blobdirs')
+  let s:blobdirs = {}
+endif
+function! s:BlobTemp(url) abort
+  let [dir, commit, file] = s:DirCommitFile(a:url)
+  if empty(file)
+    return ''
+  endif
+  if !has_key(s:blobdirs, dir)
+    let s:blobdirs[dir] = s:tempname()
+  endif
+  let tempfile = s:PlatformSlash(s:blobdirs[dir] . '/' . commit . file)
+  let tempparent = fnamemodify(tempfile, ':h')
+  if !isdirectory(tempparent)
+    call mkdir(tempparent, 'p')
+  endif
+  if commit =~# '^\d$' || !filereadable(tempfile)
+    let rev = s:DirRev(a:url)[1]
+    let command = fugitive#Prepare(dir, 'cat-file', 'blob', rev)
+    call s:TempCmd(tempfile, command)
+    if v:shell_error
+      call delete(tempfile)
+      return ''
+    endif
+  endif
+  return tempfile
+endfunction
+
 function! fugitive#readfile(url, ...) abort
-  let bin = a:0 && a:1 ==# 'b'
-  let max = a:0 > 1 ? a:2 : 'all'
   let entry = s:PathInfo(a:url)
   if entry[2] !=# 'blob'
     return []
   endif
-  let [dir, rev] = s:DirRev(a:url)
-  let cmd = fugitive#Prepare(dir, 'cat-file', 'blob', rev)
-  if max > 0 && s:executable('head')
-    let cmd .= '|head -' . max
-  endif
-  if exists('systemlist') && !bin
-    let lines = systemlist(cmd)
-  else
-    let lines = split(system(cmd), "\n", 1)
-    if !bin && empty(lines[-1])
-      call remove(lines, -1)
-    endif
-  endif
-  if v:shell_error || max is# 0
+  let temp = s:BlobTemp(a:url)
+  if empty(temp)
     return []
-  elseif max > 0 && max < len(lines)
-    return lines[0 : max - 1]
-  elseif max < 0
-    return lines[max : -1]
-  else
-    return lines
   endif
+  return call('readfile', [temp] + a:000)
 endfunction
 
 let s:globsubs = {'*': '[^/]*', '**': '.*', '**/': '\%(.*/\)\=', '?': '[^/]'}
@@ -2654,7 +2663,7 @@ call extend(g:fugitive_browse_handlers,
 
 " Section: File access
 
-function! s:WriteCmd(out, cmd, ...) abort
+function! s:TempCmd(out, cmd, ...) abort
   let prefix = ''
   try
     if a:0 && len(a:1)
@@ -2683,7 +2692,7 @@ endfunction
 
 function! s:ReplaceCmd(cmd, ...) abort
   let tmp = tempname()
-  let err = s:WriteCmd(tmp, a:cmd, a:0 ? a:1 : '')
+  let err = s:TempCmd(tmp, a:cmd, a:0 ? a:1 : '')
   if v:shell_error
     call s:throw((len(err) ? err : filereadable(tmp) ? join(readfile(tmp), ' ') : 'unknown error running ' . a:cmd))
   endif
@@ -2936,6 +2945,19 @@ function! fugitive#BufReadObject() abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
+endfunction
+
+function! fugitive#SourceCmd(...) abort
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  let temp = s:BlobTemp(amatch)
+  if empty(temp)
+    return 'noautocmd source ' . s:fnameescape(amatch)
+  endif
+  if !exists('g:virtual_scriptnames')
+    let g:virtual_scriptnames = {}
+  endif
+  let g:virtual_scriptnames[temp] = amatch
+  return 'source ' . s:fnameescape(temp)
 endfunction
 
 " Section: Temp files
