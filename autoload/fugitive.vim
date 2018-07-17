@@ -181,7 +181,7 @@ function! fugitive#Init() abort
     call s:map('n', 'y<C-G>', ':call setreg(v:register, <SID>recall())<CR>', '<silent>')
   endif
   let buffer = fugitive#buffer()
-  if expand('%:p') =~# '://'
+  if expand('%:p') =~# ':[\/][\/]'
     call buffer.setvar('&path', s:sub(buffer.getvar('&path'), '^\.%(,|$)', ''))
   endif
   if stridx(buffer.getvar('&tags'), escape(b:git_dir, ', ')) == -1
