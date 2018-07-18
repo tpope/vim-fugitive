@@ -677,7 +677,7 @@ function! s:buffer_repo() dict abort
 endfunction
 
 function! s:buffer_type(...) dict abort
-  if self.getvar('fugitive_type') != ''
+  if !empty(self.getvar('fugitive_type'))
     let type = self.getvar('fugitive_type')
   elseif fnamemodify(self.spec(),':p') =~# '\.git/refs/\|\.git/\w*HEAD$'
     let type = 'head'
@@ -2136,7 +2136,7 @@ augroup fugitive_blame
   autocmd!
   autocmd FileType fugitiveblame setlocal nomodeline | if exists('b:git_dir') | let &l:keywordprg = s:repo().keywordprg() | endif
   autocmd Syntax fugitiveblame call s:BlameSyntax()
-  autocmd User Fugitive if s:buffer().type('file', 'blob') | exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,[<f-args>])" | endif
+  autocmd User Fugitive if s:buffer().type('file', 'blob', 'blame') | exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,[<f-args>])" | endif
   autocmd ColorScheme,GUIEnter * call s:RehighlightBlame()
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
@@ -2223,6 +2223,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
         let s:temp_files[s:cpath(temp)] = { 'dir': s:repo().dir(), 'args': cmd }
         exe 'keepalt leftabove vsplit '.temp
         let b:fugitive_blamed_bufnr = bufnr
+        let b:fugitive_type = 'blame'
         let w:fugitive_leave = restore
         let b:fugitive_blame_arguments = join(a:args,' ')
         execute top
@@ -2946,7 +2947,7 @@ augroup fugitive_temp
   autocmd BufNewFile,BufReadPost *
         \ if has_key(s:temp_files,s:cpath(expand('<afile>:p'))) |
         \   let b:git_dir = s:temp_files[s:cpath(expand('<afile>:p'))].dir |
-        \   let b:git_type = 'temp' |
+        \   call extend(b:, {'fugitive_type': 'temp'}, 'keep') |
         \   let b:git_args = s:temp_files[s:cpath(expand('<afile>:p'))].args |
         \   call FugitiveDetect(expand('<afile>:p')) |
         \   setlocal bufhidden=delete nobuflisted |
