@@ -2685,7 +2685,7 @@ function! s:ReplaceCmd(cmd, ...) abort
   let tmp = tempname()
   let err = s:WriteCmd(tmp, a:cmd, a:0 ? a:1 : '')
   if v:shell_error
-    throw 'fugitive: ' . (len(err) ? err : filereadable(tmp) ? join(readfile(tmp), ' | ') : 'unknown error running ' . a:cmd)
+    call s:throw((len(err) ? err : filereadable(tmp) ? join(readfile(tmp), ' ') : 'unknown error running ' . a:cmd))
   endif
   let fn = expand('%:p')
   silent exe 'doau BufReadPre '.s:fnameescape(fn)
