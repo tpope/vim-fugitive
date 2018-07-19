@@ -95,6 +95,17 @@ function! s:git_command() abort
   return get(g:, 'fugitive_git_command', g:fugitive_git_executable)
 endfunction
 
+function! s:System(cmd) abort
+  try
+    return system(a:cmd)
+  catch /^Vim\%((\a\+)\)\=:E484:/
+    let opts = ['shell', 'shellcmdflag', 'shellredir', 'shellquote', 'shellxquote', 'shellxescape', 'shellslash']
+    call filter(opts, 'exists("+".v:val) && !empty(eval("&".v:val))')
+    call map(opts, 'v:val."=".eval("&".v:val)')
+    call s:throw('failed to run `' . a:cmd . '` with ' . join(opts, ' '))
+  endtry
+endfunction
+
 function! fugitive#Prepare(...) abort
   let args = copy(a:000)
   if empty(args)
@@ -332,7 +343,7 @@ function! s:repo_git_command(...) dict abort
 endfunction
 
 function! s:repo_git_chomp(...) dict abort
-  return s:sub(system(call('fugitive#Prepare', [self.git_dir] + a:000)),'\n$','')
+  return s:sub(s:System(call('fugitive#Prepare', [self.git_dir] + a:000)),'\n$','')
 endfunction
 
 function! s:repo_git_chomp_in_tree(...) dict abort
@@ -2678,11 +2689,11 @@ function! s:TempCmd(out, cmd, ...) abort
     let redir = ' > ' . a:out
     if s:winshell()
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      return system('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
+      return s:System('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
     elseif &shell =~# 'fish'
-      return system(' begin;' . prefix . cmd . redir . ';end ')
+      return s:System(' begin;' . prefix . cmd . redir . ';end ')
     else
-      return system(' (' . prefix . cmd . redir . ') ')
+      return s:System(' (' . prefix . cmd . redir . ') ')
     endif
   finally
     if exists('old_index')
@@ -2705,7 +2716,7 @@ function! s:ReplaceCmd(cmd, ...) abort
   finally
     try
       silent exe 'keepalt file '.s:fnameescape(fn)
-    catch /^Vim\%((\a\+)\)\=:E302/
+    catch /^Vim\%((\a\+)\)\=:E302:/
     endtry
     call delete(tmp)
     if fnamemodify(bufname('$'), ':p') ==# tmp
@@ -2828,9 +2839,9 @@ function! fugitive#BufWriteCmd(...) abort
     let info = old_mode.' '.sha1.' '.commit."\t".file[1:-1]
     call writefile([info],tmp)
     if s:winshell()
-      let error = system('type '.s:gsub(tmp,'/','\\').'|'.fugitive#Prepare(dir, 'update-index', '--index-info'))
+      let error = s:System('type '.s:gsub(tmp,'/','\\').'|'.fugitive#Prepare(dir, 'update-index', '--index-info'))
     else
-      let error = system(fugitive#Prepare(dir, 'update-index', '--index-info').' < '.tmp)
+      let error = s:System(fugitive#Prepare(dir, 'update-index', '--index-info').' < '.tmp)
     endif
     if v:shell_error == 0
       setlocal nomodified
