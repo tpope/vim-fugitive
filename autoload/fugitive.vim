@@ -1228,10 +1228,11 @@ call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute 
 
 function! s:Commit(mods, args, ...) abort
   let mods = s:gsub(a:mods ==# '<mods>' ? '' : a:mods, '<tab>', '-tab')
-  let repo = a:0 ? a:1 : s:repo()
+  let dir = a:0 ? a:1 : b:git_dir
+  let tree = FugitiveTreeForGitDir(dir)
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
-  let dir = getcwd()
-  let msgfile = repo.dir('COMMIT_EDITMSG')
+  let cwd = getcwd()
+  let msgfile = dir . '/COMMIT_EDITMSG'
   let outfile = tempname()
   let errorfile = tempname()
   try
@@ -1240,7 +1241,7 @@ function! s:Commit(mods, args, ...) abort
       if &guioptions =~# '!'
         setglobal guioptions-=!
       endif
-      execute cd s:fnameescape(repo.tree())
+      execute cd s:fnameescape(tree)
       if s:winshell()
         let command = ''
         let old_editor = $GIT_EDITOR
@@ -1258,7 +1259,7 @@ function! s:Commit(mods, args, ...) abort
       endif
       let error = v:shell_error
     finally
-      execute cd s:fnameescape(dir)
+      execute cd s:fnameescape(cwd)
       let &guioptions = guioptions
     endtry
     if !has('gui_running')
@@ -1281,7 +1282,7 @@ function! s:Commit(mods, args, ...) abort
         let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
         let cwd = getcwd()
         try
-          exe cd s:fnameescape(repo.tree())
+          exe cd s:fnameescape(tree)
           let args = s:gsub(args,'\\@<!(\%|##=|#\<=\d+)(:\w)*','\=fnamemodify(FugitivePath(expand(submatch(1))),":." . submatch(2))')
         finally
           exe cd cwd
@@ -1336,7 +1337,7 @@ function! s:FinishCommit() abort
   let args = getbufvar(+expand('<abuf>'),'fugitive_commit_arguments')
   if !empty(args)
     call setbufvar(+expand('<abuf>'),'fugitive_commit_arguments','')
-    return s:Commit('', args, s:repo(getbufvar(+expand('<abuf>'),'git_dir')))
+    return s:Commit('', args, getbufvar(+expand('<abuf>'),'git_dir'))
   endif
   return ''
 endfunction
