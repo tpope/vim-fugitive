@@ -202,14 +202,14 @@ function! fugitive#Init() abort
   endif
   let buffer = fugitive#buffer()
   if expand('%:p') =~# ':[\/][\/]'
-    call buffer.setvar('&path', s:sub(buffer.getvar('&path'), '^\.%(,|$)', ''))
+    let &l:path = s:sub(&path, '^\.%(,|$)', '')
   endif
-  if stridx(buffer.getvar('&tags'), escape(b:git_dir, ', ')) == -1
+  if stridx(&tags, escape(b:git_dir, ', ')) == -1
     if filereadable(b:git_dir.'/tags')
-      call buffer.setvar('&tags', escape(b:git_dir.'/tags', ', ').','.buffer.getvar('&tags'))
+      let &l:tags = escape(b:git_dir.'/tags', ', ').','.&tags
     endif
     if &filetype !=# '' && filereadable(b:git_dir.'/'.&filetype.'.tags')
-      call buffer.setvar('&tags', escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.buffer.getvar('&tags'))
+      let &l:tags = escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.&tags
     endif
   endif
   try
@@ -320,14 +320,17 @@ function! s:repo_translate(spec) dict abort
 endfunction
 
 function! s:repo_head(...) dict abort
-    let head = s:repo().head_ref()
+    if !filereadable(self.dir('HEAD'))
+      return ''
+    endif
+    let head = readfile(self.dir('HEAD'))[0]
 
     if head =~# '^ref: '
       let branch = s:sub(head,'^ref: %(refs/%(heads/|remotes/|tags/)=)=','')
     elseif head =~# '^\x\{40\}$'
       " truncate hash to a:1 characters if we're in detached head mode
       let len = a:0 ? a:1 : 0
-      let branch = len ? head[0:len-1] : ''
+      let branch = len < 0 ? head : len ? head[0:len-1] : ''
     else
       return ''
     endif
@@ -440,17 +443,6 @@ function! s:repo_aliases() dict abort
 endfunction
 
 call s:add_methods('repo',['config', 'user', 'aliases'])
-
-function! s:repo_keywordprg() dict abort
-  let args = ' --git-dir='.escape(self.dir(),"\\\"' ")
-  if has('gui_running') && !has('win32')
-    return s:git_command() . ' --no-pager' . args . ' log -1'
-  else
-    return s:git_command() . args . ' show'
-  endif
-endfunction
-
-call s:add_methods('repo',['keywordprg'])
 
 " Section: Buffer
 
@@ -684,10 +676,6 @@ function! s:buffer_getvar(var) dict abort
   return getbufvar(self['#'],a:var)
 endfunction
 
-function! s:buffer_setvar(var,value) dict abort
-  return setbufvar(self['#'],a:var,a:value)
-endfunction
-
 function! s:buffer_getline(lnum) dict abort
   return get(getbufline(self['#'], a:lnum), 0, '')
 endfunction
@@ -794,14 +782,6 @@ function! s:buffer_rev() dict abort
   endif
 endfunction
 
-function! s:buffer_sha1() dict abort
-  if self.spec() =~? '^fugitive:' || self.spec() =~ '\.git/refs/\|\.git/.*HEAD$'
-    return self.repo().rev_parse(self.rev())
-  else
-    return ''
-  endif
-endfunction
-
 function! s:buffer_expand(rev) dict abort
   if a:rev =~# '^:[0-3]$'
     let file = a:rev.self.relative(':')
@@ -820,16 +800,6 @@ function! s:buffer_expand(rev) dict abort
   return s:sub(substitute(file,
         \ '%$\|\\\([[:punct:]]\)','\=len(submatch(1)) ? submatch(1) : self.relative()','g'),
         \ '\.\@<=/$','')
-endfunction
-
-function! s:buffer_containing_commit() dict abort
-  if self.commit() =~# '^\d$'
-    return ':'
-  elseif self.commit() =~# '.'
-    return self.commit()
-  else
-    return 'HEAD'
-  endif
 endfunction
 
 function! s:buffer_up(...) dict abort
@@ -856,7 +826,7 @@ function! s:buffer_up(...) dict abort
   return rev
 endfunction
 
-call s:add_methods('buffer',['getvar','setvar','getline','repo','type','spec','name','commit','path','relative','rev','sha1','expand','containing_commit','up'])
+call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative','rev','expand','up'])
 
 " Section: Git
 
@@ -1963,27 +1933,27 @@ function! s:diffoff_all(dir) abort
   execute curwin.'wincmd w'
 endfunction
 
-function! s:buffer_compare_age(commit) dict abort
+function! s:CompareAge(mine, theirs) abort
   let scores = {':0': 1, ':1': 2, ':2': 3, ':': 4, ':3': 5}
-  let my_score    = get(scores, ':'.self.commit(), 0)
-  let their_score = get(scores, ':'.substitute(a:commit, '^:', '', ''), 0)
+  let mine = substitute(a:mine, '^:', '', '')
+  let theirs = substitute(a:theirs, '^:', '', '')
+  let my_score    = get(scores, ':'.mine, 0)
+  let their_score = get(scores, ':'.theirs, 0)
   if my_score || their_score
     return my_score < their_score ? -1 : my_score != their_score
-  elseif self.commit() ==# a:commit
+  elseif mine ==# theirs
     return 0
   endif
-  let base = self.repo().git_chomp('merge-base',self.commit(),a:commit)
-  if base ==# self.commit()
+  let base = s:repo().git_chomp('merge-base', mine, theirs)
+  if base ==# mine
     return -1
-  elseif base ==# a:commit
+  elseif base ==# theirs
     return 1
   endif
-  let my_time    = +self.repo().git_chomp('log','--max-count=1','--pretty=format:%at',self.commit())
-  let their_time = +self.repo().git_chomp('log','--max-count=1','--pretty=format:%at',a:commit)
+  let my_time    = +s:repo().git_chomp('log','--max-count=1','--pretty=format:%at',a:mine)
+  let their_time = +s:repo().git_chomp('log','--max-count=1','--pretty=format:%at',a:theirs)
   return my_time < their_time ? -1 : my_time != their_time
 endfunction
-
-call s:add_methods('buffer',['compare_age'])
 
 function! s:Diff(vert,keepfocus,...) abort
   let args = copy(a:000)
@@ -2041,7 +2011,7 @@ function! s:Diff(vert,keepfocus,...) abort
       setlocal cursorbind
     endif
     let w:fugitive_diff_restore = restore
-    if s:buffer().compare_age(s:DirCommitFile(spec)[1]) < 0
+    if s:CompareAge(s:buffer().commit(), s:DirCommitFile(spec)[1]) < 0
       execute 'rightbelow '.vert.'diffsplit '.s:fnameescape(spec)
     else
       execute 'leftabove '.vert.'diffsplit '.s:fnameescape(spec)
@@ -2076,8 +2046,7 @@ function! s:Move(force, rename, destination) abort
     endif
   endif
   if isdirectory(s:buffer().spec())
-    " Work around Vim parser idiosyncrasy
-    let discarded = s:buffer().setvar('&swapfile',0)
+    setlocal noswapfile
   endif
   let message = call(s:repo().git_chomp_in_tree,['mv']+(a:force ? ['-f'] : [])+['--', s:buffer().relative(), destination], s:repo())
   if v:shell_error
@@ -2153,9 +2122,18 @@ augroup END
 
 " Section: Gblame
 
+function! s:Keywordprg() abort
+  let args = ' --git-dir='.escape(b:git_dir,"\\\"' ")
+  if has('gui_running') && !has('win32')
+    return s:git_command() . ' --no-pager' . args . ' log -1'
+  else
+    return s:git_command() . args . ' show'
+  endif
+endfunction
+
 augroup fugitive_blame
   autocmd!
-  autocmd FileType fugitiveblame setlocal nomodeline | if exists('b:git_dir') | let &l:keywordprg = s:repo().keywordprg() | endif
+  autocmd FileType fugitiveblame setlocal nomodeline | if exists('b:git_dir') | let &l:keywordprg = s:Keywordprg() | endif
   autocmd Syntax fugitiveblame call s:BlameSyntax()
   autocmd User Fugitive if s:buffer().type('file', 'blob', 'blame') | exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,[<f-args>])" | endif
   autocmd ColorScheme,GUIEnter * call s:RehighlightBlame()
@@ -2655,7 +2633,7 @@ function! s:instaweb_url(opts) abort
         call s:throw('fugitive: cannot browse uncommitted file')
       endtry
     endif
-    let root .= ';hb=' . matchstr(a:opts.repo.head_ref(),'[^ ]\+$')
+    let root .= ';hb=' . a:opts.repo.head(-1)
   endif
   if a:opts.path !=# ''
     let url .= ';f=' . a:opts.path
@@ -2996,6 +2974,15 @@ function! fugitive#MapCfile(...) abort
   endif
 endfunction
 
+function! s:ContainingCommit() abort
+  let commit = s:DirCommitFile(@%)[1]
+  if commit =~# '^\d\=$'
+    return 'HEAD'
+  else
+    return commit
+  endif
+endfunction
+
 function! fugitive#MapJumps(...) abort
   nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
   if !&modifiable
@@ -3003,14 +2990,14 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
     nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
     nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,'',<SID>buffer().up(v:count1))<Bar> if fugitive#buffer().type('tree')<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
-    nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,'',<SID>buffer().commit().'^'.v:count1.<SID>buffer().relative(':'))<CR>
-    nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,'',<SID>buffer().commit().'~'.v:count1.<SID>buffer().relative(':'))<CR>
-    nnoremap <buffer> <silent> C     :<C-U>exe <SID>Edit('edit',0,'',<SID>buffer().containing_commit())<CR>
-    nnoremap <buffer> <silent> cc    :<C-U>exe <SID>Edit('edit',0,'',<SID>buffer().containing_commit())<CR>
-    nnoremap <buffer> <silent> co    :<C-U>exe <SID>Edit('split',0,'',<SID>buffer().containing_commit())<CR>
-    nnoremap <buffer> <silent> cS    :<C-U>exe <SID>Edit('vsplit',0,'',<SID>buffer().containing_commit())<CR>
-    nnoremap <buffer> <silent> cO    :<C-U>exe <SID>Edit('tabedit',0,'',<SID>buffer().containing_commit())<CR>
-    nnoremap <buffer> <silent> cP    :<C-U>exe <SID>Edit('pedit',0,'',<SID>buffer().containing_commit())<CR>
+    nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'^'.v:count1.<SID>buffer().relative(':'))<CR>
+    nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'~'.v:count1.<SID>buffer().relative(':'))<CR>
+    nnoremap <buffer> <silent> C     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> cc    :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> co    :<C-U>exe <SID>Edit('split',0,'',<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> cS    :<C-U>exe <SID>Edit('vsplit',0,'',<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> cO    :<C-U>exe <SID>Edit('tabedit',0,'',<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> cP    :<C-U>exe <SID>Edit('pedit',0,'',<SID>ContainingCommit())<CR>
     nnoremap <buffer>          .     : <C-R>=fnameescape(<SID>recall())<CR><Home>
   endif
 endfunction
@@ -3018,7 +3005,12 @@ endfunction
 function! s:cfile() abort
   try
     let buffer = s:buffer()
-    let myhash = buffer.sha1()
+
+    if buffer.spec() =~? '^fugitive:' || buffer.spec() =~# '\.git/refs/\|\.git/.*HEAD$'
+      let myhash = buffer.repo().rev_parse(buffer.rev())
+    else
+      let myhash = ''
+    endif
     if myhash ==# '' && getline(1) =~# '^\%(commit\|tag\) \w'
       let myhash = matchstr(getline(1),'^\w\+ \zs\S\+')
     endif
@@ -3228,15 +3220,6 @@ function! fugitive#cfile() abort
 endfunction
 
 " Section: Statusline
-
-function! s:repo_head_ref() dict abort
-  if !filereadable(self.dir('HEAD'))
-    return ''
-  endif
-  return readfile(self.dir('HEAD'))[0]
-endfunction
-
-call s:add_methods('repo',['head_ref'])
 
 function! fugitive#Statusline(...) abort
   if !exists('b:git_dir')

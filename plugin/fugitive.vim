@@ -132,10 +132,11 @@ function! FugitiveStatusline(...) abort
 endfunction
 
 function! FugitiveHead(...) abort
-  if !exists('b:git_dir')
+  let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
+  if empty(dir)
     return ''
   endif
-  return fugitive#repo().head(a:0 ? a:1 : 0)
+  return fugitive#repo(dir).head(a:0 ? a:1 : 0)
 endfunction
 
 function! FugitivePath(...) abort
