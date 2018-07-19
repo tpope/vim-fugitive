@@ -2822,15 +2822,15 @@ function! fugitive#FileReadCmd(...) abort
   return line . 'read !' . escape(cmd, '!#%')
 endfunction
 
-function! fugitive#BufWriteCmd(...) abort
+function! fugitive#FileWriteCmd(...) abort
   let tmp = tempname()
   let amatch = a:0 ? a:1 : expand('<amatch>')
   try
     let [dir, commit, file] = s:DirCommitFile(amatch)
-    if commit !~# '^[0-3]$'
-      return 'noautocmd write' . (v:cmdbang ? '!' : '') . ' ' . s:fnameescape(amatch)
+    if commit !~# '^[0-3]$' || !v:cmdbang && (line("'[") != 1 || line("']") != line('$'))
+      return "noautocmd '[,']write" . (v:cmdbang ? '!' : '') . ' ' . s:fnameescape(amatch)
     endif
-    silent execute 'write !'.fugitive#Prepare(dir, 'hash-object', '-w', '--stdin').' > '.tmp
+    silent execute "'[,']write !".fugitive#Prepare(dir, 'hash-object', '-w', '--stdin').' > '.tmp
     let sha1 = readfile(tmp)[0]
     let old_mode = matchstr(system(fugitive#Prepare(dir, 'ls-files', '--stage', file[1:-1])), '^\d\+')
     if old_mode == ''
@@ -2943,6 +2943,10 @@ function! fugitive#BufReadCmd(...) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
+endfunction
+
+function! fugitive#BufWriteCmd(...) abort
+  return call('fugitive#FileWriteCmd', a:000)
 endfunction
 
 function! fugitive#SourceCmd(...) abort
