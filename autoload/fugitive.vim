@@ -900,7 +900,7 @@ function! s:Git(bang, mods, args) abort
   return matchstr(a:args, '\v\C\\@<!%(\\\\)*\|\zs.*')
 endfunction
 
-function! fugitive#git_commands() abort
+function! s:Subcommands() abort
   if !exists('s:exec_path')
     let s:exec_path = s:sub(system(g:fugitive_git_executable.' --exec-path'),'\n$','')
   endif
@@ -909,7 +909,7 @@ endfunction
 
 function! s:GitComplete(A, L, P) abort
   if strpart(a:L, 0, a:P) !~# ' [[:alnum:]-]\+ '
-    let cmds = fugitive#git_commands()
+    let cmds = s:Subcommands()
     return filter(sort(cmds+keys(s:repo().aliases())), 'strpart(v:val, 0, strlen(a:A)) ==# a:A')
   else
     return s:repo().superglob(a:A)
