@@ -739,9 +739,9 @@ endfunction
 
 function! s:cpath(path) abort
   if exists('+fileignorecase') && &fileignorecase
-    return tolower(a:path)
+    return s:PlatformSlash(tolower(a:path))
   else
-    return a:path
+    return s:PlatformSlash(a:path)
   endif
 endfunction
 
@@ -832,17 +832,6 @@ call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','com
 
 call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Git :execute s:Git(<bang>0,'<mods>',<q-args>)")
 
-function! s:ExecuteInTree(cmd) abort
-  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
-  let dir = getcwd()
-  try
-    execute cd s:fnameescape(s:repo().tree())
-    execute a:cmd
-  finally
-    execute cd s:fnameescape(dir)
-  endtry
-endfunction
-
 function! s:Git(bang, mods, args) abort
   if a:bang
     return s:Edit('edit', 1, a:mods, a:args)
@@ -852,22 +841,27 @@ function! s:Git(bang, mods, args) abort
     let git .= ' --no-pager'
   endif
   let args = matchstr(a:args,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
+  let after = matchstr(a:args, '\v\C\\@<!%(\\\\)*\zs\|.*')
+  let tree = s:repo().tree()
+  if has('win32')
+    let after = '|call fugitive#ReloadStatus()' . after
+  endif
   if exists(':terminal') && has('nvim') && !get(g:, 'fugitive_force_bang_command')
-    let dir = s:repo().tree()
     if len(@%)
       -tabedit %
     else
       -tabnew
     endif
-    execute 'lcd' fnameescape(dir)
-    execute 'terminal' git args
+    execute 'lcd' fnameescape(tree)
+    return 'exe ' .string('terminal ' . git . ' ' . args) . after
   else
-    call s:ExecuteInTree('!'.git.' '.args)
-    if has('win32')
-      call fugitive#ReloadStatus()
+    let cmd = 'exe ' . string('!' . git . ' ' . args)
+    if s:cpath(tree) !=# s:cpath(getcwd())
+      let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
+      let cmd = 'try|' . cd . ' ' . tree . '|' . cmd . '|finally|' . cd . ' ' . s:fnameescape(getcwd()) . '|endtry'
     endif
+    return cmd . after
   endif
-  return matchstr(a:args, '\v\C\\@<!%(\\\\)*\|\zs.*')
 endfunction
 
 function! s:Subcommands() abort
@@ -1569,7 +1563,14 @@ function! s:Edit(cmd, bang, mods, ...) abort
     if a:cmd =~# 'read'
       let git = s:git_command()
       let last = line('$')
-      silent call s:ExecuteInTree(mods.' '.(a:cmd ==# 'read' ? 'keepalt $read' : a:cmd).'!'.git.' --no-pager '.args)
+      let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
+      let cwd = getcwd()
+      try
+        execute cd s:fnameescape(s:repo().tree())
+        silent execute mods.' '.(a:cmd ==# 'read' ? 'keepalt $read' : a:cmd).'!'.git.' --no-pager '.args
+      finally
+        execute cd s:fnameescape(cwd)
+      endtry
       if a:cmd ==# 'read'
         silent execute '1,'.last.'delete_'
       endif
