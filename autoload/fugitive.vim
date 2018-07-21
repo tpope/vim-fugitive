@@ -130,9 +130,21 @@ function! fugitive#Config(name, ...) abort
   return v:shell_error ? '' : out
 endfunction
 
+function! s:Remote(dir) abort
+  let head = FugitiveHead(0, a:dir)
+  let remote = len(head) ? fugitive#Config('branch.' . head . '.remote') : ''
+  let i = 10
+  while remote ==# '.' && i > 0
+    let head = matchstr(fugitive#Config('branch.' . head . '.merge'), 'refs/heads/\zs.*')
+    let remote = len(head) ? fugitive#Config('branch.' . head . '.remote') : ''
+    let i -= 1
+  endwhile
+  return remote =~# '\.\=$' ? 'origin' : remote
+endfunction
+
 function! fugitive#RemoteUrl(...) abort
   let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
-  let remote = !a:0 || a:1 =~# '^\.\=$' ? 'origin' : a:1
+  let remote = !a:0 || a:1 =~# '^\.\=$' ? s:Remote(dir) : a:1
   if fugitive#GitVersion() =~# '^[01]\.\|^2\.[0-6]\.'
     return fugitive#Config('remote.' . remote . '.url')
   endif
