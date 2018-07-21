@@ -110,7 +110,7 @@ function! fugitive#Prepare(...) abort
   let args = copy(a:000)
   if empty(args)
     return g:fugitive_git_executable
-  elseif args[0] !~# '^-' && args[0] =~# '[\/.]'
+  elseif args[0] !~# '^-' && args[0] =~# '[\/.]\|^$'
     let args[0] = '--git-dir=' . args[0]
   endif
   return g:fugitive_git_executable . ' ' . join(map(args, 's:shellesc(v:val)'), ' ')
@@ -122,6 +122,23 @@ function! fugitive#GitVersion(...) abort
     let s:git_versions[g:fugitive_git_executable] = matchstr(system(g:fugitive_git_executable.' --version'), "\\S\\+\\ze\n")
   endif
   return s:git_versions[g:fugitive_git_executable]
+endfunction
+
+function! fugitive#Config(name, ...) abort
+  let cmd = fugitive#Prepare(a:0 ? a:1 : get(b:, 'git_dir', ''), 'config', '--get', a:name)
+  let out = matchstr(system(cmd), "[^\r\n]*")
+  return v:shell_error ? '' : out
+endfunction
+
+function! fugitive#RemoteUrl(...) abort
+  let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
+  let remote = !a:0 || a:1 =~# '^\.\=$' ? 'origin' : a:1
+  if fugitive#GitVersion() =~# '^[01]\.\|^2\.[0-6]\.'
+    return fugitive#Config('remote.' . remote . '.url')
+  endif
+  let cmd = fugitive#Prepare(dir, 'remote', 'get-url', remote)
+  let out = substitute(system(cmd), "\n$", '', '')
+  return v:shell_error ? '' : out
 endfunction
 
 function! s:recall() abort
@@ -422,15 +439,15 @@ endfunction
 
 call s:add_methods('repo',['dirglob','superglob'])
 
-function! s:repo_config(conf) dict abort
-  return matchstr(s:repo().git_chomp('config',a:conf),"[^\r\n]*")
-endfun
+function! s:repo_config(name) dict abort
+  return fugitive#Config(a:name, self.git_dir)
+endfunction
 
 function! s:repo_user() dict abort
-  let username = s:repo().config('user.name')
-  let useremail = s:repo().config('user.email')
+  let username = self.config('user.name')
+  let useremail = self.config('user.email')
   return username.' <'.useremail.'>'
-endfun
+endfunction
 
 function! s:repo_aliases() dict abort
   if !has_key(self,'_aliases')
@@ -2518,16 +2535,9 @@ function! s:Browse(bang,line1,count,...) abort
 
     if empty(remote)
       let remote = '.'
-      let remote_for_url = 'origin'
-    else
-      let remote_for_url = remote
     endif
-    if fugitive#GitVersion() =~# '^[01]\.\|^2\.[0-6]\.'
-      let raw = s:repo().git_chomp('config','remote.'.remote_for_url.'.url')
-    else
-      let raw = s:repo().git_chomp('remote','get-url',remote_for_url)
-    endif
-    if raw ==# ''
+    let raw = fugitive#RemoteUrl(remote)
+    if empty(raw)
       let raw = remote
     endif
 
