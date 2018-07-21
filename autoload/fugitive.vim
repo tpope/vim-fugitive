@@ -2524,6 +2524,7 @@ function! s:Browse(bang,line1,count,...) abort
 
     for Handler in g:fugitive_browse_handlers
       let url = call(Handler, [{
+            \ 'dir': b:git_dir,
             \ 'repo': s:repo(),
             \ 'remote': raw,
             \ 'revision': 'No longer provided',
