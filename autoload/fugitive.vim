@@ -294,45 +294,56 @@ function! s:repo_bare() dict abort
 endfunction
 
 function! s:repo_translate(spec) dict abort
-  if a:spec ==# '.' || a:spec ==# '/.'
-    return self.bare() ? self.dir() : self.tree()
-  elseif a:spec =~# '^/\=\.git$' && self.bare()
-    return self.dir()
-  elseif a:spec =~# '^/\=\.git/'
-    return self.dir(s:sub(a:spec, '^/=\.git/', ''))
-  elseif a:spec =~# '^/'
-    return self.tree().a:spec
-  elseif a:spec =~# '^:[0-3]:'
-    return 'fugitive://'.self.dir().'//'.a:spec[1].'/'.a:spec[3:-1]
-  elseif a:spec ==# ':'
-    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(self.dir())] ==# self.dir('') && filereadable($GIT_INDEX_FILE)
-      return fnamemodify($GIT_INDEX_FILE,':p')
+  let rev = a:spec
+  let dir = self.git_dir
+  let tree = FugitiveTreeForGitDir(dir)
+  if rev ==# '.' || rev ==# '/.'
+    let f = empty(tree) ? dir : tree
+  elseif rev =~# '^/\=\.git$' && empty(tree)
+    let f = dir
+  elseif rev =~# '^/\=\.git/'
+    let f = dir . s:sub(rev, '^/=\.git', '')
+  elseif empty(rev)
+    return self.tree()
+  elseif rev =~# '^/'
+    let f = self.tree(rev)
+  elseif rev =~# '^:[0-3]:/\@!'
+    let f = 'fugitive://' . dir . '//' . rev[1] . '/' . rev[3:-1]
+  elseif rev ==# ':'
+    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && s:cpath(fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(dir)]) ==# s:cpath(dir . '/') && filereadable($GIT_INDEX_FILE)
+      let f = fnamemodify($GIT_INDEX_FILE, ':p')
     else
-      return self.dir('index')
+      let f = dir . '/index'
     endif
-  elseif a:spec =~# '^:/'
-    let ref = self.rev_parse(matchstr(a:spec,'.[^:]*'))
-    return 'fugitive://'.self.dir().'//'.ref
-  elseif a:spec =~# '^:'
-    return 'fugitive://'.self.dir().'//0/'.a:spec[1:-1]
+  elseif rev =~# '^:/\@!'
+    let f = 'fugitive://' . dir . '//0/' . rev[1:-1]
   else
-    let refs = self.dir('refs/')
-    if filereadable(self.dir('commondir'))
-      let refs = simplify(self.dir(get(readfile(self.dir('commondir'), 1), 0, ''))) . '/refs/'
+    if rev =~# 'HEAD\|^refs/' && rev !~# ':'
+      let refs = dir . '/refs/'
+      if filereadable(dir . '/commondir')
+        let refs = simplify(dir . '/' . get(readfile(dir . '/commondir', 1), 0, '')) . '/refs/'
+      endif
+      if filereadable(refs . '../' . rev)
+        let f = simplify(refs . '../' . rev)
+      elseif filereadable(refs . rev)
+        let f = refs . rev
+      endif
     endif
-    if a:spec =~# 'HEAD\|^refs/' && a:spec !~ ':' && filereadable(refs . '../' . a:spec)
-      return simplify(refs . '../' . a:spec)
-    elseif filereadable(refs.a:spec)
-      return refs.a:spec
+    if !exists('f')
+      let commit = substitute(matchstr(rev,'^[^:]\+\|^:.*'), '^@\%($|[^~]\)\@=', 'HEAD', '')
+      let file = substitute(matchstr(rev, '^[^:]\+:.*'), '^:', '/', '')
+      if commit !~# '^[0-9a-f]\{40\}$'
+        let commit = system(fugitive#Prepare(dir, 'rev-parse', '--verify', commit))[0:-2]
+        let commit = v:shell_error ? '' : commit
+      endif
+      if len(commit)
+        let f = 'fugitive://' . dir . '//' . commit . file
+      else
+        let f = self.tree(rev)
+      endif
     endif
-    try
-      let ref = self.rev_parse(s:sub(matchstr(a:spec,'[^:]*'), '^\@%($|[^~])@=', 'HEAD'))
-      let path = s:sub(matchstr(a:spec,':.*'),'^:','/')
-      return 'fugitive://'.self.dir().'//'.ref.path
-    catch /^fugitive:/
-      return self.tree(a:spec)
-    endtry
   endif
+  return f
 endfunction
 
 function! s:repo_head(...) dict abort
