@@ -2841,6 +2841,9 @@ function! fugitive#BufReadCmd(...) abort
   let amatch = a:0 ? a:1 : expand('<amatch>')
   try
     let [dir, rev] = s:DirRev(amatch)
+    if empty(dir)
+      return 'echo "Invalid Fugitive URL"'
+    endif
     let b:fugitive_type = system(fugitive#Prepare(dir, 'cat-file', '-t', rev))[0:-2]
     if v:shell_error
       unlet b:fugitive_type
