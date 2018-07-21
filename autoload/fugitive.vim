@@ -2446,8 +2446,8 @@ function! s:Browse(bang,line1,count,...) abort
     else
       let expanded = s:buffer().expand(rev)
     endif
-    if filereadable(s:repo().tree('refs/tags/' . expanded))
-      let expanded = 'refs/tags/' . expanded
+    if filereadable(s:repo().dir('refs/tags/' . expanded))
+      let expanded = '.git/refs/tags/' . expanded
     endif
     let full = s:repo().translate(expanded)
     let commit = ''
