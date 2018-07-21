@@ -234,6 +234,7 @@ that are part of Git repositories).
                         <CR>  q, then open commit
                         o     open commit in horizontal split
                         O     open commit in new tab
+                        p     open commit in the preview window
                         -     reblame at commit
                         ~     reblame at [count]th first grandparent
                         P     reblame at [count]th parent (like HEAD^[count])
@@ -299,6 +300,9 @@ S                       Jump to the revision under the cursor in a new
 
                                                 *fugitive-O*
 O                       Jump to the revision under the cursor in a new tab.
+
+                                                *fugitive-p*
+p                       Open the revision under the cursor in the preview window.
 
                                                 *fugitive--*
 -                       Go to the tree containing the current tree or blob.
