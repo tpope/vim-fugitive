@@ -25,8 +25,8 @@ endfunction
 
 let s:worktree_for_dir = {}
 let s:dir_for_worktree = {}
-function! FugitiveTreeForGitDir(git_dir) abort
-  let dir = substitute(s:shellslash(a:git_dir), '/$', '', '')
+function! FugitiveTreeForGitDir(...) abort
+  let dir = substitute(s:shellslash(a:0 ? a:1 : get(b:, 'git_dir', '')), '/$', '', '')
   if dir =~# '/\.git$'
     return len(dir) ==# 5 ? '/' : dir[0:-6]
   endif
