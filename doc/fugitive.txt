@@ -251,12 +251,6 @@ that are part of Git repositories).
                         supported by installing rhubarb.vim, available at
                         <https://github.com/tpope/vim-rhubarb>.
 
-                        The hosting provider is determined by looking at the
-                        remote for the current or specified branch and falls
-                        back to "origin".  In the special case of a "."
-                        remote, a local instance of git-instaweb will be
-                        started and used.
-
 :Gbrowse {revision}     Like :Gbrowse, but for a given |fugitive-revision|.  A
                         useful value here is -, which ties the URL to the
                         latest commit rather than a volatile branch.

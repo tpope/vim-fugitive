@@ -2560,26 +2560,26 @@ function! s:Browse(bang,line1,count,...) abort
       endif
     endif
 
-    for Handler in g:fugitive_browse_handlers
-      let url = call(Handler, [{
-            \ 'dir': b:git_dir,
-            \ 'repo': s:repo(),
-            \ 'remote': raw,
-            \ 'revision': 'No longer provided',
-            \ 'commit': commit,
-            \ 'path': path,
-            \ 'type': type,
-            \ 'line1': a:count > 0 ? a:line1 : 0,
-            \ 'line2': a:count > 0 ? a:count : 0}])
+    let opts = {
+          \ 'dir': b:git_dir,
+          \ 'repo': s:repo(),
+          \ 'remote': raw,
+          \ 'revision': 'No longer provided',
+          \ 'commit': commit,
+          \ 'path': path,
+          \ 'type': type,
+          \ 'line1': a:count > 0 ? a:line1 : 0,
+          \ 'line2': a:count > 0 ? a:count : 0}
+
+    for Handler in get(g:, 'fugitive_browse_handlers', [])
+      let url = call(Handler, [copy(opts)])
       if !empty(url)
         break
       endif
     endfor
 
-    if empty(url) && raw ==# '.'
-      call s:throw("Instaweb failed to start")
-    elseif empty(url)
-      call s:throw("'".remote."' is not a supported remote")
+    if empty(url)
+      call s:throw("No Gbrowse handler found for '".raw."'")
     endif
 
     let url = s:gsub(url, '[ <>]', '\="%".printf("%02X",char2nr(submatch(0)))')
@@ -2604,72 +2604,6 @@ function! s:Browse(bang,line1,count,...) abort
     return 'echoerr v:errmsg'
   endtry
 endfunction
-
-function! s:github_url(opts, ...) abort
-  if a:0 || type(a:opts) != type({})
-    return ''
-  endif
-  let domain_pattern = 'github\.com'
-  let domains = exists('g:fugitive_github_domains') ? g:fugitive_github_domains : []
-  for domain in domains
-    let domain_pattern .= '\|' . escape(split(domain, '://')[-1], '.')
-  endfor
-  let repo = matchstr(get(a:opts, 'remote'), '^\%(https\=://\|git://\|git@\)\=\zs\('.domain_pattern.'\)[/:].\{-\}\ze\%(\.git\)\=$')
-  if repo ==# ''
-    return ''
-  endif
-  call s:warn('Install rhubarb.vim for GitHub support')
-  return 'https://github.com/tpope/vim-rhubarb'
-endfunction
-
-function! s:instaweb_url(opts) abort
-  if a:opts.remote !=# '.'
-    return ''
-  endif
-  let output = system(get(g:, 'fugitive_executable', 'git') . ' --git-dir=' . shellescape(a:opts.dir) . ' instaweb -b unknown')
-  if output =~# 'http://'
-    let root = matchstr(output,"http://[^\n]*").'/?p='.fnamemodify(a:opts.dir, ':t')
-  else
-    return ''
-  endif
-  if a:opts.path =~# '^\.git/refs/.'
-    return root . ';a=shortlog;h=' . matchstr(a:opts.path,'^\.git/\zs.*')
-  elseif a:opts.path =~# '^\.git\>'
-    return root
-  endif
-  let url = root
-  if a:opts.commit =~# '^\x\{40\}$'
-    if a:opts.type ==# 'commit'
-      let url .= ';a=commit'
-    endif
-    let url .= ';h=' . a:opts.repo.rev_parse(a:opts.commit . (a:opts.path == '' ? '' : ':' . a:opts.path))
-  else
-    if a:opts.type ==# 'blob' && empty(a:opts.commit)
-      let url .= ';h='.a:opts.repo.git_chomp('hash-object', '-w', a:opts.path)
-    else
-      try
-        let url .= ';h=' . a:opts.repo.rev_parse((a:opts.commit == '' ? 'HEAD' : ':' . a:opts.commit) . ':' . a:opts.path)
-      catch /^fugitive:/
-        call s:throw('fugitive: cannot browse uncommitted file')
-      endtry
-    endif
-    let root .= ';hb=' . a:opts.repo.head(-1)
-  endif
-  if a:opts.path !=# ''
-    let url .= ';f=' . a:opts.path
-  endif
-  if get(a:opts, 'line1')
-    let url .= '#l' . a:opts.line1
-  endif
-  return url
-endfunction
-
-if !exists('g:fugitive_browse_handlers')
-  let g:fugitive_browse_handlers = []
-endif
-
-call extend(g:fugitive_browse_handlers,
-      \ [s:function('s:github_url'), s:function('s:instaweb_url')])
 
 " Section: File access
 
