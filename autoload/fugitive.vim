@@ -2641,13 +2641,13 @@ function! s:Browse(bang,line1,count,...) abort
       let branch = s:repo().head()
     endif
     if !empty(branch)
-      let r = s:repo().git_chomp('config','branch.'.branch.'.remote')
-      let m = s:repo().git_chomp('config','branch.'.branch.'.merge')[11:-1]
+      let r = fugitive#Config('branch.'.branch.'.remote')
+      let m = fugitive#Config('branch.'.branch.'.merge')[11:-1]
       if r ==# '.' && !empty(m)
-        let r2 = s:repo().git_chomp('config','branch.'.m.'.remote')
+        let r2 = fugitive#Config('branch.'.m.'.remote')
         if r2 !~# '^\.\=$'
           let r = r2
-          let m = s:repo().git_chomp('config','branch.'.m.'.merge')[11:-1]
+          let m = fugitive#Config('branch.'.m.'.merge')[11:-1]
         endif
       endif
       if empty(remote)

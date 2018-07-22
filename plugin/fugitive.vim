@@ -168,6 +168,14 @@ function! FugitiveParse(...) abort
   throw v:errmsg
 endfunction
 
+function! FugitiveConfig(...) abort
+  return call('fugitive#Config', a:000)
+endfunction
+
+function! FugitiveRemoteUrl(...) abort
+  return call('fugitive#RemoteUrl', a:000)
+endfunction
+
 augroup fugitive
   autocmd!
 
