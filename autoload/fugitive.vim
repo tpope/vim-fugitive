@@ -805,6 +805,10 @@ function! s:buffer_relative(...) dict abort
   return s:sub(s:sub(rev,'.\zs/$',''),'^/',a:0 ? a:1 : '')
 endfunction
 
+function! s:Relative(prefix) abort
+  return s:buffer().relative(a:prefix)
+endfunction
+
 function! s:buffer_path(...) dict abort
   if a:0
     return self.relative(a:1)
@@ -1503,7 +1507,7 @@ function! s:Grep(cmd,bang,arg) abort
 endfunction
 
 function! s:Log(cmd, line1, line2, ...) abort
-  let path = s:buffer().relative('/')
+  let path = s:Relative('/')
   if path =~# '^/\.git\%(/\|$\)' || index(a:000,'--') != -1
     let path = ''
   endif
@@ -1512,11 +1516,11 @@ function! s:Log(cmd, line1, line2, ...) abort
   if empty(filter(a:000[0 : index(a:000,'--')],'v:val !~# "^-"'))
     if s:buffer().commit() =~# '\x\{40\}'
       let cmd += [s:buffer().commit()]
-    elseif s:buffer().relative() =~# '^\.git/refs/\|^\.git/.*HEAD$'
-      let cmd += [s:buffer().relative()[5:-1]]
+    elseif s:Relative('') =~# '^\.git/refs/\|^\.git/.*HEAD$'
+      let cmd += [s:Relative('')[5:-1]]
     endif
   end
-  let cmd += map(copy(a:000),'s:sub(v:val,"^\\%(%(:\\w)*)","\\=fnamemodify(s:buffer().relative(),submatch(1))")')
+  let cmd += map(copy(a:000),'s:sub(v:val,"^\\%(%(:\\w)*)","\\=fnamemodify(s:Relative(''),submatch(1))")')
   if path =~# '/.'
     if a:line2
       let cmd += ['-L', a:line1 . ',' . a:line2 . ':' . path[1:-1]]
@@ -1624,10 +1628,10 @@ function! s:Edit(cmd, bang, mods, ...) abort
     let file = buffer.expand(join(a:000, ' '))
   elseif expand('%') ==# ''
     let file = ':'
-  elseif buffer.commit() ==# '' && buffer.relative('/') !~# '^/.git\>'
-    let file = buffer.relative(':')
+  elseif buffer.commit() ==# '' && s:Relative('/') !~# '^/.git\>'
+    let file = s:Relative(':')
   else
-    let file = buffer.relative('/')
+    let file = s:Relative('/')
   endif
   try
     let file = s:Generate(file)
@@ -1677,7 +1681,7 @@ function! s:Write(force,...) abort
     return 'wq'
   elseif s:buffer().type() == 'index'
     return 'Gcommit'
-  elseif s:buffer().relative() ==# '' && getline(4) =~# '^+++ '
+  elseif s:Relative('') ==# '' && getline(4) =~# '^+++ '
     let filename = getline(4)[6:-1]
     setlocal buftype=
     silent write
@@ -1698,14 +1702,14 @@ function! s:Write(force,...) abort
   endif
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
-  let path = a:0 ? join(a:000, ' ') : s:buffer().relative()
+  let path = a:0 ? join(a:000, ' ') : s:Relative('')
   if empty(path)
     return 'echoerr '.string('fugitive: cannot determine file path')
   endif
   if path =~# '^:\d\>'
     return 'write'.(a:force ? '! ' : ' ').s:fnameescape(s:Generate(s:buffer().expand(path)))
   endif
-  let always_permitted = (s:buffer().relative() ==# path && s:buffer().commit() =~# '^0\=$')
+  let always_permitted = (s:Relative('') ==# path && s:buffer().commit() =~# '^0\=$')
   if !always_permitted && !a:force && (len(s:TreeChomp('diff','--name-status','HEAD','--',path)) || len(s:TreeChomp('ls-files','--others','--',path)))
     let v:errmsg = 'fugitive: file has uncommitted changes (use ! to override)'
     return 'echoerr v:errmsg'
@@ -1762,7 +1766,7 @@ function! s:Write(force,...) abort
     let v:errmsg = 'fugitive: '.error
     return 'echoerr v:errmsg'
   endif
-  if s:buffer().relative() ==# path && s:buffer().commit() =~# '^\d$'
+  if s:Relative('') ==# path && s:buffer().commit() =~# '^\d$'
     set nomodified
   endif
 
@@ -1983,17 +1987,18 @@ function! s:Diff(vert,keepfocus,...) abort
     let post = remove(args, 0)[1:-1]
   endif
   let vert = empty(a:vert) ? s:diff_modifier(2) : a:vert
+  let commit = s:DirCommitFile(@%)[1]
   if exists(':DiffGitCached')
     return 'DiffGitCached'
-  elseif (empty(args) || args[0] ==# ':') && s:DirCommitFile(@%)[1] =~# '^[0-1]\=$' && !empty(s:TreeChomp('ls-files', '--unmerged', '--', s:buffer().relative()))
+  elseif (empty(args) || args[0] ==# ':') && commit =~# '^[0-1]\=$' && !empty(s:TreeChomp('ls-files', '--unmerged', '--', s:Relative('')))
     let vert = empty(a:vert) ? s:diff_modifier(3) : a:vert
     let nr = bufnr('')
-    execute 'leftabove '.vert.'split' s:fnameescape(s:Generate(s:buffer().relative(':2:')))
+    execute 'leftabove '.vert.'split' s:fnameescape(s:Generate(s:Relative(':2:')))
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     let nr2 = bufnr('')
     call s:diffthis()
     wincmd p
-    execute 'rightbelow '.vert.'split' s:fnameescape(s:Generate(s:buffer().relative(':3:')))
+    execute 'rightbelow '.vert.'split' s:fnameescape(s:Generate(s:Relative(':3:')))
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     let nr3 = bufnr('')
     call s:diffthis()
@@ -2007,12 +2012,12 @@ function! s:Diff(vert,keepfocus,...) abort
     if arg ==# ''
       return post
     elseif arg ==# '/'
-      let file = s:buffer().relative('/')
+      let file = s:Relative('/')
     elseif arg ==# ':'
-      let file = s:buffer().relative(':0:')
+      let file = s:Relative(':0:')
     elseif arg =~# '^:/.'
       try
-        let file = s:repo().rev_parse(arg).s:buffer().relative(':')
+        let file = s:repo().rev_parse(arg).s:Relative(':')
       catch /^fugitive:/
         return 'echoerr v:errmsg'
       endtry
@@ -2020,10 +2025,10 @@ function! s:Diff(vert,keepfocus,...) abort
       let file = s:buffer().expand(arg)
     endif
     if file !~# ':' && file !~# '^/' && s:TreeChomp('cat-file','-t',file) =~# '^\%(tag\|commit\)$'
-      let file = file.s:buffer().relative(':')
+      let file = file.s:Relative(':')
     endif
   else
-    let file = s:buffer().relative(empty(s:buffer().commit()) ? ':0:' : '/')
+    let file = s:Relative(empty(commit) ? ':0:' : '/')
   endif
   try
     let spec = s:Generate(file)
@@ -2032,7 +2037,7 @@ function! s:Diff(vert,keepfocus,...) abort
       setlocal cursorbind
     endif
     let w:fugitive_diff_restore = restore
-    if s:CompareAge(s:buffer().commit(), s:DirCommitFile(spec)[1]) < 0
+    if s:CompareAge(commit, s:DirCommitFile(spec)[1]) < 0
       execute 'rightbelow '.vert.'diffsplit '.s:fnameescape(spec)
     else
       execute 'leftabove '.vert.'diffsplit '.s:fnameescape(spec)
@@ -2059,7 +2064,7 @@ function! s:Move(force, rename, destination) abort
   if a:destination =~# '^/'
     let destination = a:destination[1:-1]
   elseif a:rename
-    let destination = fnamemodify(s:buffer().relative(), ':h') . '/' . a:destination
+    let destination = fnamemodify(s:Relative(''), ':h') . '/' . a:destination
   else
     let destination = s:shellslash(fnamemodify(s:sub(a:destination,'[%#]%(:\w)*','\=expand(submatch(0))'),':p'))
     if destination[0:strlen(s:repo().tree())] ==# s:repo().tree('')
@@ -2069,7 +2074,7 @@ function! s:Move(force, rename, destination) abort
   if isdirectory(s:buffer().spec())
     setlocal noswapfile
   endif
-  let message = call('s:TreeChomp', ['mv'] + (a:force ? ['-f'] : []) + ['--', s:buffer().relative(), destination])
+  let message = call('s:TreeChomp', ['mv'] + (a:force ? ['-f'] : []) + ['--', s:Relative(''), destination])
   if v:shell_error
     let v:errmsg = 'fugitive: '.message
     return 'echoerr v:errmsg'
@@ -2104,7 +2109,7 @@ function! s:RenameComplete(A,L,P) abort
   if a:A =~# '^/'
     return s:repo().superglob(a:A)
   else
-    let pre = '/'. fnamemodify(s:buffer().relative(), ':h') . '/'
+    let pre = '/' . fnamemodify(s:Relative(''), ':h') . '/'
     return map(s:repo().superglob(pre.a:A), 'strpart(v:val, len(pre))')
   endif
 endfunction
@@ -2121,7 +2126,7 @@ function! s:Remove(after, force) abort
   if a:force
     let cmd += ['--force']
   endif
-  let message = call('s:TreeChomp', cmd+['--',s:buffer().relative()])
+  let message = call('s:TreeChomp', cmd+['--',s:Relative('')])
   if v:shell_error
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
@@ -2176,7 +2181,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
     return 'bdelete'
   endif
   try
-    if empty(s:buffer().relative())
+    if empty(s:Relative(''))
       call s:throw('file or blob required')
     endif
     if filter(copy(a:args),'v:val !~# "^\\%(--root\|--show-name\\|-\\=\\%([ltfnsew]\\|[MC]\\d*\\)\\+\\)$"') != []
@@ -2189,7 +2194,7 @@ function! s:Blame(bang,line1,line2,count,args) abort
     else
       let cmd += ['--contents', '-']
     endif
-    let cmd += ['--', s:buffer().relative()]
+    let cmd += ['--', s:Relative('')]
     let basecmd = escape(call('fugitive#Prepare', cmd), '!#%')
     try
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
@@ -2296,7 +2301,7 @@ function! s:BlameCommit(cmd) abort
   let lnum = matchstr(getline('.'),' \zs\d\+\ze\s\+[([:digit:]]')
   let path = matchstr(getline('.'),'^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
   if path ==# ''
-    let path = s:buffer(b:fugitive_blamed_bufnr).relative()
+    let path = s:buffer(b:fugitive_blamed_bufnr).relative('')
   endif
   execute cmd
   if search('^diff .* b/\M'.escape(path,'\').'$','W')
@@ -2337,7 +2342,7 @@ function! s:BlameJump(suffix) abort
   let lnum = matchstr(getline('.'),' \zs\d\+\ze\s\+[([:digit:]]')
   let path = matchstr(getline('.'),'^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
   if path ==# ''
-    let path = s:buffer(b:fugitive_blamed_bufnr).relative()
+    let path = s:buffer(b:fugitive_blamed_bufnr).relative('')
   endif
   let args = b:fugitive_blame_arguments
   let offset = line('.') - line('w0')
@@ -2445,7 +2450,7 @@ function! s:Browse(bang,line1,count,...) abort
     if rev ==# ''
       let expanded = s:buffer().rev()
     elseif rev ==# ':'
-      let expanded = s:buffer().relative('/')
+      let expanded = s:Relative('/')
     else
       let expanded = s:buffer().expand(rev)
     endif
@@ -3032,8 +3037,8 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
     nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
     nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,'',<SID>NavigateUp(v:count1))<Bar> if fugitive#buffer().type('tree')<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
-    nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'^'.v:count1.<SID>buffer().relative(':'))<CR>
-    nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'~'.v:count1.<SID>buffer().relative(':'))<CR>
+    nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
+    nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> cc    :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> co    :<C-U>exe <SID>Edit('split',0,'',<SID>ContainingCommit())<CR>
@@ -3060,9 +3065,9 @@ function! s:cfile() abort
     if buffer.type('tree')
       let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
       if showtree && line('.') > 2
-        return [buffer.commit().':'.s:buffer().relative().(buffer.relative() =~# '^$\|/$' ? '' : '/').s:sub(getline('.'),'/$','')]
+        return [buffer.commit().':'.s:Relative('').(s:Relative('') =~# '^$\|/$' ? '' : '/').s:sub(getline('.'),'/$','')]
       elseif getline('.') =~# '^\d\{6\} \l\{3,8\} \x\{40\}\t'
-        return [buffer.commit().':'.s:buffer().relative().(buffer.relative() =~# '^$\|/$' ? '' : '/').s:sub(matchstr(getline('.'),'\t\zs.*'),'/$','')]
+        return [buffer.commit().':'.s:Relative('').(s:Relative('') =~# '^$\|/$' ? '' : '/').s:sub(matchstr(getline('.'),'\t\zs.*'),'/$','')]
       endif
 
     elseif buffer.type('blob')
