@@ -818,31 +818,7 @@ function! s:buffer_expand(rev) dict abort
         \ '\.\@<=/$','')
 endfunction
 
-function! s:buffer_up(...) dict abort
-  let rev = self.rev()
-  let c = a:0 ? a:1 : 1
-  while c
-    if rev =~# '^[/:]$'
-      let rev = 'HEAD'
-    elseif rev =~# '^:'
-      let rev = ':'
-    elseif rev =~# '^refs/[^^~:]*$\|^[^^~:]*HEAD$'
-      let rev .= '^{}'
-    elseif rev =~# '^/\|:.*/'
-      let rev = s:sub(rev, '.*\zs/.*', '')
-    elseif rev =~# ':.'
-      let rev = matchstr(rev, '^[^:]*:')
-    elseif rev =~# ':$'
-      let rev = rev[0:-2]
-    else
-      return rev.'~'.c
-    endif
-    let c -= 1
-  endwhile
-  return rev
-endfunction
-
-call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative','rev','expand','up'])
+call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative','rev','expand'])
 
 " Section: Git
 
@@ -2996,13 +2972,37 @@ function! s:ContainingCommit() abort
   endif
 endfunction
 
+function! s:NavigateUp(count) dict abort
+  let rev = self.rev()
+  let c = a:count
+  while c
+    if rev =~# '^[/:]$'
+      let rev = 'HEAD'
+    elseif rev =~# '^:'
+      let rev = ':'
+    elseif rev =~# '^refs/[^^~:]*$\|^[^^~:]*HEAD$'
+      let rev .= '^{}'
+    elseif rev =~# '^/\|:.*/'
+      let rev = s:sub(rev, '.*\zs/.*', '')
+    elseif rev =~# ':.'
+      let rev = matchstr(rev, '^[^:]*:')
+    elseif rev =~# ':$'
+      let rev = rev[0:-2]
+    else
+      return rev.'~'.c
+    endif
+    let c -= 1
+  endwhile
+  return rev
+endfunction
+
 function! fugitive#MapJumps(...) abort
   nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
   if !&modifiable
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
     nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
     nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
-    nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,'',<SID>buffer().up(v:count1))<Bar> if fugitive#buffer().type('tree')<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
+    nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,'',<SID>NavigateUp(v:count1))<Bar> if fugitive#buffer().type('tree')<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
     nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'^'.v:count1.<SID>buffer().relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'~'.v:count1.<SID>buffer().relative(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit())<CR>
