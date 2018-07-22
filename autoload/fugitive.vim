@@ -533,8 +533,25 @@ function! fugitive#Real(url) abort
   return ''
 endfunction
 
-function! fugitive#Path(url) abort
-  return fugitive#Real(a:url)
+function! fugitive#Path(url, ...) abort
+  if !a:0
+    return fugitive#Real(a:url)
+  endif
+  let url = fnamemodify(a:url, ':p')
+  let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
+  let tree = FugitiveTreeForGitDir(dir)
+  let [argdir, commit, file] = s:DirCommitFile(a:url)
+  if len(argdir) && s:cpath(argdir) !=# s:cpath(dir)
+    let file = ''
+  elseif len(dir) && s:cpath(url[0 : len(dir)]) ==# s:cpath(dir . '/')
+    let file = '/.git'.url[strlen(dir) : -1]
+  elseif len(tree) && s:cpath(url[0 : len(tree)]) ==# s:cpath(tree . '/')
+    let file = url[len(tree) : -1]
+  endif
+  if empty(file) && a:1 ==# ''
+    return s:shellslash(fugitive#Real(a:url))
+  endif
+  return substitute(file, '^/', a:1, '')
 endfunction
 
 let s:trees = {}
@@ -840,7 +857,7 @@ function! s:buffer_relative(...) dict abort
 endfunction
 
 function! s:Relative(prefix) abort
-  return s:buffer().relative(a:prefix)
+  return fugitive#Path(@%, a:prefix)
 endfunction
 
 function! s:buffer_path(...) dict abort
