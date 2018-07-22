@@ -520,19 +520,21 @@ function! s:DirRev(url) abort
   return [dir, (commit =~# '^.$' ? ':' : '') . commit . substitute(file, '^/', ':', '')]
 endfunction
 
-function! fugitive#Path(url) abort
+function! fugitive#Real(url) abort
   let [dir, commit, file] = s:DirCommitFile(a:url)
   if len(dir)
     let tree = FugitiveTreeForGitDir(dir)
     return s:PlatformSlash((len(tree) ? tree : dir) . file)
-  elseif a:url =~# '^[\\/]\|^\a:[\\/]'
-    return s:PlatformSlash(a:url)
+  endif
+  let url = fnamemodify(a:url, ':p' . (a:url =~# '[\/]$' ? '' : ':s?[\/]$??'))
+  if url =~# '^[\\/]\|^\a:[\\/]'
+    return s:PlatformSlash(url)
   endif
   return ''
 endfunction
 
-function! fugitive#Real(url) abort
-  return fugitive#Path(a:url)
+function! fugitive#Path(url) abort
+  return fugitive#Real(a:url)
 endfunction
 
 let s:trees = {}
@@ -2329,7 +2331,7 @@ function! s:BlameCommit(cmd) abort
   let lnum = matchstr(getline('.'),' \zs\d\+\ze\s\+[([:digit:]]')
   let path = matchstr(getline('.'),'^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
   if path ==# ''
-    let path = s:buffer(b:fugitive_blamed_bufnr).relative('')
+    let path = fugitive#Path(bufname(b:fugitive_blamed_bufnr), '')
   endif
   execute cmd
   if search('^diff .* b/\M'.escape(path,'\').'$','W')
@@ -2370,7 +2372,7 @@ function! s:BlameJump(suffix) abort
   let lnum = matchstr(getline('.'),' \zs\d\+\ze\s\+[([:digit:]]')
   let path = matchstr(getline('.'),'^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
   if path ==# ''
-    let path = s:buffer(b:fugitive_blamed_bufnr).relative('')
+    let path = fugitive#Path(bufname(b:fugitive_blamed_bufnr), '')
   endif
   let args = b:fugitive_blame_arguments
   let offset = line('.') - line('w0')

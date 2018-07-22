@@ -139,17 +139,19 @@ function! FugitiveHead(...) abort
   return fugitive#repo(dir).head(a:0 ? a:1 : 0)
 endfunction
 
-function! FugitivePath(...) abort
-  let file = fnamemodify(a:0 ? a:1 : @%, ':p')
-  if file =~? '^fugitive:'
-    return fugitive#Path(file)
-  else
+function! FugitiveReal(...) abort
+  let file = a:0 ? a:1 : @%
+  if file =~? '^fugitive:' || a:0 > 1
+    return call('fugitive#Real', [file] + a:000[1:-1])
+  elseif file =~# '^/\|^\a\+:'
     return file
+  else
+    return fnamemodify(file, ':p' . (file =~# '[\/]$' ? '' : ':s?[\/]$??'))
   endif
 endfunction
 
-function! FugitiveReal(...) abort
-  return call('FugitivePath', a:000)
+function! FugitivePath(...) abort
+  return call(a:0 > 1 ? 'fugitive#Path' : 'FugitiveReal', a:000)
 endfunction
 
 function! FugitiveGenerate(...) abort
