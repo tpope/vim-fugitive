@@ -305,17 +305,17 @@ function! s:repo_bare() dict abort
   endif
 endfunction
 
-function! s:repo_translate(spec) dict abort
+function! s:repo_translate(spec, ...) dict abort
   let rev = a:spec
   let dir = self.git_dir
   let tree = FugitiveTreeForGitDir(dir)
-  if rev ==# '.' || rev ==# '/.'
+  if rev ==# '.'
     let f = empty(tree) ? dir : tree
   elseif rev =~# '^/\=\.git$' && empty(tree)
     let f = dir
   elseif rev =~# '^/\=\.git/'
     let f = dir . s:sub(rev, '^/=\.git', '')
-  elseif empty(rev)
+  elseif empty(rev) || rev ==# '/.'
     return self.tree()
   elseif rev =~# '^/'
     let f = self.tree(rev)
@@ -355,7 +355,11 @@ function! s:repo_translate(spec) dict abort
       endif
     endif
   endif
-  return f
+  return a:0 && a:1 ? s:PlatformSlash(f) : f
+endfunction
+
+function! s:Generate(rev) abort
+  return s:repo().translate(a:rev, 1)
 endfunction
 
 function! s:repo_head(...) dict abort
@@ -1466,11 +1470,11 @@ function! s:Grep(cmd,bang,arg) abort
     let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
     for entry in list
       if bufname(entry.bufnr) =~ ':'
-        let entry.filename = s:repo().translate(bufname(entry.bufnr))
+        let entry.filename = s:Generate(bufname(entry.bufnr))
         unlet! entry.bufnr
         let changed = 1
       elseif a:arg =~# '\%(^\| \)--cached\>'
-        let entry.filename = s:repo().translate(':0:'.bufname(entry.bufnr))
+        let entry.filename = s:Generate(':0:'.bufname(entry.bufnr))
         unlet! entry.bufnr
         let changed = 1
       endif
@@ -1620,7 +1624,7 @@ function! s:Edit(cmd, bang, mods, ...) abort
     let file = buffer.relative('/')
   endif
   try
-    let file = buffer.repo().translate(file)
+    let file = s:Generate(file)
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
@@ -1693,14 +1697,14 @@ function! s:Write(force,...) abort
     return 'echoerr '.string('fugitive: cannot determine file path')
   endif
   if path =~# '^:\d\>'
-    return 'write'.(a:force ? '! ' : ' ').s:fnameescape(s:repo().translate(s:buffer().expand(path)))
+    return 'write'.(a:force ? '! ' : ' ').s:fnameescape(s:Generate(s:buffer().expand(path)))
   endif
   let always_permitted = (s:buffer().relative() ==# path && s:buffer().commit() =~# '^0\=$')
   if !always_permitted && !a:force && s:repo().git_chomp_in_tree('diff','--name-status','HEAD','--',path) . s:repo().git_chomp_in_tree('ls-files','--others','--',path) !=# ''
     let v:errmsg = 'fugitive: file has uncommitted changes (use ! to override)'
     return 'echoerr v:errmsg'
   endif
-  let file = s:repo().translate(path)
+  let file = s:Generate(path)
   let treebufnr = 0
   for nr in range(1,bufnr('$'))
     if fnamemodify(bufname(nr),':p') ==# file
@@ -1740,7 +1744,7 @@ function! s:Write(force,...) abort
       call writefile(readfile(temp,'b'),file,'b')
     endif
   else
-    execute 'write! '.s:fnameescape(s:repo().translate(path))
+    execute 'write! '.s:fnameescape(s:Generate(path))
   endif
 
   if a:force
@@ -1756,9 +1760,9 @@ function! s:Write(force,...) abort
     set nomodified
   endif
 
-  let one = s:repo().translate(':1:'.path)
-  let two = s:repo().translate(':2:'.path)
-  let three = s:repo().translate(':3:'.path)
+  let one = s:Generate(':1:'.path)
+  let two = s:Generate(':2:'.path)
+  let three = s:Generate(':3:'.path)
   for nr in range(1,bufnr('$'))
     let name = fnamemodify(bufname(nr), ':p')
     if bufloaded(nr) && !getbufvar(nr,'&modified') && (name ==# one || name ==# two || name ==# three)
@@ -1767,7 +1771,7 @@ function! s:Write(force,...) abort
   endfor
 
   unlet! restorewinnr
-  let zero = s:repo().translate(':0:'.path)
+  let zero = s:Generate(':0:'.path)
   silent execute 'doautocmd BufWritePost' s:fnameescape(zero)
   for tab in range(1,tabpagenr('$'))
     for winnr in range(1,tabpagewinnr(tab,'$'))
@@ -1978,12 +1982,12 @@ function! s:Diff(vert,keepfocus,...) abort
   elseif (empty(args) || args[0] ==# ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().relative()) !=# ''
     let vert = empty(a:vert) ? s:diff_modifier(3) : a:vert
     let nr = bufnr('')
-    execute 'leftabove '.vert.'split' s:fnameescape(fugitive#repo().translate(s:buffer().expand(':2')))
+    execute 'leftabove '.vert.'split' s:fnameescape(s:Generate(s:buffer().relative(':2:')))
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     let nr2 = bufnr('')
     call s:diffthis()
     wincmd p
-    execute 'rightbelow '.vert.'split' s:fnameescape(fugitive#repo().translate(s:buffer().expand(':3')))
+    execute 'rightbelow '.vert.'split' s:fnameescape(s:Generate(s:buffer().relative(':3:')))
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     let nr3 = bufnr('')
     call s:diffthis()
@@ -2016,7 +2020,7 @@ function! s:Diff(vert,keepfocus,...) abort
     let file = s:buffer().relative(empty(s:buffer().commit()) ? ':0:' : '/')
   endif
   try
-    let spec = s:repo().translate(file)
+    let spec = s:Generate(file)
     let restore = s:diff_restore()
     if exists('+cursorbind')
       setlocal cursorbind
@@ -2076,7 +2080,7 @@ function! s:Move(force, rename, destination) abort
       return 'keepalt saveas! '.s:fnameescape(destination)
     endif
   else
-    return 'file '.s:fnameescape(s:repo().translate(':0:'.destination))
+    return 'file '.s:fnameescape(s:Generate(':0:'.destination))
   endif
 endfunction
 
@@ -2442,7 +2446,7 @@ function! s:Browse(bang,line1,count,...) abort
     if filereadable(s:repo().dir('refs/tags/' . expanded))
       let expanded = '.git/refs/tags/' . expanded
     endif
-    let full = s:repo().translate(expanded)
+    let full = s:Generate(expanded)
     let commit = ''
     if full =~? '^fugitive:'
       let [dir, commit, path] = s:DirCommitFile(full)
@@ -3244,7 +3248,7 @@ function! fugitive#Cfile() abort
   elseif len(results) > 1
     let pre = '+' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' '
   endif
-  return pre . s:fnameescape(fugitive#repo().translate(results[0]))
+  return pre . s:fnameescape(s:Generate(results[0]))
 endfunction
 
 function! fugitive#cfile() abort
