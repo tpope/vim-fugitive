@@ -386,13 +386,6 @@ endfunction
 
 call s:add_methods('repo',['git_command','git_chomp','git_chomp_in_tree','rev_parse'])
 
-function! s:repo_dirglob(base) dict abort
-  let base = s:sub(a:base,'^/','')
-  let matches = split(glob(self.tree(s:gsub(base,'/','*&').'*/')),"\n")
-  call map(matches,'v:val[ strlen(self.tree())+(a:base !~ "^/") : -1 ]')
-  return matches
-endfunction
-
 function! s:repo_superglob(base) dict abort
   if a:base =~# '^/' || a:base !~# ':'
     let results = []
@@ -436,7 +429,7 @@ function! s:repo_superglob(base) dict abort
   endif
 endfunction
 
-call s:add_methods('repo',['dirglob','superglob'])
+call s:add_methods('repo',['superglob'])
 
 function! s:repo_config(name) dict abort
   return fugitive#Config(a:name, self.git_dir)
@@ -874,8 +867,10 @@ endfunction
 
 " Section: Gcd, Glcd
 
-function! s:DirComplete(A,L,P) abort
-  let matches = s:repo().dirglob(a:A)
+function! s:DirComplete(A, L, P) abort
+  let base = s:sub(a:A,'^/','')
+  let matches = split(glob(s:repo().tree(s:gsub(base,'/','*&').'*/')),"\n")
+  call map(matches,'v:val[ strlen(s:repo().tree())+(a:A !~ "^/") : -1 ]')
   return matches
 endfunction
 
