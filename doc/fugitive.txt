@@ -199,11 +199,7 @@ that are part of Git repositories).
 
                                                 *fugitive-:Gmove*
 :Gmove {destination}    Wrapper around git-mv that renames the buffer
-                        afterward.  The destination is relative to the current
-                        directory except when started with a /, in which case
-                        it is relative to the work tree.  (This is a holdover
-                        from before |:Grename| and will be removed.)  Add a !
-                        to pass -f.
+                        afterward.  Add a ! to pass -f.
 
                                                 *fugitive-:Grename*
 :Grename {destination}  Like |:Gmove| but operates relative to the parent

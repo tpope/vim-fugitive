@@ -2066,10 +2066,7 @@ function! s:Move(force, rename, destination) abort
   elseif a:rename
     let destination = fnamemodify(s:Relative(''), ':h') . '/' . a:destination
   else
-    let destination = s:shellslash(fnamemodify(s:sub(a:destination,'[%#]%(:\w)*','\=expand(submatch(0))'),':p'))
-    if destination[0:strlen(s:repo().tree())] ==# s:repo().tree('')
-      let destination = destination[strlen(s:repo().tree('')):-1]
-    endif
+    let destination = a:destination
   endif
   if isdirectory(s:buffer().spec())
     setlocal noswapfile
@@ -2099,9 +2096,7 @@ function! s:MoveComplete(A,L,P) abort
   if a:A =~# '^/'
     return s:repo().superglob(a:A)
   else
-    let matches = split(glob(a:A.'*'),"\n")
-    call map(matches,'v:val !~# "/$" && isdirectory(v:val) ? v:val."/" : v:val')
-    return matches
+    return map(s:repo().superglob('/' . a:A), 'strpart(v:val, 1)')
   endif
 endfunction
 
