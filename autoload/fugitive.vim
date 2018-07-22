@@ -217,7 +217,6 @@ function! fugitive#Init() abort
     call s:map('c', '<C-R><C-G>', 'fnameescape(<SID>recall())', '<expr>')
     call s:map('n', 'y<C-G>', ':call setreg(v:register, <SID>recall())<CR>', '<silent>')
   endif
-  let buffer = fugitive#buffer()
   if expand('%:p') =~# ':[\/][\/]'
     let &l:path = s:sub(&path, '^\.%(,|$)', '')
   endif
