@@ -116,6 +116,15 @@ function! fugitive#Prepare(...) abort
   return g:fugitive_git_executable . ' ' . join(map(args, 's:shellesc(v:val)'), ' ')
 endfunction
 
+function! s:TreeChomp(...) abort
+  let args = ['--git-dir=' . b:git_dir] + a:000
+  let tree = FugitiveTreeForGitDir(b:git_dir)
+  if !empty(tree)
+    call insert(args, '--work-tree=' . tree)
+  endif
+  return s:sub(s:System(call('fugitive#Prepare', args)),'\n$','')
+endfunction
+
 let s:git_versions = {}
 function! fugitive#GitVersion(...) abort
   if !has_key(s:git_versions, g:fugitive_git_executable)
@@ -396,8 +405,8 @@ function! s:repo_git_chomp_in_tree(...) dict abort
   let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
   let dir = getcwd()
   try
-    execute cd s:fnameescape(s:repo().tree())
-    return call(s:repo().git_chomp, a:000, s:repo())
+    execute cd s:fnameescape(self.tree())
+    return call(self.git_chomp, a:000, self)
   finally
     execute cd s:fnameescape(dir)
   endtry
@@ -418,11 +427,11 @@ function! s:repo_superglob(base) dict abort
     let results = []
     if a:base !~# '^/'
       let heads = ["HEAD","ORIG_HEAD","FETCH_HEAD","MERGE_HEAD"]
-      let heads += sort(split(s:repo().git_chomp("rev-parse","--symbolic","--branches","--tags","--remotes"),"\n"))
+      let heads += sort(split(self.git_chomp("rev-parse","--symbolic","--branches","--tags","--remotes"),"\n"))
       " Add any stashes.
-      if filereadable(s:repo().dir('refs/stash'))
+      if filereadable(self.dir('refs/stash'))
         let heads += ["stash"]
-        let heads += sort(split(s:repo().git_chomp("stash","list","--pretty=format:%gd"),"\n"))
+        let heads += sort(split(self.git_chomp("stash","list","--pretty=format:%gd"),"\n"))
       endif
       call filter(heads,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
       let results += heads
@@ -1025,17 +1034,16 @@ function! s:StageUndo() abort
   if empty(filename)
     return ''
   endif
-  let repo = s:repo()
-  let hash = repo.git_chomp('hash-object', '-w', filename)
+  let hash = s:TreeChomp('hash-object', '-w', filename)
   if !empty(hash)
     if section ==# 'untracked'
-      call repo.git_chomp_in_tree('clean', '-f', '--', filename)
+      call s:TreeChomp('clean', '-f', '--', filename)
     elseif section ==# 'unmerged'
-      call repo.git_chomp_in_tree('rm', '--', filename)
+      call s:TreeChomp('rm', '--', filename)
     elseif section ==# 'unstaged'
-      call repo.git_chomp_in_tree('checkout', '--', filename)
+      call s:TreeChomp('checkout', '--', filename)
     else
-      call repo.git_chomp_in_tree('checkout', 'HEAD', '--', filename)
+      call s:TreeChomp('checkout', 'HEAD', '--', filename)
     endif
     call s:StageReloadSeek(filename, line('.'), line('.'))
     let @" = hash
@@ -1069,8 +1077,7 @@ function! s:StageDiffEdit() abort
   if section ==# 'staged'
     return 'Git! diff --no-ext-diff --cached '.s:shellesc(arg)
   elseif section ==# 'untracked'
-    let repo = s:repo()
-    call repo.git_chomp_in_tree('add','--intent-to-add',arg)
+    call s:TreeChomp('add','--intent-to-add',arg)
     if arg ==# '.'
       silent! edit!
       1
@@ -1094,10 +1101,9 @@ function! s:StageToggle(lnum1,lnum2) abort
     let output = ''
     for lnum in range(a:lnum1,a:lnum2)
       let [filename, section] = s:stage_info(lnum)
-      let repo = s:repo()
       if getline('.') =~# ':$'
         if section ==# 'staged'
-          call repo.git_chomp_in_tree('reset','-q')
+          call s:TreeChomp('reset','-q')
           silent! edit!
           1
           if !search('^.*:\n.\= .*"git add .*\n#\n\|^\%(. \)\=Untracked files:$','W')
@@ -1105,7 +1111,7 @@ function! s:StageToggle(lnum1,lnum2) abort
           endif
           return ''
         elseif section ==# 'unstaged'
-          call repo.git_chomp_in_tree('add','-u')
+          call s:TreeChomp('add','-u')
           silent! edit!
           1
           if !search('^.*:\n\.\= .*"git add .*\n#\n\|^\%( \)=Untracked files:$','W')
@@ -1113,7 +1119,7 @@ function! s:StageToggle(lnum1,lnum2) abort
           endif
           return ''
         else
-          call repo.git_chomp_in_tree('add','.')
+          call s:TreeChomp('add','.')
           silent! edit!
           1
           call search(':$','W')
@@ -1142,7 +1148,7 @@ function! s:StageToggle(lnum1,lnum2) abort
       if !exists('first_filename')
         let first_filename = filename
       endif
-      let output .= call(repo.git_chomp_in_tree,cmd,s:repo())."\n"
+      let output .= call('s:TreeChomp', cmd)."\n"
     endfor
     if exists('first_filename')
       call s:StageReloadSeek(first_filename,a:lnum1,a:lnum2)
@@ -1330,18 +1336,18 @@ call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpull " .
       \ "execute s:Merge('pull --progress', <bang>0, <q-args>)")
 
 function! s:RevisionComplete(A, L, P) abort
-  return s:repo().git_chomp('rev-parse', '--symbolic', '--branches', '--tags', '--remotes')
+  return s:TreeChomp('rev-parse', '--symbolic', '--branches', '--tags', '--remotes')
         \ . "\nHEAD\nFETCH_HEAD\nORIG_HEAD"
 endfunction
 
 function! s:RemoteComplete(A, L, P) abort
   let remote = matchstr(a:L, ' \zs\S\+\ze ')
   if !empty(remote)
-    let matches = split(s:repo().git_chomp('ls-remote', remote), "\n")
+    let matches = split(s:TreeChomp('ls-remote', remote), "\n")
     call filter(matches, 'v:val =~# "\t" && v:val !~# "{"')
     call map(matches, 's:sub(v:val, "^.*\t%(refs/%(heads/|tags/)=)=", "")')
   else
-    let matches = split(s:repo().git_chomp('remote'), "\n")
+    let matches = split(s:TreeChomp('remote'), "\n")
   endif
   return join(matches, "\n")
 endfunction
@@ -1396,7 +1402,7 @@ function! s:Merge(cmd, bang, args) abort
           \ . 'U%\t%f'
     if a:cmd =~# '^merge' && empty(a:args) &&
           \ (had_merge_msg || isdirectory(s:repo().dir('rebase-apply')) ||
-          \  !empty(s:repo().git_chomp('diff-files', '--diff-filter=U')))
+          \  !empty(s:TreeChomp('diff-files', '--diff-filter=U')))
       let &l:makeprg = g:fugitive_git_executable.' diff-files --name-status --diff-filter=U'
     else
       let &l:makeprg = s:sub(s:git_command() . ' ' . a:cmd .
@@ -1677,9 +1683,9 @@ function! s:Write(force,...) abort
     silent write
     setlocal buftype=nowrite
     if matchstr(getline(2),'index [[:xdigit:]]\+\.\.\zs[[:xdigit:]]\{7\}') ==# s:repo().rev_parse(':0:'.filename)[0:6]
-      let err = s:repo().git_chomp('apply','--cached','--reverse',s:buffer().spec())
+      let err = s:TreeChomp('apply','--cached','--reverse',s:buffer().spec())
     else
-      let err = s:repo().git_chomp('apply','--cached',s:buffer().spec())
+      let err = s:TreeChomp('apply','--cached',s:buffer().spec())
     endif
     if err !=# ''
       let v:errmsg = split(err,"\n")[0]
@@ -1700,7 +1706,7 @@ function! s:Write(force,...) abort
     return 'write'.(a:force ? '! ' : ' ').s:fnameescape(s:Generate(s:buffer().expand(path)))
   endif
   let always_permitted = (s:buffer().relative() ==# path && s:buffer().commit() =~# '^0\=$')
-  if !always_permitted && !a:force && s:repo().git_chomp_in_tree('diff','--name-status','HEAD','--',path) . s:repo().git_chomp_in_tree('ls-files','--others','--',path) !=# ''
+  if !always_permitted && !a:force && (len(s:TreeChomp('diff','--name-status','HEAD','--',path)) || len(s:TreeChomp('ls-files','--others','--',path)))
     let v:errmsg = 'fugitive: file has uncommitted changes (use ! to override)'
     return 'echoerr v:errmsg'
   endif
@@ -1748,9 +1754,9 @@ function! s:Write(force,...) abort
   endif
 
   if a:force
-    let error = s:repo().git_chomp_in_tree('add', '--force', '--', path)
+    let error = s:TreeChomp('add', '--force', '--', path)
   else
-    let error = s:repo().git_chomp_in_tree('add', '--', path)
+    let error = s:TreeChomp('add', '--', path)
   endif
   if v:shell_error
     let v:errmsg = 'fugitive: '.error
@@ -1959,14 +1965,14 @@ function! s:CompareAge(mine, theirs) abort
   elseif mine ==# theirs
     return 0
   endif
-  let base = s:repo().git_chomp('merge-base', mine, theirs)
+  let base = s:TreeChomp('merge-base', mine, theirs)
   if base ==# mine
     return -1
   elseif base ==# theirs
     return 1
   endif
-  let my_time    = +s:repo().git_chomp('log','--max-count=1','--pretty=format:%at',a:mine)
-  let their_time = +s:repo().git_chomp('log','--max-count=1','--pretty=format:%at',a:theirs)
+  let my_time    = +s:TreeChomp('log','--max-count=1','--pretty=format:%at',a:mine)
+  let their_time = +s:TreeChomp('log','--max-count=1','--pretty=format:%at',a:theirs)
   return my_time < their_time ? -1 : my_time != their_time
 endfunction
 
@@ -1979,7 +1985,7 @@ function! s:Diff(vert,keepfocus,...) abort
   let vert = empty(a:vert) ? s:diff_modifier(2) : a:vert
   if exists(':DiffGitCached')
     return 'DiffGitCached'
-  elseif (empty(args) || args[0] ==# ':') && s:buffer().commit() =~# '^[0-1]\=$' && s:repo().git_chomp_in_tree('ls-files', '--unmerged', '--', s:buffer().relative()) !=# ''
+  elseif (empty(args) || args[0] ==# ':') && s:DirCommitFile(@%)[1] =~# '^[0-1]\=$' && !empty(s:TreeChomp('ls-files', '--unmerged', '--', s:buffer().relative()))
     let vert = empty(a:vert) ? s:diff_modifier(3) : a:vert
     let nr = bufnr('')
     execute 'leftabove '.vert.'split' s:fnameescape(s:Generate(s:buffer().relative(':2:')))
@@ -2013,7 +2019,7 @@ function! s:Diff(vert,keepfocus,...) abort
     else
       let file = s:buffer().expand(arg)
     endif
-    if file !~# ':' && file !~# '^/' && s:repo().git_chomp('cat-file','-t',file) =~# '^\%(tag\|commit\)$'
+    if file !~# ':' && file !~# '^/' && s:TreeChomp('cat-file','-t',file) =~# '^\%(tag\|commit\)$'
       let file = file.s:buffer().relative(':')
     endif
   else
@@ -2063,7 +2069,7 @@ function! s:Move(force, rename, destination) abort
   if isdirectory(s:buffer().spec())
     setlocal noswapfile
   endif
-  let message = call(s:repo().git_chomp_in_tree,['mv']+(a:force ? ['-f'] : [])+['--', s:buffer().relative(), destination], s:repo())
+  let message = call('s:TreeChomp', ['mv'] + (a:force ? ['-f'] : []) + ['--', s:buffer().relative(), destination])
   if v:shell_error
     let v:errmsg = 'fugitive: '.message
     return 'echoerr v:errmsg'
@@ -2115,7 +2121,7 @@ function! s:Remove(after, force) abort
   if a:force
     let cmd += ['--force']
   endif
-  let message = call(s:repo().git_chomp_in_tree,cmd+['--',s:buffer().relative()],s:repo())
+  let message = call('s:TreeChomp', cmd+['--',s:buffer().relative()])
   if v:shell_error
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
@@ -2454,7 +2460,7 @@ function! s:Browse(bang,line1,count,...) abort
         let commit = ''
       endif
       if commit =~ '..'
-        let type = s:repo().git_chomp('cat-file','-t',commit.s:sub(path,'^/',':'))
+        let type = s:TreeChomp('cat-file','-t',commit.s:sub(path,'^/',':'))
         let branch = matchstr(expanded, '^[^:]*')
       else
         let type = 'blob'
@@ -2615,9 +2621,9 @@ function! s:instaweb_url(opts) abort
   if a:opts.remote !=# '.'
     return ''
   endif
-  let output = a:opts.repo.git_chomp('instaweb','-b','unknown')
+  let output = system(get(g:, 'fugitive_executable', 'git') . ' --git-dir=' . shellescape(a:opts.dir) . ' instaweb -b unknown')
   if output =~# 'http://'
-    let root = matchstr(output,'http://.*').'/?p='.fnamemodify(a:opts.repo.dir(),':t')
+    let root = matchstr(output,"http://[^\n]*").'/?p='.fnamemodify(a:opts.dir, ':t')
   else
     return ''
   endif
