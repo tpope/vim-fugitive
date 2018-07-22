@@ -343,7 +343,7 @@ function! s:repo_translate(spec, ...) dict abort
     endif
     if !exists('f')
       let commit = substitute(matchstr(rev,'^[^:]\+\|^:.*'), '^@\%($|[^~]\)\@=', 'HEAD', '')
-      let file = substitute(matchstr(rev, '^[^:]\+:.*'), '^:', '/', '')
+      let file = substitute(matchstr(rev, '^[^:]\+\zs:.*'), '^:', '/', '')
       if commit !~# '^[0-9a-f]\{40\}$'
         let commit = system(fugitive#Prepare(dir, 'rev-parse', '--verify', commit))[0:-2]
         let commit = v:shell_error ? '' : commit
