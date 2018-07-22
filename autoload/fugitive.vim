@@ -3078,28 +3078,29 @@ function! s:cfile() abort
         let ref = matchstr(getline('.'),'\x\{40\}')
         let file = ':'.s:sub(matchstr(getline('.'),'\d\t.*'),'\t',':')
         return [file]
+      elseif &filetype ==# 'gitcommit'
+        if getline('.') =~# '^.\=\trenamed:.* -> '
+          let file = '/'.matchstr(getline('.'),' -> \zs.*')
+          return [file]
+        elseif getline('.') =~# '^.\=\t\(\k\| \)\+\p\?: *.'
+          let file = '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
+          return [file]
+        elseif getline('.') =~# '^.\=\t.'
+          let file = '/'.matchstr(getline('.'),'\t\zs.*')
+          return [file]
+        elseif getline('.') =~# ': needs merge$'
+          let file = '/'.matchstr(getline('.'),'.*\ze: needs merge$')
+          return [file, 'Gdiff!']
 
-      elseif getline('.') =~# '^.\=\trenamed:.* -> '
-        let file = '/'.matchstr(getline('.'),' -> \zs.*')
-        return [file]
-      elseif getline('.') =~# '^.\=\t\(\k\| \)\+\p\?: *.'
-        let file = '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
-        return [file]
-      elseif getline('.') =~# '^.\=\t.'
-        let file = '/'.matchstr(getline('.'),'\t\zs.*')
-        return [file]
-      elseif getline('.') =~# ': needs merge$'
-        let file = '/'.matchstr(getline('.'),'.*\ze: needs merge$')
-        return [file, 'Gdiff!']
-
-      elseif getline('.') =~# '^\%(. \)\=Not currently on any branch.$'
-        return ['HEAD']
-      elseif getline('.') =~# '^\%(. \)\=On branch '
-        let file = 'refs/heads/'.getline('.')[12:]
-        return [file]
-      elseif getline('.') =~# "^\\%(. \\)\=Your branch .*'"
-        let file = matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
-        return [file]
+        elseif getline('.') =~# '^\%(. \)\=Not currently on any branch.$'
+          return ['HEAD']
+        elseif getline('.') =~# '^\%(. \)\=On branch '
+          let file = 'refs/heads/'.getline('.')[12:]
+          return [file]
+        elseif getline('.') =~# "^\\%(. \\)\=Your branch .*'"
+          let file = matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
+          return [file]
+        endif
       endif
 
       let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
