@@ -117,12 +117,24 @@ function! fugitive#Prepare(...) abort
 endfunction
 
 function! s:TreeChomp(...) abort
-  let args = ['--git-dir=' . b:git_dir] + a:000
+  let args = a:000
   let tree = FugitiveTreeForGitDir(b:git_dir)
-  if !empty(tree)
-    call insert(args, '--work-tree=' . tree)
-  endif
-  return s:sub(s:System(call('fugitive#Prepare', args)),'\n$','')
+  try
+    if !empty(tree)
+      if fugitive#GitVersion() =~# '^[01]\..*'
+        let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
+        let cwd = getcwd()
+        exe cd s:fnameescape(tree)
+      else
+        let args = ['-C', tree] + args
+      endif
+    endif
+    return s:sub(s:System(call('fugitive#Prepare', args)),'\n$','')
+  finally
+    if exists('l:cd')
+      exe cd s:fnameescape(cwd)
+    endif
+  endtry
 endfunction
 
 let s:git_versions = {}
