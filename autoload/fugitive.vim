@@ -1496,8 +1496,8 @@ endif
 
 call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
 call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
-call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete Glog :call s:Log('grep<bang>',<line1>,<count>,<f-args>)")
-call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete Gllog :call s:Log('lgrep<bang>',<line1>,<count>,<f-args>)")
+call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete Glog :call s:Log('grep',<bang>0,<line1>,<count>,<f-args>)")
+call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete Gllog :call s:Log('lgrep',<bang>0,<line1>,<count>,<f-args>)")
 
 function! s:Grep(cmd,bang,arg) abort
   let grepprg = &grepprg
@@ -1538,7 +1538,7 @@ function! s:Grep(cmd,bang,arg) abort
   endtry
 endfunction
 
-function! s:Log(cmd, line1, line2, ...) abort
+function! s:Log(cmd, bang, line1, line2, ...) abort
   let path = s:Relative('/')
   if path =~# '^/\.git\%(/\|$\)' || index(a:000,'--') != -1
     let path = ''
@@ -1569,7 +1569,7 @@ function! s:Log(cmd, line1, line2, ...) abort
     execute cd s:fnameescape(s:repo().tree())
     let &grepprg = escape(s:git_command() . join(map(cmd, '" ".s:shellesc(v:val)'), ''), '%#')
     let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f::%m,%-G%.%#'
-    exe a:cmd
+    exe a:cmd . (a:bang ? '!' : '')
   finally
     let &grepformat = grepformat
     let &grepprg = grepprg
