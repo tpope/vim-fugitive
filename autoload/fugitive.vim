@@ -633,6 +633,22 @@ function! fugitive#isdirectory(url) abort
   return s:PathInfo(a:url)[2] ==# 'tree'
 endfunction
 
+function! s:TempCmd(out, cmd) abort
+  let prefix = ''
+  try
+    let cmd = (type(a:cmd) == type([]) ? call('fugitive#Prepare', a:cmd) : a:cmd)
+    let redir = ' > ' . a:out
+    if s:winshell()
+      let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
+      return s:System('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
+    elseif &shell =~# 'fish'
+      return s:System(' begin;' . prefix . cmd . redir . ';end ')
+    else
+      return s:System(' (' . prefix . cmd . redir . ') ')
+    endif
+  endtry
+endfunction
+
 if !exists('s:blobdirs')
   let s:blobdirs = {}
 endif
@@ -2602,37 +2618,9 @@ endfunction
 
 " Section: File access
 
-function! s:TempCmd(out, cmd, ...) abort
-  let prefix = ''
-  try
-    if a:0 && len(a:1)
-      if s:winshell()
-        let old_index = $GIT_INDEX_FILE
-        let $GIT_INDEX_FILE = a:1
-      else
-        let prefix = 'env GIT_INDEX_FILE='.s:shellesc(a:1).' '
-      endif
-    endif
-    let cmd = (type(a:cmd) == type([]) ? call('fugitive#Prepare', a:cmd) : a:cmd)
-    let redir = ' > ' . a:out
-    if s:winshell()
-      let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      return s:System('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
-    elseif &shell =~# 'fish'
-      return s:System(' begin;' . prefix . cmd . redir . ';end ')
-    else
-      return s:System(' (' . prefix . cmd . redir . ') ')
-    endif
-  finally
-    if exists('old_index')
-      let $GIT_INDEX_FILE = old_index
-    endif
-  endtry
-endfunction
-
-function! s:ReplaceCmd(cmd, ...) abort
+function! s:ReplaceCmd(cmd) abort
   let tmp = tempname()
-  let err = s:TempCmd(tmp, a:cmd, a:0 ? a:1 : '')
+  let err = s:TempCmd(tmp, a:cmd)
   if v:shell_error
     call s:throw((len(err) ? err : filereadable(tmp) ? join(readfile(tmp), ' ') : 'unknown error running ' . a:cmd))
   endif
@@ -2664,33 +2652,49 @@ function! fugitive#BufReadStatus() abort
   try
     let dir = fnamemodify(amatch, ':h')
     setlocal noro ma nomodeline
-    if s:shellslash(fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p')) ==# amatch
-      let index = ''
-    else
-      let index = amatch
+    let prefix = ''
+    if s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p')) !=# s:cpath(amatch)
+      if s:winshell()
+        let old_index = $GIT_INDEX_FILE
+      else
+        let prefix = 'env GIT_INDEX_FILE='.s:shellesc(amatch).' '
+      endif
     endif
     if b:fugitive_display_format
-      call s:ReplaceCmd([dir, 'ls-files', '--stage'], index)
-      set ft=git nospell
+      let cmd = ['ls-files', '--stage']
+    elseif fugitive#GitVersion() =~# '^0\|^1\.[1-7]\.'
+      let cmd = ['status']
     else
-      let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
-      let cwd = getcwd()
-      if fugitive#GitVersion() =~# '^0\|^1\.[1-7]\.'
-        let cmd = ['status']
-      else
-        let cmd = [
-              \ '-c', 'status.displayCommentPrefix=true',
-              \ '-c', 'color.status=false',
-              \ '-c', 'status.short=false',
-              \ 'status']
+      let cmd = [
+            \ '-c', 'status.displayCommentPrefix=true',
+            \ '-c', 'color.status=false',
+            \ '-c', 'status.short=false',
+            \ 'status']
+    endif
+    let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
+    let cwd = getcwd()
+    let cmd_str = prefix . call('fugitive#Prepare', [dir] + cmd)
+    try
+      if exists('old_index')
+        let $GIT_INDEX_FILE = amatch
       endif
-      try
-        execute cd s:fnameescape(FugitiveTreeForGitDir(dir))
-        call s:ReplaceCmd([dir] + cmd, index)
-      finally
-        execute cd s:fnameescape(cwd)
-      endtry
-      set ft=gitcommit
+      execute cd s:fnameescape(FugitiveTreeForGitDir(dir))
+      call s:ReplaceCmd(cmd_str)
+    finally
+      if exists('old_index')
+        let $GIT_INDEX_FILE = old_index
+      endif
+      execute cd s:fnameescape(cwd)
+    endtry
+    if b:fugitive_display_format
+      if &filetype !=# 'git'
+        set filetype=git
+      endif
+      set nospell
+    else
+      if &filetype !=# 'gitcommit'
+        set filetype=gitcommit
+      endif
       set foldtext=fugitive#Foldtext()
     endif
     setlocal readonly nomodifiable nomodified noswapfile
