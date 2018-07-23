@@ -128,6 +128,8 @@ function! s:TreeChomp(...) abort
       else
         let args = ['-C', tree] + args
       endif
+    else
+      let args = ['--git-dir=' . b:git_dir] . args
     endif
     return s:sub(s:System(call('fugitive#Prepare', args)),'\n$','')
   finally
