@@ -1544,8 +1544,9 @@ function! s:Log(cmd, line1, line2, ...) abort
   let cmd = ['--no-pager', 'log', '--no-color']
   let cmd += ['--pretty=format:fugitive://'.s:repo().dir().'//%H'.path.'::'.g:fugitive_summary_format]
   if empty(filter(a:000[0 : index(a:000,'--')],'v:val !~# "^-"'))
-    if s:buffer().commit() =~# '\x\{40\}'
-      let cmd += [s:buffer().commit()]
+    let commit = s:DirCommitFile(@%)[1]
+    if len(commit) > 2
+      let cmd += [commit]
     elseif s:Relative('') =~# '^\.git/refs/\|^\.git/.*HEAD$'
       let cmd += [s:Relative('')[5:-1]]
     endif
@@ -1658,7 +1659,7 @@ function! s:Edit(cmd, bang, mods, ...) abort
     let file = buffer.expand(join(a:000, ' '))
   elseif expand('%') ==# ''
     let file = ':'
-  elseif buffer.commit() ==# '' && s:Relative('/') !~# '^/.git\>'
+  elseif empty(s:DirCommitFile(@%)[1]) && s:Relative('/') !~# '^/.git\>'
     let file = s:Relative(':')
   else
     let file = s:Relative('/')
@@ -1739,7 +1740,7 @@ function! s:Write(force,...) abort
   if path =~# '^:\d\>'
     return 'write'.(a:force ? '! ' : ' ').s:fnameescape(s:Generate(s:buffer().expand(path)))
   endif
-  let always_permitted = (s:Relative('') ==# path && s:buffer().commit() =~# '^0\=$')
+  let always_permitted = (s:Relative('') ==# path && s:DirCommitFile(@%)[1] =~# '^0\=$')
   if !always_permitted && !a:force && (len(s:TreeChomp('diff','--name-status','HEAD','--',path)) || len(s:TreeChomp('ls-files','--others','--',path)))
     let v:errmsg = 'fugitive: file has uncommitted changes (use ! to override)'
     return 'echoerr v:errmsg'
@@ -1796,7 +1797,7 @@ function! s:Write(force,...) abort
     let v:errmsg = 'fugitive: '.error
     return 'echoerr v:errmsg'
   endif
-  if s:Relative('') ==# path && s:buffer().commit() =~# '^\d$'
+  if s:Relative('') ==# path && s:DirCommitFile(@%)[1] =~# '^\d$'
     set nomodified
   endif
 
@@ -2111,7 +2112,7 @@ function! s:Move(force, rename, destination) abort
     let destination = fnamemodify(s:sub(destination,'/$','').'/'.expand('%:t'),':.')
   endif
   call fugitive#ReloadStatus()
-  if empty(s:buffer().commit())
+  if empty(s:DirCommitFile(@%)[1])
     if isdirectory(destination)
       return 'keepalt edit '.s:fnameescape(destination)
     else
@@ -2140,9 +2141,9 @@ function! s:RenameComplete(A,L,P) abort
 endfunction
 
 function! s:Remove(after, force) abort
-  if s:buffer().commit() ==# ''
+  if s:DirCommitFile(@%)[1] ==# ''
     let cmd = ['rm']
-  elseif s:buffer().commit() ==# '0'
+  elseif s:DirCommitFile(@%)[1] ==# '0'
     let cmd = ['rm','--cached']
   else
     let v:errmsg = 'fugitive: rm not supported here'
@@ -2163,7 +2164,7 @@ endfunction
 
 augroup fugitive_remove
   autocmd!
-  autocmd User Fugitive if s:buffer().commit() =~# '^0\=$' |
+  autocmd User Fugitive if s:DirCommitFile(@%)[1] =~# '^0\=$' |
         \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:MoveComplete Gmove :execute s:Move(<bang>0,0,<q-args>)" |
         \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:RenameComplete Grename :execute s:Move(<bang>0,1,<q-args>)" |
         \ exe "command! -buffer -bar -bang Gremove :execute s:Remove('edit',<bang>0)" |
@@ -2214,8 +2215,8 @@ function! s:Blame(bang,line1,line2,count,args) abort
     endif
     call map(a:args,'s:sub(v:val,"^\\ze[^-]","-")')
     let cmd = ['--no-pager', 'blame', '--show-number'] + a:args
-    if s:buffer().commit() =~# '\D\|..'
-      let cmd += [s:buffer().commit()]
+    if s:DirCommitFile(@%)[1] =~# '\D\|..'
+      let cmd += [s:DirCommitFile(@%)[1]]
     else
       let cmd += ['--contents', '-']
     endif
@@ -3011,10 +3012,11 @@ function! s:cfile() abort
 
     if buffer.type('tree')
       let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
+      let base = s:DirCommitFile(@%)[1].':'.s:Relative('').(s:Relative('') =~# '^$\|/$' ? '' : '/')
       if showtree && line('.') > 2
-        return [buffer.commit().':'.s:Relative('').(s:Relative('') =~# '^$\|/$' ? '' : '/').s:sub(getline('.'),'/$','')]
+        return [base . s:sub(getline('.'),'/$','')]
       elseif getline('.') =~# '^\d\{6\} \l\{3,8\} \x\{40\}\t'
-        return [buffer.commit().':'.s:Relative('').(s:Relative('') =~# '^$\|/$' ? '' : '/').s:sub(matchstr(getline('.'),'\t\zs.*'),'/$','')]
+        return [base . s:sub(matchstr(getline('.'),'\t\zs.*'),'/$','')]
       endif
 
     elseif buffer.type('blob')
@@ -3221,8 +3223,9 @@ function! fugitive#Statusline(...) abort
     return ''
   endif
   let status = ''
-  if s:buffer().commit() != ''
-    let status .= ':' . s:buffer().commit()[0:7]
+  let commit = s:DirCommitFile(@%)[1]
+  if len(commit)
+    let status .= ':' . commit[0:7]
   endif
   let status .= '('.FugitiveHead(7).')'
   if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
