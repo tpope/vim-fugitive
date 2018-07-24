@@ -122,9 +122,11 @@ function! s:TreeChomp(...) abort
   try
     if !empty(tree)
       if fugitive#GitVersion() =~# '^[01]\..*'
-        let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
-        let cwd = getcwd()
-        exe cd s:fnameescape(tree)
+        if getcwd() !=# tree
+          let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
+          let cwd = getcwd()
+          exe cd s:fnameescape(tree)
+        endif
       else
         let args = ['-C', tree] + args
       endif
