@@ -3230,11 +3230,7 @@ function! fugitive#Statusline(...) abort
     let status .= ':' . commit[0:7]
   endif
   let status .= '('.FugitiveHead(7).')'
-  if &statusline =~# '%[MRHWY]' && &statusline !~# '%[mrhwy]'
-    return ',GIT'.status
-  else
-    return '[Git'.status.']'
-  endif
+  return '[Git'.status.']'
 endfunction
 
 function! fugitive#statusline(...) abort
