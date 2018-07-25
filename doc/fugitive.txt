@@ -230,6 +230,7 @@ that are part of Git repositories).
                         <CR>  q, then open commit
                         o     open commit in horizontal split
                         O     open commit in new tab
+                        p     open commit in preview window
                         -     reblame at commit
                         ~     reblame at [count]th first grandparent
                         P     reblame at [count]th parent (like HEAD^[count])
