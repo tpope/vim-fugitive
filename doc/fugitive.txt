@@ -235,8 +235,6 @@ that are part of Git repositories).
                         ~     reblame at [count]th first grandparent
                         P     reblame at [count]th parent (like HEAD^[count])
 
-:[range]Gblame [flags]  Run git-blame on the given range.
-
                                                 *fugitive-:Gbrowse*
 :Gbrowse                Open the current file, blob, tree, commit, or tag
                         in your browser at the upstream hosting provider.

@@ -2285,7 +2285,10 @@ augroup fugitive_blame
   autocmd!
   autocmd FileType fugitiveblame setlocal nomodeline | if exists('b:git_dir') | let &l:keywordprg = s:Keywordprg() | endif
   autocmd Syntax fugitiveblame call s:BlameSyntax()
-  autocmd User Fugitive if s:buffer().type('file', 'blob', 'blame') | exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,[<f-args>])" | endif
+  autocmd User Fugitive
+        \ if get(b:, 'fugitive_type') =~# '^\%(file\|blob\|blame\)$' |
+        \   exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,'<mods>',[<f-args>])" |
+        \ endif
   autocmd ColorScheme,GUIEnter * call s:RehighlightBlame()
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
@@ -2300,7 +2303,7 @@ function! s:linechars(pattern) abort
   return chars
 endfunction
 
-function! s:Blame(bang,line1,line2,count,args) abort
+function! s:Blame(bang, line1, line2, count, mods, args) abort
   if exists('b:fugitive_blamed_bufnr')
     return 'bdelete'
   endif
@@ -2312,7 +2315,11 @@ function! s:Blame(bang,line1,line2,count,args) abort
       call s:throw('unsupported option')
     endif
     call map(a:args,'s:sub(v:val,"^\\ze[^-]","-")')
-    let cmd = ['--no-pager', 'blame', '--show-number'] + a:args
+    let cmd = ['--no-pager', 'blame', '--show-number']
+    if a:count
+      let cmd += ['-L', a:line1 . ',' . a:line1]
+    endif
+    let cmd += a:args
     if s:DirCommitFile(@%)[1] =~# '\D\|..'
       let cmd += [s:DirCommitFile(@%)[1]]
     else
@@ -2322,27 +2329,29 @@ function! s:Blame(bang,line1,line2,count,args) abort
     let basecmd = escape(call('fugitive#Prepare', cmd), '!#%')
     try
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
-      if !s:repo().bare()
-        let dir = getcwd()
-        execute cd s:fnameescape(s:repo().tree())
+      let tree = FugitiveTreeForGitDir(b:git_dir)
+      if len(tree) && s:cpath(tree) !=# s:cpath(getcwd())
+        let cwd = getcwd()
+        execute cd s:fnameescape(tree)
+      endif
+      let error = s:tempname()
+      let temp = error.'.fugitiveblame'
+      if &shell =~# 'csh'
+        silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
+      else
+        silent! execute '%write !'.basecmd.' > '.temp.' 2> '.error
+      endif
+      if exists('l:cwd')
+        execute cd s:fnameescape(cwd)
+        unlet cwd
+      endif
+      if v:shell_error
+        call s:throw(join(readfile(error),"\n"))
       endif
       if a:count
-        execute 'write !'.substitute(basecmd,' blame ',' blame -L '.a:line1.','.a:line2.' ','g')
+        let edit = substitute(a:mods, '^<mods>$', '', '') . get(['edit', 'split', 'pedit'], a:line2 - a:line1, ' split')
+        return s:BlameCommit(edit, get(readfile(temp), 0, ''))
       else
-        let error = s:tempname()
-        let temp = error.'.fugitiveblame'
-        if &shell =~# 'csh'
-          silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
-        else
-          silent! execute '%write !'.basecmd.' > '.temp.' 2> '.error
-        endif
-        if exists('l:dir')
-          execute cd s:fnameescape(dir)
-          unlet dir
-        endif
-        if v:shell_error
-          call s:throw(join(readfile(error),"\n"))
-        endif
         for winnr in range(winnr('$'),1,-1)
           call setwinvar(winnr, '&scrollbind', 0)
           if exists('+cursorbind')
@@ -2408,8 +2417,8 @@ function! s:Blame(bang,line1,line2,count,args) abort
         syncbind
       endif
     finally
-      if exists('l:dir')
-        execute cd s:fnameescape(dir)
+      if exists('l:cwd')
+        execute cd s:fnameescape(cwd)
       endif
     endtry
     return ''
@@ -2418,8 +2427,8 @@ function! s:Blame(bang,line1,line2,count,args) abort
   endtry
 endfunction
 
-function! s:BlameCommit(cmd) abort
-  let line = getline('.')
+function! s:BlameCommit(cmd, ...) abort
+  let line = a:0 ? a:1 : getline('.')
   if line =~# '^0\{4,40\} '
     return 'echoerr ' . string('Not Committed Yet')
   endif
@@ -2430,9 +2439,12 @@ function! s:BlameCommit(cmd) abort
   let lnum = matchstr(line, ' \zs\d\+\ze\s\+[([:digit:]]')
   let path = matchstr(line, '^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
   if path ==# ''
-    let path = fugitive#Path(bufname(b:fugitive_blamed_bufnr), '')
+    let path = fugitive#Path(a:0 ? @% : bufname(b:fugitive_blamed_bufnr), '')
   endif
   execute cmd
+  if a:cmd ==# 'pedit'
+    return ''
+  endif
   if search('^diff .* b/\M'.escape(path,'\').'$','W')
     call search('^+++')
     let head = line('.')
@@ -3087,12 +3099,29 @@ function! s:NavigateUp(count) abort
 endfunction
 
 function! fugitive#MapJumps(...) abort
-  nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
+  if get(b:, 'fugitive_type', '') ==# 'blob'
+    nnoremap <buffer> <silent> <CR>    :<C-U>.Gblame<CR>
+  else
+    nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
+  endif
   if !&modifiable
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
     nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
     nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
-    nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
+    nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
+    nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
+    nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
+    if get(b:, 'fugitive_type', '') ==# 'blob'
+      nnoremap <buffer> <silent> o     :<C-U>.,.+1Gblame<CR>
+      nnoremap <buffer> <silent> S     :<C-U>vertical .,.+1Gblame<CR>
+      nnoremap <buffer> <silent> O     :<C-U>tab .,.+1Gblame<CR>
+      nnoremap <buffer> <silent> p     :<C-U>.,.+2Gblame<CR>
+    else
+      nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
+      nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
+      nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
+      nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
+    endif
     nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,'',<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
     nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
@@ -3151,16 +3180,6 @@ function! s:cfile() abort
       return [treebase . s:sub(matchstr(getline('.'),'\t\zs.*'),'/$','')]
     elseif treebase !~# '^\d\=:' && getline(1) =~# '^tree ' && empty(getline(2)) && line('.') >= 2
       return [treebase . s:sub(getline('.'),'/$','')]
-
-    elseif get(b:, 'fugitive_type', '') ==# 'blob'
-      let ref = expand("<cfile>")
-      try
-        let sha1 = s:repo().rev_parse(ref)
-      catch /^fugitive:/
-      endtry
-      if exists('sha1')
-        return [ref]
-      endif
 
     else
 
