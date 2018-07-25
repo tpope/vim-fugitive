@@ -2789,6 +2789,10 @@ endfunction
 function! fugitive#FileWriteCmd(...) abort
   let tmp = tempname()
   let amatch = a:0 ? a:1 : expand('<amatch>')
+  let autype = a:0 > 1 ? 'Buf' : 'File'
+  if exists('#' . autype . 'WritePre')
+    execute 'doautocmd ' . autype . 'WritePre ' . s:fnameescape(amatch)
+  endif
   try
     let [dir, commit, file] = s:DirCommitFile(amatch)
     if commit !~# '^[0-3]$' || !v:cmdbang && (line("'[") != 1 || line("']") != line('$'))
@@ -2809,8 +2813,8 @@ function! fugitive#FileWriteCmd(...) abort
     endif
     if v:shell_error == 0
       setlocal nomodified
-      if exists('#BufWritePost')
-        execute 'doautocmd BufWritePost '.s:fnameescape(expand('%:p'))
+      if exists('#' . autype . 'WritePost')
+        execute 'doautocmd ' . autype . 'WritePost ' . s:fnameescape(amatch)
       endif
       call fugitive#ReloadStatus()
       return ''
@@ -2913,7 +2917,7 @@ function! fugitive#BufReadCmd(...) abort
 endfunction
 
 function! fugitive#BufWriteCmd(...) abort
-  return call('fugitive#FileWriteCmd', a:000)
+  return fugitive#FileWriteCmd(a:0 ? a:1 : expand('<amatch>'), 1)
 endfunction
 
 function! fugitive#SourceCmd(...) abort
