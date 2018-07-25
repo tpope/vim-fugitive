@@ -2341,12 +2341,16 @@ function! s:Blame(bang,line1,line2,count,args) abort
 endfunction
 
 function! s:BlameCommit(cmd) abort
-  let cmd = s:Edit(a:cmd, 0, '', matchstr(getline('.'),'\x\+'))
+  let line = getline('.')
+  if line =~# '^0\{4,40\} '
+    return 'echoerr ' . string('Not Committed Yet')
+  endif
+  let cmd = s:Edit(a:cmd, 0, '', matchstr(line, '\x\+'))
   if cmd =~# '^echoerr'
     return cmd
   endif
-  let lnum = matchstr(getline('.'),' \zs\d\+\ze\s\+[([:digit:]]')
-  let path = matchstr(getline('.'),'^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
+  let lnum = matchstr(line, ' \zs\d\+\ze\s\+[([:digit:]]')
+  let path = matchstr(line, '^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
   if path ==# ''
     let path = fugitive#Path(bufname(b:fugitive_blamed_bufnr), '')
   endif
