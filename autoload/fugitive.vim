@@ -3023,7 +3023,7 @@ function! fugitive#MapJumps(...) abort
   endif
 endfunction
 
-function! s:cfile() abort
+function! s:CfileList() abort
   try
     let myhash = s:DirRev(@%)[1]
     if len(myhash)
@@ -3208,32 +3208,36 @@ function! s:cfile() abort
   endtry
 endfunction
 
+function! s:Cfile() abort
+  let pre = ''
+  let results = s:CfileList()
+  if empty(results)
+    return ''
+  elseif len(results) > 1
+    let pre = '+' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' '
+  endif
+  return pre . s:fnameescape(s:Generate(results[0]))
+endfunction
+
 function! s:GF(mode) abort
-  try
-    let results = s:cfile()
-  catch /^fugitive:/
-    return 'echoerr v:errmsg'
-  endtry
-  if len(results)
-    return s:Edit(a:mode, 0, '', results[0]).join(map(results[1:-1], '"|".v:val'), '')
+  let cfile = s:Cfile()
+  if len(cfile)
+    return a:mode . ' ' . cfile
   else
     return ''
   endif
 endfunction
 
-function! fugitive#Cfile() abort
+function! fugitive#Cfile(...) abort
   let pre = ''
-  let results = s:cfile()
-  if empty(results)
+  let cfile = s:Cfile()
+  if empty(cfile)
     let cfile = expand('<cfile>')
     if &includeexpr =~# '\<v:fname\>'
       sandbox let cfile = eval(substitute(&includeexpr, '\C\<v:fname\>', '\=string(cfile)', 'g'))
     endif
-    return cfile
-  elseif len(results) > 1
-    let pre = '+' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' '
   endif
-  return pre . s:fnameescape(s:Generate(results[0]))
+  return cfile
 endfunction
 
 function! fugitive#cfile() abort
