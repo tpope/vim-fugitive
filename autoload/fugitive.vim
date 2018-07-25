@@ -3010,6 +3010,7 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
     nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
     nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
+    nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
     nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,'',<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
     nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
@@ -3214,7 +3215,11 @@ function! s:GF(mode) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
-  if len(results)
+  if len(results) > 1 && a:mode ==# 'pedit'
+    return a:mode .
+          \ ' +' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' ' .
+          \ s:fnameescape(s:Generate(results[0]))
+  elseif len(results)
     return s:Edit(a:mode, 0, '', results[0]).join(map(results[1:-1], '"|".v:val'), '')
   else
     return ''
