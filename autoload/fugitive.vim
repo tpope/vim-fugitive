@@ -1720,9 +1720,9 @@ function! s:Write(force,...) abort
     silent write
     setlocal buftype=nowrite
     if matchstr(getline(2),'index [[:xdigit:]]\+\.\.\zs[[:xdigit:]]\{7\}') ==# s:repo().rev_parse(':0:'.filename)[0:6]
-      let err = s:TreeChomp('apply','--cached','--reverse',s:buffer().spec())
+      let err = s:TreeChomp('apply', '--cached', '--reverse', expand('%:p'))
     else
-      let err = s:TreeChomp('apply','--cached',s:buffer().spec())
+      let err = s:TreeChomp('apply', '--cached', expand('%:p'))
     endif
     if err !=# ''
       let v:errmsg = split(err,"\n")[0]
@@ -2101,7 +2101,7 @@ function! s:Move(force, rename, destination) abort
   else
     let destination = a:destination
   endif
-  if isdirectory(s:buffer().spec())
+  if isdirectory(@%)
     setlocal noswapfile
   endif
   let message = call('s:TreeChomp', ['mv'] + (a:force ? ['-f'] : []) + ['--', s:Relative(''), destination])
@@ -3001,30 +3001,28 @@ endfunction
 
 function! s:cfile() abort
   try
-    let buffer = s:buffer()
-
-    if buffer.spec() =~? '^fugitive:' || buffer.spec() =~# '\.git/refs/\|\.git/.*HEAD$'
-      let myhash = buffer.repo().rev_parse(buffer.rev())
-    else
-      let myhash = ''
+    let myhash = s:DirRev(@%)[1]
+    if len(myhash)
+      try
+        let myhash = s:repo().rev_parse(myhash)
+      catch /^fugitive:/
+        let myhash = ''
+      endtry
     endif
-    if myhash ==# '' && getline(1) =~# '^\%(commit\|tag\) \w'
+    if empty(myhash) && getline(1) =~# '^\%(commit\|tag\) \w'
       let myhash = matchstr(getline(1),'^\w\+ \zs\S\+')
     endif
 
-    if buffer.type('tree')
-      let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
-      let base = s:DirCommitFile(@%)[1].':'.s:Relative('').(s:Relative('') =~# '^$\|/$' ? '' : '/')
-      if showtree && line('.') > 2
-        return [base . s:sub(getline('.'),'/$','')]
-      elseif getline('.') =~# '^\d\{6\} \l\{3,8\} \x\{40\}\t'
-        return [base . s:sub(matchstr(getline('.'),'\t\zs.*'),'/$','')]
-      endif
+    let treebase = s:DirCommitFile(@%)[1].':'.s:Relative('').(s:Relative('') =~# '^$\|/$' ? '' : '/')
+    if treebase !~# '^\d\=:' && getline('.') =~# '^\d\{6\} \l\{3,8\} \x\{40\}\t'
+      return [treebase . s:sub(matchstr(getline('.'),'\t\zs.*'),'/$','')]
+    elseif treebase !~# '^\d\=:' && getline(1) =~# '^tree ' && empty(getline(2)) && line('.') >= 2
+      return [treebase . s:sub(getline('.'),'/$','')]
 
-    elseif buffer.type('blob')
+    elseif get(b:, 'fugitive_type', '') ==# 'blob'
       let ref = expand("<cfile>")
       try
-        let sha1 = buffer.repo().rev_parse(ref)
+        let sha1 = s:repo().rev_parse(ref)
       catch /^fugitive:/
       endtry
       if exists('sha1')
@@ -3096,7 +3094,7 @@ function! s:cfile() abort
         let type = matchstr(getline(line('.')+1),'type \zs.*')
 
       elseif getline('.') =~# '^\l\{3,8\} '.myhash.'$'
-        let ref = buffer.rev()
+        let ref = s:buffer().rev()
 
       elseif getline('.') =~# '^\l\{3,8\} \x\{40\}\>'
         let ref = matchstr(getline('.'),'\x\{40\}')
