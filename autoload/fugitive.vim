@@ -649,6 +649,14 @@ function! fugitive#filereadable(url) abort
   return s:PathInfo(a:url)[2] ==# 'blob'
 endfunction
 
+function! fugitive#filewritable(url) abort
+  let [dir, commit, file] = s:DirCommitFile(a:url)
+  if commit !~# '^\d$' || !filewritable(dir . '/index')
+    return 0
+  endif
+  return s:PathInfo(a:url)[2] ==# 'blob' ? 1 : 2
+endfunction
+
 function! fugitive#isdirectory(url) abort
   return s:PathInfo(a:url)[2] ==# 'tree'
 endfunction
@@ -707,6 +715,29 @@ function! fugitive#readfile(url, ...) abort
     return []
   endif
   return call('readfile', [temp] + a:000)
+endfunction
+
+function! fugitive#writefile(lines, url, ...) abort
+  let url = type(a:url) ==# type('') ? a:url : ''
+  let [dir, commit, file] = s:DirCommitFile(url)
+  let entry = s:PathInfo(url)
+  if commit =~# '^\d$' && entry[2] !=# 'tree'
+    let temp = s:tempname()
+    if a:0 && a:1 =~# 'a' && entry[2] ==# 'blob'
+      call writefile(fugitive#readfile(url, 'b'), temp, 'b')
+    endif
+    call call('writefile', [a:lines, temp] + a:000)
+    let hash = system(fugitive#Prepare(dir, 'hash-object', '-w', temp))[0:-2]
+    let mode = len(entry[1]) ? entry[1] : '100644'
+    if !v:shell_error && hash =~# '^\x\{40\}$'
+      call system(fugitive#Prepare(dir, 'update-index', '--index-info'),
+            \ mode . ' ' . hash . ' ' . commit . "\t" . file[1:-1])
+      if !v:shell_error
+        return 0
+      endif
+    endif
+  endif
+  return call('writefile', [a:lines, a:url] + a:000)
 endfunction
 
 let s:globsubs = {'*': '[^/]*', '**': '.*', '**/': '\%(.*/\)\=', '?': '[^/]'}
