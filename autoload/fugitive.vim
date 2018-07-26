@@ -738,6 +738,20 @@ function! fugitive#glob(url, ...) abort
   endif
 endfunction
 
+function! fugitive#delete(url, ...) abort
+  let [dir, commit, file] = s:DirCommitFile(a:url)
+  if a:0 && len(a:1) || commit !~# '^\d$'
+    return -1
+  endif
+  let entry = s:PathInfo(a:url)
+  if entry[2] !=# 'blob'
+    return -1
+  endif
+  call system(fugitive#Prepare(dir, 'update-index', '--index-info'),
+        \ '000000 0000000000000000000000000000000000000000 ' . commit . "\t" . file[1:-1])
+  return v:shell_error ? -1 : 0
+endfunction
+
 let s:buffer_prototype = {}
 
 function! s:buffer(...) abort
