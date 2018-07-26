@@ -116,37 +116,28 @@ function! fugitive#Prepare(...) abort
   return g:fugitive_git_executable . ' ' . join(map(args, 's:shellesc(v:val)'), ' ')
 endfunction
 
-function! s:TreeChomp(...) abort
-  let args = a:000
-  let tree = FugitiveTreeForGitDir(b:git_dir)
-  try
-    if !empty(tree)
-      if fugitive#GitVersion() =~# '^[01]\..*'
-        if getcwd() !=# tree
-          let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
-          let cwd = getcwd()
-          exe cd s:fnameescape(tree)
-        endif
-      else
-        let args = ['-C', tree] + args
-      endif
-    else
-      let args = ['--git-dir=' . b:git_dir] . args
-    endif
-    return s:sub(s:System(call('fugitive#Prepare', args)),'\n$','')
-  finally
-    if exists('l:cd')
-      exe cd s:fnameescape(cwd)
-    endif
-  endtry
-endfunction
-
 let s:git_versions = {}
 function! fugitive#GitVersion(...) abort
   if !has_key(s:git_versions, g:fugitive_git_executable)
     let s:git_versions[g:fugitive_git_executable] = matchstr(system(g:fugitive_git_executable.' --version'), "\\S\\+\\ze\n")
   endif
   return s:git_versions[g:fugitive_git_executable]
+endfunction
+
+function! s:TreeChomp(...) abort
+  let args = copy(a:000)
+  let tree = FugitiveTreeForGitDir(b:git_dir)
+  let pre = ''
+  if empty(tree)
+    let args = ['--git-dir=' . b:git_dir] . args
+  elseif s:cpath(tree) !=# s:cpath(getcwd())
+    if fugitive#GitVersion() =~# '^[01]\.'
+      let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? ' & ' : '; ')
+    else
+      let args = ['-C', tree] + args
+    endif
+  endif
+  return s:sub(s:System(pre . call('fugitive#Prepare', args)),'\n$','')
 endfunction
 
 function! fugitive#Config(name, ...) abort
