@@ -488,17 +488,7 @@ function! s:repo_user() dict abort
   return username.' <'.useremail.'>'
 endfunction
 
-function! s:repo_aliases() dict abort
-  if !has_key(self,'_aliases')
-    let self._aliases = {}
-    for line in split(self.git_chomp('config','-z','--get-regexp','^alias[.]'),"\1")
-      let self._aliases[matchstr(line, '\.\zs.\{-}\ze\n')] = matchstr(line, '\n\zs.*')
-    endfor
-  endif
-  return self._aliases
-endfunction
-
-call s:add_methods('repo',['config', 'user', 'aliases'])
+call s:add_methods('repo',['config', 'user'])
 
 " Section: Buffer
 
@@ -935,17 +925,31 @@ function! s:Git(bang, mods, args) abort
   endif
 endfunction
 
+let s:exec_paths = {}
 function! s:Subcommands() abort
-  if !exists('s:exec_path')
-    let s:exec_path = s:sub(system(g:fugitive_git_executable.' --exec-path'),'\n$','')
+  if !has_key(s:exec_paths, g:fugitive_git_executable)
+    let s:exec_paths[g:fugitive_git_executable] = s:sub(system(g:fugitive_git_executable.' --exec-path'),'\n$','')
   endif
-  return map(split(glob(s:exec_path.'/git-*'),"\n"),'s:sub(v:val[strlen(s:exec_path)+5 : -1],"\\.exe$","")')
+  let exec_path = s:exec_paths[g:fugitive_git_executable]
+  return map(split(glob(exec_path.'/git-*'),"\n"),'s:sub(v:val[strlen(exec_path)+5 : -1],"\\.exe$","")')
+endfunction
+
+let s:aliases = {}
+function! s:Aliases() abort
+  if !has_key(s:aliases, b:git_dir)
+    let s:aliases[b:git_dir] = {}
+    let lines = split(s:TreeChomp('config','-z','--get-regexp','^alias[.]'),"\1")
+    for line in v:shell_error ? [] : lines
+      let s:aliases[b:git_dir][matchstr(line, '\.\zs.\{-}\ze\n')] = matchstr(line, '\n\zs.*')
+    endfor
+  endif
+  return s:aliases[b:git_dir]
 endfunction
 
 function! s:GitComplete(A, L, P) abort
   if strpart(a:L, 0, a:P) !~# ' [[:alnum:]-]\+ '
     let cmds = s:Subcommands()
-    return filter(sort(cmds+keys(s:repo().aliases())), 'strpart(v:val, 0, strlen(a:A)) ==# a:A')
+    return filter(sort(cmds+keys(s:Aliases())), 'strpart(v:val, 0, strlen(a:A)) ==# a:A')
   else
     return s:repo().superglob(a:A)
   endif
