@@ -201,7 +201,9 @@ augroup fugitive
   autocmd BufWriteCmd   fugitive://*//[0-3]/*       exe fugitive#BufWriteCmd()
   autocmd FileReadCmd   fugitive://*//*             exe fugitive#FileReadCmd()
   autocmd FileWriteCmd  fugitive://*//[0-3]/*       exe fugitive#FileWriteCmd()
-  autocmd SourceCmd     fugitive://*//*      nested exe fugitive#SourceCmd()
+  if exists('##SourceCmd')
+    autocmd SourceCmd     fugitive://*//*    nested exe fugitive#SourceCmd()
+  endif
 
   autocmd User Flags call Hoist('buffer', function('FugitiveStatusline'))
 augroup END
