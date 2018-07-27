@@ -2286,7 +2286,7 @@ augroup fugitive_blame
   autocmd FileType fugitiveblame setlocal nomodeline | if exists('b:git_dir') | let &l:keywordprg = s:Keywordprg() | endif
   autocmd Syntax fugitiveblame call s:BlameSyntax()
   autocmd User Fugitive
-        \ if get(b:, 'fugitive_type') =~# '^\%(file\|blob\|blame\)$' |
+        \ if get(b:, 'fugitive_type') =~# '^\%(file\|blob\|blame\)$' || filereadable(@%) |
         \   exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:Blame(<bang>0,<line1>,<line2>,<count>,'<mods>',[<f-args>])" |
         \ endif
   autocmd ColorScheme,GUIEnter * call s:RehighlightBlame()
