@@ -2116,6 +2116,7 @@ function! s:Diff(vert,keepfocus,...) abort
   endif
   let vert = empty(a:vert) ? s:diff_modifier(2) : a:vert
   let commit = s:DirCommitFile(@%)[1]
+  let back = exists('*win_getid') ? 'call win_gotoid(' . win_getid() . ')' : 'wincmd p'
   if exists(':DiffGitCached')
     return 'DiffGitCached'
   elseif (empty(args) || args[0] ==# ':') && commit =~# '^[0-1]\=$' && !empty(s:TreeChomp('ls-files', '--unmerged', '--', s:Relative('')))
@@ -2125,12 +2126,12 @@ function! s:Diff(vert,keepfocus,...) abort
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     let nr2 = bufnr('')
     call s:diffthis()
-    wincmd p
+    exe back
     execute 'rightbelow '.vert.'split' s:fnameescape(s:Generate(s:Relative(':3:')))
     execute 'nnoremap <buffer> <silent> dp :diffput '.nr.'<Bar>diffupdate<CR>'
     let nr3 = bufnr('')
     call s:diffthis()
-    wincmd p
+    exe back
     call s:diffthis()
     execute 'nnoremap <buffer> <silent> d2o :diffget '.nr2.'<Bar>diffupdate<CR>'
     execute 'nnoremap <buffer> <silent> d3o :diffget '.nr3.'<Bar>diffupdate<CR>'
@@ -2175,7 +2176,7 @@ function! s:Diff(vert,keepfocus,...) abort
     let w:fugitive_diff_restore = restore
     let winnr = winnr()
     if getwinvar('#', '&diff')
-      wincmd p
+      exe back
       if !a:keepfocus
         call feedkeys(winnr."\<C-W>w", 'n')
       endif
