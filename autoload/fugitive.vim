@@ -1326,7 +1326,7 @@ function! s:Commit(mods, args, ...) abort
           execute mods 'keepalt edit' s:fnameescape(msgfile)
         elseif a:args =~# '\%(^\| \)-\w*v' || mods =~# '\<tab\>'
           execute mods 'keepalt -tabedit' s:fnameescape(msgfile)
-        elseif s:buffer().type() ==# 'index'
+        elseif get(b:, 'fugitive_type', '') ==# 'index'
           execute mods 'keepalt edit' s:fnameescape(msgfile)
           execute (search('^#','n')+1).'wincmd+'
           setlocal nopreviewwindow
@@ -1722,7 +1722,7 @@ function! s:Write(force,...) abort
     return 'write|bdelete'
   elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
     return 'wq'
-  elseif s:buffer().type() == 'index'
+  elseif get(b:, 'fugitive_type', '') ==# 'index'
     return 'Gcommit'
   elseif s:Relative('') ==# '' && getline(4) =~# '^+++ '
     let filename = getline(4)[6:-1]
