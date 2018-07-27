@@ -3105,12 +3105,6 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
   endif
   if !&modifiable
-    nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
-    nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
-    nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
-    nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
-    nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
-    nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
     if get(b:, 'fugitive_type', '') ==# 'blob'
       nnoremap <buffer> <silent> o     :<C-U>.,.+1Gblame<CR>
       nnoremap <buffer> <silent> S     :<C-U>vertical .,.+1Gblame<CR>
