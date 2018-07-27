@@ -208,6 +208,10 @@ function! s:map(mode, lhs, rhs, ...) abort
   endwhile
   if flags !~# '<unique>' || empty(mapcheck(head.tail, a:mode))
     exe a:mode.'map <buffer>' flags head.tail a:rhs
+    if a:0 > 1
+      let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .
+            \ '|sil! exe "' . a:mode . 'unmap <buffer> ' . head.tail . '"'
+    endif
   endif
 endfunction
 
@@ -2956,13 +2960,14 @@ augroup END
 
 nnoremap <SID>: :<C-U><C-R>=v:count ? v:count : ''<CR>
 function! fugitive#MapCfile(...) abort
-  cnoremap <buffer> <expr> <Plug><cfile> fugitive#Cfile()
+  exe 'cnoremap <buffer> <expr> <Plug><cfile>' (a:0 ? a:1 : 'fugitive#Cfile()')
+  let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') . '|sil! exe "cunmap <buffer> <Plug><cfile>"'
   if !exists('g:fugitive_no_maps')
-    call s:map('n', 'gf',          '<SID>:find <Plug><cfile><CR>', '<silent><unique>')
-    call s:map('n', '<C-W>f',     '<SID>:sfind <Plug><cfile><CR>', '<silent><unique>')
-    call s:map('n', '<C-W><C-F>', '<SID>:sfind <Plug><cfile><CR>', '<silent><unique>')
-    call s:map('n', '<C-W>gf',  '<SID>:tabfind <Plug><cfile><CR>', '<silent><unique>')
-    call s:map('c', '<C-R><C-F>', '<Plug><cfile>', '<silent><unique>')
+    call s:map('n', 'gf',          '<SID>:find <Plug><cfile><CR>', '<silent><unique>', 1)
+    call s:map('n', '<C-W>f',     '<SID>:sfind <Plug><cfile><CR>', '<silent><unique>', 1)
+    call s:map('n', '<C-W><C-F>', '<SID>:sfind <Plug><cfile><CR>', '<silent><unique>', 1)
+    call s:map('n', '<C-W>gf',  '<SID>:tabfind <Plug><cfile><CR>', '<silent><unique>', 1)
+    call s:map('c', '<C-R><C-F>', '<Plug><cfile>', '<silent><unique>', 1)
   endif
 endfunction
 
@@ -3019,6 +3024,32 @@ function! fugitive#MapJumps(...) abort
   endif
 endfunction
 
+function! s:StatusCfile(...) abort
+  let pre = ''
+  if getline('.') =~# '^.\=\trenamed:.* -> '
+    return '/'.matchstr(getline('.'),' -> \zs.*')
+  elseif getline('.') =~# '^.\=\t\(\k\| \)\+\p\?: *.'
+    return '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
+  elseif getline('.') =~# '^.\=\t.'
+    return '/'.matchstr(getline('.'),'\t\zs.*')
+  elseif getline('.') =~# ': needs merge$'
+    return '/'.matchstr(getline('.'),'.*\ze: needs merge$')
+  elseif getline('.') =~# '^\%(. \)\=Not currently on any branch.$'
+    return 'HEAD'
+  elseif getline('.') =~# '^\%(. \)\=On branch '
+    return 'refs/heads/'.getline('.')[12:]
+  elseif getline('.') =~# "^\\%(. \\)\=Your branch .*'"
+    return matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
+  else
+    return ''
+  endif
+endfunction
+
+function! fugitive#StatusCfile() abort
+  let file = s:StatusCfile()
+  return empty(file) ? "\<C-R>\<C-F>" : s:fnameescape(s:Generate(file))
+endfunction
+
 function! s:cfile() abort
   try
     let myhash = s:DirRev(@%)[1]
@@ -3058,29 +3089,6 @@ function! s:cfile() abort
         let ref = matchstr(getline('.'),'\x\{40\}')
         let file = ':'.s:sub(matchstr(getline('.'),'\d\t.*'),'\t',':')
         return [file]
-      elseif &filetype ==# 'gitcommit'
-        if getline('.') =~# '^.\=\trenamed:.* -> '
-          let file = '/'.matchstr(getline('.'),' -> \zs.*')
-          return [file]
-        elseif getline('.') =~# '^.\=\t\(\k\| \)\+\p\?: *.'
-          let file = '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
-          return [file]
-        elseif getline('.') =~# '^.\=\t.'
-          let file = '/'.matchstr(getline('.'),'\t\zs.*')
-          return [file]
-        elseif getline('.') =~# ': needs merge$'
-          let file = '/'.matchstr(getline('.'),'.*\ze: needs merge$')
-          return [file, 'Gdiff!']
-
-        elseif getline('.') =~# '^\%(. \)\=Not currently on any branch.$'
-          return ['HEAD']
-        elseif getline('.') =~# '^\%(. \)\=On branch '
-          let file = 'refs/heads/'.getline('.')[12:]
-          return [file]
-        elseif getline('.') =~# "^\\%(. \\)\=Your branch .*'"
-          let file = matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
-          return [file]
-        endif
       endif
 
       let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
@@ -3206,7 +3214,7 @@ endfunction
 
 function! s:GF(mode) abort
   try
-    let results = s:cfile()
+    let results = &filetype ==# 'gitcommit' ? [s:StatusCfile()] : s:cfile()
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
@@ -3234,10 +3242,6 @@ function! fugitive#Cfile() abort
     let pre = '+' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' '
   endif
   return pre . s:fnameescape(s:Generate(results[0]))
-endfunction
-
-function! fugitive#cfile() abort
-  return fugitive#Cfile()
 endfunction
 
 " Section: Statusline
