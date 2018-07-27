@@ -661,6 +661,38 @@ function! fugitive#isdirectory(url) abort
   return s:PathInfo(a:url)[2] ==# 'tree'
 endfunction
 
+function! fugitive#getfperm(url) abort
+  let [dir, commit, file] = s:DirCommitFile(a:url)
+  let perm = getfperm(dir)
+  let fperm = s:PathInfo(a:url)[1]
+  if fperm ==# '040000'
+    let fperm = '000755'
+  endif
+  if fperm !~# '[15]'
+    let perm = tr(perm, 'x', '-')
+  endif
+  if fperm !~# '[45]$'
+    let perm = tr(perm, 'rw', '--')
+  endif
+  if commit !~# '^\d$'
+    let perm = tr(perm, 'w', '-')
+  endif
+  return perm ==# '---------' ? '' : perm
+endfunction
+
+function! fugitive#setfperm(url, perm) abort
+  let [dir, commit, file] = s:DirCommitFile(a:url)
+  let entry = s:PathInfo(a:url)
+  let perm = fugitive#getfperm(a:url)
+  if commit !~# '^\d$' || entry[2] !=# 'blob' ||
+      \ substitute(perm, 'x', '-', 'g') !=# substitute(a:perm, 'x', '-', 'g')
+    return -2
+  endif
+  call system(fugitive#Prepare(dir, 'update-index', '--index-info'),
+        \ (a:perm =~# 'x' ? '000755 ' : '000644 ') . entry[3] . ' ' . commit . "\t" . file[1:-1])
+  return v:shell_error ? -1 : 0
+endfunction
+
 function! s:TempCmd(out, cmd) abort
   let prefix = ''
   try
