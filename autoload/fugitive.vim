@@ -2492,7 +2492,7 @@ function! s:BlameJump(suffix) abort
   if winnr > 0
     exe winnr.'wincmd w'
   endif
-  execute s:Edit('edit', 0, '', commit.a:suffix.':'.path)
+  execute 'Gedit' s:fnameescape(commit . a:suffix . ':' . path)
   execute lnum
   if winnr > 0
     exe bufnr.'bdelete'
@@ -3122,15 +3122,15 @@ function! fugitive#MapJumps(...) abort
       nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
       nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
     endif
-    nnoremap <buffer> <silent> -     :<C-U>exe <SID>Edit('edit',0,'',<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
-    nnoremap <buffer> <silent> P     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
-    nnoremap <buffer> <silent> ~     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
-    nnoremap <buffer> <silent> C     :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit())<CR>
-    nnoremap <buffer> <silent> cc    :<C-U>exe <SID>Edit('edit',0,'',<SID>ContainingCommit())<CR>
-    nnoremap <buffer> <silent> co    :<C-U>exe <SID>Edit('split',0,'',<SID>ContainingCommit())<CR>
-    nnoremap <buffer> <silent> cS    :<C-U>exe <SID>Edit('vsplit',0,'',<SID>ContainingCommit())<CR>
-    nnoremap <buffer> <silent> cO    :<C-U>exe <SID>Edit('tabedit',0,'',<SID>ContainingCommit())<CR>
-    nnoremap <buffer> <silent> cP    :<C-U>exe <SID>Edit('pedit',0,'',<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> -     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>
+    nnoremap <buffer> <silent> P     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
+    nnoremap <buffer> <silent> ~     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
+    nnoremap <buffer> <silent> C     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> cc    :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> co    :<C-U>exe 'Gsplit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> cS    :<C-U>exe 'Gvsplit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> cO    :<C-U>exe 'Gtabedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> cP    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer>          .     : <C-R>=fnameescape(<SID>recall())<CR><Home>
   endif
 endfunction
