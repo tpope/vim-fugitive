@@ -25,7 +25,7 @@ endfunction
 
 let s:worktree_for_dir = {}
 let s:dir_for_worktree = {}
-function! FugitiveTreeForGitDir(...) abort
+function! FugitiveWorkTree(...) abort
   let dir = substitute(s:shellslash(a:0 ? a:1 : get(b:, 'git_dir', '')), '/$', '', '')
   if dir =~# '/\.git$'
     return len(dir) ==# 5 ? '/' : dir[0:-6]
@@ -57,6 +57,10 @@ function! FugitiveTreeForGitDir(...) abort
   endif
 endfunction
 
+function! FugitiveTreeForGitDir(path) abort
+  return FugitiveWorkTree(a:path)
+endfunction
+
 function! FugitiveExtractGitDir(path) abort
   let path = s:shellslash(a:path)
   if path =~# '^fugitive:'
@@ -86,7 +90,7 @@ function! FugitiveExtractGitDir(path) abort
       return simplify(fnamemodify($GIT_DIR, ':p:s?[\/]$??'))
     endif
     if FugitiveIsGitDir($GIT_DIR)
-      call FugitiveTreeForGitDir(simplify(fnamemodify($GIT_DIR, ':p:s?[\/]$??')))
+      call FugitiveWorkTree(simplify(fnamemodify($GIT_DIR, ':p:s?[\/]$??')))
       if has_key(s:dir_for_worktree, root)
         return s:dir_for_worktree[root]
       endif
