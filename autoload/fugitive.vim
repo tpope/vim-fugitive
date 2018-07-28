@@ -124,11 +124,12 @@ function! s:Tree(...) abort
 endfunction
 
 function! s:TreeChomp(...) abort
-  let args = copy(a:000)
-  let tree = s:Tree()
+  let args = copy(type(a:1) == type([]) ? a:1 : a:000)
+  let dir = a:0 > 1 && type(a:1) == type([]) ? a:2 : b:git_dir
+  let tree = s:Tree(dir)
   let pre = ''
   if empty(tree)
-    let args = ['--git-dir=' . b:git_dir] . args
+    let args = ['--git-dir=' . dir] . args
   elseif s:cpath(tree) !=# s:cpath(getcwd())
     if fugitive#GitVersion() =~# '^[01]\.'
       let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? ' & ' : '; ')
@@ -233,6 +234,61 @@ function! s:define_commands() abort
 endfunction
 
 let s:abstract_prototype = {}
+
+" Section: Completion
+
+function! fugitive#PathComplete(base, ...) abort
+  let tree = FugitiveWorkTree(a:0 == 1 ? a:1 : get(b:, 'git_dir', '')) . '/'
+  let strip = '^:\=/'
+  let base = substitute(a:base, strip, '', '')
+  let matches = split(glob(tree . s:gsub(base, '/', '*&').'*'), "\n")
+  call map(matches, 's:shellslash(v:val)')
+  call map(matches, 'v:val !~# "/$" && isdirectory(v:val) ? v:val."/" : v:val')
+  call map(matches, 'matchstr(a:base, strip) . v:val[ strlen(tree) : -1 ]')
+  call map(matches, 's:fnameescape(v:val)')
+  return matches
+endfunction
+
+function! fugitive#Complete(base, ...) abort
+  let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
+  let tree = FugitiveWorkTree(a:0 == 1 ? a:1 : get(b:, 'git_dir', '')) . '/'
+  if a:base =~# '^\.\=/' || a:base !~# ':'
+    let results = []
+    if a:base !~# '^\.\=/'
+      let heads = ["HEAD","ORIG_HEAD","FETCH_HEAD","MERGE_HEAD"]
+      let heads += sort(split(s:TreeChomp(["rev-parse","--symbolic","--branches","--tags","--remotes"], dir),"\n"))
+      if filereadable(dir . '/refs/stash')
+        let heads += ["stash"]
+        let heads += sort(split(s:TreeChomp(["stash","list","--pretty=format:%gd"], dir),"\n"))
+      endif
+      call filter(heads,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
+      let results += heads
+    endif
+    call map(results, 's:fnameescape(v:val)')
+    if !empty(s:Tree(dir))
+      let results += fugitive#PathComplete(a:base, dir)
+    endif
+    return results
+
+  elseif a:base =~# '^:'
+    let entries = split(s:TreeChomp(['ls-files','--stage'], dir),"\n")
+    call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)",":\\1:\\2")')
+    if a:base !~# '^:[0-3]\%(:\|$\)'
+      call filter(entries,'v:val[1] == "0"')
+      call map(entries,'v:val[2:-1]')
+    endif
+    call filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
+    return map(entries, 's:fnameescape(v:val)')
+
+  else
+    let tree = matchstr(a:base,'.*[:/]')
+    let entries = split(s:TreeChomp(['ls-tree',tree], dir),"\n")
+    call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
+    call map(entries,'tree.s:sub(v:val,".*\t","")')
+    call filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
+    return map(entries, 's:fnameescape(v:val)')
+  endif
+endfunction
 
 " Section: Initialization
 
@@ -434,46 +490,7 @@ endfunction
 call s:add_methods('repo',['git_command','git_chomp','git_chomp_in_tree','rev_parse'])
 
 function! s:repo_superglob(base) dict abort
-  if a:base =~# '^/' || a:base !~# ':'
-    let results = []
-    if a:base !~# '^/'
-      let heads = ["HEAD","ORIG_HEAD","FETCH_HEAD","MERGE_HEAD"]
-      let heads += sort(split(self.git_chomp("rev-parse","--symbolic","--branches","--tags","--remotes"),"\n"))
-      " Add any stashes.
-      if filereadable(self.dir('refs/stash'))
-        let heads += ["stash"]
-        let heads += sort(split(self.git_chomp("stash","list","--pretty=format:%gd"),"\n"))
-      endif
-      call filter(heads,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-      let results += heads
-    endif
-    if !self.bare()
-      let base = s:sub(a:base,'^/','')
-      let matches = split(glob(self.tree(s:gsub(base,'/','*&').'*')),"\n")
-      call map(matches,'s:shellslash(v:val)')
-      call map(matches,'v:val !~ "/$" && isdirectory(v:val) ? v:val."/" : v:val')
-      call map(matches,'v:val[ strlen(self.tree())+(a:base !~ "^/") : -1 ]')
-      let results += matches
-    endif
-    return results
-
-  elseif a:base =~# '^:'
-    let entries = split(self.git_chomp('ls-files','--stage'),"\n")
-    call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)",":\\1:\\2")')
-    if a:base !~# '^:[0-3]\%(:\|$\)'
-      call filter(entries,'v:val[1] == "0"')
-      call map(entries,'v:val[2:-1]')
-    endif
-    call filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-    return entries
-
-  else
-    let tree = matchstr(a:base,'.*[:/]')
-    let entries = split(self.git_chomp('ls-tree',tree),"\n")
-    call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
-    call map(entries,'tree.s:sub(v:val,".*\t","")')
-    return filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-  endif
+  return map(fugitive#Complete(a:base, self.git_dir), 'substitute(v:val, ''\\\(.\)'', ''\1'', "g")')
 endfunction
 
 call s:add_methods('repo',['superglob'])
@@ -1026,11 +1043,14 @@ function! s:Aliases() abort
 endfunction
 
 function! s:GitComplete(A, L, P) abort
-  if strpart(a:L, 0, a:P) !~# ' [[:alnum:]-]\+ '
+  let pre = strpart(a:L, 0, a:P)
+  if pre !~# ' [[:alnum:]-]\+ '
     let cmds = s:Subcommands()
     return filter(sort(cmds+keys(s:Aliases())), 'strpart(v:val, 0, strlen(a:A)) ==# a:A')
+  elseif pre =~# ' -- '
+    return fugitive#PathComplete(a:A)
   else
-    return s:repo().superglob(a:A)
+    return fugitive#Complete(a:A, a:L, a:P)
   endif
 endfunction
 
@@ -1039,7 +1059,7 @@ endfunction
 function! s:DirComplete(A, L, P) abort
   let base = s:sub(a:A,'^/','')
   let matches = split(glob(s:Tree() . '/' . s:gsub(base,'/','*&').'*/'),"\n")
-  call map(matches,'v:val[ strlen(s:Tree())+(a:A !~ "^/") : -1 ]')
+  call map(matches,'s:shellslash(v:val[ strlen(s:Tree())+(a:A !~ "^/") : -1 ])')
   return matches
 endfunction
 
@@ -1452,7 +1472,7 @@ function! s:CommitComplete(A,L,P) abort
     let args = ['-C', '-F', '-a', '-c', '-e', '-i', '-m', '-n', '-o', '-q', '-s', '-t', '-u', '-v', '--all', '--allow-empty', '--amend', '--author=', '--cleanup=', '--dry-run', '--edit', '--file=', '--fixup=', '--include', '--interactive', '--message=', '--no-verify', '--only', '--quiet', '--reedit-message=', '--reuse-message=', '--signoff', '--squash=', '--template=', '--untracked-files', '--verbose']
     return filter(args,'v:val[0 : strlen(a:A)-1] ==# a:A')
   else
-    return s:repo().superglob(a:A)
+    return fugitive#PathComplete(a:A)
   endif
   return []
 endfunction
@@ -1598,10 +1618,18 @@ if !exists('g:fugitive_summary_format')
   let g:fugitive_summary_format = '%s'
 endif
 
-call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
-call s:command("-bang -nargs=? -complete=customlist,s:EditComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
-call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete Glog :call s:Log('grep',<bang>0,<line1>,<count>,<f-args>)")
-call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:EditComplete Gllog :call s:Log('lgrep',<bang>0,<line1>,<count>,<f-args>)")
+function! s:GrepComplete(A, L, P) abort
+  if strpart(a:L, 0, a:P) =~# ' -- '
+    return fugitive#PathComplete(a:A)
+  else
+    return fugitive#Complete(a:A)
+  endif
+endfunction
+
+call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
+call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
+call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:GrepComplete Glog :call s:Log('grep',<bang>0,<line1>,<count>,<f-args>)")
+call s:command("-bar -bang -nargs=* -range=0 -complete=customlist,s:GrepComplete Gllog :call s:Log('lgrep',<bang>0,<line1>,<count>,<f-args>)")
 
 function! s:Grep(cmd,bang,arg) abort
   let grepprg = &grepprg
@@ -1791,20 +1819,16 @@ function! s:Read(count, line1, line2, range, bang, mods, args, ...) abort
   return mods . ' ' . after . 'read '.s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
 endfunction
 
-function! s:EditComplete(A,L,P) abort
-  return map(s:repo().superglob(a:A), 'fnameescape(v:val)')
-endfunction
-
 function! s:EditRunComplete(A,L,P) abort
   if a:L =~# '^\w\+!'
     return s:GitComplete(a:A, a:L, a:P)
   else
-    return s:EditComplete(a:A, a:L, a:P)
+    return fugitive#Complete(a:A, a:L, a:P)
   endif
 endfunction
 
-call s:command("-bar -bang -nargs=*           -complete=customlist,s:EditComplete    Ge       execute s:Edit('edit<bang>', 0, '<mods>', <q-args>, <f-args>)")
-call s:command("-bar -bang -nargs=*           -complete=customlist,s:EditComplete    Gedit    execute s:Edit('edit<bang>', 0, '<mods>', <q-args>, <f-args>)")
+call s:command("-bar -bang -nargs=*           -complete=customlist,fugitive#Complete Ge       execute s:Edit('edit<bang>', 0, '<mods>', <q-args>, <f-args>)")
+call s:command("-bar -bang -nargs=*           -complete=customlist,fugitive#Complete Gedit    execute s:Edit('edit<bang>', 0, '<mods>', <q-args>, <f-args>)")
 call s:command("-bar -bang -nargs=*           -complete=customlist,s:EditRunComplete Gpedit   execute s:Edit('pedit', <bang>0, '<mods>', <q-args>, <f-args>)")
 call s:command("-bar -bang -nargs=* -range=0  -complete=customlist,s:EditRunComplete Gsplit   execute s:Edit((<count> ? <count> : '').'split', <bang>0, '<mods>', <q-args>, <f-args>)")
 call s:command("-bar -bang -nargs=* -range=0  -complete=customlist,s:EditRunComplete Gvsplit  execute s:Edit((<count> ? <count> : '').'vsplit', <bang>0, '<mods>', <q-args>, <f-args>)")
@@ -1813,9 +1837,9 @@ call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:EditRunComp
 
 " Section: Gwrite, Gwq
 
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwrite :execute s:Write(<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gw :execute s:Write(<bang>0,<f-args>)")
-call s:command("-bar -bang -nargs=* -complete=customlist,s:EditComplete Gwq :execute s:Wq(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#Complete Gwrite :execute s:Write(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#Complete Gw :execute s:Write(<bang>0,<f-args>)")
+call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#Complete Gwq :execute s:Wq(<bang>0,<f-args>)")
 
 function! s:Write(force,...) abort
   if exists('b:fugitive_commit_arguments')
@@ -2007,9 +2031,9 @@ endfunction
 
 " Section: Gdiff
 
-call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gdiff :execute s:Diff('',<bang>0,<f-args>)")
-call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gvdiff :execute s:Diff('keepalt vert ',<bang>0,<f-args>)")
-call s:command("-bang -bar -nargs=* -complete=customlist,s:EditComplete Gsdiff :execute s:Diff('keepalt ',<bang>0,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,fugitive#Complete Gdiff :execute s:Diff('',<bang>0,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,fugitive#Complete Gvdiff :execute s:Diff('keepalt vert ',<bang>0,<f-args>)")
+call s:command("-bang -bar -nargs=* -complete=customlist,fugitive#Complete Gsdiff :execute s:Diff('keepalt ',<bang>0,<f-args>)")
 
 augroup fugitive_diff
   autocmd!
@@ -2205,8 +2229,8 @@ endfunction
 " Section: Gmove, Gremove
 
 function! s:Move(force, rename, destination) abort
-  if a:destination =~# '^/'
-    let destination = a:destination[1:-1]
+  if a:destination =~# '^[.:]\=/'
+    let destination = substitute(a:destination[1:-1], '^[.:]\=/', '', '')
   elseif a:rename
     let destination = fnamemodify(s:Relative(''), ':h') . '/' . a:destination
   else
@@ -2236,20 +2260,12 @@ function! s:Move(force, rename, destination) abort
   endif
 endfunction
 
-function! s:MoveComplete(A,L,P) abort
-  if a:A =~# '^/'
-    return s:repo().superglob(a:A)
-  else
-    return map(s:repo().superglob('/' . a:A), 'strpart(v:val, 1)')
-  endif
-endfunction
-
 function! s:RenameComplete(A,L,P) abort
-  if a:A =~# '^/'
-    return s:repo().superglob(a:A)
+  if a:A =~# '^\.\=/'
+    return fugitive#PathComplete(a:A)
   else
     let pre = '/' . fnamemodify(s:Relative(''), ':h') . '/'
-    return map(s:repo().superglob(pre.a:A), 'strpart(v:val, len(pre))')
+    return map(fugitive#PathComplete(pre.a:A), 'strpart(v:val, len(pre))')
   endif
 endfunction
 
@@ -2278,7 +2294,7 @@ endfunction
 augroup fugitive_remove
   autocmd!
   autocmd User Fugitive if s:DirCommitFile(@%)[1] =~# '^0\=$' |
-        \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:MoveComplete Gmove :execute s:Move(<bang>0,0,<q-args>)" |
+        \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,fugitive#PathComplete Gmove :execute s:Move(<bang>0,0,<q-args>)" |
         \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:RenameComplete Grename :execute s:Move(<bang>0,1,<q-args>)" |
         \ exe "command! -buffer -bar -bang Gremove :execute s:Remove('edit',<bang>0)" |
         \ exe "command! -buffer -bar -bang Gdelete :execute s:Remove('bdelete',<bang>0)" |
@@ -2589,7 +2605,7 @@ endfunction
 
 " Section: Gbrowse
 
-call s:command("-bar -bang -range=0 -nargs=* -complete=customlist,s:EditComplete Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
+call s:command("-bar -bang -range=0 -nargs=* -complete=customlist,fugitive#Complete Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
 
 let s:redirects = {}
 
