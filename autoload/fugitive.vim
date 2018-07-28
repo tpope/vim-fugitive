@@ -523,6 +523,9 @@ function! fugitive#Path(url, ...) abort
     return fugitive#Real(a:url)
   endif
   let url = fnamemodify(a:url, ':p')
+  if has('win32')
+    let url = substitute(url, '\', '/', 'g')
+  endif
   let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
   let tree = FugitiveTreeForGitDir(dir)
   let [argdir, commit, file] = s:DirCommitFile(a:url)
