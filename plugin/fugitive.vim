@@ -66,6 +66,10 @@ function! FugitiveExtractGitDir(path) abort
   else
     let path = fnamemodify(path, ':p:h:s?/$??')
   endif
+  let pre = substitute(matchstr(path, '^\a\a\+\ze:'), '^.', '\u&', '')
+  if len(pre) && exists('*' . pre . 'Real')
+    let path = s:shellslash({pre}Real(path))
+  endif
   let root = resolve(path)
   if root !=# path
     silent! exe haslocaldir() ? 'lcd .' : 'cd .'
@@ -179,8 +183,8 @@ endfunction
 augroup fugitive
   autocmd!
 
-  autocmd BufNewFile,BufReadPost * call FugitiveDetect(expand('%:p'))
-  autocmd FileType           netrw call FugitiveDetect(fnamemodify(get(b:, 'netrw_curdir', @%), ':p'))
+  autocmd BufNewFile,BufReadPost * call FugitiveDetect(expand('<amatch>:p'))
+  autocmd FileType           netrw call FugitiveDetect(fnamemodify(get(b:, 'netrw_curdir', expand('<amatch>')), ':p'))
   autocmd User NERDTreeInit,NERDTreeNewRoot
         \ if exists('b:NERDTree.root.path.str') |
         \   call FugitiveDetect(b:NERDTree.root.path.str()) |
