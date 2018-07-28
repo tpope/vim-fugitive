@@ -159,6 +159,9 @@ function! FugitivePath(...) abort
 endfunction
 
 function! FugitiveGenerate(...) abort
+  if a:0 && s:shellslash(a:0) =~# '^\%(\a\a\+:\)\=\%(a:\)\=/\|^[~$]'
+    return a:1
+  endif
   return fugitive#repo(a:0 > 1 ? a:2 : get(b:, 'git_dir', '')).translate(a:0 ? a:1 : '', 1)
 endfunction
 

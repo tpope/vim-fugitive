@@ -337,8 +337,8 @@ function! s:repo_translate(spec, ...) dict abort
     let f = dir . s:sub(rev, '^/=\.git', '')
   elseif empty(rev) || rev ==# '/.'
     return self.tree()
-  elseif rev =~# '^/'
-    let f = self.tree(rev)
+  elseif rev =~# '^\.\=/'
+    let f = self.tree(substitute(rev, '^\.', '', ''))
   elseif rev =~# '^:[0-3]:/\@!'
     let f = 'fugitive://' . dir . '//' . rev[1] . '/' . rev[3:-1]
   elseif rev ==# ':'
@@ -532,8 +532,10 @@ function! fugitive#Path(url, ...) abort
     let file = '/.git'.url[strlen(dir) : -1]
   elseif len(tree) && s:cpath(url[0 : len(tree)]) ==# s:cpath(tree . '/')
     let file = url[len(tree) : -1]
+  elseif s:cpath(url) ==# s:cpath(tree)
+    let file = '/'
   endif
-  if empty(file) && a:1 ==# ''
+  if empty(file) && a:1 =~# '^\%([.:]\=/\)\=$'
     return s:shellslash(fugitive#Real(a:url))
   endif
   return substitute(file, '^/', a:1, '')

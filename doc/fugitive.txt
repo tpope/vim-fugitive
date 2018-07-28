@@ -323,7 +323,7 @@ refs/heads/x    .git/refs/heads/x
 @               The commit referenced by @ aka HEAD
 master^         The parent of the commit referenced by master
 master:         The tree referenced by master
-/master         The file named master in the work tree
+./master        The file named master in the work tree
 Makefile        The file named Makefile in the work tree
 @^:Makefile     The file named Makefile in the parent of HEAD
 :Makefile       The file named Makefile in the index (writable)
@@ -335,7 +335,6 @@ Makefile        The file named Makefile in the work tree
 :1              The current file's common ancestor during a conflict
 :2              The current file in the target branch during a conflict
 :3              The current file in the merged branch during a conflict
-:/foo           The most recent commit with "foo" in the message
 
 STATUSLINE                                      *fugitive-statusline*
 
