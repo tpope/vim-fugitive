@@ -511,7 +511,7 @@ function! fugitive#Real(url) abort
     let tree = FugitiveTreeForGitDir(dir)
     return s:PlatformSlash((len(tree) ? tree : dir) . file)
   endif
-  let url = fnamemodify(a:url, ':p' . (a:url =~# '[\/]$' ? '' : ':s?[\/]$??'))
+  let url = len(url) ? fnamemodify(a:url, ':p' . (a:url =~# '[\/]$' ? '' : ':s?[\/]$??')) : ''
   if url =~# '^[\\/]\|^\a:[\\/]'
     return s:PlatformSlash(url)
   endif
@@ -519,7 +519,7 @@ function! fugitive#Real(url) abort
 endfunction
 
 function! fugitive#Path(url, ...) abort
-  if !a:0
+  if !a:0 || empty(a:url)
     return fugitive#Real(a:url)
   endif
   let url = s:shellslash(fnamemodify(a:url, ':p'))
