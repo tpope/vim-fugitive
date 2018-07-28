@@ -1442,12 +1442,19 @@ function! s:Commit(mods, args, ...) abort
 endfunction
 
 function! s:CommitComplete(A,L,P) abort
-  if a:A =~ '^-' || type(a:A) == type(0) " a:A is 0 on :Gcommit -<Tab>
+  if a:A =~# '^--fixup=\|^--squash='
+    let commits = split(s:TreeChomp('log', '--pretty=format:%s', '@{upstream}..'), "\n")
+    if !v:shell_error
+      let pre = matchstr(a:A, '^--\w*=') . ':/^'
+      return map(commits, 'pre . tr(v:val, "\\ !^$*?[]()''\"`&;<>|#", "....................")')
+    endif
+  elseif a:A =~ '^-' || type(a:A) == type(0) " a:A is 0 on :Gcommit -<Tab>
     let args = ['-C', '-F', '-a', '-c', '-e', '-i', '-m', '-n', '-o', '-q', '-s', '-t', '-u', '-v', '--all', '--allow-empty', '--amend', '--author=', '--cleanup=', '--dry-run', '--edit', '--file=', '--fixup=', '--include', '--interactive', '--message=', '--no-verify', '--only', '--quiet', '--reedit-message=', '--reuse-message=', '--signoff', '--squash=', '--template=', '--untracked-files', '--verbose']
     return filter(args,'v:val[0 : strlen(a:A)-1] ==# a:A')
   else
     return s:repo().superglob(a:A)
   endif
+  return []
 endfunction
 
 function! s:FinishCommit() abort
