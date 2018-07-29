@@ -3321,7 +3321,7 @@ function! s:GF(mode) abort
           \ ' +' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' ' .
           \ s:fnameescape(s:Generate(results[0]))
   elseif len(results)
-    return s:Edit(a:mode, 0, '', results[0]).join(map(results[1:-1], '"|".v:val'), '')
+    return s:Edit(a:mode, 0, '', '', results[0]).join(map(results[1:-1], '"|".v:val'))
   else
     return ''
   endif
