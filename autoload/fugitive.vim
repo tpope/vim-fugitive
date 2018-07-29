@@ -248,7 +248,7 @@ let s:abstract_prototype = {}
 let s:repo_prototype = {}
 let s:repos = {}
 
-function! s:repo(...) abort
+function! fugitive#repo(...) abort
   let dir = a:0 ? a:1 : (exists('b:git_dir') && b:git_dir !=# '' ? b:git_dir : FugitiveExtractGitDir(expand('%:p')))
   if dir !=# ''
     if has_key(s:repos, dir)
@@ -260,10 +260,6 @@ function! s:repo(...) abort
     return extend(extend(repo, s:repo_prototype, 'keep'), s:abstract_prototype, 'keep')
   endif
   call s:throw('not a git repository: '.expand('%:p'))
-endfunction
-
-function! fugitive#repo(...) abort
-  return call('s:repo', a:000)
 endfunction
 
 function! s:repo_dir(...) dict abort
@@ -341,7 +337,7 @@ function! s:repo_translate(spec, ...) dict abort
 endfunction
 
 function! s:Generate(rev) abort
-  return s:repo().translate(a:rev, 1)
+  return fugitive#repo().translate(a:rev, 1)
 endfunction
 
 function! s:repo_head(...) dict abort
@@ -741,17 +737,13 @@ endfunction
 
 let s:buffer_prototype = {}
 
-function! s:buffer(...) abort
+function! fugitive#buffer(...) abort
   let buffer = {'#': bufnr(a:0 ? a:1 : '%')}
   call extend(extend(buffer,s:buffer_prototype,'keep'),s:abstract_prototype,'keep')
   if buffer.getvar('git_dir') !=# ''
     return buffer
   endif
   call s:throw('not a git repository: '.bufname(buffer['#']))
-endfunction
-
-function! fugitive#buffer(...) abort
-  return s:buffer(a:0 ? a:1 : '%')
 endfunction
 
 function! s:buffer_getvar(var) dict abort
@@ -763,7 +755,7 @@ function! s:buffer_getline(lnum) dict abort
 endfunction
 
 function! s:buffer_repo() dict abort
-  return s:repo(self.getvar('git_dir'))
+  return fugitive#repo(self.getvar('git_dir'))
 endfunction
 
 function! s:buffer_type(...) dict abort
@@ -2002,7 +1994,7 @@ endfunction
 
 function! s:Expand(rev) abort
   if len(a:rev)
-    return s:buffer().expand(a:rev)
+    return fugitive#buffer().expand(a:rev)
   elseif expand('%') ==# ''
     return ':'
   elseif empty(s:DirCommitFile(@%)[1]) && s:Relative('/') !~# '^/.git\>'
@@ -2910,7 +2902,7 @@ function! s:Browse(bang,line1,count,...) abort
     else
       let expanded = s:Expand(rev)
     endif
-    if filereadable(s:repo().dir('refs/tags/' . expanded))
+    if filereadable(b:git_dir . '/refs/tags/' . expanded)
       let expanded = '.git/refs/tags/' . expanded
     endif
     let full = s:Generate(expanded)
@@ -3023,7 +3015,7 @@ function! s:Browse(bang,line1,count,...) abort
 
     let opts = {
           \ 'dir': b:git_dir,
-          \ 'repo': s:repo(),
+          \ 'repo': fugitive#repo(),
           \ 'remote': raw,
           \ 'revision': 'No longer provided',
           \ 'commit': commit,
@@ -3377,7 +3369,7 @@ function! fugitive#head(...) abort
     return ''
   endif
 
-  return s:repo().head(a:0 ? a:1 : 0)
+  return fugitive#repo().head(a:0 ? a:1 : 0)
 endfunction
 
 " Section: Folding
