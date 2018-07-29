@@ -1126,15 +1126,29 @@ function! fugitive#BufReadCmd(...) abort
     if empty(dir)
       return 'echo "Invalid Fugitive URL"'
     endif
-    let b:fugitive_type = system(s:Prepare(dir, 'cat-file', '-t', rev))[0:-2]
-    if v:shell_error
-      unlet b:fugitive_type
-      return 'silent doautocmd BufNewFile '.s:fnameescape(amatch)
-    elseif b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
-      return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
-    endif
-    if !exists('b:fugitive_display_format') && b:fugitive_type != 'blob'
-      let b:fugitive_display_format = +getbufvar('#','fugitive_display_format')
+    if rev =~# '^:\d$'
+      let b:fugitive_type = 'stage'
+    else
+      let b:fugitive_type = system(s:Prepare(dir, 'cat-file', '-t', rev))[0:-2]
+      if v:shell_error && rev =~# '^:0'
+        let sha = system(s:Prepare(dir, 'write-tree', '--prefix=' . rev[3:-1]))[0:-2]
+        let b:fugitive_type = 'tree'
+      endif
+      if v:shell_error
+        unlet b:fugitive_type
+        if rev =~# '^:\d:'
+          let &readonly = !filewritable(dir . '/index')
+          return 'silent doautocmd BufNewFile '.s:fnameescape(amatch)
+        else
+          setlocal readonly nomodifiable
+          return ''
+        endif
+      elseif b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
+        return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
+      endif
+      if !exists('b:fugitive_display_format') && b:fugitive_type != 'blob'
+        let b:fugitive_display_format = +getbufvar('#','fugitive_display_format')
+      endif
     endif
 
     if b:fugitive_type !=# 'blob'
@@ -1150,9 +1164,11 @@ function! fugitive#BufReadCmd(...) abort
       if b:fugitive_type ==# 'tree'
         let b:fugitive_display_format = b:fugitive_display_format % 2
         if b:fugitive_display_format
-          call s:ReplaceCmd([dir, 'ls-tree', rev])
+          call s:ReplaceCmd([dir, 'ls-tree', exists('sha') ? sha : rev])
         else
-          let sha = system(s:Prepare(dir, 'rev-parse', '--verify', rev))[0:-2]
+          if !exists('sha')
+            let sha = system(s:Prepare(dir, 'rev-parse', '--verify', rev))[0:-2]
+          endif
           call s:ReplaceCmd([dir, 'show', '--no-color', sha])
         endif
       elseif b:fugitive_type ==# 'tag'
@@ -1181,6 +1197,8 @@ function! fugitive#BufReadCmd(...) abort
           silent keepjumps 1,/^diff --git\|\%$/g/\r$/s///
           keepjumps 1
         endif
+      elseif b:fugitive_type ==# 'stage'
+        call s:ReplaceCmd([dir, 'ls-files', '--stage'])
       elseif b:fugitive_type ==# 'blob'
         call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
         setlocal nomodeline
@@ -1188,9 +1206,12 @@ function! fugitive#BufReadCmd(...) abort
     finally
       keepjumps call setpos('.',pos)
       setlocal nomodified noswapfile
-      if rev !~# '^:.'
-        setlocal readonly nomodifiable
+      if rev !~# '^:.:'
+        setlocal nomodifiable
+      else
+        let &modifiable = b:fugitive_type !=# 'tree'
       endif
+      let &readonly = !&modifiable || !filewritable(dir . '/index')
       if &bufhidden ==# ''
         setlocal bufhidden=delete
       endif
@@ -3064,16 +3085,12 @@ function! s:NavigateUp(count) abort
   let rev = s:buffer().rev()
   let c = a:count
   while c
-    if rev =~# '^[/:]$'
-      let rev = 'HEAD'
+    if rev =~# ':.*/.'
+      let rev = matchstr(rev, '.*\ze/.\+', '')
+    elseif rev =~# '.:.'
+      let rev = matchstr(rev, '^.[^:]*:')
     elseif rev =~# '^:'
-      let rev = ':'
-    elseif rev =~# '^refs/[^^~:]*$\|^[^^~:]*HEAD$'
-      let rev .= '^{}'
-    elseif rev =~# '^/\|:.*/'
-      let rev = s:sub(rev, '.*\zs/.*', '')
-    elseif rev =~# ':.'
-      let rev = matchstr(rev, '^[^:]*:')
+      let rev = 'HEAD^{}'
     elseif rev =~# ':$'
       let rev = rev[0:-2]
     else
@@ -3155,10 +3172,14 @@ function! s:cfile() abort
       let myhash = matchstr(getline(1),'^\w\+ \zs\S\+')
     endif
 
-    let treebase = s:DirCommitFile(@%)[1].':'.s:Relative('').(s:Relative('') =~# '^$\|/$' ? '' : '/')
-    if treebase !~# '^\d\=:' && getline('.') =~# '^\d\{6\} \l\{3,8\} \x\{40\}\t'
+    let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
+
+    let treebase = substitute(s:DirCommitFile(@%)[1], '^\d$', ':&', '') . ':' .
+          \ s:Relative('') . (s:Relative('') =~# '^$\|/$' ? '' : '/')
+
+    if getline('.') =~# '^\d\{6\} \l\{3,8\} \x\{40\}\t'
       return [treebase . s:sub(matchstr(getline('.'),'\t\zs.*'),'/$','')]
-    elseif treebase !~# '^\d\=:' && getline(1) =~# '^tree ' && empty(getline(2)) && line('.') >= 2
+    elseif showtree
       return [treebase . s:sub(getline('.'),'/$','')]
 
     else
@@ -3171,8 +3192,6 @@ function! s:cfile() abort
         let file = ':'.s:sub(matchstr(getline('.'),'\d\t.*'),'\t',':')
         return [file]
       endif
-
-      let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
 
       if getline('.') =~# '^ref: '
         let ref = strpart(getline('.'),5)
@@ -3191,9 +3210,9 @@ function! s:cfile() abort
         endwhile
         return [ref]
 
-      elseif getline('.') =~ '^tree \x\{40\}$'
+      elseif getline('.') =~# '^tree \x\{40\}$'
         let ref = matchstr(getline('.'),'\x\{40\}')
-        if s:repo().rev_parse(myhash.':') == ref
+        if len(myhash) && s:repo().rev_parse(myhash.':') ==# ref
           let ref = myhash.':'
         endif
         return [ref]
