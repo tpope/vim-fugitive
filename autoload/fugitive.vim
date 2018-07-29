@@ -438,6 +438,9 @@ function! fugitive#Path(url, ...) abort
     return fugitive#Real(a:url)
   endif
   let url = s:shellslash(fnamemodify(a:url, ':p'))
+  if url =~# '/$' && s:shellslash(a:url) !~# '/$'
+    let url = url[0:-2]
+  endif
   let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
   let tree = s:Tree(dir)
   let [argdir, commit, file] = s:DirCommitFile(a:url)
