@@ -16,6 +16,18 @@ function! s:shellslash(path) abort
   endif
 endfunction
 
+function! FugitiveGitDir(...) abort
+  if !a:0 || a:1 ==# -1
+    return get(b:, 'git_dir', '')
+  elseif type(a:1) == type(0)
+    return getbufvar(a:1, 'git_dir')
+  elseif type(a:1) == type('')
+    return substitute(s:shellslash(a:1), '/$', '', '')
+  else
+    return ''
+  endif
+endfunction
+
 function! FugitiveIsGitDir(path) abort
   let path = substitute(a:path, '[\/]$', '', '') . '/'
   return getfsize(path.'HEAD') > 10 && (
@@ -140,7 +152,7 @@ function! FugitiveStatusline(...) abort
 endfunction
 
 function! FugitiveHead(...) abort
-  let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
+  let dir = FugitiveGitDir(a:0 > 1 ? a:2 : -1)
   if empty(dir)
     return ''
   endif
@@ -159,14 +171,18 @@ function! FugitiveReal(...) abort
 endfunction
 
 function! FugitivePath(...) abort
-  return call(a:0 > 1 ? 'fugitive#Path' : 'FugitiveReal', a:000)
+  if a:0 > 1
+    return fugitive#Path(a:1, a:2, FugitiveGitDir(a:0 > 2 ? a:3 : -1))
+  else
+    return FugitiveReal(a:0 ? a:1 : @%)
+  endif
 endfunction
 
 function! FugitiveGenerate(...) abort
   if a:0 && s:shellslash(a:0) =~# '^\%(\a\a\+:\)\=\%(a:\)\=/\|^[~$]'
     return a:1
   endif
-  return fugitive#repo(a:0 > 1 ? a:2 : get(b:, 'git_dir', '')).translate(a:0 ? a:1 : '', 1)
+  return fugitive#repo(FugitiveGitDir(a:0 > 1 ? a:2 : -1)).translate(a:0 ? a:1 : '', 1)
 endfunction
 
 function! FugitiveParse(...) abort
@@ -179,12 +195,12 @@ function! FugitiveParse(...) abort
   throw v:errmsg
 endfunction
 
-function! FugitiveConfig(...) abort
-  return call('fugitive#Config', a:000)
+function! FugitiveConfig(key, ...) abort
+  return fugitive#Config(a:key, FugitiveGitDir(a:0 ? a:1 : -1))
 endfunction
 
 function! FugitiveRemoteUrl(...) abort
-  return call('fugitive#RemoteUrl', a:000)
+  return fugitive#RemoteUrl(a:0 ? a:1 : '', FugitiveGitDir(a:0 > 1 ? a:2 : -1))
 endfunction
 
 augroup fugitive
