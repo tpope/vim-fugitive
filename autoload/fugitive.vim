@@ -141,6 +141,14 @@ function! s:TreeChomp(...) abort
         \ join(map(args, 's:shellesc(v:val)'))), '\n$', '')
 endfunction
 
+function! fugitive#RevParse(rev, ...) abort
+  let hash = system(s:Prepare(a:0 ? a:1 : b:git_dir, 'rev-parse', '--verify', a:rev))[0:-2]
+  if !v:shell_error && hash =~# '^\x\{40\}$'
+    return hash
+  endif
+  call s:throw('rev-parse '.a:rev.': '.hash)
+endfunction
+
 function! fugitive#Config(name, ...) abort
   let cmd = s:Prepare(a:0 ? a:1 : get(b:, 'git_dir', ''), 'config', '--get', a:name)
   let out = matchstr(system(cmd), "[^\r\n]*")
@@ -378,11 +386,7 @@ function! s:repo_git_chomp_in_tree(...) dict abort
 endfunction
 
 function! s:repo_rev_parse(rev) dict abort
-  let hash = self.git_chomp('rev-parse','--verify',a:rev)
-  if hash =~ '\<\x\{40\}$'
-    return matchstr(hash,'\<\x\{40\}$')
-  endif
-  call s:throw('rev-parse '.a:rev.': '.hash)
+  return fugitive#RevParse(a:rev, self.git_dir)
 endfunction
 
 call s:add_methods('repo',['git_command','git_chomp','git_chomp_in_tree','rev_parse'])
@@ -2133,7 +2137,7 @@ function! s:Write(force,...) abort
     setlocal buftype=
     silent write
     setlocal buftype=nowrite
-    if matchstr(getline(2),'index [[:xdigit:]]\+\.\.\zs[[:xdigit:]]\{7\}') ==# s:repo().rev_parse(':0:'.filename)[0:6]
+    if matchstr(getline(2),'index [[:xdigit:]]\+\.\.\zs[[:xdigit:]]\{7\}') ==# fugitive#RevParse(':0:'.filename)[0:6]
       let err = s:TreeChomp('apply', '--cached', '--reverse', expand('%:p'))
     else
       let err = s:TreeChomp('apply', '--cached', expand('%:p'))
@@ -2465,7 +2469,7 @@ function! s:Diff(vert,keepfocus,...) abort
       let file = s:Relative(':0:')
     elseif arg =~# '^:/.'
       try
-        let file = s:repo().rev_parse(arg).s:Relative(':')
+        let file = fugitive#RevParse(arg).s:Relative(':')
       catch /^fugitive:/
         return 'echoerr v:errmsg'
       endtry
@@ -2989,7 +2993,12 @@ function! s:Browse(bang,line1,count,...) abort
       if a:line1 && !a:count && !empty(merge)
         let commit = merge
       else
-        let commit = s:repo().rev_parse('HEAD')
+        let commit = readfile(b:git_dir . '/HEAD', '', 1)[0]
+        let i = 0
+        while commit =~# '^ref: ' && i < 10
+          let commit = readfile(b:git_dir . '/' . commit[5:-1], '', 1)[0]
+          let i -= 1
+        endwhile
       endif
     endif
 
@@ -3163,7 +3172,7 @@ function! s:cfile() abort
     let myhash = s:DirRev(@%)[1]
     if len(myhash)
       try
-        let myhash = s:repo().rev_parse(myhash)
+        let myhash = fugitive#RevParse(myhash)
       catch /^fugitive:/
         let myhash = ''
       endtry
@@ -3212,7 +3221,7 @@ function! s:cfile() abort
 
       elseif getline('.') =~# '^tree \x\{40\}$'
         let ref = matchstr(getline('.'),'\x\{40\}')
-        if len(myhash) && s:repo().rev_parse(myhash.':') ==# ref
+        if len(myhash) && fugitive#RevParse(myhash.':') ==# ref
           let ref = myhash.':'
         endif
         return [ref]
