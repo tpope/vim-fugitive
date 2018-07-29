@@ -235,108 +235,6 @@ endfunction
 
 let s:abstract_prototype = {}
 
-" Section: Completion
-
-function! fugitive#PathComplete(base, ...) abort
-  let tree = FugitiveWorkTree(a:0 == 1 ? a:1 : get(b:, 'git_dir', '')) . '/'
-  let strip = '^:\=/'
-  let base = substitute(a:base, strip, '', '')
-  let matches = split(glob(tree . s:gsub(base, '/', '*&').'*'), "\n")
-  call map(matches, 's:shellslash(v:val)')
-  call map(matches, 'v:val !~# "/$" && isdirectory(v:val) ? v:val."/" : v:val')
-  call map(matches, 'matchstr(a:base, strip) . v:val[ strlen(tree) : -1 ]')
-  call map(matches, 's:fnameescape(v:val)')
-  return matches
-endfunction
-
-function! fugitive#Complete(base, ...) abort
-  let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
-  let tree = FugitiveWorkTree(a:0 == 1 ? a:1 : get(b:, 'git_dir', '')) . '/'
-  if a:base =~# '^\.\=/' || a:base !~# ':'
-    let results = []
-    if a:base !~# '^\.\=/'
-      let heads = ["HEAD","ORIG_HEAD","FETCH_HEAD","MERGE_HEAD"]
-      let heads += sort(split(s:TreeChomp(["rev-parse","--symbolic","--branches","--tags","--remotes"], dir),"\n"))
-      if filereadable(dir . '/refs/stash')
-        let heads += ["stash"]
-        let heads += sort(split(s:TreeChomp(["stash","list","--pretty=format:%gd"], dir),"\n"))
-      endif
-      call filter(heads,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-      let results += heads
-    endif
-    call map(results, 's:fnameescape(v:val)')
-    if !empty(s:Tree(dir))
-      let results += fugitive#PathComplete(a:base, dir)
-    endif
-    return results
-
-  elseif a:base =~# '^:'
-    let entries = split(s:TreeChomp(['ls-files','--stage'], dir),"\n")
-    call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)",":\\1:\\2")')
-    if a:base !~# '^:[0-3]\%(:\|$\)'
-      call filter(entries,'v:val[1] == "0"')
-      call map(entries,'v:val[2:-1]')
-    endif
-    call filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-    return map(entries, 's:fnameescape(v:val)')
-
-  else
-    let tree = matchstr(a:base,'.*[:/]')
-    let entries = split(s:TreeChomp(['ls-tree',tree], dir),"\n")
-    call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
-    call map(entries,'tree.s:sub(v:val,".*\t","")')
-    call filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-    return map(entries, 's:fnameescape(v:val)')
-  endif
-endfunction
-
-" Section: Initialization
-
-function! fugitive#Init() abort
-  if exists('#User#FugitiveBoot')
-    try
-      let [save_mls, &modelines] = [&mls, 0]
-      doautocmd User FugitiveBoot
-    finally
-      let &mls = save_mls
-    endtry
-  endif
-  if !exists('g:fugitive_no_maps')
-    call s:map('c', '<C-R><C-G>', 'fnameescape(<SID>recall())', '<expr>')
-    call s:map('n', 'y<C-G>', ':call setreg(v:register, <SID>recall())<CR>', '<silent>')
-  endif
-  if expand('%:p') =~# ':[\/][\/]'
-    let &l:path = s:sub(&path, '^\.%(,|$)', '')
-  endif
-  if stridx(&tags, escape(b:git_dir, ', ')) == -1
-    if filereadable(b:git_dir.'/tags')
-      let &l:tags = escape(b:git_dir.'/tags', ', ').','.&tags
-    endif
-    if &filetype !=# '' && filereadable(b:git_dir.'/'.&filetype.'.tags')
-      let &l:tags = escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.&tags
-    endif
-  endif
-  try
-    let [save_mls, &modelines] = [&mls, 0]
-    call s:define_commands()
-    doautocmd User Fugitive
-  finally
-    let &mls = save_mls
-  endtry
-endfunction
-
-function! fugitive#is_git_dir(path) abort
-  return FugitiveIsGitDir(a:path)
-endfunction
-
-function! fugitive#extract_git_dir(path) abort
-  return FugitiveExtractGitDir(a:path)
-endfunction
-
-function! fugitive#detect(path) abort
-  return FugitiveDetect(a:path)
-endfunction
-
 " Section: Repository
 
 let s:repo_prototype = {}
@@ -984,6 +882,364 @@ function! s:buffer_expand(rev) dict abort
 endfunction
 
 call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative','rev','expand'])
+
+" Section: Completion
+
+function! fugitive#PathComplete(base, ...) abort
+  let tree = FugitiveWorkTree(a:0 == 1 ? a:1 : get(b:, 'git_dir', '')) . '/'
+  let strip = '^:\=/'
+  let base = substitute(a:base, strip, '', '')
+  let matches = split(glob(tree . s:gsub(base, '/', '*&').'*'), "\n")
+  call map(matches, 's:shellslash(v:val)')
+  call map(matches, 'v:val !~# "/$" && isdirectory(v:val) ? v:val."/" : v:val')
+  call map(matches, 'matchstr(a:base, strip) . v:val[ strlen(tree) : -1 ]')
+  call map(matches, 's:fnameescape(v:val)')
+  return matches
+endfunction
+
+function! fugitive#Complete(base, ...) abort
+  let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
+  let tree = FugitiveWorkTree(a:0 == 1 ? a:1 : get(b:, 'git_dir', '')) . '/'
+  if a:base =~# '^\.\=/' || a:base !~# ':'
+    let results = []
+    if a:base !~# '^\.\=/'
+      let heads = ["HEAD","ORIG_HEAD","FETCH_HEAD","MERGE_HEAD"]
+      let heads += sort(split(s:TreeChomp(["rev-parse","--symbolic","--branches","--tags","--remotes"], dir),"\n"))
+      if filereadable(dir . '/refs/stash')
+        let heads += ["stash"]
+        let heads += sort(split(s:TreeChomp(["stash","list","--pretty=format:%gd"], dir),"\n"))
+      endif
+      call filter(heads,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
+      let results += heads
+    endif
+    call map(results, 's:fnameescape(v:val)')
+    if !empty(s:Tree(dir))
+      let results += fugitive#PathComplete(a:base, dir)
+    endif
+    return results
+
+  elseif a:base =~# '^:'
+    let entries = split(s:TreeChomp(['ls-files','--stage'], dir),"\n")
+    call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)",":\\1:\\2")')
+    if a:base !~# '^:[0-3]\%(:\|$\)'
+      call filter(entries,'v:val[1] == "0"')
+      call map(entries,'v:val[2:-1]')
+    endif
+    call filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
+    return map(entries, 's:fnameescape(v:val)')
+
+  else
+    let tree = matchstr(a:base,'.*[:/]')
+    let entries = split(s:TreeChomp(['ls-tree',tree], dir),"\n")
+    call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
+    call map(entries,'tree.s:sub(v:val,".*\t","")')
+    call filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
+    return map(entries, 's:fnameescape(v:val)')
+  endif
+endfunction
+
+" Section: File access
+
+function! s:ReplaceCmd(cmd) abort
+  let tmp = tempname()
+  let err = s:TempCmd(tmp, a:cmd)
+  if v:shell_error
+    call s:throw((len(err) ? err : filereadable(tmp) ? join(readfile(tmp), ' ') : 'unknown error running ' . a:cmd))
+  endif
+  let fn = expand('%:p')
+  silent exe 'doau BufReadPre '.s:fnameescape(fn)
+  silent exe 'keepalt file '.tmp
+  try
+    silent noautocmd edit!
+  finally
+    try
+      silent exe 'keepalt file '.s:fnameescape(fn)
+    catch /^Vim\%((\a\+)\)\=:E302:/
+    endtry
+    call delete(tmp)
+    if fnamemodify(bufname('$'), ':p') ==# tmp
+      silent execute 'bwipeout '.bufnr('$')
+    endif
+    silent exe 'doau BufReadPost '.s:fnameescape(fn)
+  endtry
+endfunction
+
+function! fugitive#BufReadStatus() abort
+  let amatch = s:shellslash(expand('%:p'))
+  if !exists('b:fugitive_display_format')
+    let b:fugitive_display_format = filereadable(expand('%').'.lock')
+  endif
+  let b:fugitive_display_format = b:fugitive_display_format % 2
+  let b:fugitive_type = 'index'
+  try
+    let dir = fnamemodify(amatch, ':h')
+    setlocal noro ma nomodeline
+    let prefix = ''
+    if s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p')) !=# s:cpath(amatch)
+      if s:winshell()
+        let old_index = $GIT_INDEX_FILE
+      else
+        let prefix = 'env GIT_INDEX_FILE='.s:shellesc(amatch).' '
+      endif
+    endif
+    if b:fugitive_display_format
+      let cmd = ['ls-files', '--stage']
+    elseif fugitive#GitVersion() =~# '^0\|^1\.[1-7]\.'
+      let cmd = ['status']
+    else
+      let cmd = [
+            \ '-c', 'status.displayCommentPrefix=true',
+            \ '-c', 'color.status=false',
+            \ '-c', 'status.short=false',
+            \ 'status']
+    endif
+    let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
+    let cwd = getcwd()
+    let cmd_str = prefix . call('s:Prepare', [dir] + cmd)
+    try
+      if exists('old_index')
+        let $GIT_INDEX_FILE = amatch
+      endif
+      execute cd s:fnameescape(s:Tree(dir))
+      call s:ReplaceCmd(cmd_str)
+    finally
+      if exists('old_index')
+        let $GIT_INDEX_FILE = old_index
+      endif
+      execute cd s:fnameescape(cwd)
+    endtry
+    if b:fugitive_display_format
+      if &filetype !=# 'git'
+        set filetype=git
+      endif
+      set nospell
+    else
+      if &filetype !=# 'gitcommit'
+        set filetype=gitcommit
+      endif
+      set foldtext=fugitive#Foldtext()
+    endif
+    setlocal readonly nomodifiable nomodified noswapfile
+    if &bufhidden ==# ''
+      setlocal bufhidden=delete
+    endif
+    call fugitive#MapJumps()
+    nunmap   <buffer>          P
+    nunmap   <buffer>          ~
+    nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>StageNext(v:count1)<CR>
+    nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>StagePrevious(v:count1)<CR>
+    nnoremap <buffer> <silent> - :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>
+    xnoremap <buffer> <silent> - :<C-U>silent execute <SID>StageToggle(line("'<"),line("'>"))<CR>
+    nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe fugitive#BufReadStatus()<CR>
+    nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe fugitive#BufReadStatus()<CR>
+    nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
+    nnoremap <buffer> <silent> cA :<C-U>Gcommit --amend --reuse-message=HEAD<CR>:echohl WarningMsg<Bar>echo ':Gstatus cA is deprecated in favor of ce'<Bar>echohl NONE<CR>
+    nnoremap <buffer> <silent> ca :<C-U>Gcommit --amend<CR>
+    nnoremap <buffer> <silent> cc :<C-U>Gcommit<CR>
+    nnoremap <buffer> <silent> ce :<C-U>Gcommit --amend --no-edit<CR>
+    nnoremap <buffer> <silent> cw :<C-U>Gcommit --amend --only<CR>
+    nnoremap <buffer> <silent> cva :<C-U>Gcommit -v --amend<CR>
+    nnoremap <buffer> <silent> cvc :<C-U>Gcommit -v<CR>
+    nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff('Gdiff')<CR>
+    nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gdiff')<CR>
+    nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
+    nnoremap <buffer> <silent> ds :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
+    nnoremap <buffer> <silent> dp :<C-U>execute <SID>StageDiffEdit()<CR>
+    nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
+    nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
+    xnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
+    nnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
+    xnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
+    nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
+    nnoremap <buffer> <silent> r :<C-U>edit<CR>
+    nnoremap <buffer> <silent> R :<C-U>edit<CR>
+    nnoremap <buffer> <silent> U :<C-U>execute <SID>StageUndo()<CR>
+    nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
+    nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
+endfunction
+
+function! fugitive#FileReadCmd(...) abort
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  let [dir, rev] = s:DirRev(amatch)
+  let line = a:0 > 1 ? a:2 : line("'[")
+  if empty(dir)
+    return 'noautocmd ' . line . 'read ' . s:fnameescape(amatch)
+  endif
+  if rev !~# ':'
+    let cmd = s:Prepare(dir, 'log', '--pretty=format:%B', '-1', rev)
+  else
+    let cmd = s:Prepare(dir, 'cat-file', '-p', rev)
+  endif
+  return line . 'read !' . escape(cmd, '!#%')
+endfunction
+
+function! fugitive#FileWriteCmd(...) abort
+  let tmp = tempname()
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  let autype = a:0 > 1 ? 'Buf' : 'File'
+  if exists('#' . autype . 'WritePre')
+    execute 'doautocmd ' . autype . 'WritePre ' . s:fnameescape(amatch)
+  endif
+  try
+    let [dir, commit, file] = s:DirCommitFile(amatch)
+    if commit !~# '^[0-3]$' || !v:cmdbang && (line("'[") != 1 || line("']") != line('$'))
+      return "noautocmd '[,']write" . (v:cmdbang ? '!' : '') . ' ' . s:fnameescape(amatch)
+    endif
+    silent execute "'[,']write !".s:Prepare(dir, 'hash-object', '-w', '--stdin').' > '.tmp
+    let sha1 = readfile(tmp)[0]
+    let old_mode = matchstr(system(s:Prepare(dir, 'ls-files', '--stage', file[1:-1])), '^\d\+')
+    if old_mode == ''
+      let old_mode = executable(s:Tree(dir) . file) ? '100755' : '100644'
+    endif
+    let info = old_mode.' '.sha1.' '.commit."\t".file[1:-1]
+    call writefile([info],tmp)
+    if s:winshell()
+      let error = s:System('type '.s:gsub(tmp,'/','\\').'|'.s:Prepare(dir, 'update-index', '--index-info'))
+    else
+      let error = s:System(s:Prepare(dir, 'update-index', '--index-info').' < '.tmp)
+    endif
+    if v:shell_error == 0
+      setlocal nomodified
+      if exists('#' . autype . 'WritePost')
+        execute 'doautocmd ' . autype . 'WritePost ' . s:fnameescape(amatch)
+      endif
+      call fugitive#ReloadStatus()
+      return ''
+    else
+      return 'echoerr '.string('fugitive: '.error)
+    endif
+  finally
+    call delete(tmp)
+  endtry
+endfunction
+
+function! fugitive#BufReadCmd(...) abort
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  try
+    let [dir, rev] = s:DirRev(amatch)
+    if empty(dir)
+      return 'echo "Invalid Fugitive URL"'
+    endif
+    let b:fugitive_type = system(s:Prepare(dir, 'cat-file', '-t', rev))[0:-2]
+    if v:shell_error
+      unlet b:fugitive_type
+      return 'silent doautocmd BufNewFile '.s:fnameescape(amatch)
+    elseif b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
+      return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
+    endif
+    if !exists('b:fugitive_display_format') && b:fugitive_type != 'blob'
+      let b:fugitive_display_format = +getbufvar('#','fugitive_display_format')
+    endif
+
+    if b:fugitive_type !=# 'blob'
+      setlocal nomodeline
+    endif
+
+    setlocal noreadonly modifiable
+    let pos = getpos('.')
+    silent keepjumps %delete_
+    setlocal endofline
+
+    try
+      if b:fugitive_type ==# 'tree'
+        let b:fugitive_display_format = b:fugitive_display_format % 2
+        if b:fugitive_display_format
+          call s:ReplaceCmd([dir, 'ls-tree', rev])
+        else
+          let sha = system(s:Prepare(dir, 'rev-parse', '--verify', rev))[0:-2]
+          call s:ReplaceCmd([dir, 'show', '--no-color', sha])
+        endif
+      elseif b:fugitive_type ==# 'tag'
+        let b:fugitive_display_format = b:fugitive_display_format % 2
+        if b:fugitive_display_format
+          call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
+        else
+          call s:ReplaceCmd([dir, 'cat-file', '-p', rev])
+        endif
+      elseif b:fugitive_type ==# 'commit'
+        let b:fugitive_display_format = b:fugitive_display_format % 2
+        if b:fugitive_display_format
+          call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
+        else
+          call s:ReplaceCmd([dir, 'show', '--no-color', '--pretty=format:tree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%s%n%n%b', rev])
+          keepjumps call search('^parent ')
+          if getline('.') ==# 'parent '
+            silent keepjumps delete_
+          else
+            silent exe 'keepjumps s/\m\C\%(^parent\)\@<! /\rparent /e' . (&gdefault ? '' : 'g')
+          endif
+          keepjumps let lnum = search('^encoding \%(<unknown>\)\=$','W',line('.')+3)
+          if lnum
+            silent keepjumps delete_
+          end
+          silent keepjumps 1,/^diff --git\|\%$/g/\r$/s///
+          keepjumps 1
+        endif
+      elseif b:fugitive_type ==# 'blob'
+        call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
+        setlocal nomodeline
+      endif
+    finally
+      keepjumps call setpos('.',pos)
+      setlocal nomodified noswapfile
+      if rev !~# '^:.'
+        setlocal readonly nomodifiable
+      endif
+      if &bufhidden ==# ''
+        setlocal bufhidden=delete
+      endif
+      if b:fugitive_type !=# 'blob'
+        setlocal filetype=git foldmethod=syntax
+        nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
+        nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
+      else
+        call fugitive#MapJumps()
+      endif
+    endtry
+
+    return ''
+  catch /^fugitive:/
+    return 'echoerr v:errmsg'
+  endtry
+endfunction
+
+function! fugitive#BufWriteCmd(...) abort
+  return fugitive#FileWriteCmd(a:0 ? a:1 : expand('<amatch>'), 1)
+endfunction
+
+function! fugitive#SourceCmd(...) abort
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  let temp = s:BlobTemp(amatch)
+  if empty(temp)
+    return 'noautocmd source ' . s:fnameescape(amatch)
+  endif
+  if !exists('g:virtual_scriptnames')
+    let g:virtual_scriptnames = {}
+  endif
+  let g:virtual_scriptnames[temp] = amatch
+  return 'source ' . s:fnameescape(temp)
+endfunction
+
+" Section: Temp files
+
+if !exists('s:temp_files')
+  let s:temp_files = {}
+endif
+
+augroup fugitive_temp
+  autocmd!
+  autocmd BufNewFile,BufReadPost *
+        \ if has_key(s:temp_files,s:cpath(expand('<afile>:p'))) |
+        \   let b:git_dir = s:temp_files[s:cpath(expand('<afile>:p'))].dir |
+        \   call extend(b:, {'fugitive_type': 'temp'}, 'keep') |
+        \   call FugitiveDetect(expand('<afile>:p')) |
+        \   setlocal bufhidden=delete nobuflisted |
+        \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>|
+        \ endif
+augroup END
 
 " Section: Git
 
@@ -2777,309 +3033,6 @@ function! s:Browse(bang,line1,count,...) abort
   endtry
 endfunction
 
-" Section: File access
-
-function! s:ReplaceCmd(cmd) abort
-  let tmp = tempname()
-  let err = s:TempCmd(tmp, a:cmd)
-  if v:shell_error
-    call s:throw((len(err) ? err : filereadable(tmp) ? join(readfile(tmp), ' ') : 'unknown error running ' . a:cmd))
-  endif
-  let fn = expand('%:p')
-  silent exe 'doau BufReadPre '.s:fnameescape(fn)
-  silent exe 'keepalt file '.tmp
-  try
-    silent noautocmd edit!
-  finally
-    try
-      silent exe 'keepalt file '.s:fnameescape(fn)
-    catch /^Vim\%((\a\+)\)\=:E302:/
-    endtry
-    call delete(tmp)
-    if fnamemodify(bufname('$'), ':p') ==# tmp
-      silent execute 'bwipeout '.bufnr('$')
-    endif
-    silent exe 'doau BufReadPost '.s:fnameescape(fn)
-  endtry
-endfunction
-
-function! fugitive#BufReadStatus() abort
-  let amatch = s:shellslash(expand('%:p'))
-  if !exists('b:fugitive_display_format')
-    let b:fugitive_display_format = filereadable(expand('%').'.lock')
-  endif
-  let b:fugitive_display_format = b:fugitive_display_format % 2
-  let b:fugitive_type = 'index'
-  try
-    let dir = fnamemodify(amatch, ':h')
-    setlocal noro ma nomodeline
-    let prefix = ''
-    if s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p')) !=# s:cpath(amatch)
-      if s:winshell()
-        let old_index = $GIT_INDEX_FILE
-      else
-        let prefix = 'env GIT_INDEX_FILE='.s:shellesc(amatch).' '
-      endif
-    endif
-    if b:fugitive_display_format
-      let cmd = ['ls-files', '--stage']
-    elseif fugitive#GitVersion() =~# '^0\|^1\.[1-7]\.'
-      let cmd = ['status']
-    else
-      let cmd = [
-            \ '-c', 'status.displayCommentPrefix=true',
-            \ '-c', 'color.status=false',
-            \ '-c', 'status.short=false',
-            \ 'status']
-    endif
-    let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
-    let cwd = getcwd()
-    let cmd_str = prefix . call('s:Prepare', [dir] + cmd)
-    try
-      if exists('old_index')
-        let $GIT_INDEX_FILE = amatch
-      endif
-      execute cd s:fnameescape(s:Tree(dir))
-      call s:ReplaceCmd(cmd_str)
-    finally
-      if exists('old_index')
-        let $GIT_INDEX_FILE = old_index
-      endif
-      execute cd s:fnameescape(cwd)
-    endtry
-    if b:fugitive_display_format
-      if &filetype !=# 'git'
-        set filetype=git
-      endif
-      set nospell
-    else
-      if &filetype !=# 'gitcommit'
-        set filetype=gitcommit
-      endif
-      set foldtext=fugitive#Foldtext()
-    endif
-    setlocal readonly nomodifiable nomodified noswapfile
-    if &bufhidden ==# ''
-      setlocal bufhidden=delete
-    endif
-    call fugitive#MapJumps()
-    nunmap   <buffer>          P
-    nunmap   <buffer>          ~
-    nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>StageNext(v:count1)<CR>
-    nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>StagePrevious(v:count1)<CR>
-    nnoremap <buffer> <silent> - :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>
-    xnoremap <buffer> <silent> - :<C-U>silent execute <SID>StageToggle(line("'<"),line("'>"))<CR>
-    nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe fugitive#BufReadStatus()<CR>
-    nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe fugitive#BufReadStatus()<CR>
-    nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
-    nnoremap <buffer> <silent> cA :<C-U>Gcommit --amend --reuse-message=HEAD<CR>:echohl WarningMsg<Bar>echo ':Gstatus cA is deprecated in favor of ce'<Bar>echohl NONE<CR>
-    nnoremap <buffer> <silent> ca :<C-U>Gcommit --amend<CR>
-    nnoremap <buffer> <silent> cc :<C-U>Gcommit<CR>
-    nnoremap <buffer> <silent> ce :<C-U>Gcommit --amend --no-edit<CR>
-    nnoremap <buffer> <silent> cw :<C-U>Gcommit --amend --only<CR>
-    nnoremap <buffer> <silent> cva :<C-U>Gcommit -v --amend<CR>
-    nnoremap <buffer> <silent> cvc :<C-U>Gcommit -v<CR>
-    nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff('Gdiff')<CR>
-    nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gdiff')<CR>
-    nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
-    nnoremap <buffer> <silent> ds :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
-    nnoremap <buffer> <silent> dp :<C-U>execute <SID>StageDiffEdit()<CR>
-    nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
-    nnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
-    xnoremap <buffer> <silent> p :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
-    nnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
-    xnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
-    nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
-    nnoremap <buffer> <silent> r :<C-U>edit<CR>
-    nnoremap <buffer> <silent> R :<C-U>edit<CR>
-    nnoremap <buffer> <silent> U :<C-U>execute <SID>StageUndo()<CR>
-    nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
-    nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
-  catch /^fugitive:/
-    return 'echoerr v:errmsg'
-  endtry
-endfunction
-
-function! fugitive#FileReadCmd(...) abort
-  let amatch = a:0 ? a:1 : expand('<amatch>')
-  let [dir, rev] = s:DirRev(amatch)
-  let line = a:0 > 1 ? a:2 : line("'[")
-  if empty(dir)
-    return 'noautocmd ' . line . 'read ' . s:fnameescape(amatch)
-  endif
-  if rev !~# ':'
-    let cmd = s:Prepare(dir, 'log', '--pretty=format:%B', '-1', rev)
-  else
-    let cmd = s:Prepare(dir, 'cat-file', '-p', rev)
-  endif
-  return line . 'read !' . escape(cmd, '!#%')
-endfunction
-
-function! fugitive#FileWriteCmd(...) abort
-  let tmp = tempname()
-  let amatch = a:0 ? a:1 : expand('<amatch>')
-  let autype = a:0 > 1 ? 'Buf' : 'File'
-  if exists('#' . autype . 'WritePre')
-    execute 'doautocmd ' . autype . 'WritePre ' . s:fnameescape(amatch)
-  endif
-  try
-    let [dir, commit, file] = s:DirCommitFile(amatch)
-    if commit !~# '^[0-3]$' || !v:cmdbang && (line("'[") != 1 || line("']") != line('$'))
-      return "noautocmd '[,']write" . (v:cmdbang ? '!' : '') . ' ' . s:fnameescape(amatch)
-    endif
-    silent execute "'[,']write !".s:Prepare(dir, 'hash-object', '-w', '--stdin').' > '.tmp
-    let sha1 = readfile(tmp)[0]
-    let old_mode = matchstr(system(s:Prepare(dir, 'ls-files', '--stage', file[1:-1])), '^\d\+')
-    if old_mode == ''
-      let old_mode = executable(s:Tree(dir) . file) ? '100755' : '100644'
-    endif
-    let info = old_mode.' '.sha1.' '.commit."\t".file[1:-1]
-    call writefile([info],tmp)
-    if s:winshell()
-      let error = s:System('type '.s:gsub(tmp,'/','\\').'|'.s:Prepare(dir, 'update-index', '--index-info'))
-    else
-      let error = s:System(s:Prepare(dir, 'update-index', '--index-info').' < '.tmp)
-    endif
-    if v:shell_error == 0
-      setlocal nomodified
-      if exists('#' . autype . 'WritePost')
-        execute 'doautocmd ' . autype . 'WritePost ' . s:fnameescape(amatch)
-      endif
-      call fugitive#ReloadStatus()
-      return ''
-    else
-      return 'echoerr '.string('fugitive: '.error)
-    endif
-  finally
-    call delete(tmp)
-  endtry
-endfunction
-
-function! fugitive#BufReadCmd(...) abort
-  let amatch = a:0 ? a:1 : expand('<amatch>')
-  try
-    let [dir, rev] = s:DirRev(amatch)
-    if empty(dir)
-      return 'echo "Invalid Fugitive URL"'
-    endif
-    let b:fugitive_type = system(s:Prepare(dir, 'cat-file', '-t', rev))[0:-2]
-    if v:shell_error
-      unlet b:fugitive_type
-      return 'silent doautocmd BufNewFile '.s:fnameescape(amatch)
-    elseif b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
-      return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
-    endif
-    if !exists('b:fugitive_display_format') && b:fugitive_type != 'blob'
-      let b:fugitive_display_format = +getbufvar('#','fugitive_display_format')
-    endif
-
-    if b:fugitive_type !=# 'blob'
-      setlocal nomodeline
-    endif
-
-    setlocal noreadonly modifiable
-    let pos = getpos('.')
-    silent keepjumps %delete_
-    setlocal endofline
-
-    try
-      if b:fugitive_type ==# 'tree'
-        let b:fugitive_display_format = b:fugitive_display_format % 2
-        if b:fugitive_display_format
-          call s:ReplaceCmd([dir, 'ls-tree', rev])
-        else
-          let sha = system(s:Prepare(dir, 'rev-parse', '--verify', rev))[0:-2]
-          call s:ReplaceCmd([dir, 'show', '--no-color', sha])
-        endif
-      elseif b:fugitive_type ==# 'tag'
-        let b:fugitive_display_format = b:fugitive_display_format % 2
-        if b:fugitive_display_format
-          call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
-        else
-          call s:ReplaceCmd([dir, 'cat-file', '-p', rev])
-        endif
-      elseif b:fugitive_type ==# 'commit'
-        let b:fugitive_display_format = b:fugitive_display_format % 2
-        if b:fugitive_display_format
-          call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
-        else
-          call s:ReplaceCmd([dir, 'show', '--no-color', '--pretty=format:tree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%s%n%n%b', rev])
-          keepjumps call search('^parent ')
-          if getline('.') ==# 'parent '
-            silent keepjumps delete_
-          else
-            silent exe 'keepjumps s/\m\C\%(^parent\)\@<! /\rparent /e' . (&gdefault ? '' : 'g')
-          endif
-          keepjumps let lnum = search('^encoding \%(<unknown>\)\=$','W',line('.')+3)
-          if lnum
-            silent keepjumps delete_
-          end
-          silent keepjumps 1,/^diff --git\|\%$/g/\r$/s///
-          keepjumps 1
-        endif
-      elseif b:fugitive_type ==# 'blob'
-        call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
-        setlocal nomodeline
-      endif
-    finally
-      keepjumps call setpos('.',pos)
-      setlocal nomodified noswapfile
-      if rev !~# '^:.'
-        setlocal readonly nomodifiable
-      endif
-      if &bufhidden ==# ''
-        setlocal bufhidden=delete
-      endif
-      if b:fugitive_type !=# 'blob'
-        setlocal filetype=git foldmethod=syntax
-        nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
-        nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
-      else
-        call fugitive#MapJumps()
-      endif
-    endtry
-
-    return ''
-  catch /^fugitive:/
-    return 'echoerr v:errmsg'
-  endtry
-endfunction
-
-function! fugitive#BufWriteCmd(...) abort
-  return fugitive#FileWriteCmd(a:0 ? a:1 : expand('<amatch>'), 1)
-endfunction
-
-function! fugitive#SourceCmd(...) abort
-  let amatch = a:0 ? a:1 : expand('<amatch>')
-  let temp = s:BlobTemp(amatch)
-  if empty(temp)
-    return 'noautocmd source ' . s:fnameescape(amatch)
-  endif
-  if !exists('g:virtual_scriptnames')
-    let g:virtual_scriptnames = {}
-  endif
-  let g:virtual_scriptnames[temp] = amatch
-  return 'source ' . s:fnameescape(temp)
-endfunction
-
-" Section: Temp files
-
-if !exists('s:temp_files')
-  let s:temp_files = {}
-endif
-
-augroup fugitive_temp
-  autocmd!
-  autocmd BufNewFile,BufReadPost *
-        \ if has_key(s:temp_files,s:cpath(expand('<afile>:p'))) |
-        \   let b:git_dir = s:temp_files[s:cpath(expand('<afile>:p'))].dir |
-        \   call extend(b:, {'fugitive_type': 'temp'}, 'keep') |
-        \   call FugitiveDetect(expand('<afile>:p')) |
-        \   setlocal bufhidden=delete nobuflisted |
-        \   nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>|
-        \ endif
-augroup END
-
 " Section: Go to file
 
 nnoremap <SID>: :<C-U><C-R>=v:count ? v:count : ''<CR>
@@ -3452,3 +3405,50 @@ augroup fugitive_folding
         \    set foldtext=fugitive#Foldtext() |
         \ endif
 augroup END
+
+" Section: Initialization
+
+function! fugitive#Init() abort
+  if exists('#User#FugitiveBoot')
+    try
+      let [save_mls, &modelines] = [&mls, 0]
+      doautocmd User FugitiveBoot
+    finally
+      let &mls = save_mls
+    endtry
+  endif
+  if !exists('g:fugitive_no_maps')
+    call s:map('c', '<C-R><C-G>', 'fnameescape(<SID>recall())', '<expr>')
+    call s:map('n', 'y<C-G>', ':call setreg(v:register, <SID>recall())<CR>', '<silent>')
+  endif
+  if expand('%:p') =~# ':[\/][\/]'
+    let &l:path = s:sub(&path, '^\.%(,|$)', '')
+  endif
+  if stridx(&tags, escape(b:git_dir, ', ')) == -1
+    if filereadable(b:git_dir.'/tags')
+      let &l:tags = escape(b:git_dir.'/tags', ', ').','.&tags
+    endif
+    if &filetype !=# '' && filereadable(b:git_dir.'/'.&filetype.'.tags')
+      let &l:tags = escape(b:git_dir.'/'.&filetype.'.tags', ', ').','.&tags
+    endif
+  endif
+  try
+    let [save_mls, &modelines] = [&mls, 0]
+    call s:define_commands()
+    doautocmd User Fugitive
+  finally
+    let &mls = save_mls
+  endtry
+endfunction
+
+function! fugitive#is_git_dir(path) abort
+  return FugitiveIsGitDir(a:path)
+endfunction
+
+function! fugitive#extract_git_dir(path) abort
+  return FugitiveExtractGitDir(a:path)
+endfunction
+
+function! fugitive#detect(path) abort
+  return FugitiveDetect(a:path)
+endfunction
