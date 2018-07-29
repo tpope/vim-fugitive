@@ -187,6 +187,21 @@ function! s:TreeChomp(...) abort
         \ join(map(args, 's:shellesc(v:val)'))), '\n$', '')
 endfunction
 
+function! fugitive#Prepare(cmd, ...) abort
+  let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
+  let tree = s:Tree(dir)
+  let args = type(a:cmd) == type([]) ? join(map(copy(a:cmd), 's:shellesc(v:val)')) : a:cmd
+  let pre = ''
+  if empty(tree)
+    let args = s:shellesc('--git-dir=' . dir) . ' ' . args
+  elseif fugitive#GitVersion() =~# '^[01]\.'
+    let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? ' & ' : '; ')
+  else
+    let args = '-C ' . s:shellesc(tree) . ' ' . args
+  endif
+  return pre . g:fugitive_git_executable . ' ' . args
+endfunction
+
 function! fugitive#RevParse(rev, ...) abort
   let hash = system(s:Prepare(a:0 ? a:1 : b:git_dir, 'rev-parse', '--verify', a:rev))[0:-2]
   if !v:shell_error && hash =~# '^\x\{40\}$'
