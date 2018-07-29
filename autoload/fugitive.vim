@@ -2341,7 +2341,7 @@ function! s:Blame(bang, line1, line2, count, mods, args) abort
       let cmd += ['--contents', '-']
     endif
     let cmd += ['--', s:Relative('')]
-    let basecmd = escape(call('s:Prepare', cmd), '!#%')
+    let basecmd = escape(call('s:Prepare', [b:git_dir] + cmd), '!#%')
     try
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
       let tree = s:Tree()
