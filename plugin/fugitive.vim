@@ -217,7 +217,7 @@ augroup fugitive
 
   autocmd FileType git
         \ if exists('b:git_dir') |
-        \  call fugitive#MapJumps() |
+        \   call fugitive#MapJumps() |
         \   call fugitive#MapCfile() |
         \ endif
   autocmd FileType gitcommit
