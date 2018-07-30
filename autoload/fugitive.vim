@@ -1993,15 +1993,25 @@ function! s:UsableWin(nr) abort
 endfunction
 
 function! s:Expand(rev) abort
-  if len(a:rev)
-    return fugitive#buffer().expand(a:rev)
-  elseif expand('%') ==# ''
-    return ':'
-  elseif empty(s:DirCommitFile(@%)[1]) && s:Relative('/') !~# '^/.git\>'
-    return s:Relative(':')
+  return fugitive#buffer().expand(a:rev)
+endfunction
+
+function! s:EditParse(args) abort
+  let pre = []
+  let args = copy(a:args)
+  while !empty(args) && args[0] =~# '^+'
+    call add(pre, escape(remove(args, 0), ' |"') . ' ')
+  endwhile
+  if len(args)
+    let file = join(args)
+  elseif empty(expand('%'))
+    let file = ':'
+  elseif empty(s:DirCommitFile(@%)[1]) && s:Relative('./') !~# '^\./\.git\>'
+    let file = s:Relative(':0:')
   else
-    return s:Relative('/')
+    let file = s:Relative('./')
   endif
+  return [s:Expand(file), join(pre)]
 endfunction
 
 function! s:Edit(cmd, bang, mods, args, ...) abort
@@ -2050,15 +2060,16 @@ function! s:Edit(cmd, bang, mods, args, ...) abort
     return echo
   endif
 
+  let [file, pre] = s:EditParse(a:000)
   try
-    let file = s:Generate(s:Expand(join(a:000)))
+    let file = s:Generate(file)
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
   if file !~# '^fugitive:'
     let file = s:sub(file, '/$', '')
   endif
-  return mods.' '.a:cmd.' '.s:fnameescape(file)
+  return mods . ' ' . a:cmd . ' ' . pre . s:fnameescape(file)
 endfunction
 
 function! s:Read(count, line1, line2, range, bang, mods, args, ...) abort
@@ -2087,12 +2098,13 @@ function! s:Read(count, line1, line2, range, bang, mods, args, ...) abort
     call fugitive#ReloadStatus()
     return 'redraw|echo '.string(':!'.git.' '.args)
   endif
+  let [file, pre] = s:EditParse(a:000)
   try
-    let file = s:Generate(s:Expand(join(a:000)))
+    let file = s:Generate(file)
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
-  return mods . ' ' . after . 'read '.s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
+  return mods . ' ' . after . 'read ' . pre . s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
 endfunction
 
 function! s:EditRunComplete(A,L,P) abort
@@ -3319,12 +3331,12 @@ function! s:GF(mode) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
-  if len(results) > 1 && a:mode ==# 'pedit'
-    return a:mode .
-          \ ' +' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' ' .
-          \ s:fnameescape(s:Generate(results[0]))
+  if len(results) > 1
+    return 'G' . a:mode .
+          \ ' +' . escape(join(results[1:-1], '|'), '| ') . ' ' .
+          \ s:fnameescape(results[0])
   elseif len(results)
-    return s:Edit(a:mode, 0, '', '', results[0]).join(map(results[1:-1], '"|".v:val'))
+    return 'G' . a:mode . ' ' . s:fnameescape(results[0])
   else
     return ''
   endif
