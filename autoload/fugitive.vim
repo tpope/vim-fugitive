@@ -81,7 +81,7 @@ function! s:warn(str) abort
   let v:warningmsg = a:str
 endfunction
 
-function! s:shellslash(path) abort
+function! s:Slash(path) abort
   if s:winshell()
     return tr(a:path, '\', '/')
   else
@@ -455,7 +455,7 @@ call s:add_methods('repo',['config', 'user'])
 " Section: Buffer
 
 function! s:DirCommitFile(path) abort
-  let vals = matchlist(s:shellslash(a:path), '\c^fugitive:\%(//\)\=\(.\{-\}\)\%(//\|::\)\(\x\{40\}\|[0-3]\)\(/.*\)\=$')
+  let vals = matchlist(s:Slash(a:path), '\c^fugitive:\%(//\)\=\(.\{-\}\)\%(//\|::\)\(\x\{40\}\|[0-3]\)\(/.*\)\=$')
   if empty(vals)
     return ['', '', '']
   endif
@@ -484,8 +484,8 @@ function! fugitive#Path(url, ...) abort
   if !a:0 || empty(a:url)
     return fugitive#Real(a:url)
   endif
-  let url = s:shellslash(fnamemodify(a:url, ':p'))
-  if url =~# '/$' && s:shellslash(a:url) !~# '/$'
+  let url = s:Slash(fnamemodify(a:url, ':p'))
+  if url =~# '/$' && s:Slash(a:url) !~# '/$'
     let url = url[0:-2]
   endif
   let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
@@ -501,7 +501,7 @@ function! fugitive#Path(url, ...) abort
     let file = '/'
   endif
   if empty(file) && a:1 =~# '^\%([.:]\=/\)\=$'
-    return s:shellslash(fugitive#Real(a:url))
+    return s:Slash(fugitive#Real(a:url))
   endif
   return substitute(file, '^/', a:1, '')
 endfunction
@@ -838,14 +838,14 @@ if has('win32')
     for i in split(bufname,'[^:]\zs\\')
       let retval = fnamemodify((retval==''?'':retval.'\').i,':.')
     endfor
-    return s:shellslash(fnamemodify(retval,':p'))
+    return s:Slash(fnamemodify(retval,':p'))
   endfunction
 
 else
 
   function! s:buffer_spec() dict abort
     let bufname = bufname(self['#'])
-    return s:shellslash(bufname == '' ? '' : fnamemodify(bufname,':p'))
+    return s:Slash(bufname == '' ? '' : fnamemodify(bufname,':p'))
   endfunction
 
 endif
@@ -951,7 +951,7 @@ function! fugitive#PathComplete(base, ...) abort
   else
     let matches = s:GlobComplete(tree, s:gsub(base, '/', '*&').'*')
   endif
-  call map(matches, 's:fnameescape(s:shellslash(matchstr(a:base, strip) . v:val))')
+  call map(matches, 's:fnameescape(s:Slash(matchstr(a:base, strip) . v:val))')
   return matches
 endfunction
 
@@ -961,7 +961,7 @@ function! fugitive#Complete(base, ...) abort
   if a:base =~# '^\.\=/' || a:base !~# ':'
     let results = []
     if a:base =~# '^refs/'
-      let results += map(s:GlobComplete(fugitive#CommonDir(dir) . '/', a:base . '*'), 's:shellslash(v:val)')
+      let results += map(s:GlobComplete(fugitive#CommonDir(dir) . '/', a:base . '*'), 's:Slash(v:val)')
     elseif a:base !~# '^\.\=/'
       let heads = ['HEAD', 'ORIG_HEAD', 'FETCH_HEAD', 'MERGE_HEAD', 'refs/']
       let heads += sort(split(s:TreeChomp(["rev-parse","--symbolic","--branches","--tags","--remotes"], dir),"\n"))
@@ -1025,7 +1025,7 @@ function! s:ReplaceCmd(cmd) abort
 endfunction
 
 function! fugitive#BufReadStatus() abort
-  let amatch = s:shellslash(expand('%:p'))
+  let amatch = s:Slash(expand('%:p'))
   if !exists('b:fugitive_display_format')
     let b:fugitive_display_format = filereadable(expand('%').'.lock')
   endif
@@ -1396,7 +1396,7 @@ endfunction
 function! s:DirComplete(A, L, P) abort
   let base = s:sub(a:A,'^/','')
   let matches = split(glob(s:Tree() . '/' . s:gsub(base,'/','*&').'*/'),"\n")
-  call map(matches,'s:shellslash(v:val[ strlen(s:Tree())+(a:A !~ "^/") : -1 ])')
+  call map(matches,'s:Slash(v:val[ strlen(s:Tree())+(a:A !~ "^/") : -1 ])')
   return matches
 endfunction
 
