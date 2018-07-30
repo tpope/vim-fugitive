@@ -89,7 +89,7 @@ function! FugitivePath(...) abort
 endfunction
 
 function! FugitiveGenerate(...) abort
-  if a:0 && s:shellslash(a:0) =~# '^\%(\a\a\+:\)\=\%(a:\)\=/\|^[~$]'
+  if a:0 && s:shellslash(a:1) =~# '^\%(\a\a\+:\)\=\%(a:\)\=/\|^[~$]'
     return a:1
   endif
   return fugitive#repo(FugitiveGitDir(a:0 > 1 ? a:2 : -1)).translate(a:0 ? a:1 : '', 1)
