@@ -95,6 +95,10 @@ function! FugitiveGenerate(...) abort
   return fugitive#repo(FugitiveGitDir(a:0 > 1 ? a:2 : -1)).translate(a:0 ? a:1 : '', 1)
 endfunction
 
+function! FugitiveRoute(...) abort
+  return call('FugitiveGenerate', a:000)
+endfunction
+
 function! FugitiveParse(...) abort
   let path = s:shellslash(a:0 ? a:1 : @%)
   let vals = matchlist(path, '\c^fugitive:\%(//\)\=\(.\{-\}\)\%(//\|::\)\(\x\{40\}\|[0-3]\)\(/.*\)\=$')
