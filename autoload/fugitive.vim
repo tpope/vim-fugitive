@@ -296,7 +296,7 @@ function! s:repo_translate(spec, ...) dict abort
   elseif empty(rev) || rev ==# '/.'
     return self.tree()
   elseif rev =~# '^\.\=/'
-    let f = self.tree(substitute(rev, '^\.', '', ''))
+    let f = self.tree(substitute(rev, '^\.\=/', '', ''))
   elseif rev =~# '^:[0-3]:/\@!'
     let f = 'fugitive://' . dir . '//' . rev[1] . '/' . rev[3:-1]
   elseif rev ==# ':'
