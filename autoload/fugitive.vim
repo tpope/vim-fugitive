@@ -330,7 +330,8 @@ function! s:repo_bare() dict abort
 endfunction
 
 function! s:repo_translate(spec, ...) dict abort
-  let rev = a:spec
+  let rev = substitute(a:spec, '//\+', '/', 'g')
+  let rev = substitute(rev, '[:/]\zs\.\%(/\|$\)', '', 'g')
   let dir = self.git_dir
   let tree = s:Tree(dir)
   if rev ==# '.'
@@ -383,8 +384,8 @@ function! s:repo_translate(spec, ...) dict abort
   return a:0 && a:1 ? s:PlatformSlash(f) : f
 endfunction
 
-function! s:Generate(rev) abort
-  return fugitive#repo().translate(a:rev, 1)
+function! s:Generate(rev, ...) abort
+  return fugitive#repo(a:0 ? a:1 : b:git_dir).translate(a:rev, 1)
 endfunction
 
 function! s:repo_head(...) dict abort
@@ -504,6 +505,43 @@ function! fugitive#Path(url, ...) abort
     return s:Slash(fugitive#Real(a:url))
   endif
   return substitute(file, '^/', a:1, '')
+endfunction
+
+function! s:RemoveDot(path, ...) abort
+  if a:path !~# '^\./'
+    return a:path
+  endif
+  let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
+  let cdir = fugitive#CommonDir(dir)
+  if len(filter(['', '/tags', '/heads', '/remotes'], 'getftime(cdir . "/refs" . v:val . a:path[1:-1]) >= 0')) ||
+        \ a:path =~# 'HEAD$' && filereadable(dir . a:path[1:-1]) ||
+        \ a:path =~# '^\./refs/' && filereadable(cdir . a:path[1:-1])
+    return a:path
+  endif
+  return a:path[2:-1]
+endfunction
+
+function! s:Expand(rev, ...) abort
+  let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
+  if a:rev =~# '^:[0-3]$'
+    let file = a:rev . fugitive#Path(@%, a:rev, dir)
+  elseif a:rev =~# '^-'
+    let file = 'HEAD^{}' . a:rev[1:-1] . fugitive#Path(@%, ':', dir)
+  elseif a:rev =~# '^@{'
+    let file = 'HEAD'.a:rev. fugitive#Path(@%, ':', dir)
+  elseif a:rev =~# '^[~^]'
+    let commit = substitute(s:DirCommitFile(@%), '^\d\=$', 'HEAD')
+    let file = commit . a:rev . fugitive#Path(@%, ':', dir)
+  else
+    let file = a:rev
+  endif
+  return s:sub(substitute(file,
+        \ '\([%#]\)$\|\\\([[:punct:]]\)','\=len(submatch(2)) ? submatch(2) : fugitive#Path(expand(submatch(1)), "./", dir)','g'),
+        \ '\.\@<=/$','')
+endfunction
+
+function! s:ExecExpand(cmd, ...) abort
+  return substitute(a:cmd, '\\\@<![%#]', '\=s:RemoveDot(fugitive#Path(expand(submatch(0)), "./", a:0 ? a:1 : get(b:, "git_dir", "")))', 'g')
 endfunction
 
 let s:trees = {}
@@ -899,27 +937,7 @@ function! s:buffer_rev() dict abort
   endif
 endfunction
 
-function! s:buffer_expand(rev) dict abort
-  if a:rev =~# '^:[0-3]$'
-    let file = a:rev.self.relative(':')
-  elseif a:rev =~# '^[-:]/$'
-    let file = '/'.self.relative()
-  elseif a:rev =~# '^-'
-    let file = 'HEAD^{}'.a:rev[1:-1].self.relative(':')
-  elseif a:rev =~# '^@{'
-    let file = 'HEAD'.a:rev.self.relative(':')
-  elseif a:rev =~# '^[~^]'
-    let commit = s:sub(self.commit(),'^\d=$','HEAD')
-    let file = commit.a:rev.self.relative(':')
-  else
-    let file = a:rev
-  endif
-  return s:sub(substitute(file,
-        \ '%$\|\\\([[:punct:]]\)','\=len(submatch(1)) ? submatch(1) : self.relative()','g'),
-        \ '\.\@<=/$','')
-endfunction
-
-call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative','rev','expand'])
+call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative','rev'])
 
 " Section: Completion
 
@@ -1340,6 +1358,7 @@ function! s:Git(bang, mods, args) abort
   if has('win32')
     let after = '|call fugitive#ReloadStatus()' . after
   endif
+  let exec = escape(git . ' ' . s:ExecExpand(args), '!#%')
   if exists(':terminal') && has('nvim') && !get(g:, 'fugitive_force_bang_command')
     if len(@%)
       -tabedit %
@@ -1347,9 +1366,9 @@ function! s:Git(bang, mods, args) abort
       -tabnew
     endif
     execute 'lcd' fnameescape(tree)
-    return 'exe ' .string('terminal ' . git . ' ' . args) . after
+    return 'exe ' . string('terminal ' . exec) . after
   else
-    let cmd = 'exe ' . string('!' . git . ' ' . args)
+    let cmd = 'exe ' . string('!' . exec)
     if s:cpath(tree) !=# s:cpath(getcwd())
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
       let cmd = 'try|' . cd . ' ' . tree . '|' . cmd . '|finally|' . cd . ' ' . s:fnameescape(getcwd()) . '|endtry'
@@ -2053,11 +2072,7 @@ function! s:UsableWin(nr) abort
         \ index(['nofile','help','quickfix'], getbufvar(winbufnr(a:nr), '&buftype')) < 0
 endfunction
 
-function! s:Expand(rev) abort
-  return fugitive#buffer().expand(a:rev)
-endfunction
-
-function! s:EditParse(args) abort
+function! s:EditParse(args, dir) abort
   let pre = []
   let args = copy(a:args)
   while !empty(args) && args[0] =~# '^+'
@@ -2067,15 +2082,16 @@ function! s:EditParse(args) abort
     let file = join(args)
   elseif empty(expand('%'))
     let file = ':'
-  elseif empty(s:DirCommitFile(@%)[1]) && s:Relative('./') !~# '^\./\.git\>'
-    let file = s:Relative(':0:')
+  elseif empty(s:DirCommitFile(@%)[1]) && fugitive#Path(@%, './', a:dir) !~# '^\./\.git\>'
+    let file = fugitive#Path(@%, ':0:', a:dir)
   else
-    let file = s:Relative('./')
+    let file = fugitive#Path(@%, './', a:dir)
   endif
-  return [s:Expand(file), join(pre)]
+  return [s:Expand(file, a:dir), join(pre)]
 endfunction
 
 function! s:Edit(cmd, bang, mods, args, ...) abort
+  let dir = b:git_dir
   let mods = a:mods ==# '<mods>' ? '' : a:mods
   if &previewwindow && get(b:,'fugitive_type', '') ==# 'index' && a:cmd ==# 'edit'
     let winnrs = filter([winnr('#')] + range(1, winnr('$')), 's:UsableWin(v:val)')
@@ -2121,9 +2137,9 @@ function! s:Edit(cmd, bang, mods, args, ...) abort
     return echo
   endif
 
-  let [file, pre] = s:EditParse(a:000)
+  let [file, pre] = s:EditParse(a:000, dir)
   try
-    let file = s:Generate(file)
+    let file = s:Generate(file, dir)
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
@@ -2145,13 +2161,13 @@ function! s:Read(count, line1, line2, range, bang, mods, args, ...) abort
     let delete = ''
   endif
   if a:bang
-    let args = s:gsub(a:args, '\\@<![%#]', '\=s:Expand(submatch(0))')
+    let args = s:ExecExpand(a:args)
     let git = s:UserCommand()
     let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
     let cwd = getcwd()
     try
       execute cd s:fnameescape(s:Tree())
-      silent execute mods after.'read!' git '--no-pager' args
+      silent execute mods after.'read!' escape(git . ' --no-pager ' . args, '#%!')
     finally
       execute cd s:fnameescape(cwd)
     endtry
@@ -2159,7 +2175,7 @@ function! s:Read(count, line1, line2, range, bang, mods, args, ...) abort
     call fugitive#ReloadStatus()
     return 'redraw|echo '.string(':!'.git.' '.args)
   endif
-  let [file, pre] = s:EditParse(a:000)
+  let [file, pre] = s:EditParse(a:000, b:git_dir)
   try
     let file = s:Generate(file)
   catch /^fugitive:/
@@ -2978,7 +2994,7 @@ function! s:Browse(bang,line1,count,...) abort
     endif
     let cdir = fugitive#CommonDir(b:git_dir)
     for dir in ['tags/', 'heads/', 'remotes/']
-      if filereadable(cdir . '/refs/' . dir . expanded)
+      if expanded !~# '^[./]' && filereadable(cdir . '/refs/' . dir . expanded)
         let expanded = '/.git/refs/' . dir . expanded
       endif
     endfor

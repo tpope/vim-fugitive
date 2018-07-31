@@ -333,8 +333,8 @@ Makefile        The file named Makefile in the work tree
 :Makefile       The file named Makefile in the index (writable)
 @:%             The current file in HEAD
 -               The current file in HEAD
-^               The current file in the previous commit
-~3              The current file 3 commits ago
+-^              The current file in the previous commit
+-~3             The current file 3 commits ago
 :               .git/index (Same as |:Gstatus|)
 :%              The current file in the index
 :1:%            The current file's common ancestor during a conflict
