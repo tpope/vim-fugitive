@@ -1339,8 +1339,8 @@ function! s:DirComplete(A, L, P) abort
   return matches
 endfunction
 
-call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :exe 'cd<bang>'  s:fnameescape((empty(s:Tree() ? b:git_dir : s:Tree()) . '/' . <q-args>")
-call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe 'lcd<bang>' s:fnameescape((empty(s:Tree() ? b:git_dir : s:Tree()) . '/' . <q-args>")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :exe 'cd<bang>'  s:fnameescape((empty(s:Tree()) ? b:git_dir : s:Tree()) . '/' . <q-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe 'lcd<bang>' s:fnameescape((empty(s:Tree()) ? b:git_dir : s:Tree()) . '/' . <q-args>)")
 
 " Section: Gstatus
 
