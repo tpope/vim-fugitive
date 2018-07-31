@@ -3074,17 +3074,42 @@ function! s:Browse(bang,line1,count,...) abort
       endif
     endif
 
+    let line1 = a:count > 0 ? a:line1 : 0
+    let line2 = a:count > 0 ? a:count : 0
     if empty(commit) && path !~# '^\.git/'
       if a:line1 && !a:count && !empty(merge)
         let commit = merge
       else
-        let commit = readfile(b:git_dir . '/HEAD', '', 1)[0]
-        let i = 0
-        while commit =~# '^ref: ' && i < 10
-          let commit = readfile(cdir . '/' . commit[5:-1], '', 1)[0]
-          let i -= 1
-        endwhile
+        let commit = ''
+        if len(merge)
+          let remotehead = cdir . '/refs/remotes/' . remote . '/' . merge
+          let commit = filereadable(remotehead) ? get(readfile(remotehead), 0, '') : ''
+          if a:count && !a:0 && commit =~# '^\x\{40\}$'
+            let blame_list = s:tempname()
+            call writefile([commit, ''], blame_list, 'b')
+            let blame_in = s:tempname()
+            silent exe '%write' . blame_in
+            let blame = split(s:TreeChomp('blame', '--contents', blame_in, '-L', a:line1.','.a:count, '-S', blame_list, '-s', '--show-number', '--', path), "\n")
+            if !v:shell_error
+              let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
+              if get(blame, 0) =~# blame_regex && get(blame, -1) =~# blame_regex
+                let line1 = +matchstr(blame[0], blame_regex)
+                let line2 = +matchstr(blame[-1], blame_regex)
+              else
+                call s:throw("Can't browse to uncommitted change")
+              endif
+            endif
+          endif
+        endif
       endif
+      if empty(commit)
+        let commit = readfile(b:git_dir . '/HEAD', '', 1)[0]
+      endif
+      let i = 0
+      while commit =~# '^ref: ' && i < 10
+        let commit = readfile(cdir . '/' . commit[5:-1], '', 1)[0]
+        let i -= 1
+      endwhile
     endif
 
     if empty(remote)
@@ -3114,8 +3139,8 @@ function! s:Browse(bang,line1,count,...) abort
           \ 'commit': commit,
           \ 'path': path,
           \ 'type': type,
-          \ 'line1': a:count > 0 ? a:line1 : 0,
-          \ 'line2': a:count > 0 ? a:count : 0}
+          \ 'line1': line1,
+          \ 'line2': line2}
 
     for Handler in get(g:, 'fugitive_browse_handlers', [])
       let url = call(Handler, [copy(opts)])
