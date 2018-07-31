@@ -179,10 +179,10 @@ function! fugitive#RemoteUrl(...) abort
 endfunction
 
 function! s:recall() abort
-  let rev = s:sub(s:buffer().rev(), '^/', '')
+  let rev = s:sub(fugitive#buffer().rev(), '^/', '')
   if rev ==# ':'
     return matchstr(getline('.'),'^.\=\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
-  elseif s:buffer().type('tree')
+  elseif fugitive#buffer().type('tree')
     let file = matchstr(getline('.'), '\t\zs.*')
     if empty(file) && line('.') > 2
       let file = s:sub(getline('.'), '/$', '')
@@ -2908,8 +2908,9 @@ function! s:Browse(bang,line1,count,...) abort
       let rev = ''
     endif
     if rev ==# ''
-      let expanded = s:buffer().rev()
-    elseif rev ==# ':'
+      let expanded = s:DirRev(@%)[1]
+    endif
+    if rev =~# '^:\=$'
       let expanded = s:Relative('/')
     else
       let expanded = s:Expand(rev)
@@ -3095,7 +3096,7 @@ function! s:ContainingCommit() abort
 endfunction
 
 function! s:NavigateUp(count) abort
-  let rev = s:buffer().rev()
+  let rev = substitute(s:DirRev(@%)[1], '^$', ':', 'g')
   let c = a:count
   while c
     if rev =~# ':.*/.'
@@ -3235,7 +3236,7 @@ function! s:cfile() abort
         let type = matchstr(getline(line('.')+1),'type \zs.*')
 
       elseif getline('.') =~# '^\l\{3,8\} '.myhash.'$'
-        let ref = s:buffer().rev()
+        let ref = s:DirRev(@%)[1]
 
       elseif getline('.') =~# '^\l\{3,8\} \x\{40\}\>'
         let ref = matchstr(getline('.'),'\x\{40\}')
