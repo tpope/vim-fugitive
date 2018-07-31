@@ -2908,16 +2908,18 @@ function! s:Browse(bang,line1,count,...) abort
       let rev = ''
     endif
     if rev ==# ''
-      let expanded = s:DirRev(@%)[1]
+      let rev = s:DirRev(@%)[1]
     endif
     if rev =~# '^:\=$'
       let expanded = s:Relative('/')
     else
       let expanded = s:Expand(rev)
     endif
-    if filereadable(b:git_dir . '/refs/tags/' . expanded)
-      let expanded = '.git/refs/tags/' . expanded
-    endif
+    for dir in ['tags/', 'heads/', 'remotes/']
+      if filereadable(b:git_dir . '/refs/' . dir . expanded)
+        let expanded = '/.git/refs/' . dir . expanded
+      endif
+    endfor
     let full = s:Generate(expanded)
     let commit = ''
     if full =~? '^fugitive:'
