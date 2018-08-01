@@ -246,18 +246,17 @@ that are part of Git repositories).
                         supported by installing rhubarb.vim, available at
                         <https://github.com/tpope/vim-rhubarb>.
 
-:Gbrowse {object}       Like :Gbrowse, but for a given |fugitive-object|.  A
-                        useful value here is -, which ties the URL to the
-                        latest commit rather than a volatile branch.
+:Gbrowse {object}       Like :Gbrowse, but for a given |fugitive-object|.
 
 :Gbrowse [...]@{remote} Force using the given remote rather than the remote
                         for the current branch.  The remote is used to
-                        determine which GitHub repository to link to.
+                        determine which upstream repository to link to.
 
 :{range}Gbrowse [args]  Appends an anchor to the URL that emphasizes the
-                        selected lines.  You almost certainly want to give a
-                        "-" argument in this case to force the URL to include
-                        an exact commit.
+                        selected lines. This also forces the URL to include a
+                        commit rather than a branch name so it remains valid
+                        if the file changes.  You can give a range of "0" to
+                        force this behavior without including an anchor.
 
 :[range]Gbrowse! [args] Like :Gbrowse, but put the URL on the clipboard rather
                         than opening it.
