@@ -3088,7 +3088,7 @@ function! s:Browse(bang,line1,count,...) abort
             let blame_list = s:tempname()
             call writefile([commit, ''], blame_list, 'b')
             let blame_in = s:tempname()
-            silent exe '%write' . blame_in
+            silent exe '%write' blame_in
             let blame = split(s:TreeChomp('blame', '--contents', blame_in, '-L', a:line1.','.a:count, '-S', blame_list, '-s', '--show-number', '--', path), "\n")
             if !v:shell_error
               let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
