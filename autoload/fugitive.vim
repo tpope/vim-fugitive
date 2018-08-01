@@ -1742,9 +1742,10 @@ function! s:Commit(mods, args, ...) abort
       else
         let command = 'env GIT_EDITOR=false '
       endif
-      let command .= s:UserCommand() . ' commit ' . a:args
+      let args = s:ExecExpand(a:args)
+      let command .= s:UserCommand() . ' commit ' . args
       if &shell =~# 'csh'
-        noautocmd silent execute '!('.command.' > '.outfile.') >& '.errorfile
+        noautocmd silent execute '!('.escape(command, '!#%').' > '.outfile.') >& '.errorfile
       elseif a:args =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>'
         noautocmd execute '!'.command.' 2> '.errorfile
       else
@@ -1769,17 +1770,10 @@ function! s:Commit(mods, args, ...) abort
       let errors = readfile(errorfile)
       let error = get(errors,-2,get(errors,-1,'!'))
       if error =~# 'false''\=\.$'
-        let args = a:args
         let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-[esp]|--edit|--interactive|--patch|--signoff)%($| )','')
         let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-c|--reedit-message|--reuse-message|-F|--file|-m|--message)%(\s+|\=)%(''[^'']*''|"%(\\.|[^"])*"|\\.|\S)*','')
         let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
         let cwd = getcwd()
-        try
-          exe cd s:fnameescape(tree)
-          let args = s:gsub(args,'\\@<!(\%|##=|#\<=\d+)(:\w)*','\=fnamemodify(FugitivePath(expand(submatch(1))),":." . submatch(2))')
-        finally
-          exe cd cwd
-        endtry
         let args = s:sub(args, '\ze -- |$', ' --no-edit --no-interactive --no-signoff')
         let args = '-F '.s:shellesc(msgfile).' '.args
         if args !~# '\%(^\| \)--cleanup\>'
@@ -1996,7 +1990,7 @@ function! s:Grep(cmd,bang,arg) abort
     execute cd s:fnameescape(s:Tree())
     let &grepprg = s:UserCommand() . ' --no-pager grep -n --no-color'
     let &grepformat = '%f:%l:%m,%m %f match%ts,%f'
-    exe a:cmd.'! '.escape(matchstr(a:arg,'\v\C.{-}%($|[''" ]\@=\|)@='),'|')
+    exe a:cmd.'! '.escape(s:ExecExpand(matchstr(a:arg, '\v\C.{-}%($|[''" ]\@=\|)@=')), '|#%')
     let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
     for entry in list
       if bufname(entry.bufnr) =~ ':'
@@ -2041,7 +2035,7 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
       let cmd += [s:Relative('')[5:-1]]
     endif
   end
-  let cmd += map(copy(a:000),'s:sub(v:val,"^\\%(%(:\\w)*)","\\=fnamemodify(s:Relative(''),submatch(1))")')
+  let cmd += map(copy(a:000),'s:ExecExpand(v:val)')
   if path =~# '/.'
     if a:line2
       let cmd += ['-L', a:line1 . ',' . a:line2 . ':' . path[1:-1]]
