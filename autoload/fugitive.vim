@@ -385,7 +385,11 @@ function! s:repo_translate(spec, ...) dict abort
 endfunction
 
 function! s:Generate(rev, ...) abort
-  return fugitive#repo(a:0 ? a:1 : b:git_dir).translate(a:rev, 1)
+  let repo = fugitive#repo(a:0 ? a:1 : b:git_dir)
+  if a:rev =~# '^\%(\a\+:\)\=/' && getftime(a:rev) >= 0 && getftime(repo.tree() . a:rev) < 0
+    return s:PlatformSlash(a:rev)
+  endif
+  return repo.translate(a:rev, 1)
 endfunction
 
 function! s:repo_head(...) dict abort
