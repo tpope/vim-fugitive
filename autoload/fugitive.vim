@@ -329,14 +329,12 @@ function! s:repo_bare() dict abort
   endif
 endfunction
 
-function! s:repo_translate(spec, ...) dict abort
-  let rev = substitute(a:spec, '//\+', '/', 'g')
-  let rev = substitute(rev, '[:/]\zs\.\%(/\|$\)', '', 'g')
+function! s:repo_translate(object, ...) dict abort
+  let rev = substitute(a:object, '[:/]\zs\.\%(/\+\|$\)', '', 'g')
   let dir = self.git_dir
   let tree = s:Tree(dir)
-  if rev ==# '.'
-    let f = empty(tree) ? dir : tree
-  elseif rev =~# '^/\=\.git$' && empty(tree)
+  let base = len(tree) ? tree : 'fugitive://' . dir . '//0'
+  if rev =~# '^/\=\.git$' && empty(tree)
     let f = dir
   elseif rev =~# '^/\=\.git/'
     let f = s:sub(rev, '^/=\.git', '')
@@ -346,10 +344,10 @@ function! s:repo_translate(spec, ...) dict abort
     else
       let f = dir . f
     endif
-  elseif empty(rev) || rev ==# '/.'
-    return self.tree()
-  elseif rev =~# '^\.\=/'
-    let f = self.tree(substitute(rev, '^\.\=/', '', ''))
+  elseif rev ==# '^/\=\.$'
+    return base
+  elseif rev =~# '^\.\=\%(/\|$\)'
+    let f = base . substitute(rev, '^\.', '', '')
   elseif rev =~# '^:[0-3]:/\@!'
     let f = 'fugitive://' . dir . '//' . rev[1] . '/' . rev[3:-1]
   elseif rev ==# ':'
@@ -377,7 +375,7 @@ function! s:repo_translate(spec, ...) dict abort
       if len(commit)
         let f = 'fugitive://' . dir . '//' . commit . file
       else
-        let f = self.tree(rev)
+        let f = base . '/' . rev
       endif
     endif
   endif
