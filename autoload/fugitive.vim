@@ -175,7 +175,7 @@ function! s:TreeChomp(...) abort
   let tree = s:Tree(dir)
   let pre = ''
   if empty(tree)
-    let args = ['--git-dir=' . dir] . args
+    let args = ['--git-dir=' . dir] + args
   elseif s:cpath(tree) !=# s:cpath(getcwd())
     if fugitive#GitVersion() =~# '^[01]\.'
       let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? ' & ' : '; ')
@@ -970,8 +970,10 @@ function! fugitive#PathComplete(base, ...) abort
     endif
     call s:Uniq(matches)
     call map(matches, "'.git/' . v:val")
-  else
+  elseif len(tree) > 1
     let matches = s:GlobComplete(tree, s:gsub(base, '/', '*&').'*')
+  else
+    let matches = []
   endif
   call map(matches, 's:fnameescape(s:Slash(matchstr(a:base, strip) . v:val))')
   return matches
