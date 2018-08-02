@@ -359,8 +359,8 @@ function! s:repo_translate(object, ...) dict abort
     else
       let f = dir . f
     endif
-  elseif rev ==# '^/\=\.$'
-    return base
+  elseif rev =~# '^/\.$\|^:/$'
+    let f = base
   elseif rev =~# '^\.\=\%(/\|$\)'
     let f = base . substitute(rev, '^\.', '', '')
   elseif rev =~# '^:[0-3]:/\@!'
@@ -371,6 +371,8 @@ function! s:repo_translate(object, ...) dict abort
     else
       let f = dir . '/index'
     endif
+  elseif rev =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
+    let f = base . '/' . matchstr(rev, ')\zs.*')
   elseif rev =~# '^:/\@!'
     let f = 'fugitive://' . dir . '//0/' . rev[1:-1]
   else
@@ -971,7 +973,7 @@ endfunction
 function! fugitive#PathComplete(base, ...) abort
   let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
   let tree = FugitiveTreeForGitDir(dir) . '/'
-  let strip = '^:\=/\%(\./\)\='
+  let strip = '^\%(:\=/\|:(top)\|:(top,literal)\|:(literal,top)\|:(literal)\)\%(\./\)\='
   let base = substitute(a:base, strip, '', '')
   if base =~# '^\.git/'
     let pattern = s:gsub(base[5:-1], '/', '*&').'*'
@@ -994,11 +996,11 @@ endfunction
 function! fugitive#Complete(base, ...) abort
   let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
   let tree = s:Tree(dir) . '/'
-  if a:base =~# '^\.\=/' || a:base !~# ':'
+  if a:base =~# '^\.\=/\|^:(' || a:base !~# ':'
     let results = []
     if a:base =~# '^refs/'
       let results += map(s:GlobComplete(fugitive#CommonDir(dir) . '/', a:base . '*'), 's:Slash(v:val)')
-    elseif a:base !~# '^\.\=/'
+    elseif a:base !~# '^\.\=/\|^:('
       let heads = ['HEAD', 'ORIG_HEAD', 'FETCH_HEAD', 'MERGE_HEAD', 'refs/']
       let heads += sort(split(s:TreeChomp(["rev-parse","--symbolic","--branches","--tags","--remotes"], dir),"\n"))
       if filereadable(fugitive#CommonDir(dir) . '/refs/stash')
@@ -2632,6 +2634,8 @@ endfunction
 function! s:Move(force, rename, destination) abort
   if a:destination =~# '^[.:]\=/'
     let destination = substitute(a:destination[1:-1], '^[.:]\=/', '', '')
+  elseif a:destination =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
+    let destination = matchstr(a:destination, ')\zs.*')
   elseif a:rename
     let destination = fnamemodify(s:Relative(''), ':h') . '/' . a:destination
   else
