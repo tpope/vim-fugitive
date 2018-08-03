@@ -913,8 +913,8 @@ function! s:buffer_relative(...) dict abort
   return s:sub(s:sub(rev,'.\zs/$',''),'^/',a:0 ? a:1 : '')
 endfunction
 
-function! s:Relative(prefix) abort
-  return fugitive#Path(@%, a:prefix)
+function! s:Relative(...) abort
+  return fugitive#Path(@%, a:0 ? a:1 : './')
 endfunction
 
 function! s:buffer_path(...) dict abort
@@ -2232,14 +2232,14 @@ function! s:Write(force,...) abort
   endif
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
-  let path = a:0 ? join(a:000, ' ') : s:Relative('')
+  let path = a:0 ? s:Expand(join(a:000, ' ')) : s:Relative()
   if empty(path)
     return 'echoerr '.string('fugitive: cannot determine file path')
   endif
   if path =~# '^:\d\>'
-    return 'write'.(a:force ? '! ' : ' ').s:fnameescape(s:Generate(s:Expand(path)))
+    return 'write'.(a:force ? '! ' : ' ').s:fnameescape(s:Generate(path))
   endif
-  let always_permitted = (s:Relative('') ==# path && s:DirCommitFile(@%)[1] =~# '^0\=$')
+  let always_permitted = ((s:Relative() ==# path || s:Relative('') ==# path) && s:DirCommitFile(@%)[1] =~# '^0\=$')
   if !always_permitted && !a:force && (len(s:TreeChomp('diff','--name-status','HEAD','--',path)) || len(s:TreeChomp('ls-files','--others','--',path)))
     let v:errmsg = 'fugitive: file has uncommitted changes (use ! to override)'
     return 'echoerr v:errmsg'
