@@ -360,74 +360,19 @@ function! s:repo_bare() dict abort
   endif
 endfunction
 
-function! s:repo_translate(object, ...) dict abort
-  let rev = substitute(a:object, '[:/]\zs\.\%(/\+\|$\)', '', 'g')
-  let dir = self.git_dir
-  let tree = s:Tree(dir)
-  let base = len(tree) ? tree : 'fugitive://' . dir . '//0'
-  if rev =~# '^/\=\.git$' && empty(tree)
-    let f = dir
-  elseif rev =~# '^/\=\.git/'
-    let f = s:sub(rev, '^/=\.git', '')
-    let cdir = fugitive#CommonDir(dir)
-    if cdir !=# dir && (f =~# '^/\%(config\|info\|hooks\|objects\|refs\|worktrees\)' || !filereadable(f) && filereadable(cdir . f))
-      let f = cdir . f
-    else
-      let f = dir . f
-    endif
-  elseif rev =~# '^/\.$\|^:/$'
-    let f = base
-  elseif rev =~# '^\.\=\%(/\|$\)'
-    let f = base . substitute(rev, '^\.', '', '')
-  elseif rev =~# '^:[0-3]:/\@!'
-    let f = 'fugitive://' . dir . '//' . rev[1] . '/' . rev[3:-1]
-  elseif rev ==# ':'
-    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && s:cpath(fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(dir)]) ==# s:cpath(dir . '/') && filereadable($GIT_INDEX_FILE)
-      let f = fnamemodify($GIT_INDEX_FILE, ':p')
-    else
-      let f = dir . '/index'
-    endif
-  elseif rev =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
-    let f = base . '/' . matchstr(rev, ')\zs.*')
-  elseif rev =~# '^:/\@!'
-    let f = 'fugitive://' . dir . '//0/' . rev[1:-1]
-  else
-    if rev =~# 'HEAD\|^refs/' && rev !~# ':'
-      let cdir = rev =~# '^refs/' ? fugitive#CommonDir(dir) : dir
-      if filereadable(cdir . '/' . rev)
-        let f = simplify(cdir . '/' . rev)
-      endif
-    endif
-    if !exists('f')
-      let commit = substitute(matchstr(rev,'^[^:]\+\|^:.*'), '^@\%($|[^~]\)\@=', 'HEAD', '')
-      let file = substitute(matchstr(rev, '^[^:]\+\zs:.*'), '^:', '/', '')
-      if commit !~# '^[0-9a-f]\{40\}$'
-        let commit = system(s:Prepare(dir, 'rev-parse', '--verify', commit))[0:-2]
-        let commit = v:shell_error ? '' : commit
-      endif
-      if len(commit)
-        let f = 'fugitive://' . dir . '//' . commit . file
-      else
-        let f = base . '/' . rev
-      endif
-    endif
-  endif
-  return a:0 && a:1 ? s:PlatformSlash(f) : f
+function! s:repo_route(object) dict abort
+  return fugitive#Route(a:object, self.git_dir)
 endfunction
 
-function! s:Generate(rev, ...) abort
-  let repo = fugitive#repo(a:0 ? a:1 : b:git_dir)
-  if a:rev =~# '^\%(\a\+:\)\=/' && getftime(a:rev) >= 0 && getftime(repo.tree() . a:rev) < 0
-    return s:PlatformSlash(a:rev)
-  endif
-  return repo.translate(a:rev, 1)
+function! s:repo_translate(rev) dict abort
+  return s:Slash(s:Generate(a:rev, self.git_dir))
 endfunction
 
 function! s:repo_head(...) dict abort
   return fugitive#Head(a:0 ? a:1 : 0, self.git_dir)
 endfunction
 
-call s:add_methods('repo',['dir','tree','bare','translate','head'])
+call s:add_methods('repo',['dir','tree','bare','route','translate','head'])
 
 function! s:repo_git_command(...) dict abort
   let git = s:UserCommand() . ' --git-dir='.s:shellesc(self.git_dir)
@@ -530,6 +475,78 @@ function! fugitive#Path(url, ...) abort
     return s:Slash(fugitive#Real(a:url))
   endif
   return substitute(file, '^/', a:1, '')
+endfunction
+
+function! fugitive#Route(object, ...) abort
+  if a:object =~# '^[~$]'
+    let prefix = matchstr(a:object, '^[~$]\i*')
+    let owner = expand(prefix)
+    return s:PlatformSlash((len(owner) ? owner : prefix) . strpart(a:object, len(prefix)))
+  elseif s:Slash(a:object) =~# '^\%(\a\a\+:\)\=\%(a:\)\=/'
+    return s:PlatformSlash(a:object)
+  endif
+  let rev = substitute(a:object, '[:/]\zs\.\%(/\+\|$\)', '', 'g')
+  let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
+  let tree = s:Tree(dir)
+  let base = len(tree) ? tree : 'fugitive://' . dir . '//0'
+  if rev =~# '^\%(\./\)\=\.git$' && empty(tree)
+    let f = dir
+  elseif rev =~# '^\%(\./\)\=\.git/'
+    let f = substitute(rev, '\C^\%(\./\)\=\.git', '', '')
+    let cdir = fugitive#CommonDir(dir)
+    if cdir !=# dir && (f =~# '^/\%(config\|info\|hooks\|objects\|refs\|worktrees\)' || !filereadable(f) && filereadable(cdir . f))
+      let f = cdir . f
+    else
+      let f = dir . f
+    endif
+  elseif rev =~# '^$\|^:/$'
+    let f = base
+  elseif rev =~# '^\.\%(/\|$\)'
+    let f = base . rev[1:-1]
+  elseif rev =~# '^:[0-3]:/\@!'
+    let f = 'fugitive://' . dir . '//' . rev[1] . '/' . rev[3:-1]
+  elseif rev ==# ':'
+    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && s:cpath(fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(dir)]) ==# s:cpath(dir . '/') && filereadable($GIT_INDEX_FILE)
+      let f = fnamemodify($GIT_INDEX_FILE, ':p')
+    else
+      let f = dir . '/index'
+    endif
+  elseif rev =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
+    let f = base . '/' . matchstr(rev, ')\zs.*')
+  elseif rev =~# '^:/\@!'
+    let f = 'fugitive://' . dir . '//0/' . rev[1:-1]
+  else
+    if rev =~# 'HEAD\|^refs/' && rev !~# ':'
+      let cdir = rev =~# '^refs/' ? fugitive#CommonDir(dir) : dir
+      if filereadable(cdir . '/' . rev)
+        let f = simplify(cdir . '/' . rev)
+      endif
+    endif
+    if !exists('f')
+      let commit = substitute(matchstr(rev,'^[^:]\+\|^:.*'), '^@\%($|[^~]\)\@=', 'HEAD', '')
+      let file = substitute(matchstr(rev, '^[^:]\+\zs:.*'), '^:', '/', '')
+      if commit !~# '^[0-9a-f]\{40\}$'
+        let commit = system(s:Prepare(dir, 'rev-parse', '--verify', commit))[0:-2]
+        let commit = v:shell_error ? '' : commit
+      endif
+      if len(commit)
+        let f = 'fugitive://' . dir . '//' . commit . file
+      else
+        let f = base . '/' . rev
+      endif
+    endif
+  endif
+  return s:PlatformSlash(f)
+endfunction
+
+function! s:Generate(rev, ...) abort
+  let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
+  let tree = s:Tree(dir)
+  let object = a:rev
+  if a:rev =~# '^/' && len(tree) && (getftime(tree . a:rev) >= 0 || getftime(a:rev) < 0) || a:rev =~# '^/\.git\%(/\|$\)'
+    let object = '.' . object
+  endif
+  return fugitive#Route(object, dir)
 endfunction
 
 function! s:RemoveDot(path, ...) abort
