@@ -1381,7 +1381,7 @@ function! s:Git(bang, mods, args) abort
       -tabnew
     endif
     execute 'lcd' fnameescape(tree)
-    let exec = escape(git . ' ' . s:ShellExpand(args), '!#%')
+    let exec = escape(git . ' ' . s:ShellExpand(args), '#%')
     return 'exe ' . string('terminal ' . exec) . after
   else
     let cmd = "exe '!'.escape(" . string(git) . " . ' ' . s:ShellExpand(" . string(args) . "),'!#%')"
