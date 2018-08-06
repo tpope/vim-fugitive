@@ -588,23 +588,26 @@ function! s:TreeInfo(dir, commit) abort
     return [get(s:indexes[a:dir][1], a:commit[-1:-1], {}), newftime]
   elseif a:commit =~# '^\x\{40\}$'
     if !has_key(s:trees, a:dir)
+      let s:trees[a:dir] = {}
+    endif
+    if !has_key(s:trees[a:dir], a:commit)
       let ftime = +system(git . ' log -1 --pretty=format:%ct ' . a:commit)
       if v:shell_error
-        let s:trees[a:dir] = [{}, -1]
-        return s:trees[a:dir]
+        let s:trees[a:dir][a:commit] = [{}, -1]
+        return s:trees[a:dir][a:commit]
       endif
-      let s:trees[a:dir] = [{}, +ftime]
+      let s:trees[a:dir][a:commit] = [{}, +ftime]
       let out = system(git . ' ls-tree -rtl --full-name ' . a:commit)
       if v:shell_error
-        return s:trees[a:dir]
+        return s:trees[a:dir][a:commit]
       endif
       for line in split(out, "\n")
         let [info, filename] = split(line, "\t")
         let [mode, type, sha, size] = split(info, '\s\+')
-        let s:trees[a:dir][0][filename] = [ftime, mode, type, sha, +size, filename]
+        let s:trees[a:dir][a:commit][0][filename] = [ftime, mode, type, sha, +size, filename]
       endfor
     endif
-    return s:trees[a:dir]
+    return s:trees[a:dir][a:commit]
   endif
   return [{}, -1]
 endfunction
