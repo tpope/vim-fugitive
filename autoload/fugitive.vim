@@ -2178,7 +2178,7 @@ function! s:Edit(cmd, bang, mods, args, ...) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
-  if file !~# '^fugitive:'
+  if file !~# '^\a\a\+:'
     let file = s:sub(file, '/$', '')
   endif
   if a:cmd ==# 'edit'
