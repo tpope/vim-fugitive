@@ -115,8 +115,32 @@ function! s:executable(binary) abort
   return s:executables[a:binary]
 endfunction
 
-function! s:UserCommand() abort
-  return get(g:, 'fugitive_git_command', g:fugitive_git_executable)
+function! s:map(mode, lhs, rhs, ...) abort
+  let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
+  let head = a:lhs
+  let tail = ''
+  let keys = get(g:, a:mode.'remap', {})
+  if type(keys) == type([])
+    return
+  endif
+  while !empty(head)
+    if has_key(keys, head)
+      let head = keys[head]
+      if empty(head)
+        return
+      endif
+      break
+    endif
+    let tail = matchstr(head, '<[^<>]*>$\|.$') . tail
+    let head = substitute(head, '<[^<>]*>$\|.$', '', '')
+  endwhile
+  if flags !~# '<unique>' || empty(mapcheck(head.tail, a:mode))
+    exe a:mode.'map <buffer>' flags head.tail a:rhs
+    if a:0 > 1
+      let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .
+            \ '|sil! exe "' . a:mode . 'unmap <buffer> ' . head.tail . '"'
+    endif
+  endif
 endfunction
 
 function! s:System(cmd) abort
@@ -128,6 +152,12 @@ function! s:System(cmd) abort
     call map(opts, 'v:val."=".eval("&".v:val)')
     call s:throw('failed to run `' . a:cmd . '` with ' . join(opts, ' '))
   endtry
+endfunction
+
+" Section: Git
+
+function! s:UserCommand() abort
+  return get(g:, 'fugitive_git_command', g:fugitive_git_executable)
 endfunction
 
 function! s:Prepare(dir, ...) abort
@@ -259,33 +289,7 @@ function! fugitive#RemoteUrl(...) abort
   return v:shell_error ? '' : out
 endfunction
 
-function! s:map(mode, lhs, rhs, ...) abort
-  let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
-  let head = a:lhs
-  let tail = ''
-  let keys = get(g:, a:mode.'remap', {})
-  if type(keys) == type([])
-    return
-  endif
-  while !empty(head)
-    if has_key(keys, head)
-      let head = keys[head]
-      if empty(head)
-        return
-      endif
-      break
-    endif
-    let tail = matchstr(head, '<[^<>]*>$\|.$') . tail
-    let head = substitute(head, '<[^<>]*>$\|.$', '', '')
-  endwhile
-  if flags !~# '<unique>' || empty(mapcheck(head.tail, a:mode))
-    exe a:mode.'map <buffer>' flags head.tail a:rhs
-    if a:0 > 1
-      let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .
-            \ '|sil! exe "' . a:mode . 'unmap <buffer> ' . head.tail . '"'
-    endif
-  endif
-endfunction
+" Section: Repository Object
 
 function! s:add_methods(namespace, method_names) abort
   for name in a:method_names
@@ -304,10 +308,6 @@ function! s:define_commands() abort
   endfor
 endfunction
 
-let s:abstract_prototype = {}
-
-" Section: Repository
-
 let s:repo_prototype = {}
 let s:repos = {}
 
@@ -320,7 +320,7 @@ function! fugitive#repo(...) abort
       let repo = {'git_dir': dir}
       let s:repos[dir] = repo
     endif
-    return extend(extend(repo, s:repo_prototype, 'keep'), s:abstract_prototype, 'keep')
+    return extend(repo, s:repo_prototype, 'keep')
   endif
   call s:throw('not a git repository: '.expand('%:p'))
 endfunction
@@ -404,7 +404,7 @@ endfunction
 
 call s:add_methods('repo',['config', 'user'])
 
-" Section: Buffer
+" Section: File API
 
 function! s:DirCommitFile(path) abort
   let vals = matchlist(s:Slash(a:path), '\c^fugitive:\%(//\)\=\(.\{-\}\)\%(//\|::\)\(\x\{40\}\|[0-3]\)\(/.*\)\=$')
@@ -481,6 +481,10 @@ function! fugitive#Path(url, ...) abort
     return s:Slash(fugitive#Real(a:url))
   endif
   return substitute(file, '^/', a:1, '')
+endfunction
+
+function! s:Relative(...) abort
+  return fugitive#Path(@%, a:0 ? a:1 : './')
 endfunction
 
 function! fugitive#Route(object, ...) abort
@@ -903,11 +907,13 @@ function! fugitive#delete(url, ...) abort
   return v:shell_error ? -1 : 0
 endfunction
 
+" Section: Buffer Object
+
 let s:buffer_prototype = {}
 
 function! fugitive#buffer(...) abort
   let buffer = {'#': bufnr(a:0 ? a:1 : '%')}
-  call extend(extend(buffer,s:buffer_prototype,'keep'),s:abstract_prototype,'keep')
+  call extend(buffer, s:buffer_prototype, 'keep')
   if buffer.getvar('git_dir') !=# ''
     return buffer
   endif
@@ -992,10 +998,6 @@ function! s:buffer_relative(...) dict abort
     let rev = self.spec()[strlen(self.repo().tree()) : -1]
   endif
   return s:sub(s:sub(rev,'.\zs/$',''),'^/',a:0 ? a:1 : '')
-endfunction
-
-function! s:Relative(...) abort
-  return fugitive#Path(@%, a:0 ? a:1 : './')
 endfunction
 
 function! s:buffer_path(...) dict abort
@@ -1091,7 +1093,7 @@ function! fugitive#Complete(base, ...) abort
   endif
 endfunction
 
-" Section: File access
+" Section: Buffer auto-commands
 
 function! s:ReplaceCmd(cmd) abort
   let tmp = tempname()
@@ -1430,7 +1432,7 @@ augroup fugitive_temp
   autocmd BufNewFile,BufReadPost * exe s:SetupTemp(expand('<amatch>:p'))
 augroup END
 
-" Section: Git
+" Section: :Git
 
 call s:command("-bang -nargs=? -complete=customlist,s:GitComplete Git :execute s:Git(<bang>0,'<mods>',<q-args>)")
 
@@ -1500,7 +1502,7 @@ function! s:GitComplete(A, L, P) abort
   endif
 endfunction
 
-" Section: Gcd, Glcd
+" Section: :Gcd, :Glcd
 
 function! s:DirComplete(A, L, P) abort
   return filter(fugitive#PathComplete(a:A), 'v:val =~# "/$"')
@@ -1518,7 +1520,7 @@ endfunction
 call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :exe 'cd<bang>'  s:fnameescape(s:DirArg(<q-args>))")
 call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe 'lcd<bang>' s:fnameescape(s:DirArg(<q-args>))")
 
-" Section: Gstatus
+" Section: :Gstatus
 
 call s:command("-bar -bang -range=-1 Gstatus :execute s:Status(<bang>0, <count>, '<mods>')")
 augroup fugitive_status
@@ -1811,7 +1813,7 @@ function! s:StagePatch(lnum1,lnum2) abort
   return 'checktime'
 endfunction
 
-" Section: Gcommit
+" Section: :Gcommit
 
 call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit :execute s:Commit('<mods>', <q-args>)")
 
@@ -1932,7 +1934,7 @@ function! s:FinishCommit() abort
   return ''
 endfunction
 
-" Section: Gmerge, Gpull
+" Section: :Gmerge, :Grebase, :Gpull
 
 call s:command("-nargs=? -bang -complete=custom,s:RevisionComplete Gmerge " .
       \ "execute s:Merge('merge', <bang>0, <q-args>)")
@@ -2058,7 +2060,7 @@ function! s:Merge(cmd, bang, args) abort
   return exists('err') ? 'echoerr '.string(err) : ''
 endfunction
 
-" Section: Ggrep, Glog
+" Section: :Ggrep, :Glog
 
 if !exists('g:fugitive_summary_format')
   let g:fugitive_summary_format = '%s'
@@ -2156,7 +2158,7 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
   endtry
 endfunction
 
-" Section: Gedit, Gpedit, Gsplit, Gvsplit, Gtabedit, Gread
+" Section: :Gedit, :Gpedit, :Gsplit, :Gvsplit, :Gtabedit, :Gread
 
 function! s:UsableWin(nr) abort
   return a:nr && !getwinvar(a:nr, '&previewwindow') &&
@@ -2299,7 +2301,7 @@ call s:command("-bar -bang -nargs=* -range=0  -complete=customlist,s:EditRunComp
 call s:command("-bar -bang -nargs=* -range=0  -complete=customlist,s:EditRunComplete" . (has('patch-7.4.542') ? ' -addr=tabs' : '') . " Gtabedit execute s:Edit((<count> ? <count> : '').'tabedit', <bang>0, '<mods>', <q-args>, <f-args>)")
 call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:EditRunComplete Gread execute s:Read(<count>, <line1>, <line2>, +'<range>', <bang>0, '<mods>', <q-args>, <f-args>)")
 
-" Section: Gwrite, Gwq
+" Section: :Gwrite, :Gwq
 
 call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#Complete Gwrite :execute s:Write(<bang>0,<f-args>)")
 call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#Complete Gw :execute s:Write(<bang>0,<f-args>)")
@@ -2464,7 +2466,7 @@ augroup fugitive_commit
   autocmd VimLeavePre,BufDelete COMMIT_EDITMSG execute s:sub(s:FinishCommit(), '^echoerr (.*)', 'echohl ErrorMsg|echo \1|echohl NONE')
 augroup END
 
-" Section: Gpush, Gfetch
+" Section: :Gpush, :Gfetch
 
 call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpush  execute s:Dispatch('<bang>', 'push '.<q-args>)")
 call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gfetch execute s:Dispatch('<bang>', 'fetch '.<q-args>)")
@@ -2493,7 +2495,7 @@ function! s:Dispatch(bang, args)
   endtry
 endfunction
 
-" Section: Gdiff
+" Section: :Gdiff
 
 call s:command("-bang -bar -nargs=* -complete=customlist,fugitive#Complete Gdiff :execute s:Diff('',<bang>0,<f-args>)")
 call s:command("-bang -bar -nargs=* -complete=customlist,fugitive#Complete Gvdiff :execute s:Diff('keepalt vert ',<bang>0,<f-args>)")
@@ -2693,7 +2695,7 @@ function! s:Diff(vert,keepfocus,...) abort
   endtry
 endfunction
 
-" Section: Gmove, Gremove
+" Section: :Gmove, :Gremove
 
 function! s:Move(force, rename, destination) abort
   if a:destination =~# '^\./.'
@@ -2772,7 +2774,7 @@ augroup fugitive_remove
         \ endif
 augroup END
 
-" Section: Gblame
+" Section: :Gblame
 
 function! s:Keywordprg() abort
   let args = ' --git-dir='.escape(b:git_dir,"\\\"' ")
@@ -3074,7 +3076,7 @@ function! s:RehighlightBlame() abort
   endfor
 endfunction
 
-" Section: Gbrowse
+" Section: :Gbrowse
 
 call s:command("-bar -bang -range=0 -nargs=* -complete=customlist,fugitive#Complete Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
 
@@ -3698,3 +3700,5 @@ endfunction
 function! fugitive#detect(path) abort
   return FugitiveDetect(a:path)
 endfunction
+
+" Section: End
