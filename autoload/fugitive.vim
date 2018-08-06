@@ -973,8 +973,8 @@ endfunction
 function! fugitive#PathComplete(base, ...) abort
   let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
   let tree = FugitiveTreeForGitDir(dir) . '/'
-  let strip = '^\%(:\=/\|:(top)\|:(top,literal)\|:(literal,top)\|:(literal)\)\%(\./\)\='
-  let base = substitute(a:base, strip, '', '')
+  let strip = '^\%(:/\|:(top)\|:(top,literal)\|:(literal,top)\|:(literal)\)\%(\./\)\='
+  let base = substitute((a:base =~# '^/' ? '.' : '') . a:base, strip, '', '')
   if base =~# '^\.git/'
     let pattern = s:gsub(base[5:-1], '/', '*&').'*'
     let matches = s:GlobComplete(dir . '/', pattern)
@@ -984,10 +984,15 @@ function! fugitive#PathComplete(base, ...) abort
     endif
     call s:Uniq(matches)
     call map(matches, "'.git/' . v:val")
+  elseif base =~# '^\~/'
+    let matches = map(s:GlobComplete(expand('~/'), base[2:-1] . '*'), '"~/" . v:val')
   elseif len(tree) > 1
     let matches = s:GlobComplete(tree, s:gsub(base, '/', '*&').'*')
   else
     let matches = []
+  endif
+  if empty(matches) && a:base =~# '^/\|^\a\+:'
+    let matches = s:GlobComplete('', a:base . '*')
   endif
   call map(matches, 's:fnameescape(s:Slash(matchstr(a:base, strip) . v:val))')
   return matches
