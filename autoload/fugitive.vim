@@ -225,7 +225,7 @@ function! s:Remote(dir) abort
     let remote = len(head) ? fugitive#Config('branch.' . head . '.remote') : ''
     let i -= 1
   endwhile
-  return remote =~# '\.\=$' ? 'origin' : remote
+  return remote =~# '^\.\=$' ? 'origin' : remote
 endfunction
 
 function! fugitive#RemoteUrl(...) abort
