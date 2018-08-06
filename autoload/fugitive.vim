@@ -2567,6 +2567,9 @@ function! s:Diff(vert,keepfocus,...) abort
   if exists(':DiffGitCached')
     return 'DiffGitCached'
   elseif (empty(args) || args[0] ==# ':') && commit =~# '^[0-1]\=$' && !empty(s:TreeChomp('ls-files', '--unmerged', '--', s:Relative('')))
+    if v:shell_error
+      return 'echoerr ' . string("fugitive: error determining merge status of " . s:Relative(''))
+    endif
     let vert = empty(a:vert) ? s:diff_modifier(3) : a:vert
     let nr = bufnr('')
     execute 'leftabove '.vert.'split' s:fnameescape(s:Generate(s:Relative(':2:')))
