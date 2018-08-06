@@ -34,9 +34,9 @@ endfunction
 
 function! FugitiveReal(...) abort
   let file = a:0 ? a:1 : @%
-  if file =~? '^fugitive:' || a:0 > 1
+  if file =~# '^\a\a\+:' || a:0 > 1
     return call('fugitive#Real', [file] + a:000[1:-1])
-  elseif file =~# '^/\|^\a\+:\|^$'
+  elseif file =~# '^/\|^\a:\|^$'
     return file
   else
     return fnamemodify(file, ':p' . (file =~# '[\/]$' ? '' : ':s?[\/]$??'))

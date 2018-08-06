@@ -488,16 +488,21 @@ function! s:DirRev(url) abort
 endfunction
 
 function! fugitive#Real(url) abort
+  if empty(a:url)
+    return ''
+  endif
   let [dir, commit, file] = s:DirCommitFile(a:url)
   if len(dir)
     let tree = s:Tree(dir)
     return s:PlatformSlash((len(tree) ? tree : dir) . file)
   endif
-  let url = len(a:url) ? fnamemodify(a:url, ':p' . (a:url =~# '[\/]$' ? '' : ':s?[\/]$??')) : ''
-  if url =~# '^[\\/]\|^\a:[\\/]'
-    return s:PlatformSlash(url)
+  let pre = substitute(matchstr(a:url, '^\a\a\+\ze:'), '^.', '\u&', '')
+  if len(pre) && pre !=? 'fugitive' && exists('*' . pre . 'Real')
+    let url = {pre}Real(a:url)
+  else
+    let url = fnamemodify(a:url, ':p' . (a:url =~# '[\/]$' ? '' : ':s?[\/]$??'))
   endif
-  return ''
+  return s:PlatformSlash(empty(url) ? a:url : url)
 endfunction
 
 function! fugitive#Path(url, ...) abort
