@@ -419,6 +419,26 @@ function! s:DirRev(url) abort
   return [dir, (commit =~# '^.$' ? ':' : '') . commit . substitute(file, '^/', ':', '')]
 endfunction
 
+function! s:Owner(path, ...) abort
+  let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
+  if empty(dir)
+    return ''
+  endif
+  let [pdir, commit, file] = s:DirCommitFile(a:path)
+  if s:cpath(dir, pdir) && commit =~# '^\x\{40\}$'
+    return commit
+  endif
+  let path = fnamemodify(a:path, ':p')
+  if s:cpath(dir . '/', path[0 : len(dir)]) && a:path =~# 'HEAD$'
+    return strpart(path, len(dir) + 1)
+  endif
+  let refs = fugitive#CommonDir(dir) . '/refs'
+  if s:cpath(refs . '/', path[0 : len(refs)]) && path !~# '[\/]$'
+    return strpart(path, len(refs) - 4)
+  endif
+  return ''
+endfunction
+
 function! fugitive#Real(url) abort
   if empty(a:url)
     return ''
@@ -502,7 +522,7 @@ function! fugitive#Route(object, ...) abort
   elseif rev =~# '^:/\@!'
     let f = 'fugitive://' . dir . '//0/' . rev[1:-1]
   else
-    if rev =~# 'HEAD\|^refs/' && rev !~# ':'
+    if rev =~# 'HEAD$\|^refs/' && rev !~# ':'
       let cdir = rev =~# '^refs/' ? fugitive#CommonDir(dir) : dir
       if filereadable(cdir . '/' . rev)
         let f = simplify(cdir . '/' . rev)
@@ -1923,7 +1943,7 @@ call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpull " .
 
 function! s:RevisionComplete(A, L, P) abort
   return s:TreeChomp('rev-parse', '--symbolic', '--branches', '--tags', '--remotes')
-        \ . "\nHEAD\nFETCH_HEAD\nORIG_HEAD"
+        \ . "\nHEAD\nFETCH_HEAD\nMERGE_HEAD\nORIG_HEAD"
 endfunction
 
 function! s:RemoteComplete(A, L, P) abort
@@ -2106,11 +2126,9 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
   endif
   let relative = s:Relative('')
   if before !~# '\s[^[:space:]-]'
-    let commit = matchstr(s:DirCommitFile(@%)[1], '^\x\x\+$')
-    if len(commit)
-      let before .= ' ' . commit
-    elseif relative =~# '^\.git/refs/\|^\.git/.*HEAD$'
-      let before .= ' ' . relative[5:-1]
+    let owner = s:Owner(@%)
+    if len(owner)
+      let before .= ' ' . s:shellesc(owner)
     endif
   endif
   if relative =~# '^\.git\%(/\|$\)'
@@ -3116,7 +3134,7 @@ function! s:Browse(bang,line1,count,...) abort
     if type ==# 'tree' && !empty(path)
       let path = s:sub(path, '/\=$', '/')
     endif
-    if path =~# '^\.git/.*HEAD' && filereadable(b:git_dir . '/' . path[5:-1])
+    if path =~# '^\.git/.*HEAD$' && filereadable(b:git_dir . '/' . path[5:-1])
       let body = readfile(b:git_dir . '/' . path[5:-1])[0]
       if body =~# '^\x\{40\}$'
         let commit = body
@@ -3280,12 +3298,8 @@ function! fugitive#MapCfile(...) abort
 endfunction
 
 function! s:ContainingCommit() abort
-  let commit = s:DirCommitFile(@%)[1]
-  if commit =~# '^\d\=$'
-    return 'HEAD'
-  else
-    return commit
-  endif
+  let commit = s:Owner(@%)
+  return empty(commit) ? 'HEAD' : commit
 endfunction
 
 function! s:NavigateUp(count) abort
