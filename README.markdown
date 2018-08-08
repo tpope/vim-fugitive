@@ -11,8 +11,9 @@ Vim's diff handling capabilities to stage a subset of the file's
 changes.
 
 Bring up the output of `git status` with `:Gstatus`.  Press `-` to
-`add`/`reset` a file's changes, or `p` to `add`/`reset` `--patch`.  And guess
-what `:Gcommit` does!
+`add`/`reset` a file's changes, or `p` to `add`/`reset` `--patch`.  Use
+`:Gcommit %` to commit the current file, editing the commit message inside
+the currently running Vim.
 
 `:Gblame` brings up an interactive vertical split with `git blame`
 output.  Press enter on a line to edit the commit where the line
