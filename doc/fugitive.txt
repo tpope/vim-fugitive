@@ -89,7 +89,7 @@ that are part of Git repositories).
 
                                                 *fugitive-:Grebase*
 :Grebase [args]         Like |:Gmerge|, but for git-rebase.  Interactive
-                        rebase not suppported.
+                        rebase not supported.
 
                                                 *fugitive-:Gpush*
 :Gpush [args]           Invoke git-push, load the results into the |quickfix|
