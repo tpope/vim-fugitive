@@ -543,7 +543,7 @@ function! s:Generate(rev, ...) abort
   let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
   let tree = s:Tree(dir)
   let object = a:rev
-  if a:rev =~# '^/' && len(tree) && (getftime(tree . a:rev) >= 0 || getftime(a:rev) < 0) || a:rev =~# '^/\.git\%(/\|$\)'
+  if a:rev =~# '^/' && len(tree) && getftime(tree . a:rev) >= 0 && getftime(a:rev) < 0 || a:rev =~# '^/\.git\%(/\|$\)'
     let object = '.' . object
   endif
   return fugitive#Route(object, dir)
