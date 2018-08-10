@@ -1190,6 +1190,7 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> r :<C-U>edit<CR>
     nnoremap <buffer> <silent> R :<C-U>edit<CR>
     nnoremap <buffer> <silent> U :<C-U>execute <SID>StageUndo()<CR>
+    nnoremap <buffer>          . : <C-R>=<SID>fnameescape(<SID>StatusCfile())<CR><Home>
     nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
     nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
   catch /^fugitive:/
@@ -3328,20 +3329,22 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> cS    :<C-U>exe 'Gvsplit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> cO    :<C-U>exe 'Gtabedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> cp    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
-    nnoremap <buffer>          .     : <C-R>=fnameescape(<SID>recall())<CR><Home>
+    nmap     <buffer>          .     <SID>: <Plug><cfile><Home>
   endif
 endfunction
 
 function! s:StatusCfile(...) abort
   let pre = ''
+  let tree = FugitiveTreeForGitDir(b:git_dir)
+  let lead = s:cpath(tree, getcwd()) ? './' : tree . '/'
   if getline('.') =~# '^.\=\trenamed:.* -> '
-    return '/'.matchstr(getline('.'),' -> \zs.*')
+    return lead . matchstr(getline('.'),' -> \zs.*')
   elseif getline('.') =~# '^.\=\t\(\k\| \)\+\p\?: *.'
-    return '/'.matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
+    return lead . matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
   elseif getline('.') =~# '^.\=\t.'
-    return '/'.matchstr(getline('.'),'\t\zs.*')
+    return lead . matchstr(getline('.'),'\t\zs.*')
   elseif getline('.') =~# ': needs merge$'
-    return '/'.matchstr(getline('.'),'.*\ze: needs merge$')
+    return lead . matchstr(getline('.'),'.*\ze: needs merge$')
   elseif getline('.') =~# '^\%(. \)\=Not currently on any branch.$'
     return 'HEAD'
   elseif getline('.') =~# '^\%(. \)\=On branch '
@@ -3354,8 +3357,8 @@ function! s:StatusCfile(...) abort
 endfunction
 
 function! fugitive#StatusCfile() abort
-  let file = s:StatusCfile()
-  return empty(file) ? "\<C-R>\<C-F>" : s:fnameescape(s:Generate(file))
+  let file = s:Generate(s:StatusCfile())
+  return empty(file) ? "\<C-R>\<C-F>" : s:fnameescape(file)
 endfunction
 
 function! s:cfile() abort

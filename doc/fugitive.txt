@@ -63,6 +63,7 @@ that are part of Git repositories).
                         U     |:Git| checkout HEAD (staged files)
                         U     |:Git| clean (untracked files)
                         U     |:Git| rm (unmerged files)
+                        .     enter |:| command line with file prepopulated
 
                                                 *fugitive-:Gcommit*
 :Gcommit [args]         A wrapper around git-commit.  If there is nothing
@@ -303,10 +304,6 @@ P                       Go to the current file in the [count]th parent.
 
                                                 *fugitive-C*
 C                       Go to the commit containing the current file.
-
-                                                *fugitive-.*
-.                       Start a |:| command line with the current
-                        |fugitive-object| prepopulated at the end of the line.
 
                                                 *fugitive-a*
 a                       Show the current tag, commit, or tree in an alternate
