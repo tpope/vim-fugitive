@@ -2673,11 +2673,11 @@ endfunction
 " Section: Gmove, Gremove
 
 function! s:Move(force, rename, destination) abort
-  if a:destination =~# '^[.:]\=/'
-    let destination = substitute(a:destination[1:-1], '^[.:]\=/', '', '')
+  if a:destination =~# '^[.:]/'
+    let destination = a:destination[2:-1]
   elseif a:destination =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
     let destination = matchstr(a:destination, ')\zs.*')
-  elseif a:rename
+  elseif a:rename && a:destination !~# '^\a\+:\|^/'
     let destination = fnamemodify(s:Relative(''), ':h') . '/' . a:destination
   else
     let destination = a:destination
@@ -2707,7 +2707,7 @@ function! s:Move(force, rename, destination) abort
 endfunction
 
 function! s:RenameComplete(A,L,P) abort
-  if a:A =~# '^\.\=/'
+  if a:A =~# '^[.:]\=/'
     return fugitive#PathComplete(a:A)
   else
     let pre = '/' . fnamemodify(s:Relative(''), ':h') . '/'
