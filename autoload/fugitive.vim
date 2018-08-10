@@ -259,24 +259,6 @@ function! fugitive#RemoteUrl(...) abort
   return v:shell_error ? '' : out
 endfunction
 
-function! s:recall() abort
-  let rev = s:sub(fugitive#buffer().rev(), '^/', '')
-  if rev ==# ':'
-    return matchstr(getline('.'),'^.\=\t\%([[:alpha:] ]\+: *\)\=\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$\|^\d\{6} \x\{40\} \d\t\zs.*')
-  elseif fugitive#buffer().type('tree')
-    let file = matchstr(getline('.'), '\t\zs.*')
-    if empty(file) && line('.') > 2
-      let file = s:sub(getline('.'), '/$', '')
-    endif
-    if !empty(file) && rev !~# ':$'
-      return rev . '/' . file
-    else
-      return rev . file
-    endif
-  endif
-  return rev
-endfunction
-
 function! s:map(mode, lhs, rhs, ...) abort
   let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
   let head = a:lhs
@@ -565,6 +547,32 @@ function! s:RemoveDot(path, ...) abort
     return a:path
   endif
   return a:path[2:-1]
+endfunction
+
+function! fugitive#Object(...) abort
+  let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
+  let [fdir, rev] = s:DirRev(a:0 ? a:1 : @%)
+  if s:cpath(dir) !=# s:cpath(fdir)
+    let rev = ''
+  endif
+  let tree = s:Tree(dir)
+  if empty(rev) && empty(tree)
+  elseif empty(rev)
+    let rev = fugitive#Path(a:0 ? a:1 : @%, './', dir)
+    let cdir = fugitive#CommonDir(dir)
+    if rev =~# '^\./\.git/refs/\%(tags\|heads\|remotes\)/.\|^\./\.git/\w*HEAD$'
+      let rev = rev[7:-1]
+    elseif s:cpath(cdir . '/refs/', rev[0 : len(cdir)])
+      let rev = strpart(rev, len(cdir)+1)
+    elseif rev =~# '^\./.git\%(/\|$\)'
+      return fnamemodify(a:0 ? a:1 : @%, ':p')
+    endif
+  endif
+  if rev !~# '^\.\%(/\|$\)' || s:cpath(getcwd(), tree)
+    return rev
+  else
+    return tree . rev[1:-1]
+  endif
 endfunction
 
 function! s:Expand(rev) abort
@@ -977,22 +985,7 @@ function! s:buffer_path(...) dict abort
   return self.relative()
 endfunction
 
-function! s:buffer_rev() dict abort
-  let rev = matchstr(self.spec(),'^fugitive:\%(//\)\=.\{-\}\%(//\|::\)\zs.*')
-  if rev =~ '^\x/'
-    return ':'.rev[0].':'.rev[2:-1]
-  elseif rev =~ '.'
-    return s:sub(rev,'/',':')
-  elseif self.spec() =~ '\.git/index$'
-    return ':'
-  elseif self.spec() =~ '\.git/refs/\|\.git/.*HEAD$'
-    return self.spec()[strlen(self.repo().dir())+1 : -1]
-  else
-    return self.relative('/')
-  endif
-endfunction
-
-call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative','rev'])
+call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative'])
 
 " Section: Completion
 
@@ -3657,8 +3650,8 @@ function! fugitive#Init() abort
     endtry
   endif
   if !exists('g:fugitive_no_maps')
-    call s:map('c', '<C-R><C-G>', 'fnameescape(<SID>recall())', '<expr>')
-    call s:map('n', 'y<C-G>', ':call setreg(v:register, <SID>recall())<CR>', '<silent>')
+    call s:map('c', '<C-R><C-G>', '<SID>fnameescape(fugitive#Object(@%))', '<expr>')
+    call s:map('n', 'y<C-G>', ':<C-U>call setreg(v:register, fugitive#Object(@%))<CR>', '<silent>')
   endif
   if expand('%:p') =~# ':[\/][\/]'
     let &l:path = s:sub(&path, '^\.%(,|$)', '')
