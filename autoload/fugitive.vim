@@ -573,9 +573,9 @@ function! s:Expand(rev) abort
   elseif a:rev =~# '^-'
     let file = 'HEAD^{}' . a:rev[1:-1] . s:Relative(':')
   elseif a:rev =~# '^@{'
-    let file = 'HEAD'.a:rev. s:Relative(':')
+    let file = 'HEAD' . a:rev. s:Relative(':')
   elseif a:rev =~# '^[~^]/\@!'
-    let commit = substitute(s:DirCommitFile(@%), '^\d\=$', 'HEAD', '')
+    let commit = substitute(s:DirCommitFile(@%)[1], '^\d\=$', 'HEAD', '')
     let file = commit . a:rev . s:Relative(':')
   else
     let file = a:rev
