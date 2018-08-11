@@ -131,7 +131,11 @@ function! s:System(cmd) abort
 endfunction
 
 function! s:Prepare(dir, ...) abort
-  let args = ['--git-dir=' . a:dir] + (a:000)
+  if type(a:dir) == type([])
+    let args = ['--git-dir=' . (a:0 ? a:1 : get(b:, 'git_dir', ''))] + a:dir
+  else
+    let args = ['--git-dir=' . a:dir] + (a:000)
+  endif
   return g:fugitive_git_executable . ' ' . join(map(args, 's:shellesc(v:val)'))
 endfunction
 
@@ -380,7 +384,7 @@ function! s:repo_git_command(...) dict abort
 endfunction
 
 function! s:repo_git_chomp(...) dict abort
-  return s:sub(s:System(call('s:Prepare', [self.git_dir] + a:000)),'\n$','')
+  return s:sub(s:System(s:Prepare(a:000, self.git_dir)), '\n$', '')
 endfunction
 
 function! s:repo_git_chomp_in_tree(...) dict abort
@@ -1131,7 +1135,7 @@ function! fugitive#BufReadStatus() abort
     endif
     let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
     let cwd = getcwd()
-    let cmd_str = prefix . call('s:Prepare', [dir] + cmd)
+    let cmd_str = prefix . s:Prepare(cmd, dir)
     try
       if exists('old_index')
         let $GIT_INDEX_FILE = amatch
@@ -2804,7 +2808,7 @@ function! s:Blame(bang, line1, line2, count, mods, args) abort
       let cmd += ['--contents', '-']
     endif
     let cmd += ['--', s:Relative('')]
-    let basecmd = escape(call('s:Prepare', [b:git_dir] + cmd), '!#%')
+    let basecmd = escape(s:Prepare(cmd), '!#%')
     try
       let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
       let tree = s:Tree()
