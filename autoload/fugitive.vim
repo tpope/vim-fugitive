@@ -106,6 +106,15 @@ function! s:cpath(path, ...) abort
   return a:0 ? path ==# s:cpath(a:1) : path
 endfunction
 
+function! s:SubDir(cwd, ...) abort
+  let lead = (a:0 ? a:1 : s:Tree()) . '/'
+  if len(lead) && s:cpath(lead, strpart(a:cwd, 0, len(lead)))
+    return strpart(a:cwd, len(lead)) . '/'
+  else
+    return ''
+  endif
+endfunction
+
 let s:executables = {}
 
 function! s:executable(binary) abort
@@ -492,11 +501,20 @@ function! fugitive#Route(object, ...) abort
     let prefix = matchstr(a:object, '^[~$]\i*')
     let owner = expand(prefix)
     return s:PlatformSlash((len(owner) ? owner : prefix) . strpart(a:object, len(prefix)))
-  elseif s:Slash(a:object) =~# '^\%(\a\a\+:\)\=\%(a:\)\=/'
+  elseif s:Slash(a:object) =~# '^/\|^\%(\a\a\+:\).*\%(//\|::\)' || (has('win32') ? '^\a:/' : '')
     return s:PlatformSlash(a:object)
   endif
-  let rev = substitute(a:object, '[:/]\zs\.\%(/\+\|$\)', '', 'g')
   let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
+  if empty(dir) && a:object =~# '^\.\.\=\%(/\|$\)'
+    return s:PlatformSlash(simplify(getcwd() . '/' . a:object[1:-1]))
+  elseif empty(dir)
+    let file = matchstr(a:object, '^\%(:\d:\|[^:]*:\)\zs.*', '', '')
+    let dir = FugitiveExtractGitDir(file)
+    if empty(dir)
+      return fnamemodify(len(file) ? file : a:object, ':p')
+    endif
+  endif
+  let rev = a:object
   let tree = s:Tree(dir)
   let base = len(tree) ? tree : 'fugitive://' . dir . '//0'
   if rev =~# '^\%(\./\)\=\.git$' && empty(tree)
@@ -513,7 +531,23 @@ function! fugitive#Route(object, ...) abort
     let f = base
   elseif rev =~# '^\.\%(/\|$\)'
     let f = base . rev[1:-1]
-  elseif rev =~# '^:[0-3]:/\@!'
+  elseif rev =~# '^::\%(/\|\a\+\:\)'
+    let f = rev[2:-1]
+  elseif rev =~# '^::\.\.\=\%(/\|$\)'
+    let f = simplify(getcwd() . '/' . rev[2:-1])
+  elseif rev =~# '^::'
+    let f = base . '/' . rev[2:-1]
+  elseif rev =~# '^:\%([0-3]:\)\=\.\.\=\%(/\|$\)\|^:[0-3]:\%(/\|\a\+:\)'
+    let f = rev =~# '^:\%([0-3]:\)\=\.' ? simplify(getcwd() . '/' . matchstr(rev, '\..*')) : rev[3:-1]
+    if s:cpath(base . '/', (f . '/')[0 : len(base)])
+      let f = 'fugitive://' . dir . '//' . +matchstr(rev, '^:\zs\d\ze:') . '/' . strpart(f, len(base) + 1)
+    else
+      let altdir = FugitiveExtractGitDir(f)
+      if len(altdir) && !s:cpath(dir, altdir)
+        return fugitive#Route(a:object, altdir)
+      endif
+    endif
+  elseif rev =~# '^:[0-3]:'
     let f = 'fugitive://' . dir . '//' . rev[1] . '/' . rev[3:-1]
   elseif rev ==# ':'
     if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && s:cpath(fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(dir)]) ==# s:cpath(dir . '/') && filereadable($GIT_INDEX_FILE)
@@ -533,8 +567,20 @@ function! fugitive#Route(object, ...) abort
       endif
     endif
     if !exists('f')
-      let commit = substitute(matchstr(rev,'^[^:]\+\|^:.*'), '^@\%($|[^~]\)\@=', 'HEAD', '')
+      let commit = substitute(matchstr(rev, '^[^:]\+\|^:.*'), '^@\%($|[^~]\)\@=', 'HEAD', '')
       let file = substitute(matchstr(rev, '^[^:]\+\zs:.*'), '^:', '/', '')
+      if file =~# '^/\.\.\=\%(/\|$\)\|^//\|^/\a\+:'
+        let file = file =~# '^/\.' ? simplify(getcwd() . file) : file[1:-1]
+        if s:cpath(base . '/', (file . '/')[0 : len(base)])
+          let file = '/' . strpart(file, len(base) + 1)
+        else
+          let altdir = FugitiveExtractGitDir(file)
+          if len(altdir) && !s:cpath(dir, altdir)
+            return fugitive#Route(a:object, altdir)
+          endif
+          return file
+        endif
+      endif
       if commit !~# '^[0-9a-f]\{40\}$'
         let commit = system(s:Prepare(dir, 'rev-parse', '--verify', commit))[0:-2]
         let commit = v:shell_error ? '' : commit
@@ -542,7 +588,7 @@ function! fugitive#Route(object, ...) abort
       if len(commit)
         let f = 'fugitive://' . dir . '//' . commit . file
       else
-        let f = base . '/' . rev
+        let f = base . '/' . substitute(rev, '^:/:\=\|^[^:]\+:', '', '')
       endif
     endif
   endif
@@ -553,8 +599,10 @@ function! s:Generate(rev, ...) abort
   let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
   let tree = s:Tree(dir)
   let object = a:rev
-  if a:rev =~# '^/' && len(tree) && getftime(tree . a:rev) >= 0 && getftime(a:rev) < 0 || a:rev =~# '^/\.git\%(/\|$\)'
-    let object = '.' . object
+  if a:rev =~# '^/\.git\%(/\|$\)'
+    let object = a:rev[1:-1]
+  elseif a:rev =~# '^/' && len(tree) && getftime(tree . a:rev) >= 0 && getftime(a:rev) < 0
+    let object = ':(top)' . a:rev[1:-1]
   endif
   return fugitive#Route(object, dir)
 endfunction
@@ -613,7 +661,7 @@ function! s:Expand(rev) abort
     let file = a:rev
   endif
   return s:sub(substitute(file,
-        \ '\([%#]\)$\|\\\([[:punct:]]\)','\=len(submatch(2)) ? submatch(2) : fugitive#Path(expand(submatch(1)), "./", dir)','g'),
+        \ '\([%#]\)$\|\\\([[:punct:]]\)','\=len(submatch(2)) ? submatch(2) : fugitive#Path(expand(submatch(1)))','g'),
         \ '\.\@<=/$','')
 endfunction
 
@@ -1052,6 +1100,7 @@ endfunction
 
 function! fugitive#Complete(base, ...) abort
   let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
+  let cwd = a:0 == 1 ? s:Tree(dir) : getcwd()
   let tree = s:Tree(dir) . '/'
   if a:base =~# '^\.\=/\|^:(' || a:base !~# ':'
     let results = []
@@ -1069,28 +1118,31 @@ function! fugitive#Complete(base, ...) abort
     endif
     call map(results, 's:fnameescape(v:val)')
     if !empty(tree)
-      let results += fugitive#PathComplete(a:base, dir)
+      let results += a:0 == 1 ? fugitive#PathComplete(a:base, dir) : fugitive#PathComplete(a:base)
     endif
     return results
 
   elseif a:base =~# '^:'
     let entries = split(s:TreeChomp(['ls-files','--stage'], dir),"\n")
+    if a:base =~# ':\./'
+      let subdir = s:SubDir(cwd)
+      call map(entries, 'substitute(v:val, "\\M\t\\zs" . subdir, "./", "")')
+    endif
     call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)",":\\1:\\2")')
     if a:base !~# '^:[0-3]\%(:\|$\)'
       call filter(entries,'v:val[1] == "0"')
       call map(entries,'v:val[2:-1]')
     endif
-    call filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-    return map(entries, 's:fnameescape(v:val)')
 
   else
-    let tree = matchstr(a:base,'.*[:/]')
-    let entries = split(s:TreeChomp(['ls-tree',tree], dir),"\n")
+    let tree = matchstr(a:base, '.*[:/]')
+    let entries = split(s:TreeChomp(['ls-tree', substitute(tree,  ':\zs\./', '\=s:SubDir(cwd)', '')], dir),"\n")
     call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
     call map(entries,'tree.s:sub(v:val,".*\t","")')
-    call filter(entries,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-    return map(entries, 's:fnameescape(v:val)')
+
   endif
+  call filter(entries, 'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
+  return map(entries, 's:fnameescape(v:val)')
 endfunction
 
 " Section: Buffer auto-commands
@@ -1496,9 +1548,9 @@ function! s:GitComplete(A, L, P) abort
     let cmds = s:Subcommands()
     return filter(sort(cmds+keys(s:Aliases())), 'strpart(v:val, 0, strlen(a:A)) ==# a:A')
   elseif pre =~# ' -- '
-    return fugitive#PathComplete(a:A)
+    return fugitive#PathComplete(a:A, b:git_dir)
   else
-    return fugitive#Complete(a:A, a:L, a:P)
+    return fugitive#Complete(a:A, b:git_dir)
   endif
 endfunction
 
@@ -1920,7 +1972,7 @@ function! s:CommitComplete(A,L,P) abort
     let args = ['-C', '-F', '-a', '-c', '-e', '-i', '-m', '-n', '-o', '-q', '-s', '-t', '-u', '-v', '--all', '--allow-empty', '--amend', '--author=', '--cleanup=', '--dry-run', '--edit', '--file=', '--fixup=', '--include', '--interactive', '--message=', '--no-verify', '--only', '--quiet', '--reedit-message=', '--reuse-message=', '--signoff', '--squash=', '--template=', '--untracked-files', '--verbose']
     return filter(args,'v:val[0 : strlen(a:A)-1] ==# a:A')
   else
-    return fugitive#PathComplete(a:A)
+    return fugitive#PathComplete(a:A, b:git_dir)
   endif
   return []
 endfunction
@@ -2068,9 +2120,9 @@ endif
 
 function! s:GrepComplete(A, L, P) abort
   if strpart(a:L, 0, a:P) =~# ' -- '
-    return fugitive#PathComplete(a:A)
+    return fugitive#PathComplete(a:A, b:git_dir)
   else
-    return fugitive#Complete(a:A)
+    return fugitive#Complete(a:A, b:git_dir)
   endif
 endfunction
 
