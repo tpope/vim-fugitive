@@ -1010,7 +1010,7 @@ endfunction
 function! fugitive#PathComplete(base, ...) abort
   let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
   let tree = FugitiveTreeForGitDir(dir) . '/'
-  let strip = '^\%(:/\|:(top)\|:(top,literal)\|:(literal,top)\|:(literal)\)\%(\./\)\='
+  let strip = '^\%(:/:\=\|:(top)\|:(top,literal)\|:(literal,top)\|:(literal)\)\%(\./\)\='
   let base = substitute((a:base =~# '^/' ? '.' : '') . a:base, strip, '', '')
   if base =~# '^\.git/'
     let pattern = s:gsub(base[5:-1], '/', '*&').'*'
@@ -1489,14 +1489,20 @@ endfunction
 " Section: Gcd, Glcd
 
 function! s:DirComplete(A, L, P) abort
-  let base = s:sub(a:A,'^/','')
-  let matches = split(glob(s:Tree() . '/' . s:gsub(base,'/','*&').'*/'),"\n")
-  call map(matches,'s:Slash(v:val[ strlen(s:Tree())+(a:A !~ "^/") : -1 ])')
-  return matches
+  return filter(fugitive#PathComplete(a:A), 'v:val =~# "/$"')
 endfunction
 
-call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :exe 'cd<bang>'  s:fnameescape((empty(s:Tree()) ? b:git_dir : s:Tree()) . '/' . <q-args>)")
-call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe 'lcd<bang>' s:fnameescape((empty(s:Tree()) ? b:git_dir : s:Tree()) . '/' . <q-args>)")
+function! s:DirArg(path) abort
+  let path = substitute(a:path, '^:/:\=\|^:(\%(top\|top,literal\|literal,top\|literal\))', '', '')
+  if path =~# '^/\|^\a\+:'
+    return path
+  else
+    return (empty(s:Tree()) ? b:git_dir : s:Tree()) . '/' . path
+  endif
+endfunction
+
+call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :exe 'cd<bang>'  s:fnameescape(s:DirArg(<q-args>))")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe 'lcd<bang>' s:fnameescape(s:DirArg(<q-args>))")
 
 " Section: Gstatus
 
@@ -2678,8 +2684,10 @@ endfunction
 " Section: Gmove, Gremove
 
 function! s:Move(force, rename, destination) abort
-  if a:destination =~# '^[.:]/'
+  if a:destination =~# '^\./.'
     let destination = a:destination[2:-1]
+  elseif a:destination =~# '^:/:\='
+    let destination = substitute(a:destination, '^:/:\=', '', '')
   elseif a:destination =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
     let destination = matchstr(a:destination, ')\zs.*')
   elseif a:rename && a:destination !~# '^\a\+:\|^/'
