@@ -106,15 +106,6 @@ function! s:cpath(path, ...) abort
   return a:0 ? path ==# s:cpath(a:1) : path
 endfunction
 
-function! s:SubDir(cwd, ...) abort
-  let lead = (a:0 ? a:1 : s:Tree()) . '/'
-  if len(lead) && s:cpath(lead, strpart(a:cwd, 0, len(lead)))
-    return strpart(a:cwd, len(lead)) . '/'
-  else
-    return ''
-  endif
-endfunction
-
 let s:executables = {}
 
 function! s:executable(binary) abort
@@ -1102,6 +1093,11 @@ function! fugitive#Complete(base, ...) abort
   let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
   let cwd = a:0 == 1 ? s:Tree(dir) : getcwd()
   let tree = s:Tree(dir) . '/'
+  let subdir = ''
+  if len(tree) > 1 && s:cpath(tree, cwd[0 : len(tree) - 1])
+    let subdir = strpart(cwd, len(tree)) . '/'
+  endif
+
   if a:base =~# '^\.\=/\|^:(' || a:base !~# ':'
     let results = []
     if a:base =~# '^refs/'
@@ -1125,7 +1121,6 @@ function! fugitive#Complete(base, ...) abort
   elseif a:base =~# '^:'
     let entries = split(s:TreeChomp(['ls-files','--stage'], dir),"\n")
     if a:base =~# ':\./'
-      let subdir = s:SubDir(cwd)
       call map(entries, 'substitute(v:val, "\\M\t\\zs" . subdir, "./", "")')
     endif
     call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)",":\\1:\\2")')
@@ -1136,7 +1131,7 @@ function! fugitive#Complete(base, ...) abort
 
   else
     let tree = matchstr(a:base, '.*[:/]')
-    let entries = split(s:TreeChomp(['ls-tree', substitute(tree,  ':\zs\./', '\=s:SubDir(cwd)', '')], dir),"\n")
+    let entries = split(s:TreeChomp(['ls-tree', substitute(tree,  ':\zs\./', '\=subdir', '')], dir),"\n")
     call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
     call map(entries,'tree.s:sub(v:val,".*\t","")')
 
