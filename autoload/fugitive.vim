@@ -351,7 +351,7 @@ function! s:repo_route(object) dict abort
 endfunction
 
 function! s:repo_translate(rev) dict abort
-  return s:Slash(s:Generate(a:rev, self.git_dir))
+  return s:Slash(fugitive#Route(substitute(a:rev, '^/', ':(top)', ''), self.git_dir))
 endfunction
 
 function! s:repo_head(...) dict abort
