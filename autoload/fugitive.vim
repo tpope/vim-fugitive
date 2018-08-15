@@ -510,11 +510,11 @@ function! fugitive#Route(object, ...) abort
     return s:PlatformSlash((len(owner) ? owner : prefix) . strpart(a:object, len(prefix)))
   elseif s:Slash(a:object) =~# '^/\|^\%(\a\a\+:\).*\%(//\|::\)' || (has('win32') ? '^\a:/' : '')
     return s:PlatformSlash(a:object)
+  elseif s:Slash(a:object) =~# '^\.\.\=\%(/\|$\)'
+    return s:PlatformSlash(simplify(getcwd() . '/' . a:object))
   endif
   let dir = a:0 ? a:1 : get(b:, 'git_dir', '')
-  if empty(dir) && a:object =~# '^\.\.\=\%(/\|$\)'
-    return s:PlatformSlash(simplify(getcwd() . '/' . a:object[1:-1]))
-  elseif empty(dir)
+  if empty(dir)
     let file = matchstr(a:object, '^\%(:\d:\|[^:]*:\)\zs.*', '', '')
     let dir = FugitiveExtractGitDir(file)
     if empty(dir)
@@ -1079,9 +1079,9 @@ endfunction
 
 function! fugitive#PathComplete(base, ...) abort
   let dir = a:0 == 1 ? a:1 : get(b:, 'git_dir', '')
-  let tree = FugitiveTreeForGitDir(dir) . '/'
-  let strip = '^\%(:/:\=\|:(top)\|:(top,literal)\|:(literal,top)\|:(literal)\)\%(\./\)\='
-  let base = substitute((a:base =~# '^/' ? '.' : '') . a:base, strip, '', '')
+  let tree = s:Tree(dir) . '/'
+  let strip = '^\%(:/:\=\|:(top)\|:(top,literal)\|:(literal,top)\|:(literal)\)'
+  let base = substitute(a:base, strip, '', '')
   if base =~# '^\.git/'
     let pattern = s:gsub(base[5:-1], '/', '*&').'*'
     let matches = s:GlobComplete(dir . '/', pattern)
@@ -1093,13 +1093,12 @@ function! fugitive#PathComplete(base, ...) abort
     call map(matches, "'.git/' . v:val")
   elseif base =~# '^\~/'
     let matches = map(s:GlobComplete(expand('~/'), base[2:-1] . '*'), '"~/" . v:val')
+  elseif a:base =~# '^/\|^\a\+:\|^\.\.\=/\|^:(literal)'
+    let matches = s:GlobComplete('', base . '*')
   elseif len(tree) > 1
     let matches = s:GlobComplete(tree, s:gsub(base, '/', '*&').'*')
   else
     let matches = []
-  endif
-  if empty(matches) && a:base =~# '^/\|^\a\+:'
-    let matches = s:GlobComplete('', a:base . '*')
   endif
   call map(matches, 's:fnameescape(s:Slash(matchstr(a:base, strip) . v:val))')
   return matches
@@ -1573,7 +1572,7 @@ endfunction
 
 function! s:DirArg(path) abort
   let path = substitute(a:path, '^:/:\=\|^:(\%(top\|top,literal\|literal,top\|literal\))', '', '')
-  if path =~# '^/\|^\a\+:'
+  if path =~# '^/\|^\a\+:\|^\.\.\=\%(/\|$\)'
     return path
   else
     return (empty(s:Tree()) ? b:git_dir : s:Tree()) . '/' . path
@@ -2239,9 +2238,9 @@ function! s:EditParse(args) abort
   elseif empty(expand('%'))
     let file = ':'
   elseif empty(s:DirCommitFile(@%)[1]) && s:Relative('./') !~# '^\./\.git\>'
-    let file = s:Relative(':0:')
+    let file = ':0:%'
   else
-    let file = s:Relative('./')
+    let file = '%'
   endif
   return [s:Expand(file), join(pre)]
 endfunction
@@ -2760,18 +2759,22 @@ endfunction
 " Section: :Gmove, :Gremove
 
 function! s:Move(force, rename, destination) abort
-  if a:destination =~# '^\./.'
-    let destination = a:destination[2:-1]
-  elseif a:destination =~# '^:/:\='
-    let destination = substitute(a:destination, '^:/:\=', '', '')
-  elseif a:destination =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
-    let destination = matchstr(a:destination, ')\zs.*')
-  elseif a:rename && a:destination !~# '^\a\+:\|^/'
-    let destination = fnamemodify(s:Relative(''), ':h') . '/' . a:destination
-  else
+  if a:destination =~# '^\.\.\=\%(/\|$\)'
+    let destination = simplify(getcwd() . '/' . a:destination)
+  elseif a:destination =~# '^\a\+:\|^/'
     let destination = a:destination
+  elseif a:destination =~# '^:/:\='
+    let destination = s:Tree() . substitute(a:destination, '^:/:\=', '', '')
+  elseif a:destination =~# '^:(\%(top\|top,literal\|literal,top\))'
+    let destination = s:Tree() . matchstr(a:destination, ')\zs.*')
+  elseif a:destination =~# '^:(literal)'
+    let destination = simplify(getcwd() . '/' . matchstr(a:destination, ')\zs.*'))
+  elseif a:rename
+    let destination = expand('%:p:s?[\/]$??:h') . '/' . a:destination
+  else
+    let destination = s:Tree() . '/' . a:destination
   endif
-  let destination = s:Tree() . '/' . destination
+  let destination = s:Slash(destination)
   if isdirectory(@%)
     setlocal noswapfile
   endif

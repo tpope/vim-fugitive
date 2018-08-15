@@ -323,7 +323,7 @@ refs/heads/x    .git/refs/heads/x
 @               The commit referenced by @ aka HEAD
 master^         The parent of the commit referenced by master
 master:         The tree referenced by master
-./master        The file named master in the work tree
+./master        The file named master in the working directory
 Makefile        The file named Makefile in the work tree
 @^:Makefile     The file named Makefile in the parent of HEAD
 :Makefile       The file named Makefile in the index (writable)
