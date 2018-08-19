@@ -40,7 +40,7 @@ function! s:Uniq(list) abort
 endfunction
 
 function! s:winshell() abort
-  return &shell =~? 'cmd' || exists('+shellslash') && !&shellslash
+  return exists('+shellslash') && !&shellslash && &shellcmdflag !~# '^-'
 endfunction
 
 function! s:shellesc(arg) abort
