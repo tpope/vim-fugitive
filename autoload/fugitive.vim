@@ -61,14 +61,6 @@ function! s:fnameescape(file) abort
   endif
 endfunction
 
-function! s:tempname() abort
-  let temp = resolve(tempname())
-  if has('win32')
-    let temp = fnamemodify(fnamemodify(temp, ':h'), ':p').fnamemodify(temp, ':t')
-  endif
-  return temp
-endfunction
-
 function! s:throw(string) abort
   let v:errmsg = 'fugitive: '.a:string
   throw v:errmsg
@@ -95,6 +87,14 @@ function! s:PlatformSlash(path) abort
   else
     return a:path
   endif
+endfunction
+
+function! s:Resolve(path) abort
+  let path = resolve(a:path)
+  if has('win32')
+    let path = s:PlatformSlash(fnamemodify(fnamemodify(path, ':h'), ':p') . fnamemodify(path, ':t'))
+  endif
+  return path
 endfunction
 
 function! s:cpath(path, ...) abort
@@ -858,9 +858,9 @@ function! s:BlobTemp(url) abort
     return ''
   endif
   if !has_key(s:blobdirs, dir)
-    let s:blobdirs[dir] = s:tempname()
+    let s:blobdirs[dir] = tempname()
   endif
-  let tempfile = s:PlatformSlash(s:blobdirs[dir] . '/' . commit . file)
+  let tempfile = s:blobdirs[dir] . '/' . commit . file
   let tempparent = fnamemodify(tempfile, ':h')
   if !isdirectory(tempparent)
     call mkdir(tempparent, 'p')
@@ -874,7 +874,7 @@ function! s:BlobTemp(url) abort
       return ''
     endif
   endif
-  return tempfile
+  return s:Resolve(tempfile)
 endfunction
 
 function! fugitive#readfile(url, ...) abort
@@ -894,7 +894,7 @@ function! fugitive#writefile(lines, url, ...) abort
   let [dir, commit, file] = s:DirCommitFile(url)
   let entry = s:PathInfo(url)
   if commit =~# '^\d$' && entry[2] !=# 'tree'
-    let temp = s:tempname()
+    let temp = tempname()
     if a:0 && a:1 =~# 'a' && entry[2] ==# 'blob'
       call writefile(fugitive#readfile(url, 'b'), temp, 'b')
     endif
@@ -1158,14 +1158,15 @@ endfunction
 " Section: Buffer auto-commands
 
 function! s:ReplaceCmd(cmd) abort
-  let tmp = tempname()
-  let err = s:TempCmd(tmp, a:cmd)
+  let temp = tempname()
+  let err = s:TempCmd(temp, a:cmd)
   if v:shell_error
-    call s:throw((len(err) ? err : filereadable(tmp) ? join(readfile(tmp), ' ') : 'unknown error running ' . a:cmd))
+    call s:throw((len(err) ? err : filereadable(temp) ? join(readfile(temp), ' ') : 'unknown error running ' . a:cmd))
   endif
+  let temp = s:Resolve(temp)
   let fn = expand('%:p')
   silent exe 'doau BufReadPre '.s:fnameescape(fn)
-  silent exe 'keepalt file '.tmp
+  silent exe 'keepalt file '.temp
   try
     silent noautocmd edit!
   finally
@@ -1173,8 +1174,8 @@ function! s:ReplaceCmd(cmd) abort
       silent exe 'keepalt file '.s:fnameescape(fn)
     catch /^Vim\%((\a\+)\)\=:E302:/
     endtry
-    call delete(tmp)
-    if fnamemodify(bufname('$'), ':p') ==# tmp
+    call delete(temp)
+    if s:cpath(fnamemodify(bufname('$'), ':p'), temp)
       silent execute 'bwipeout '.bufnr('$')
     endif
     silent exe 'doau BufReadPost '.s:fnameescape(fn)
@@ -2276,7 +2277,7 @@ function! s:Edit(cmd, bang, mods, args, ...) abort
   let mods = a:mods ==# '<mods>' ? '' : a:mods
 
   if a:bang
-    let temp = s:tempname()
+    let temp = tempname()
     let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : 'cd'
     let cwd = getcwd()
     try
@@ -2288,6 +2289,7 @@ function! s:Edit(cmd, bang, mods, args, ...) abort
     finally
       execute cd s:fnameescape(cwd)
     endtry
+    let temp = s:Resolve(temp)
     let s:temp_files[s:cpath(temp)] = { 'dir': b:git_dir, 'filetype': 'git' }
     if a:cmd ==# 'edit'
       call s:BlurStatus()
@@ -2903,7 +2905,7 @@ function! s:Blame(bang, line1, line2, count, mods, args) abort
         let cwd = getcwd()
         execute cd s:fnameescape(tree)
       endif
-      let error = s:tempname()
+      let error = tempname()
       let temp = error.'.fugitiveblame'
       if &shell =~# 'csh'
         silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
@@ -2947,6 +2949,7 @@ function! s:Blame(bang, line1, line2, count, mods, args) abort
         endif
         let top = line('w0') + &scrolloff
         let current = line('.')
+        let temp = s:Resolve(temp)
         let s:temp_files[s:cpath(temp)] = { 'dir': b:git_dir, 'filetype': 'fugitiveblame', 'args': cmd, 'bufnr': bufnr }
         exe 'keepalt leftabove vsplit '.temp
         let b:fugitive_blamed_bufnr = bufnr
@@ -3258,9 +3261,9 @@ function! s:Browse(bang,line1,count,...) abort
           let remotehead = cdir . '/refs/remotes/' . remote . '/' . merge
           let commit = filereadable(remotehead) ? get(readfile(remotehead), 0, '') : ''
           if a:count && !a:0 && commit =~# '^\x\{40\}$'
-            let blame_list = s:tempname()
+            let blame_list = tempname()
             call writefile([commit, ''], blame_list, 'b')
-            let blame_in = s:tempname()
+            let blame_in = tempname()
             silent exe '%write' blame_in
             let blame = split(s:TreeChomp('blame', '--contents', blame_in, '-L', a:line1.','.a:count, '-S', blame_list, '-s', '--show-number', './' . path), "\n")
             if !v:shell_error
