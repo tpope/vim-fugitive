@@ -521,18 +521,24 @@ function! fugitive#Route(object, ...) abort
       return fnamemodify(len(file) ? file : a:object, ':p')
     endif
   endif
-  let rev = a:object
+  let rev = s:Slash(a:object)
   let tree = s:Tree(dir)
   let base = len(tree) ? tree : 'fugitive://' . dir . '//0'
-  if rev =~# '^\%(\./\)\=\.git$' && empty(tree)
-    let f = dir
-  elseif rev =~# '^\%(\./\)\=\.git/'
-    let f = substitute(rev, '\C^\%(\./\)\=\.git', '', '')
+  if rev ==# '.git'
+    let f = len(tree) ? tree . '/.git' : dir
+  elseif rev =~# '^\.git/'
+    let f = substitute(rev, '^\.git', '', '')
     let cdir = fugitive#CommonDir(dir)
-    if cdir !=# dir && (f =~# '^/\%(config\|info\|hooks\|objects\|refs\|worktrees\)' || !filereadable(f) && filereadable(cdir . f))
-      let f = cdir . f
+    if f =~# '^/\.\./\.\.\%(/\|$\)'
+      let f = simplify(len(tree) ? tree . f[3:-1] : dir . f)
+    elseif f =~# '^/\.\.\%(/\|$\)'
+      let f = base . f[3:-1]
+    elseif cdir !=# dir && (
+          \ f =~# '^/\%(config\|hooks\|info\|logs/refs\|objects\|refs\|worktrees\)\%(/\|$\)' ||
+          \ f !~# '^/logs$\|/\w*HEAD$' && getftime(dir . f) < 0 && getftime(cdir . f) >= 0)
+      let f = simplify(cdir . f)
     else
-      let f = dir . f
+      let f = simplify(dir . f)
     endif
   elseif rev ==# ':/'
     let f = base
