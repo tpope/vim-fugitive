@@ -508,7 +508,7 @@ function! fugitive#Route(object, ...) abort
     let prefix = matchstr(a:object, '^[~$]\i*')
     let owner = expand(prefix)
     return s:PlatformSlash((len(owner) ? owner : prefix) . strpart(a:object, len(prefix)))
-  elseif s:Slash(a:object) =~# '^/\|^\%(\a\a\+:\).*\%(//\|::\)' || (has('win32') ? '^\a:/' : '')
+  elseif s:Slash(a:object) =~# '^$\|^/\|^\%(\a\a\+:\).*\%(//\|::\)' . (has('win32') ? '\|^\a:/' : '')
     return s:PlatformSlash(a:object)
   elseif s:Slash(a:object) =~# '^\.\.\=\%(/\|$\)'
     return s:PlatformSlash(simplify(getcwd() . '/' . a:object))
@@ -534,7 +534,7 @@ function! fugitive#Route(object, ...) abort
     else
       let f = dir . f
     endif
-  elseif rev =~# '^$\|^:/$'
+  elseif rev ==# ':/'
     let f = base
   elseif rev =~# '^\.\%(/\|$\)'
     let f = base . rev[1:-1]

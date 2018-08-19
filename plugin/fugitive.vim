@@ -44,7 +44,7 @@ function! FugitiveReal(...) abort
 endfunction
 
 function! FugitiveRoute(...) abort
-  return fugitive#Route(a:0 ? a:1 : '', FugitiveGitDir(a:0 > 1 ? a:2 : -1))
+  return fugitive#Route(a:0 ? a:1 : ':/', FugitiveGitDir(a:0 > 1 ? a:2 : -1))
 endfunction
 
 function! FugitivePath(...) abort
