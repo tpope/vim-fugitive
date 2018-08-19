@@ -1174,9 +1174,7 @@ function! s:ReplaceCmd(cmd) abort
     catch /^Vim\%((\a\+)\)\=:E302:/
     endtry
     call delete(tmp)
-    if fnamemodify(bufname('$'), ':p') ==# tmp
-      silent execute 'bwipeout '.bufnr('$')
-    endif
+    silent execute 'bwipeout '.s:fnameescape(tmp)
     silent exe 'doau BufReadPost '.s:fnameescape(fn)
   endtry
 endfunction
