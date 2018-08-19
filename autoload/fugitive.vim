@@ -500,7 +500,7 @@ function! fugitive#Path(url, ...) abort
 endfunction
 
 function! s:Relative(...) abort
-  return fugitive#Path(@%, a:0 ? a:1 : './')
+  return fugitive#Path(@%, a:0 ? a:1 : ':(top)')
 endfunction
 
 function! fugitive#Route(object, ...) abort
