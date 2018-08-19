@@ -82,7 +82,7 @@ function! s:warn(str) abort
 endfunction
 
 function! s:Slash(path) abort
-  if s:winshell()
+  if exists('+shellslash') && !&shellslash
     return tr(a:path, '\', '/')
   else
     return a:path
