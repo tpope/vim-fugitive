@@ -522,7 +522,10 @@ function! s:Relative(...) abort
 endfunction
 
 function! fugitive#Route(object, ...) abort
-  if a:object =~# '^[~$]'
+  if type(a:object) == type(0)
+    let name = bufname(a:object)
+    return s:PlatformSlash(name =~# '^$\|^/\|^\a\+:' ? name : getcwd() . '/' . name)
+  elseif a:object =~# '^[~$]'
     let prefix = matchstr(a:object, '^[~$]\i*')
     let owner = expand(prefix)
     return s:PlatformSlash((len(owner) ? owner : prefix) . strpart(a:object, len(prefix)))
