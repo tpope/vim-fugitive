@@ -2233,7 +2233,7 @@ function! s:EditParse(args) abort
   let pre = []
   let args = copy(a:args)
   while !empty(args) && args[0] =~# '^+'
-    call add(pre, escape(remove(args, 0), ' |"') . ' ')
+    call add(pre, ' ' . escape(remove(args, 0), ' |"'))
   endwhile
   if len(args)
     let file = join(args)
@@ -2312,7 +2312,7 @@ function! s:Edit(cmd, bang, mods, args, ...) abort
   if a:cmd ==# 'edit'
     call s:BlurStatus()
   endif
-  return mods . ' ' . a:cmd . ' ' . pre . s:fnameescape(file)
+  return mods . ' ' . a:cmd . pre . ' ' . s:fnameescape(file)
 endfunction
 
 function! s:Read(count, line1, line2, range, bang, mods, args, ...) abort
@@ -2347,7 +2347,10 @@ function! s:Read(count, line1, line2, range, bang, mods, args, ...) abort
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
-  return mods . ' ' . after . 'read ' . pre . s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
+  if file =~# '^fugitive:' && after is# 0
+    return 'exe ' .string(mods . ' ' . fugitive#FileReadCmd(file, 0, pre)) . '|diffupdate'
+  endif
+  return mods . ' ' . after . 'read' . pre . ' ' . s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
 endfunction
 
 function! s:EditRunComplete(A,L,P) abort
