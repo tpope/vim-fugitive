@@ -474,15 +474,33 @@ function! fugitive#Real(url) abort
 endfunction
 
 function! fugitive#Path(url, ...) abort
-  if !a:0 || empty(a:url)
+  if empty(a:url)
+    return ''
+  endif
+  let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
+  let tree = s:Tree(dir)
+  if !a:0
     return fugitive#Real(a:url)
+  elseif a:1 =~# '\.$'
+    let path = s:Slash(fugitive#Real(a:url))
+    let cwd = getcwd()
+    let lead = ''
+    while s:cpath(tree . '/', (cwd . '/')[0 : len(tree)])
+      if s:cpath(cwd . '/', path[0 : len(cwd)])
+        if strpart(path, len(cwd) + 1) =~# '^\.git\%(/\|$\)'
+          break
+        endif
+        return a:1[0:-2] . (empty(lead) ? './' : lead) . strpart(path, len(cwd) + 1)
+      endif
+      let cwd = fnamemodify(cwd, ':h')
+      let lead .= '../'
+    endwhile
+    return a:1[0:-2] . path
   endif
   let url = s:Slash(fnamemodify(a:url, ':p'))
   if url =~# '/$' && s:Slash(a:url) !~# '/$'
     let url = url[0:-2]
   endif
-  let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
-  let tree = s:Tree(dir)
   let [argdir, commit, file] = s:DirCommitFile(a:url)
   if len(argdir) && s:cpath(argdir) !=# s:cpath(dir)
     let file = ''
@@ -2187,10 +2205,10 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
   let before = substitute(args, ' --\S\@!.*', '', '')
   let after = strpart(args, len(before))
   let path = s:Relative('/')
+  let relative = path[1:-1]
   if path =~# '^/\.git\%(/\|$\)' || len(after)
     let path = ''
   endif
-  let relative = s:Relative('')
   if before !~# '\s[^[:space:]-]'
     let owner = s:Owner(@%)
     if len(owner)
