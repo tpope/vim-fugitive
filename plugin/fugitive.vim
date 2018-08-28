@@ -200,6 +200,10 @@ function! FugitiveDetect(path) abort
   endif
 endfunction
 
+function! FugitiveFind(...) abort
+  return call('FugitiveRoute', a:000)
+endfunction
+
 function! FugitiveGenerate(...) abort
   return call('FugitiveRoute', a:000)
 endfunction
