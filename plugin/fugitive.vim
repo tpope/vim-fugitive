@@ -224,6 +224,9 @@ function! s:ProjectionistDetect() abort
     let base = FugitiveTreeForGitDir(dir)
   endif
   if len(base)
+    if exists('+shellslash') && !&shellslash
+      let base = tr(base, '/', '\')
+    endif
     call projectionist#append(base, FugitiveCommonDir(dir) . '/info/projections.json')
   endif
 endfunction
