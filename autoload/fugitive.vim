@@ -3515,7 +3515,7 @@ endfunction
 
 function! fugitive#StatusCfile() abort
   let file = s:Generate(s:StatusCfile())
-  return empty(file) ? "\<C-R>\<C-F>" : s:fnameescape(file)
+  return empty(file) ? fugitive#Cfile() : s:fnameescape(file)
 endfunction
 
 function! s:cfile() abort
