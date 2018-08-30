@@ -2359,7 +2359,7 @@ function! s:Edit(cmd, bang, mods, args, ...) abort
     endif
     silent execute mods a:cmd temp
     call fugitive#ReloadStatus()
-    return 'redraw|echo ' . string(':!' . git . ' ' . args)
+    return 'redraw!|echo ' . string(':!' . git . ' ' . args)
   endif
 
   let [file, pre] = s:EditParse(a:000)
