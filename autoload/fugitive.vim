@@ -1267,7 +1267,7 @@ endfunction
 
 " Section: Buffer auto-commands
 
-function! s:ReplaceCmd(cmd) abort
+function! s:ReplaceCmd(cmd, ...) abort
   let temp = tempname()
   let err = s:TempCmd(temp, a:cmd)
   if v:shell_error
@@ -1278,7 +1278,11 @@ function! s:ReplaceCmd(cmd) abort
   silent exe 'doau BufReadPre '.s:fnameescape(fn)
   silent exe 'keepalt file '.temp
   try
-    silent noautocmd edit!
+    if a:0
+      silent noautocmd edit!
+    else
+      silent edit!
+    endif
   finally
     try
       silent exe 'keepalt file '.s:fnameescape(fn)
@@ -1314,7 +1318,7 @@ function! fugitive#BufReadStatus() abort
             \ '-c', 'status.short=false',
             \ 'status']
     endif
-    call s:ReplaceCmd(call('fugitive#Prepare', cmd))
+    call s:ReplaceCmd(call('fugitive#Prepare', cmd), 1)
     if b:fugitive_display_format
       if &filetype !=# 'git'
         set filetype=git
