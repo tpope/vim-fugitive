@@ -885,7 +885,7 @@ function! fugitive#getfsize(url) abort
   let entry = s:PathInfo(a:url)
   if entry[4] == -2 && entry[2] ==# 'blob' && len(entry[3])
     let dir = s:DirCommitFile(a:url)[0]
-    let size = +system(s:Prepare(dir, 'cat-file', '-s', entry[3], '--'))
+    let size = +system(s:Prepare(dir, 'cat-file', '-s', entry[3]))
     let entry[4] = v:shell_error ? -1 : size
   endif
   return entry[4]
@@ -977,7 +977,7 @@ function! s:BlobTemp(url) abort
   endif
   if commit =~# '^\d$' || !filereadable(tempfile)
     let rev = s:DirRev(a:url)[1]
-    let command = s:Prepare(dir, 'cat-file', 'blob', rev, '--')
+    let command = s:Prepare(dir, 'cat-file', 'blob', rev)
     call s:TempCmd(tempfile, command)
     if v:shell_error
       call delete(tempfile)
@@ -1384,7 +1384,7 @@ function! fugitive#FileReadCmd(...) abort
   if rev !~# ':'
     let cmd = s:Prepare(dir, 'log', '--pretty=format:%B', '-1', rev, '--')
   else
-    let cmd = s:Prepare(dir, 'cat-file', '-p', rev, '--')
+    let cmd = s:Prepare(dir, 'cat-file', '-p', rev)
   endif
   return line . 'read !' . escape(cmd, '!#%')
 endfunction
@@ -1434,7 +1434,7 @@ function! fugitive#BufReadCmd(...) abort
     if rev =~# '^:\d$'
       let b:fugitive_type = 'stage'
     else
-      let b:fugitive_type = system(s:Prepare(dir, 'cat-file', '-t', rev, '--'))[0:-2]
+      let b:fugitive_type = system(s:Prepare(dir, 'cat-file', '-t', rev))[0:-2]
       if v:shell_error && rev =~# '^:0'
         let sha = system(s:Prepare(dir, 'write-tree', '--prefix=' . rev[3:-1]))[0:-2]
         let b:fugitive_type = 'tree'
