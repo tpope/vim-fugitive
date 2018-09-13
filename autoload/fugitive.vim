@@ -3405,6 +3405,7 @@ function! s:Browse(bang,line1,count,...) abort
           \ 'line1': line1,
           \ 'line2': line2}
 
+    let url = ''
     for Handler in get(g:, 'fugitive_browse_handlers', [])
       let url = call(Handler, [copy(opts)])
       if !empty(url)
