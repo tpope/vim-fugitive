@@ -1493,13 +1493,13 @@ function! fugitive#BufReadCmd(...) abort
           if getline('.') ==# 'parent '
             silent keepjumps delete_
           else
-            silent exe 'keepjumps s/\m\C\%(^parent\)\@<! /\rparent /e' . (&gdefault ? '' : 'g')
+            silent exe (exists(':keeppatterns') ? 'keeppatterns' : '') 'keepjumps s/\m\C\%(^parent\)\@<! /\rparent /e' . (&gdefault ? '' : 'g')
           endif
           keepjumps let lnum = search('^encoding \%(<unknown>\)\=$','W',line('.')+3)
           if lnum
             silent keepjumps delete_
           end
-          silent keepjumps 1,/^diff --git\|\%$/g/\r$/s///
+          silent exe (exists(':keeppatterns') ? 'keeppatterns' : '') 'keepjumps 1,/^diff --git\|\%$/g/\r$/s///'
           keepjumps 1
         endif
       elseif b:fugitive_type ==# 'stage'
