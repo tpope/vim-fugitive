@@ -1440,13 +1440,14 @@ function! fugitive#BufReadCmd(...) abort
         let b:fugitive_type = 'tree'
       endif
       if v:shell_error
+        let error = b:fugitive_type
         unlet b:fugitive_type
         if rev =~# '^:\d:'
           let &readonly = !filewritable(dir . '/index')
           return 'silent doautocmd BufNewFile '.s:fnameescape(amatch)
         else
           setlocal readonly nomodifiable
-          return ''
+          return 'echo ' . string(error)
         endif
       elseif b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
         return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
