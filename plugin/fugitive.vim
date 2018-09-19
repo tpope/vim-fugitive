@@ -57,6 +57,9 @@ endfunction
 
 function! FugitiveParse(...) abort
   let path = s:Slash(a:0 ? a:1 : @%)
+  if path !~# '^fugitive:'
+    return ['', '']
+  endif
   let vals = matchlist(path, '\c^fugitive:\%(//\)\=\(.\{-\}\)\%(//\|::\)\(\x\{40\}\|[0-3]\)\(/.*\)\=$')
   if len(vals)
     return [(vals[2] =~# '^.$' ? ':' : '') . vals[2] . substitute(vals[3], '^/', ':', ''), vals[1]]
