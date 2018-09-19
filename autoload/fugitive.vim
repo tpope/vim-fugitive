@@ -3346,8 +3346,11 @@ function! s:Browse(bang,line1,count,...) abort
       else
         let commit = ''
         if len(merge)
-          let remotehead = cdir . '/refs/remotes/' . remote . '/' . merge
-          let commit = filereadable(remotehead) ? get(readfile(remotehead), 0, '') : ''
+          let owner = s:Owner(@%)
+          let commit = s:TreeChomp('merge-base', 'refs/remotes/' . remote . '/' . merge, empty(owner) ? 'HEAD' : owner, '--')
+          if v:shell_error
+            let commit = ''
+          endif
           if a:count && !a:0 && commit =~# '^\x\{40\}$'
             let blame_list = tempname()
             call writefile([commit, ''], blame_list, 'b')
