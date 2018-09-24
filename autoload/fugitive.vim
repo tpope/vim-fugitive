@@ -3739,7 +3739,7 @@ function! fugitive#Statusline(...) abort
   let status = ''
   let commit = s:DirCommitFile(@%)[1]
   if len(commit)
-    let status .= ':' . commit[0:7]
+    let status .= ':' . commit[0:6]
   endif
   let status .= '('.FugitiveHead(7).')'
   return '[Git'.status.']'
