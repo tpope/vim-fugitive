@@ -485,8 +485,24 @@ function! s:Owner(path, ...) abort
     return ''
   endif
   let [pdir, commit, file] = s:DirCommitFile(a:path)
-  if s:cpath(dir, pdir) && commit =~# '^\x\{40\}$'
-    return commit
+  if s:cpath(dir, pdir)
+    if commit =~# '^\x\{40\}$'
+      return commit
+    elseif commit ==# '2'
+      return 'HEAD^{}'
+    endif
+    if filereadable(dir . '/MERGE_HEAD')
+      let merge_head = 'MERGE_HEAD'
+    elseif filereadable(dir . '/REBASE_HEAD')
+      let merge_head = 'REBASE_HEAD'
+    else
+      return ''
+    endif
+    if commit ==# '3'
+      return merge_head . '^{}'
+    elseif commit ==# '1'
+      return s:TreeChomp('merge-base', 'HEAD', merge_head, '--')
+    endif
   endif
   let path = fnamemodify(a:path, ':p')
   if s:cpath(dir . '/', path[0 : len(dir)]) && a:path =~# 'HEAD$'
