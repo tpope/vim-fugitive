@@ -104,6 +104,8 @@ function! FugitiveTreeForGitDir(path) abort
   let dir = a:path
   if dir =~# '/\.git$'
     return len(dir) ==# 5 ? '/' : dir[0:-6]
+  elseif dir ==# ''
+    return ''
   endif
   if !has_key(s:worktree_for_dir, dir)
     let s:worktree_for_dir[dir] = ''
