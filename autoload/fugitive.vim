@@ -400,19 +400,19 @@ function! s:repo_bare() dict abort
   endif
 endfunction
 
-function! s:repo_route(object) dict abort
-  return fugitive#Route(a:object, self.git_dir)
+function! s:repo_find(object) dict abort
+  return fugitive#Find(a:object, self.git_dir)
 endfunction
 
 function! s:repo_translate(rev) dict abort
-  return s:Slash(fugitive#Route(substitute(a:rev, '^/', ':(top)', ''), self.git_dir))
+  return s:Slash(fugitive#Find(substitute(a:rev, '^/', ':(top)', ''), self.git_dir))
 endfunction
 
 function! s:repo_head(...) dict abort
   return fugitive#Head(a:0 ? a:1 : 0, self.git_dir)
 endfunction
 
-call s:add_methods('repo',['dir','tree','bare','route','translate','head'])
+call s:add_methods('repo',['dir','tree','bare','find','translate','head'])
 
 function! s:repo_prepare(...) dict abort
   return call('fugitive#Prepare', [self.git_dir] + a:000)
@@ -581,7 +581,7 @@ function! s:Relative(...) abort
   return fugitive#Path(@%, a:0 ? a:1 : ':(top)')
 endfunction
 
-function! fugitive#Route(object, ...) abort
+function! fugitive#Find(object, ...) abort
   if type(a:object) == type(0)
     let name = bufname(a:object)
     return s:PlatformSlash(name =~# '^$\|^/\|^\a\+:' ? name : getcwd() . '/' . name)
@@ -638,7 +638,7 @@ function! fugitive#Route(object, ...) abort
     else
       let altdir = FugitiveExtractGitDir(f)
       if len(altdir) && !s:cpath(dir, altdir)
-        return fugitive#Route(a:object, altdir)
+        return fugitive#Find(a:object, altdir)
       endif
     endif
   elseif rev =~# '^:[0-3]:'
@@ -670,7 +670,7 @@ function! fugitive#Route(object, ...) abort
         else
           let altdir = FugitiveExtractGitDir(file)
           if len(altdir) && !s:cpath(dir, altdir)
-            return fugitive#Route(a:object, altdir)
+            return fugitive#Find(a:object, altdir)
           endif
           return file
         endif
@@ -698,7 +698,7 @@ function! s:Generate(rev, ...) abort
   elseif a:rev =~# '^/' && len(tree) && getftime(tree . a:rev) >= 0 && getftime(a:rev) < 0
     let object = ':(top)' . a:rev[1:-1]
   endif
-  return fugitive#Route(object, dir)
+  return fugitive#Find(object, dir)
 endfunction
 
 function! s:DotRelative(path) abort
