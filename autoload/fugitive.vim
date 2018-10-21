@@ -2011,7 +2011,11 @@ function! s:Commit(mods, args, ...) abort
       elseif a:args =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>'
         noautocmd execute '!'.command.' 2> '.errorfile
       else
-        noautocmd silent execute '!'.command.' > '.outfile.' 2> '.errorfile
+        if executable('tee') && &shell =~# 'bash\|zsh'
+          noautocmd silent execute '!'.command.' > '.outfile.' 2> >(tee '.errorfile.')'
+        else
+          noautocmd silent execute '!'.command.' > '.outfile.' 2> '.errorfile
+        endif
       endif
       let error = v:shell_error
     finally
