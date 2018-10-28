@@ -1516,7 +1516,7 @@ function! fugitive#BufReadCmd(...) abort
           if lnum
             silent keepjumps delete_
           end
-          silent exe (exists(':keeppatterns') ? 'keeppatterns' : '') 'keepjumps 1,/^diff --git\|\%$/g/\r$/s///'
+          silent exe (exists(':keeppatterns') ? 'keeppatterns' : '') 'keepjumps 1,/^diff --git\|\%$/s/\r$//e'
           keepjumps 1
         endif
       elseif b:fugitive_type ==# 'stage'
