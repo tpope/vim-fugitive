@@ -2990,7 +2990,8 @@ function! s:Blame(bang, line1, line2, count, mods, args) abort
       call s:throw('unsupported option')
     endif
     call map(a:args,'s:sub(v:val,"^\\ze[^-]","-")')
-    let cmd = ['--no-pager', 'blame', '--show-number']
+    let bcmd = get(g:, 'fugitive_blame_cmd', 'blame')
+    let cmd = ['--no-pager', bcmd, '--show-number']
     if a:count
       let cmd += ['-L', a:line1 . ',' . a:line1]
     endif
@@ -3372,7 +3373,8 @@ function! s:Browse(bang,line1,count,...) abort
             call writefile([commit, ''], blame_list, 'b')
             let blame_in = tempname()
             silent exe '%write' blame_in
-            let blame = split(s:TreeChomp('blame', '--contents', blame_in, '-L', a:line1.','.a:count, '-S', blame_list, '-s', '--show-number', './' . path), "\n")
+            let bcmd = get(g:, 'fugitive_blame_cmd', 'blame')
+            let blame = split(s:TreeChomp(bcmd, '--contents', blame_in, '-L', a:line1.','.a:count, '-S', blame_list, '-s', '--show-number', './' . path), "\n")
             if !v:shell_error
               let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
               if get(blame, 0) =~# blame_regex && get(blame, -1) =~# blame_regex
