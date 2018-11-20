@@ -205,14 +205,6 @@ function! FugitiveDetect(path) abort
   endif
 endfunction
 
-function! FugitiveRoute(...) abort
-  return call('FugitiveFind', a:000)
-endfunction
-
-function! FugitiveGenerate(...) abort
-  throw 'Use FugitiveFind() instead'
-endfunction
-
 function! s:Slash(path) abort
   if exists('+shellslash')
     return tr(a:path, '\', '/')
