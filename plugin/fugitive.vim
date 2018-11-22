@@ -68,6 +68,10 @@ function! FugitiveParse(...) abort
   throw v:errmsg
 endfunction
 
+function! FugitivePrepare(...) abort
+  return call('fugitive#Prepare', a:000)
+endfunction
+
 function! FugitiveConfig(key, ...) abort
   return fugitive#Config(a:key, FugitiveGitDir(a:0 ? a:1 : -1))
 endfunction
