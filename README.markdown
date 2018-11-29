@@ -96,9 +96,9 @@ to open after any grep invocation:
 
     autocmd QuickFixCmdPost *grep* cwindow
 
->Some functionality is broken in the Neovim. What can I do?
+>Gpush or Gpull hangs in the Neovim. What can I do?
 
-Neovim breaks :!. You can work around it by installing dispatch.vim and vim-dispatch-neovim.
+Neovim breaks :! and fugitive cannot process request from the command line. You can work around it by installing dispatch.vim and vim-dispatch-neovim.
 
 
 ## Self-Promotion
