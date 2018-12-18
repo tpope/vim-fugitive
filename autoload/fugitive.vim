@@ -1852,7 +1852,7 @@ function! s:StageDiff(diff) abort
     execute 'Gedit '.s:fnameescape(':0:'.filename)
     return a:diff.' -'
   else
-    execute 'Gedit '.s:fnameescape('/'.filename)
+    execute 'Gedit '.s:fnameescape(':(top)'.filename)
     return a:diff
   endif
 endfunction
