@@ -1407,6 +1407,10 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>StagePrevious(v:count1)<CR>
     exe "nnoremap <buffer> <silent>" nowait "- :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "- :<C-U>silent execute <SID>StageToggle(line(\"'<\"),line(\"'>\"))<CR>"
+    exe "nnoremap <buffer> <silent>" nowait "s :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>"
+    exe "xnoremap <buffer> <silent>" nowait "s :<C-U>silent execute <SID>StageToggle(line(\"'<\"),line(\"'>\"))<CR>"
+    exe "nnoremap <buffer> <silent>" nowait "u :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>"
+    exe "xnoremap <buffer> <silent>" nowait "u :<C-U>silent execute <SID>StageToggle(line(\"'<\"),line(\"'>\"))<CR>"
     nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe fugitive#BufReadStatus()<CR>
     nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe fugitive#BufReadStatus()<CR>
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
