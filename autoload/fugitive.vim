@@ -1759,7 +1759,7 @@ function! fugitive#reload_status() abort
   return fugitive#ReloadStatus()
 endfunction
 
-function! s:stage_info(lnum) abort
+function! s:StageFileSection(lnum) abort
   let filename = matchstr(getline(a:lnum),'^.\=\t\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
   let lnum = a:lnum
   if has('multi_byte_encoding')
@@ -1805,18 +1805,21 @@ endfunction
 
 function! s:StageReloadSeek(target,lnum1,lnum2) abort
   let jump = a:target
-  let f = matchstr(getline(a:lnum1-1),'^.\=\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
-  if f !=# '' | let jump = f | endif
-  let f = matchstr(getline(a:lnum2+1),'^.\=\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\zs.*')
-  if f !=# '' | let jump = f | endif
+  let target = s:StageFileSection(a:lnum2 + 1)
+  if empty(target[0])
+    let target = s:StageFileSection(a:lnum1 - 1)
+  endif
+  if empty(target[0])
+    let target = a:target
+  endif
   silent! edit!
   1
   redraw
-  call search('^.\=\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.jump.'\%( ([^()[:digit:]]\+)\)\=\$','W')
+  call search('^.\=\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.target[0].'\%( ([^()[:digit:]]\+)\)\=\$','W')
 endfunction
 
 function! s:StageUndo() abort
-  let [filename, section] = s:stage_info(line('.'))
+  let [filename, section] = s:StageFileSection(line('.'))
   if empty(filename)
     return ''
   endif
@@ -1831,7 +1834,7 @@ function! s:StageUndo() abort
     else
       call s:TreeChomp('checkout', 'HEAD^{}', './' . filename)
     endif
-    call s:StageReloadSeek(filename, line('.'), line('.'))
+    call s:StageReloadSeek([filename, ''], line('.'), line('.'))
     let @" = hash
     return 'checktime|redraw|echomsg ' .
           \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.filename)
@@ -1839,7 +1842,7 @@ function! s:StageUndo() abort
 endfunction
 
 function! s:StageDiff(diff) abort
-  let [filename, section] = s:stage_info(line('.'))
+  let [filename, section] = s:StageFileSection(line('.'))
   if filename ==# '' && section ==# 'staged'
     return 'Git! diff --no-ext-diff --cached'
   elseif filename ==# ''
@@ -1858,7 +1861,7 @@ function! s:StageDiff(diff) abort
 endfunction
 
 function! s:StageDiffEdit() abort
-  let [filename, section] = s:stage_info(line('.'))
+  let [filename, section] = s:StageFileSection(line('.'))
   let arg = (filename ==# '' ? '.' : filename)
   if section ==# 'staged'
     return 'Git! diff --no-ext-diff --cached '.s:shellesc(arg)
@@ -1871,7 +1874,7 @@ function! s:StageDiffEdit() abort
         call search(':$','W')
       endif
     else
-      call s:StageReloadSeek(arg,line('.'),line('.'))
+      call s:StageReloadSeek([filename, 'staged'], line('.'), line('.'))
     endif
     return ''
   else
@@ -1886,7 +1889,7 @@ function! s:StageToggle(lnum1,lnum2) abort
   try
     let output = ''
     for lnum in range(a:lnum1,a:lnum2)
-      let [filename, section] = s:stage_info(lnum)
+      let [filename, section] = s:StageFileSection(lnum)
       if getline('.') =~# ':$'
         if section ==# 'staged'
           call s:TreeChomp('reset','-q')
@@ -1927,13 +1930,13 @@ function! s:StageToggle(lnum1,lnum2) abort
       else
         let cmd = ['add','-A', './' . filename]
       endif
-      if !exists('first_filename')
-        let first_filename = filename
+      if !exists('target')
+        let target = [filename, section ==# 'staged' ? '' : 'staged']
       endif
       let output .= call('s:TreeChomp', cmd)."\n"
     endfor
-    if exists('first_filename')
-      call s:StageReloadSeek(first_filename,a:lnum1,a:lnum2)
+    if exists('target')
+      call s:StageReloadSeek(target, a:lnum1, a:lnum2)
     endif
     echo s:sub(s:gsub(output,'\n+','\n'),'\n$','')
   catch /^fugitive:/
@@ -1947,7 +1950,7 @@ function! s:StagePatch(lnum1,lnum2) abort
   let reset = []
 
   for lnum in range(a:lnum1,a:lnum2)
-    let [filename, section] = s:stage_info(lnum)
+    let [filename, section] = s:StageFileSection(lnum)
     if getline('.') =~# ':$' && section ==# 'staged'
       return 'Git reset --patch'
     elseif getline('.') =~# ':$' && section ==# 'unstaged'
