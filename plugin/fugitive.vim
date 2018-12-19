@@ -72,8 +72,14 @@ function! FugitivePrepare(...) abort
   return call('fugitive#Prepare', a:000)
 endfunction
 
-function! FugitiveConfig(key, ...) abort
-  return fugitive#Config(a:key, FugitiveGitDir(a:0 ? a:1 : -1))
+function! FugitiveConfig(...) abort
+  if len(a:000) == 2
+    return fugitive#Config(a:000[1], FugitiveGitDir(a:000[2]))
+  elseif len(a:000) == 1 && a:000[0] !~# '^[[:alnum:]-]\+\.'
+    return fugitive#Config(FugitiveGitDir(a:000[0]))
+  else
+    return call('fugitive#Config', a:000)
+  endif
 endfunction
 
 function! FugitiveRemoteUrl(...) abort

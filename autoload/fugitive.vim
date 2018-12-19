@@ -327,10 +327,48 @@ function! fugitive#RevParse(rev, ...) abort
   call s:throw('rev-parse '.a:rev.': '.hash)
 endfunction
 
-function! fugitive#Config(name, ...) abort
-  let cmd = fugitive#Prepare(a:0 ? a:1 : get(b:, 'git_dir', ''), '--no-literal-pathspecs', 'config', '--get', '--', a:name)
-  let out = matchstr(system(cmd), "[^\n]*")
-  return v:shell_error ? '' : out
+function! s:ConfigTimestamps(dir, dict) abort
+  let files = ['/etc/gitconfig', '~/.gitconfig',
+        \ len($XDG_CONFIG_HOME) ? $XDG_CONFIG_HOME . '/git/config' : '~/.config/git/config']
+  if len(a:dir)
+    call add(files, fugitive#Find('.git/config', a:dir))
+  endif
+  call extend(files, get(a:dict, 'include.path', []))
+  return join(map(files, 'getftime(expand(v:val))'), ',')
+endfunction
+
+let s:config = {}
+function! fugitive#Config(...) abort
+  let dir = get(b:, 'git_dir', '')
+  let name = ''
+  if len(a:000) >= 2
+    let dir = a:000[1]
+    let name = a:000[0]
+  elseif len(a:000) == 1 && a:000[0] =~# '^[[:alnum:]-]\+\.'
+    let name = a:000[0]
+  elseif len(a:000) == 1
+    let dir = a:000[0]
+  endif
+  let key = len(dir) ? dir : '_'
+  if has_key(s:config, key) && s:config[key][0] ==# s:ConfigTimestamps(dir, s:config[key][1])
+    let dict = s:config[key][1]
+  else
+    let dict = {}
+    let lines = split(system(FugitivePrepare(['config', '--list', '-z'], dir)), "\1")
+    if v:shell_error
+      return {}
+    endif
+    for line in lines
+      let key = matchstr(line, "^[^\n]*")
+      if !has_key(dict, key)
+        let dict[key] = []
+      endif
+      call add(dict[key], strpart(line, len(key) + 1))
+    endfor
+    let s:config[dir] = [s:ConfigTimestamps(dir, dict), dict]
+    lockvar! dict
+  endif
+  return len(name) ? get(get(dict, name, []), 0, '') : dict
 endfunction
 
 function! s:Remote(dir) abort
