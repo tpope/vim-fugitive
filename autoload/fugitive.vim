@@ -2081,6 +2081,7 @@ function! s:Commit(mods, args, ...) abort
           echo line
         endfor
       endif
+      call fugitive#ReloadStatus()
       return ''
     else
       let errors = readfile(errorfile)
@@ -2108,7 +2109,8 @@ function! s:Commit(mods, args, ...) abort
         setlocal bufhidden=wipe filetype=gitcommit
         return '1'
       elseif error ==# '!'
-        return 'Gstatus'
+        echo get(readfile(outfile), -1, '')
+        return ''
       else
         call s:throw(empty(error)?join(errors, ' '):error)
       endif
@@ -2121,7 +2123,6 @@ function! s:Commit(mods, args, ...) abort
     endif
     call delete(outfile)
     call delete(errorfile)
-    call fugitive#ReloadStatus()
   endtry
 endfunction
 
