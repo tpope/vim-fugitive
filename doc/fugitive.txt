@@ -47,6 +47,9 @@ that are part of Git repositories).
                         cw    |:Gcommit| --amend --only
                         cva   |:Gcommit| --verbose --amend
                         cvc   |:Gcommit| --verbose
+                        cf    |:Gcommit| --fixup=
+                        cs    |:Gcommit| --squash=
+                        cA    |:Gcommit| --edit --squash=
                         D     |:Gdiff|
                         ds    |:Gsdiff|
                         dp    |:Git!| diff (p for patch; use :Gw to apply)
