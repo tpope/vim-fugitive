@@ -59,10 +59,10 @@ that are part of Git repositories).
                         q     close status
                         r     reload status
                         S     |:Gvsplit|
-                        U     |:Git| checkout
-                        U     |:Git| checkout HEAD (staged files)
-                        U     |:Git| clean (untracked files)
-                        U     |:Git| rm (unmerged files)
+                        g|    |:Git| checkout
+                        g|    |:Git| checkout HEAD (staged files)
+                        g|    |:Git| clean (untracked files)
+                        g|    |:Git| rm (unmerged files)
                         .     enter |:| command line with file prepopulated
 
                                                 *fugitive-:Gcommit*

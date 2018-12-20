@@ -1442,7 +1442,8 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
     nnoremap <buffer> <silent> r :<C-U>edit<CR>
     nnoremap <buffer> <silent> R :<C-U>edit<CR>
-    nnoremap <buffer> <silent> U :<C-U>execute <SID>StageUndo()<CR>
+    nnoremap <buffer> <silent> U :<C-U>echoerr 'Changed to g<Bar>'<CR>
+    nnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageUndo()<CR>
     nnoremap <buffer>          . : <C-R>=<SID>fnameescape(<SID>StatusCfile())<CR><Home>
     nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
     nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
