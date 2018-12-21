@@ -341,13 +341,17 @@ let s:config = {}
 function! fugitive#Config(...) abort
   let dir = get(b:, 'git_dir', '')
   let name = ''
-  if len(a:000) >= 2
-    let dir = a:000[1]
-    let name = a:000[0]
-  elseif len(a:000) == 1 && a:000[0] =~# '^[[:alnum:]-]\+\.'
-    let name = a:000[0]
-  elseif len(a:000) == 1
-    let dir = a:000[0]
+  if a:0 >= 2 && type(a:2) == type({})
+    return len(a:1) ? get(get(a:2, a:1, []), 0, '') : a:2
+  elseif a:0 >= 2
+    let dir = a:2
+    let name = a:1
+  elseif a:0 == 1 && type(a:1) == type({})
+    return a:1
+  elseif a:0 == 1 && a:1 =~# '^[[:alnum:]-]\+\.'
+    let name = a:1
+  elseif a:0 == 1
+    let dir = a:1
   endif
   let key = len(dir) ? dir : '_'
   if has_key(s:config, key) && s:config[key][0] ==# s:ConfigTimestamps(dir, s:config[key][1])
