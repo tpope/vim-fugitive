@@ -353,6 +353,7 @@ function! fugitive#Config(...) abort
   elseif a:0 == 1
     let dir = a:1
   endif
+  let name = substitute(name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
   let key = len(dir) ? dir : '_'
   if has_key(s:config, key) && s:config[key][0] ==# s:ConfigTimestamps(dir, s:config[key][1])
     let dict = s:config[key][1]
