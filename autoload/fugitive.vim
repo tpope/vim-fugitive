@@ -1575,8 +1575,8 @@ function! fugitive#BufReadCmd(...) abort
       elseif b:fugitive_type ==# 'stage'
         call s:ReplaceCmd([dir, 'ls-files', '--stage'])
       elseif b:fugitive_type ==# 'blob'
-        call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
         setlocal nomodeline
+        call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
       endif
     finally
       keepjumps call setpos('.',pos)
