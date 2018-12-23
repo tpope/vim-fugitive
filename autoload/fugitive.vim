@@ -1347,13 +1347,16 @@ function! s:ReplaceCmd(cmd, ...) abort
   let fn = expand('%:p')
   silent exe 'doau BufReadPre '.s:fnameescape(fn)
   silent exe 'keepalt file '.temp
+  let modelines = &modelines
   try
+    set modelines=0
     if a:0
       silent noautocmd edit!
     else
       silent edit!
     endif
   finally
+    let &modelines = modelines
     try
       silent exe 'keepalt file '.s:fnameescape(fn)
     catch /^Vim\%((\a\+)\)\=:E302:/
