@@ -1391,6 +1391,7 @@ function! fugitive#BufReadStatus() abort
             \ 'status']
     endif
     call s:ReplaceCmd(call('fugitive#Prepare', cmd), 1)
+    silent doautocmd BufReadPost
     if b:fugitive_display_format
       if &filetype !=# 'git'
         set filetype=git
@@ -1445,7 +1446,7 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer>          . : <C-R>=<SID>fnameescape(<SID>StatusCfile())<CR><Home>
     nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
     nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
-    return 'silent doautocmd BufReadPost'
+    return ''
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
