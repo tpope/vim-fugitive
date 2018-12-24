@@ -342,7 +342,8 @@ function! fugitive#Config(...) abort
   let dir = get(b:, 'git_dir', '')
   let name = ''
   if a:0 >= 2 && type(a:2) == type({})
-    return len(a:1) ? get(get(a:2, a:1, []), 0, '') : a:2
+    let name = substitute(a:1, '^[^.]\+\|[^.]\+$', '\L&', 'g')
+    return len(a:1) ? get(get(a:2, name, []), 0, '') : a:2
   elseif a:0 >= 2
     let dir = a:2
     let name = a:1
