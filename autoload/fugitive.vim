@@ -1368,43 +1368,158 @@ function! s:ReplaceCmd(cmd, ...) abort
   endtry
 endfunction
 
+function! s:QueryLog(refspec) abort
+  let lines = split(system(FugitivePrepare('log', '-n', '256', '--format=%h%x09%s', a:refspec, '--')), "\n")
+  call map(lines, 'split(v:val, "\t")')
+  call map(lines, '{"type": "Log", "commit": v:val[0], "subject": v:val[-1]}')
+  return lines
+endfunction
+
+function! s:FormatLog(dict) abort
+  return a:dict.commit . ' ' . a:dict.subject
+endfunction
+
+function! s:FormatFile(dict) abort
+  return a:dict.status . ' ' . a:dict.filename
+endfunction
+
+function! s:Format(val) abort
+  if type(a:val) == type({})
+    return s:Format{a:val.type}(a:val)
+  elseif type(a:val) == type([])
+    return map(copy(a:val), 's:Format(v:val)')
+  else
+    return '' . a:val
+  endif
+endfunction
+
+function! s:AddHeader(key, value) abort
+  if empty(a:value)
+    return
+  endif
+  let before = 1
+  while !empty(getline(before))
+    let before += 1
+  endwhile
+  call append(before - 1, [a:key . ':' . (len(a:value) ? ' ' . a:value : '')])
+  if before == 1 && line('$') == 2
+    silent 2delete _
+  endif
+endfunction
+
+function! s:AddSection(label, lines, ...) abort
+  let note = a:0 ? a:1 : ''
+  if empty(a:lines) && empty(note)
+    return
+  endif
+  call append(line('$'), ['', a:label . (len(note) ? ': ' . note : ' (' . len(a:lines) . ')')] + s:Format(a:lines))
+endfunction
+
 function! fugitive#BufReadStatus() abort
   let amatch = s:Slash(expand('%:p'))
-  if !exists('b:fugitive_display_format')
-    let b:fugitive_display_format = filereadable(expand('%').'.lock')
-  endif
-  let b:fugitive_display_format = b:fugitive_display_format % 2
   let b:fugitive_type = 'index'
   try
     silent doautocmd BufReadPre
     let cmd = [fnamemodify(amatch, ':h')]
-    setlocal noro ma nomodeline
+    setlocal noro ma nomodeline buftype=nowrite
     if s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : b:git_dir . '/index', ':p')) !=# s:cpath(amatch)
       let cmd += ['-c', 'GIT_INDEX_FILE=' . amatch]
     endif
-    if b:fugitive_display_format
-      let cmd += ['ls-files', '--stage']
-    else
-      let cmd += [
-            \ '-c', 'status.displayCommentPrefix=true',
-            \ '-c', 'color.status=false',
-            \ '-c', 'status.short=false',
-            \ 'status']
+    let cmd += ['status', '--porcelain', '-bz']
+    let output = split(system(fugitive#Prepare(cmd)), "\1")
+    if v:shell_error
+      throw 'fugitive: ' . join(output, ' ')
     endif
-    call s:ReplaceCmd(call('fugitive#Prepare', cmd), 1)
+
+    let head = matchstr(output[0], '^## \zs\S\+\ze\%($\| \[\)')
+    let pull = ''
+    if head =~# '\.\.\.'
+      let [head, pull] = split(head, '\.\.\.')
+      let branch = head
+    elseif head ==# 'HEAD' || empty(head)
+      let head = FugitiveHead(11)
+      let branch = ''
+    else
+      let branch = head
+    endif
+
+    let [staged, unstaged, untracked] = [[], [], []]
+    let i = 0
+    while i < len(output)
+      let line = output[i]
+      let file = line[3:-1]
+      let files = file
+      let i += 1
+      if line[0:1] =~# '[RC]'
+        let files = output[i] . ' -> ' . file
+        let i += 1
+      endif
+      if line[0] ==# '?'
+        call add(untracked, {'type': 'File', 'status': '?', 'filename': file})
+        continue
+      endif
+      if line[0] !~# '[ ?!#]'
+        call add(staged, {'type': 'File', 'status': line[0], 'filename': (line[0] =~# '[RC]' ? files : file)})
+      endif
+      if line[1] !~# '[ ?!#]'
+        call add(unstaged, {'type': 'File', 'status': line[1], 'filename': (line[1] =~# '[RC]' ? files : file)})
+      endif
+    endwhile
+
+    let config = fugitive#Config()
+
+    if len(pull)
+      let rebase = fugitive#Config('branch.' . branch . '.rebase', config)
+      if empty(rebase)
+        let rebase = fugitive#Config('pull.rebase', config)
+      endif
+      if rebase =~# '^\%(true\|yes\|on\|1\|interactive\)$'
+        let pull_type = 'Rebase'
+      elseif rebase =~# '^\%(false\|no|off\|0\|\)$'
+        let pull_type = 'Merge'
+      else
+        let pull_type = 'Upstream'
+      endif
+    endif
+
+    let push_remote = fugitive#Config('branch.' . branch . '.pushRemote', config)
+    if empty(push_remote)
+      let push_remote = fugitive#Config('remote.pushDefault', config)
+    endif
+    let push = len(push_remote) && len(branch) ? push_remote . '/' . branch : ''
+    if empty(push)
+      let push = pull
+    endif
+
+    if len(pull)
+      let unpulled = s:QueryLog(head . '..' . pull)
+    else
+      let unpulled = []
+    endif
+    if len(push)
+      let unpushed = s:QueryLog(push . '..' . head)
+    else
+      let unpushed = []
+    endif
+
+    silent keepjumps %delete_
+
+    call s:AddHeader('Head', head)
+    call s:AddHeader(pull_type, pull)
+    if push !=# pull
+      call s:AddHeader('Push', push)
+    endif
+    call s:AddSection('Untracked', untracked)
+    call s:AddSection('Unstaged', unstaged)
+    call s:AddSection('Staged', staged)
+    call s:AddSection('Unpushed to ' . push, unpushed)
+    call s:AddSection('Unpulled from ' . pull, unpulled)
+
+    set nomodified readonly noswapfile
     silent doautocmd BufReadPost
-    if b:fugitive_display_format
-      if &filetype !=# 'git'
-        set filetype=git
-      endif
-      set nospell
-    else
-      if &filetype !=# 'gitcommit'
-        set filetype=gitcommit
-      endif
-      set foldtext=fugitive#Foldtext()
-    endif
-    setlocal readonly nomodifiable nomodified noswapfile
+    set foldtext=fugitive#Foldtext()
+    set filetype=fugitive
+    setlocal nomodifiable
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
@@ -1420,8 +1535,6 @@ function! fugitive#BufReadStatus() abort
     exe "xnoremap <buffer> <silent>" nowait "s :<C-U>silent execute <SID>StageToggle(line(\"'<\"),line(\"'>\"))<CR>"
     exe "nnoremap <buffer> <silent>" nowait "u :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "u :<C-U>silent execute <SID>StageToggle(line(\"'<\"),line(\"'>\"))<CR>"
-    nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += 1<Bar>exe fugitive#BufReadStatus()<CR>
-    nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= 1<Bar>exe fugitive#BufReadStatus()<CR>
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
     nnoremap <buffer> <silent> ca :<C-U>Gcommit --amend<CR>
     nnoremap <buffer> <silent> cc :<C-U>Gcommit<CR>
@@ -1772,7 +1885,7 @@ function! s:Status(bang, count, mods) abort
   return ''
 endfunction
 
-function! fugitive#ReloadStatus() abort
+function! fugitive#ReloadStatus(...) abort
   if exists('s:reloading_status')
     return
   endif
@@ -1789,7 +1902,9 @@ function! fugitive#ReloadStatus() abort
           endif
           try
             if !&modified
+              let pos = getpos('.')
               call fugitive#BufReadStatus()
+              call setpos('.', pos)
             endif
           finally
             if exists('restorewinnr')
@@ -1805,39 +1920,30 @@ function! fugitive#ReloadStatus() abort
   endtry
 endfunction
 
-function! fugitive#reload_status() abort
-  return fugitive#ReloadStatus()
+function! s:StageInfo(...) abort
+  let lnum = a:0 ? a:1 : line('.')
+  let slnum = lnum
+  let section = ''
+  while len(getline(slnum - 1)) && empty(section)
+    let slnum -= 1
+    let section = matchstr(getline(slnum), '^\u\l\+\ze.* (\d\+)$')
+  endwhile
+  return {'section': section,
+        \ 'heading': getline(slnum),
+        \ 'filename': matchstr(getline(lnum), '^[A-Z?] \zs.*'),
+        \ 'commit': matchstr(getline(lnum), '^[0-9a-f]\{4,\}\ze '),
+        \ 'status': matchstr(getline(lnum), '^[A-Z?]\ze '),
+        \ 'index': lnum - slnum}
 endfunction
 
 function! s:StageFileSection(lnum) abort
-  let filename = matchstr(getline(a:lnum),'^.\=\t\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
-  let lnum = a:lnum
-  if has('multi_byte_encoding')
-    let colon = '\%(:\|\%uff1a\)'
-  else
-    let colon = ':'
-  endif
-  while lnum && getline(lnum) !~# colon.'$'
-    let lnum -= 1
-  endwhile
-  if !lnum
-    return ['', '']
-  elseif (getline(lnum+1) =~# '^.\= .*\<git \%(reset\|rm --cached\) ' && getline(lnum+2) ==# '#') || getline(lnum) =~# '^\%(. \)\=Changes to be committed:$'
-    return [matchstr(filename, colon.' *\zs.*'), 'staged']
-  elseif (getline(lnum+1) =~# '^.\= .*\<git add ' && getline(lnum+2) ==# '#' && getline(lnum+3) !~# colon.'  ') || getline(lnum) =~# '^\(. \)\=Untracked files:$'
-    return [filename, 'untracked']
-  elseif getline(lnum+2) =~# '^.\= .*\<git checkout ' || getline(lnum) =~# '\%(. \)\=Changes not staged for commit:$'
-    return [matchstr(filename, colon.' *\zs.*'), 'unstaged']
-  elseif getline(lnum+2) =~# '^.\= .*\<git \%(add\|rm\)' || getline(lnum) =~# '\%(. \)\=Unmerged paths:$'
-    return [matchstr(filename, colon.' *\zs.*'), 'unmerged']
-  else
-    return ['', 'unknown']
-  endif
+  let info = s:StageInfo(a:lnum)
+  return [info.filename, info.section]
 endfunction
 
 function! s:StageNext(count) abort
   for i in range(a:count)
-    call search('^.\=\t.*','W')
+    call search('^[A-Z?] .\|^[0-9a-f]\{4,\} ','W')
   endfor
   return '.'
 endfunction
@@ -1847,7 +1953,7 @@ function! s:StagePrevious(count) abort
     return 'CtrlP '.fnameescape(s:Tree())
   else
     for i in range(a:count)
-      call search('^.\=\t.*','Wbe')
+      call search('^[A-Z?] .\|^[0-9a-f]\{4,\} ','Wbe')
     endfor
     return '.'
   endif
@@ -1865,35 +1971,45 @@ function! s:StageReloadSeek(target,lnum1,lnum2) abort
   silent! edit!
   1
   redraw
-  call search('^.\=\t\%([[:alpha:] ]\+: *\|.*\%uff1a *\)\=\V'.target[0].'\%( ([^()[:digit:]]\+)\)\=\$','W')
+  let lnum = 0
+  while lnum < line('$')
+    let lnum += 1
+    let file = getline(lnum)[2:-1]
+    if (target[0][-1:-1] ==# '/' && file[0 : len(target[0]) - 1] ==# target[0]) ||
+          \ (file[-1:-1] ==# '/' && file ==# target[0][0 : len(file) - 1]) ||
+          \ file ==# target[0]
+      exe lnum
+      return ''
+    endif
+  endwhile
 endfunction
 
 function! s:StageUndo() abort
-  let [filename, section] = s:StageFileSection(line('.'))
-  if empty(filename)
+  let info = s:StageInfo(line('.'))
+  if empty(info.filename)
     return ''
   endif
-  let hash = s:TreeChomp('hash-object', '-w', './' . filename)
+  let hash = s:TreeChomp('hash-object', '-w', './' . info.filename)
   if !empty(hash)
-    if section ==# 'untracked'
-      call s:TreeChomp('clean', '-f', './' . filename)
-    elseif section ==# 'unmerged'
-      call s:TreeChomp('rm', './' . filename)
-    elseif section ==# 'unstaged'
-      call s:TreeChomp('checkout', './' . filename)
+    if info.status ==# 'U'
+      call s:TreeChomp('rm', './' . info.filename)
+    elseif info.section ==# 'Untracked'
+      call s:TreeChomp('clean', '-f', './' . info.filename)
+    elseif info.section ==# 'Unstaged'
+      call s:TreeChomp('checkout', './' . info.filename)
     else
-      call s:TreeChomp('checkout', 'HEAD^{}', './' . filename)
+      call s:TreeChomp('checkout', 'HEAD^{}', './' . info.filename)
     endif
-    call s:StageReloadSeek([filename, ''], line('.'), line('.'))
+    call s:StageReloadSeek([info.filename, ''], line('.'), line('.'))
     let @" = hash
     return 'checktime|redraw|echomsg ' .
-          \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.filename)
+          \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.filename)
   endif
 endfunction
 
 function! s:StageDiff(diff) abort
   let [filename, section] = s:StageFileSection(line('.'))
-  if filename ==# '' && section ==# 'staged'
+  if filename ==# '' && section ==# 'Staged'
     return 'Git! diff --no-ext-diff --cached'
   elseif filename ==# ''
     return 'Git! diff --no-ext-diff'
@@ -1901,7 +2017,7 @@ function! s:StageDiff(diff) abort
     let [old, new] = split(filename,' -> ')
     execute 'Gedit '.s:fnameescape(':0:'.new)
     return a:diff.' HEAD:'.s:fnameescape(old)
-  elseif section ==# 'staged'
+  elseif section ==# 'Staged'
     execute 'Gedit '.s:fnameescape(':0:'.filename)
     return a:diff.' -'
   else
@@ -1913,18 +2029,18 @@ endfunction
 function! s:StageDiffEdit() abort
   let [filename, section] = s:StageFileSection(line('.'))
   let arg = (filename ==# '' ? '.' : filename)
-  if section ==# 'staged'
+  if section ==# 'Staged'
     return 'Git! diff --no-ext-diff --cached '.s:shellesc(arg)
-  elseif section ==# 'untracked'
+  elseif section ==# 'Untracked'
     call s:TreeChomp('add', '--intent-to-add', './' . arg)
     if arg ==# '.'
       silent! edit!
       1
-      if !search('^.*:\n.*\n.\= .*"git checkout \|^\%(# \)=Changes not staged for commit:$','W')
+      if !search('^Unstaged','W')
         call search(':$','W')
       endif
     else
-      call s:StageReloadSeek([filename, 'staged'], line('.'), line('.'))
+      call s:StageReloadSeek([filename, 'Staged'], line('.'), line('.'))
     endif
     return ''
   else
@@ -1939,49 +2055,61 @@ function! s:StageToggle(lnum1,lnum2) abort
   try
     let output = ''
     for lnum in range(a:lnum1,a:lnum2)
-      let [filename, section] = s:StageFileSection(lnum)
-      if getline('.') =~# ':$'
-        if section ==# 'staged'
+      let info = s:StageInfo(lnum)
+      if empty(info.filename)
+        if info.section ==# 'Staged'
           call s:TreeChomp('reset','-q')
           silent! edit!
           1
-          if !search('^.*:\n.\= .*"git add .*\n#\n\|^\%(. \)\=Untracked files:$','W')
-            call search(':$','W')
+          if !search('^Untracked','W')
+            call search('^Unstaged','W')
           endif
           return ''
-        elseif section ==# 'unstaged'
+        elseif info.section ==# 'Unstaged'
           call s:TreeChomp('add','-u')
           silent! edit!
           1
-          if !search('^.*:\n\.\= .*"git add .*\n#\n\|^\%( \)=Untracked files:$','W')
-            call search(':$','W')
+          if !search('^Untracked','W')
+            call search('^Staged','W')
           endif
           return ''
-        else
+        elseif info.section ==# 'Unpushed' && len(info.commit)
+          let remote = matchstr(info.heading, 'to \zs[^/]\+\ze/')
+          if empty(remote)
+            let remote = '.'
+          endif
+          let branch = matchstr(info.heading, 'to \%([^/]\+/\)\=\zs\S\+')
+          call feedkeys(':Gpush ' . remote . ' ' . info.commit . ':' . branch)
+          return ''
+        elseif info.section ==# 'Unpulled'
+          call feedkeys(':Grebase ' . info.commit)
+          return ''
+        elseif info.section ==# 'Untracked'
           call s:TreeChomp('add', '.')
           silent! edit!
           1
-          call search(':$','W')
+          call search('^Unstaged\|^Staged','W')
           return ''
         endif
       endif
-      if filename ==# ''
+      let filename = info.filename
+      if empty(filename)
         continue
       endif
       execute lnum
-      if section ==# 'staged'
+      if info.section ==# 'Staged'
         let files_to_unstage = split(filename, ' -> ')
         let filename = files_to_unstage[-1]
         let cmd = ['reset', '-q'] + map(copy(files_to_unstage), '"./" . v:val')
-      elseif getline(lnum) =~# '^.\=\tdeleted:'
+      elseif getline(lnum) =~# '^D'
         let cmd = ['rm', './' . filename]
-      elseif getline(lnum) =~# '^.\=\tmodified:'
+      elseif getline(lnum) =~# '^M'
         let cmd = ['add', './' . filename]
       else
         let cmd = ['add','-A', './' . filename]
       endif
       if !exists('target')
-        let target = [filename, section ==# 'staged' ? '' : 'staged']
+        let target = [filename, info.section ==# 'Staged' ? '' : 'Staged']
       endif
       let output .= call('s:TreeChomp', cmd)."\n"
     endfor
@@ -2001,11 +2129,11 @@ function! s:StagePatch(lnum1,lnum2) abort
 
   for lnum in range(a:lnum1,a:lnum2)
     let [filename, section] = s:StageFileSection(lnum)
-    if getline('.') =~# ':$' && section ==# 'staged'
+    if empty(filename) && section ==# 'Staged'
       return 'Git reset --patch'
-    elseif getline('.') =~# ':$' && section ==# 'unstaged'
+    elseif empty(filename) && section ==# 'Unstaged'
       return 'Git add --patch'
-    elseif getline('.') =~# ':$' && section ==# 'untracked'
+    elseif empty(filename) && section ==# 'Untracked'
       return 'Git add -N .'
     elseif filename ==# ''
       continue
@@ -2016,7 +2144,7 @@ function! s:StagePatch(lnum1,lnum2) abort
     execute lnum
     if filename =~ ' -> '
       let reset += [split(filename,' -> ')[1]]
-    elseif section ==# 'staged'
+    elseif section ==# 'Staged'
       let reset += [filename]
     elseif getline(lnum) !~# '^.\=\tdeleted:'
       let add += [filename]
@@ -2033,7 +2161,7 @@ function! s:StagePatch(lnum1,lnum2) abort
       silent! edit!
       1
       redraw
-      call search('^.\=\t\%([[:alpha:] ]\+: *\)\=\V'.first_filename.'\%( ([^()[:digit:]]\+)\)\=\$','W')
+      call search('^[A-Z?] \V'.first_filename.'\$','W')
     endif
   catch /^fugitive:/
     return 'echoerr v:errmsg'
@@ -3531,7 +3659,11 @@ function! s:ContainingCommit() abort
 endfunction
 
 function! s:SquashArgument() abort
-  return s:Owner(@%)
+  if &filetype == 'fugitive'
+    return matchstr(getline('.'), '^[0-9a-f]\{4,\}\ze ')
+  else
+    return s:Owner(@%)
+  endif
 endfunction
 
 function! s:NavigateUp(count) abort
@@ -3590,7 +3722,26 @@ function! fugitive#MapJumps(...) abort
 endfunction
 
 function! s:StatusCfile(...) abort
-  let pre = ''
+  let tree = FugitiveTreeForGitDir(b:git_dir)
+  let lead = s:cpath(tree, getcwd()) ? './' : tree . '/'
+  let line = getline('.')
+  if line =~# '^\S '
+    return lead . line[2:-1]
+  elseif line =~# '^[0-9a-f]\{4,\}\s'
+    return matchstr(line, '^\S\+')
+  elseif line =~# '^\%(Head\|Merge\|Rebase\|Upstream\|Pull\|Push\): '
+    return matchstr(line, ' \zs.*')
+  else
+    return ''
+  endif
+endfunction
+
+function! fugitive#StatusCfile() abort
+  let file = s:Generate(s:StatusCfile())
+  return empty(file) ? fugitive#Cfile() : s:fnameescape(file)
+endfunction
+
+function! s:MessageCfile(...) abort
   let tree = FugitiveTreeForGitDir(b:git_dir)
   let lead = s:cpath(tree, getcwd()) ? './' : tree . '/'
   if getline('.') =~# '^.\=\trenamed:.* -> '
@@ -3612,8 +3763,8 @@ function! s:StatusCfile(...) abort
   endif
 endfunction
 
-function! fugitive#StatusCfile() abort
-  let file = s:Generate(s:StatusCfile())
+function! fugitive#MessageCfile() abort
+  let file = s:Generate(s:MessageCfile())
   return empty(file) ? fugitive#Cfile() : s:fnameescape(file)
 endfunction
 
@@ -3773,7 +3924,7 @@ endfunction
 
 function! s:GF(mode) abort
   try
-    let results = &filetype ==# 'gitcommit' ? [s:StatusCfile()] : s:cfile()
+    let results = &filetype ==# 'fugitive' ? [s:StatusCfile()] : &filetype ==# 'gitcommit' ? s:MessageCfile() : s:cfile()
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry

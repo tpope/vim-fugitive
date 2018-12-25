@@ -257,6 +257,10 @@ augroup fugitive
         \ endif
   autocmd FileType gitcommit
         \ if exists('b:git_dir') |
+        \   call fugitive#MapCfile('fugitive#MessageCfile()') |
+        \ endif
+  autocmd FileType fugitive
+        \ if exists('b:git_dir') |
         \   call fugitive#MapCfile('fugitive#StatusCfile()') |
         \ endif
   autocmd FileType gitrebase
