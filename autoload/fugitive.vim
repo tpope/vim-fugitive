@@ -1468,6 +1468,7 @@ function! fugitive#BufReadStatus() abort
 
     let config = fugitive#Config()
 
+    let pull_type = 'Pull'
     if len(pull)
       let rebase = fugitive#Config('branch.' . branch . '.rebase', config)
       if empty(rebase)
@@ -1477,8 +1478,6 @@ function! fugitive#BufReadStatus() abort
         let pull_type = 'Rebase'
       elseif rebase =~# '^\%(false\|no|off\|0\|\)$'
         let pull_type = 'Merge'
-      else
-        let pull_type = 'Upstream'
       endif
     endif
 
