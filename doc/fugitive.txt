@@ -55,17 +55,17 @@ that are part of Git repositories).
                         dp    |:Git!| diff (p for patch; use :Gw to apply)
                         dp    |:Git| add --intent-to-add (untracked files)
                         dv    |:Gvdiff|
+                        gO    |:Gvsplit|
+                        g|    |:Git| checkout
+                        g|    |:Git| checkout HEAD (staged files)
+                        g|    |:Git| clean (untracked files)
+                        g|    |:Git| rm (unmerged files)
                         O     |:Gtabedit|
                         o     |:Gsplit|
                         P     |:Git| add --patch
                         P     |:Git| reset --patch (staged files)
                         q     close status
                         r     reload status
-                        S     |:Gvsplit|
-                        g|    |:Git| checkout
-                        g|    |:Git| checkout HEAD (staged files)
-                        g|    |:Git| clean (untracked files)
-                        g|    |:Git| rm (unmerged files)
                         .     enter |:| command line with file prepopulated
 
                                                 *fugitive-:Gcommit*
@@ -287,8 +287,8 @@ These maps are available in committed Git objects.
 o                       Jump to the |fugitive-object| under the cursor in a
                         new split.
 
-                                                *fugitive-S*
-S                       Jump to the |fugitive-object| under the cursor in a
+                                                *fugitive-gO*
+gO                      Jump to the |fugitive-object| under the cursor in a
                         new vertical split.
 
                                                 *fugitive-O*

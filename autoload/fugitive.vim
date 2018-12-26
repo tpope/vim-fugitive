@@ -3695,12 +3695,14 @@ function! fugitive#MapJumps(...) abort
     let nowait = v:version >= 704 ? '<nowait>' : ''
     if get(b:, 'fugitive_type', '') ==# 'blob'
       nnoremap <buffer> <silent> o     :<C-U>.,.+1Gblame<CR>
-      nnoremap <buffer> <silent> S     :<C-U>vertical .,.+1Gblame<CR>
+      nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
+      nnoremap <buffer> <silent> gO    :<C-U>vertical .,.+1Gblame<CR>
       nnoremap <buffer> <silent> O     :<C-U>tab .,.+1Gblame<CR>
       nnoremap <buffer> <silent> p     :<C-U>.,.+2Gblame<CR>
     else
       nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
-      nnoremap <buffer> <silent> S     :<C-U>exe <SID>GF("vsplit")<CR>
+      nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
+      nnoremap <buffer> <silent> gO    :<C-U>exe <SID>GF("vsplit")<CR>
       nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
       nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
     endif
@@ -3710,7 +3712,8 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> C     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> cc    :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> co    :<C-U>exe 'Gsplit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
-    nnoremap <buffer> <silent> cS    :<C-U>exe 'Gvsplit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> cS    :<C-U>echoerr 'Use cgO'<CR>
+    nnoremap <buffer> <silent> cgO   :<C-U>exe 'Gvsplit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> cO    :<C-U>exe 'Gtabedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> cp    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer>          cf    :<C-U>Gcommit --fixup=<C-R>=<SID>SquashArgument()<CR>
