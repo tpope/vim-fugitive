@@ -2233,10 +2233,6 @@ function! s:Commit(mods, args, ...) abort
           execute mods 'keepalt edit' s:fnameescape(msgfile)
         elseif a:args =~# '\%(^\| \)-\w*v' || mods =~# '\<tab\>'
           execute mods 'keepalt -tabedit' s:fnameescape(msgfile)
-        elseif get(b:, 'fugitive_type', '') ==# 'index'
-          execute mods 'keepalt edit' s:fnameescape(msgfile)
-          execute (search('^#','n')+1).'wincmd+'
-          setlocal nopreviewwindow
         else
           execute mods 'keepalt split' s:fnameescape(msgfile)
         endif
