@@ -1522,6 +1522,7 @@ function! fugitive#BufReadStatus() abort
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
+    let b:dispatch = ':Gfetch --all'
     call fugitive#MapJumps()
     let nowait = v:version >= 704 ? '<nowait>' : ''
     nunmap   <buffer>          P
