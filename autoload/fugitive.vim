@@ -2293,6 +2293,13 @@ function! s:RemoteComplete(A, L, P) abort
   return join(matches, "\n")
 endfunction
 
+function! s:HasRebaseCommitCmd() abort
+  if !filereadable(b:git_dir . '/rebase-merge/amend') || !filereadable(b:git_dir . '/rebase-merge/done')
+    return 0
+  endif
+  return get(readfile(b:git_dir . '/rebase-merge/done'), -1, '') =~# '^[^e]'
+endfunction
+
 function! fugitive#Cwindow() abort
   if &buftype == 'quickfix'
     cwindow
@@ -2330,6 +2337,7 @@ function! s:Merge(cmd, bang, mods, args) abort
           \ . '%+ECannot %.%#: Your index contains uncommitted changes.,'
           \ . '%+EThere is no tracking information for the current branch.,'
           \ . '%+EYou are not currently on a branch. Please specify which,'
+          \ . '%+I%.%#git rebase --continue,'
           \ . 'CONFLICT (%m): %f deleted in %.%#,'
           \ . 'CONFLICT (%m): Merge conflict in %f,'
           \ . 'CONFLICT (%m): Rename \"%f\"->%.%#,'
@@ -2368,10 +2376,13 @@ function! s:Merge(cmd, bang, mods, args) abort
     execute cdback
   endtry
   call fugitive#ReloadStatus()
-  if empty(filter(getqflist(),'v:val.valid'))
+  if empty(filter(getqflist(),'v:val.valid && v:val.type !=# "I"'))
     if !had_merge_msg && filereadable(b:git_dir . '/MERGE_MSG')
       cclose
       return mods . 'Gcommit --no-status -n -t '.s:shellesc(b:git_dir . '/MERGE_MSG')
+    elseif a:cmd =~# '^rebase' && ' '.a:args =~# ' --continue' && s:HasRebaseCommitCmd()
+      cclose
+      return mods . 'Gcommit --amend'
     endif
   endif
   let qflist = getqflist()
