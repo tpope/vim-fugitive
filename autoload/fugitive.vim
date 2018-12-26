@@ -2336,7 +2336,7 @@ let s:common_efm = ''
 
 function! s:Merge(cmd, bang, mods, args) abort
   let mods = substitute(a:mods, '\C<mods>', '', '') . ' '
-  if a:cmd =~# '^rebase' && ' '.a:args =~# ' -i\| --interactive\| --edit-todo'
+  if a:cmd =~# '^rebase' && ' '.a:args =~# ' -i\| --interactive'
     return 'echoerr "git rebase --interactive not supported"'
   endif
   let [mp, efm] = [&l:mp, &l:efm]
@@ -2398,6 +2398,8 @@ function! s:Merge(cmd, bang, mods, args) abort
     elseif a:cmd =~# '^rebase' && ' '.a:args =~# ' --continue' && s:HasRebaseCommitCmd()
       cclose
       return mods . 'Gcommit --amend'
+    elseif a:cmd =~# '^rebase' && ' '.a:args =~# ' --edit-todo'
+      return mods . 'Gsplit ' . s:fnameescape(b:git_dir . '/rebase-merge/git-rebase-todo') . ' | setlocal bufhidden=wipe nobuflisted'
     endif
   endif
   let qflist = getqflist()
