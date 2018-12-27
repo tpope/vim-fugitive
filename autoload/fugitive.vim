@@ -1443,7 +1443,7 @@ function! fugitive#BufReadStatus() abort
       let branch = head
     endif
 
-    let [staged, unstaged, untracked] = [[], [], []]
+    let [staged, unstaged] = [[], []]
     let i = 0
     while i < len(output)
       let line = output[i]
@@ -1454,14 +1454,10 @@ function! fugitive#BufReadStatus() abort
         let files = output[i] . ' -> ' . file
         let i += 1
       endif
-      if line[0] ==# '?'
-        call add(untracked, {'type': 'File', 'status': '?', 'filename': file})
-        continue
-      endif
       if line[0] !~# '[ ?!#]'
         call add(staged, {'type': 'File', 'status': line[0], 'filename': (line[0] =~# '[RC]' ? files : file)})
       endif
-      if line[1] !~# '[ ?!#]'
+      if line[1] !~# '[ !#]'
         call add(unstaged, {'type': 'File', 'status': line[1], 'filename': (line[1] =~# '[RC]' ? files : file)})
       endif
     endwhile
@@ -1508,7 +1504,6 @@ function! fugitive#BufReadStatus() abort
     if push !=# pull
       call s:AddHeader('Push', push)
     endif
-    call s:AddSection('Untracked', untracked)
     call s:AddSection('Unstaged', unstaged)
     call s:AddSection('Staged', staged)
     call s:AddSection('Unpushed to ' . push, unpushed)
@@ -1993,7 +1988,7 @@ function! s:StageUndo() abort
   if !empty(hash)
     if info.status ==# 'U'
       call s:TreeChomp('rm', './' . info.filename)
-    elseif info.section ==# 'Untracked'
+    elseif info.status ==# '?'
       call s:TreeChomp('clean', '-f', './' . info.filename)
     elseif info.section ==# 'Unstaged'
       call s:TreeChomp('checkout', './' . info.filename)
@@ -2027,17 +2022,18 @@ function! s:StageDiff(diff) abort
 endfunction
 
 function! s:StageDiffEdit() abort
+  let info = s:StageInfo(line('.'))
   let [filename, section] = s:StageFileSection(line('.'))
-  let arg = (filename ==# '' ? '.' : filename)
-  if section ==# 'Staged'
+  let arg = (empty(info.filename) ? '.' : info.filename)
+  if info.section ==# 'Staged'
     return 'Git! diff --no-ext-diff --cached '.s:shellesc(arg)
-  elseif section ==# 'Untracked'
+  elseif info.status ==# '?'
     call s:TreeChomp('add', '--intent-to-add', './' . arg)
     if arg ==# '.'
       silent! edit!
       1
       if !search('^Unstaged','W')
-        call search(':$','W')
+        call search('^Staged','W')
       endif
     else
       call s:StageReloadSeek([filename, 'Staged'], line('.'), line('.'))
@@ -2061,17 +2057,13 @@ function! s:StageToggle(lnum1,lnum2) abort
           call s:TreeChomp('reset','-q')
           silent! edit!
           1
-          if !search('^Untracked','W')
-            call search('^Unstaged','W')
-          endif
+          call search('^Unstaged','W')
           return ''
-        elseif info.section ==# 'Unstaged'
-          call s:TreeChomp('add','-u')
+        elseif info.status ==# 'Unstaged'
+          call s:TreeChomp('add','.')
           silent! edit!
           1
-          if !search('^Untracked','W')
-            call search('^Staged','W')
-          endif
+          call search('^Staged','W')
           return ''
         elseif info.section ==# 'Unpushed' && len(info.commit)
           let remote = matchstr(info.heading, 'to \zs[^/]\+\ze/')
@@ -2083,12 +2075,6 @@ function! s:StageToggle(lnum1,lnum2) abort
           return ''
         elseif info.section ==# 'Unpulled'
           call feedkeys(':Grebase ' . info.commit)
-          return ''
-        elseif info.section ==# 'Untracked'
-          call s:TreeChomp('add', '.')
-          silent! edit!
-          1
-          call search('^Unstaged\|^Staged','W')
           return ''
         endif
       endif
@@ -2133,8 +2119,6 @@ function! s:StagePatch(lnum1,lnum2) abort
       return 'Git reset --patch'
     elseif empty(filename) && section ==# 'Unstaged'
       return 'Git add --patch'
-    elseif empty(filename) && section ==# 'Untracked'
-      return 'Git add -N .'
     elseif filename ==# ''
       continue
     endif
