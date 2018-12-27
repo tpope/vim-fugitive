@@ -2371,7 +2371,11 @@ function! s:Merge(cmd, bang, mods, args) abort
     else
       let &l:makeprg = 'env GIT_EDITOR=false ' . &l:makeprg
     endif
-    silent noautocmd make!
+    if exists(':Make') == 2
+      noautocmd Make
+    else
+      silent noautocmd make!
+    endif
   catch /^Vim\%((\a\+)\)\=:E211/
     let err = v:exception
   finally
