@@ -1922,7 +1922,7 @@ endfunction
 
 function! s:StageInfo(...) abort
   let lnum = a:0 ? a:1 : line('.')
-  let slnum = lnum
+  let slnum = lnum + 1
   let section = ''
   while len(getline(slnum - 1)) && empty(section)
     let slnum -= 1
