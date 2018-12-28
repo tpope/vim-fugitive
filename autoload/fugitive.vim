@@ -1504,8 +1504,8 @@ function! fugitive#BufReadStatus() abort
     if push !=# pull
       call s:AddHeader('Push', push)
     endif
-    call s:AddSection('Unstaged', unstaged)
     call s:AddSection('Staged', staged)
+    call s:AddSection('Unstaged', unstaged)
     call s:AddSection('Unpushed to ' . push, unpushed)
     call s:AddSection('Unpulled from ' . pull, unpulled)
 
