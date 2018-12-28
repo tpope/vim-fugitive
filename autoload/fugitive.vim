@@ -1150,97 +1150,43 @@ let s:buffer_prototype = {}
 function! fugitive#buffer(...) abort
   let buffer = {'#': bufnr(a:0 ? a:1 : '%')}
   call extend(buffer, s:buffer_prototype, 'keep')
-  if buffer.getvar('git_dir') !=# ''
-    return buffer
-  endif
-  call s:throw('not a Fugitive buffer: ' . string(bufname(buffer['#'])))
+  return buffer
 endfunction
 
 function! s:buffer_getvar(var) dict abort
-  return getbufvar(self['#'],a:var)
+  throw 'fugitive: Removed in favor of getbufvar()'
 endfunction
 
 function! s:buffer_getline(lnum) dict abort
-  return get(getbufline(self['#'], a:lnum), 0, '')
+  throw 'fugitive: Removed in favor of getbufline()'
 endfunction
 
 function! s:buffer_repo() dict abort
-  return fugitive#repo(self.getvar('git_dir'))
+  throw 'fugitive: Removed in favor of fugitive#repo()'
 endfunction
 
 function! s:buffer_type(...) dict abort
-  if !empty(self.getvar('fugitive_type'))
-    let type = self.getvar('fugitive_type')
-  elseif fnamemodify(self.spec(),':p') =~# '\.git/refs/\|\.git/\w*HEAD$'
-    let type = 'head'
-  elseif self.getline(1) =~ '^tree \x\{40\}$' && self.getline(2) == ''
-    let type = 'tree'
-  elseif self.getline(1) =~ '^\d\{6\} \w\{4\} \x\{40\}\>\t'
-    let type = 'tree'
-  elseif self.getline(1) =~ '^\d\{6\} \x\{40\}\> \d\t'
-    let type = 'index'
-  elseif isdirectory(self.spec())
-    let type = 'directory'
-  elseif self.spec() == ''
-    let type = 'null'
-  else
-    let type = 'file'
-  endif
-  if a:0
-    return !empty(filter(copy(a:000),'v:val ==# type'))
-  else
-    return type
-  endif
+  throw 'fugitive: Removed in favor of b:fugitive_type (or ideally avoid entirely)'
 endfunction
 
-if has('win32')
-
-  function! s:buffer_spec() dict abort
-    let bufname = bufname(self['#'])
-    let retval = ''
-    for i in split(bufname,'[^:]\zs\\')
-      let retval = fnamemodify((retval==''?'':retval.'\').i,':.')
-    endfor
-    return s:Slash(fnamemodify(retval,':p'))
-  endfunction
-
-else
-
-  function! s:buffer_spec() dict abort
-    let bufname = bufname(self['#'])
-    return s:Slash(bufname == '' ? '' : fnamemodify(bufname,':p'))
-  endfunction
-
-endif
+function! s:buffer_spec() dict abort
+  throw "fugitive: Removed in favor of bufname(), expand('%:p'), etc."
+endfunction
 
 function! s:buffer_name() dict abort
-  return self.spec()
+  throw "fugitive: Removed in favor of bufname(), expand('%:p'), etc."
 endfunction
 
 function! s:buffer_commit() dict abort
-  return matchstr(self.spec(),'^fugitive:\%(//\)\=.\{-\}\%(//\|::\)\zs\w*')
+  throw 'fugitive: Removed in favor of FugitiveParse()'
 endfunction
 
 function! s:buffer_relative(...) dict abort
-  let rev = matchstr(self.spec(),'^fugitive:\%(//\)\=.\{-\}\%(//\|::\)\zs.*')
-  if rev != ''
-    let rev = s:sub(rev,'\w*','')
-  elseif s:cpath(self.spec()[0 : len(self.repo().dir())]) ==#
-        \ s:cpath(self.repo().dir() . '/')
-    let rev = '/.git'.self.spec()[strlen(self.repo().dir()) : -1]
-  elseif !self.repo().bare() &&
-        \ s:cpath(self.spec()[0 : len(self.repo().tree())]) ==#
-        \ s:cpath(self.repo().tree() . '/')
-    let rev = self.spec()[strlen(self.repo().tree()) : -1]
-  endif
-  return s:sub(s:sub(rev,'.\zs/$',''),'^/',a:0 ? a:1 : '')
+  throw 'fugitive: Removed in favor of FugitivePath(bufname, ' . string(a:0 ? a:1 : '') . ')'
 endfunction
 
 function! s:buffer_path(...) dict abort
-  if a:0
-    return self.relative(a:1)
-  endif
-  return self.relative()
+  throw 'fugitive: Removed in favor of FugitivePath(bufname, ' . string(a:0 ? a:1 : '') . ')'
 endfunction
 
 call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative'])
