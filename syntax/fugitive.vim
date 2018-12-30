@@ -20,11 +20,11 @@ syn match fugitiveHash /^\x\{4,\}\>/ contained containedin=fugitiveSection
 
 syn region fugitiveHunk start=/^\%(@@ -\)\@=/ end=/^\%(diff --\%(git\|cc\|combined\) \|@@\|$\)\@=/ contains=@fugitiveDiff containedin=fugitiveSection fold
 
-hi link fugitiveModifier Type
-hi link fugitiveHeader Label
-hi link fugitiveHeading PreProc
-hi link fugitiveHash Identifier
-hi link fugitiveSymbolicRef Function
-hi link fugitiveCount Number
+hi def link fugitiveModifier Type
+hi def link fugitiveHeader Label
+hi def link fugitiveHeading PreProc
+hi def link fugitiveHash Identifier
+hi def link fugitiveSymbolicRef Function
+hi def link fugitiveCount Number
 
 let b:current_syntax = "fugitive"
