@@ -1655,6 +1655,7 @@ function! fugitive#BufReadCmd(...) abort
         nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
         nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
       else
+        let &modifiable = modifiable
         call fugitive#MapJumps()
       endif
     endtry
