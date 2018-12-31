@@ -69,7 +69,7 @@ that are part of Git repositories).
                         X     |:Git| clean (untracked files)
                         X     |:Git| rm (unmerged files)
                         q     close status
-                        r     reload status
+                        R     reload status
                         .     enter |:| command line with file prepopulated
 
                                                 *fugitive-:Gcommit*
