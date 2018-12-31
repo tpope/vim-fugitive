@@ -3879,7 +3879,7 @@ endfunction
 
 function! s:GF(mode) abort
   try
-    let results = &filetype ==# 'fugitive' ? [s:StatusCfile()] : &filetype ==# 'gitcommit' ? s:MessageCfile() : s:cfile()
+    let results = &filetype ==# 'fugitive' ? [s:StatusCfile()] : &filetype ==# 'gitcommit' ? [s:MessageCfile()] : s:cfile()
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
@@ -3887,7 +3887,7 @@ function! s:GF(mode) abort
     return 'G' . a:mode .
           \ ' +' . escape(join(results[1:-1], '|'), '| ') . ' ' .
           \ s:fnameescape(results[0])
-  elseif len(results)
+  elseif len(results) && len(results[0])
     return 'G' . a:mode . ' ' . s:fnameescape(results[0])
   else
     return ''
