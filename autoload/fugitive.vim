@@ -1849,6 +1849,7 @@ function! fugitive#ReloadStatus(...) abort
             endif
           finally
             if exists('restorewinnr')
+              unlet restorewinnr
               wincmd p
             endif
             execute 'tabnext '.mytab
