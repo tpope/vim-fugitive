@@ -1325,6 +1325,10 @@ function! s:FormatLog(dict) abort
   return a:dict.commit . ' ' . a:dict.subject
 endfunction
 
+function! s:FormatRebase(dict) abort
+  return a:dict.status . ' ' . a:dict.commit . ' ' . a:dict.subject
+endfunction
+
 function! s:FormatFile(dict) abort
   return a:dict.status . ' ' . a:dict.filename
 endfunction
@@ -1443,6 +1447,40 @@ function! fugitive#BufReadStatus() abort
       let unpushed = []
     endif
 
+    if isdirectory(fugitive#Find('.git/rebase-merge/'))
+      let rebasing_dir = fugitive#Find('.git/rebase-merge/')
+    elseif isdirectory(fugitive#Find('.git/rebase-apply/'))
+      let rebasing_dir = fugitive#Find('.git/rebase-apply/')
+    endif
+
+    let rebasing = []
+    let rebasing_head = 'detached HEAD'
+    if exists('rebasing_dir') && filereadable(rebasing_dir . 'git-rebase-todo')
+      let rebasing_head = substitute(readfile(rebasing_dir . 'head-name')[0], '\C^refs/heads/', '', '')
+      let len = 11
+      let lines = readfile(rebasing_dir . 'git-rebase-todo')
+      for line in lines
+        let hash = matchstr(line, '^[^a-z].*\s\zs[0-9a-f]\{4,\}\ze\.\.')
+        if len(hash)
+          let len = len(hash)
+          break
+        endif
+      endfor
+      if getfsize(rebasing_dir . 'done') > 0
+        let done = readfile(rebasing_dir . 'done')
+        call map(done, 'substitute(v:val, ''^\l\+\>'', "done", "")')
+        let done[-1] = substitute(done[-1], '^\l\+\>', 'stop', '')
+        let lines = done + lines
+      endif
+      call reverse(lines)
+      for line in lines
+        let match = matchlist(line, '^\(\l\+\)\s\+\(\x\{4,\}\)\s\+\(.*\)')
+        if len(match) && match[1] !~# 'exec\|merge\|label'
+          call add(rebasing, {'type': 'Rebase', 'status': get(s:rebase_abbrevs, match[1], match[1]), 'commit': strpart(match[2], 0, len), 'subject': match[3]})
+        endif
+      endfor
+    endif
+
     silent keepjumps %delete_
 
     call s:AddHeader('Head', head)
@@ -1450,6 +1488,7 @@ function! fugitive#BufReadStatus() abort
     if push !=# pull
       call s:AddHeader('Push', push)
     endif
+    call s:AddSection('Rebasing ' . rebasing_head, rebasing)
     call s:AddSection('Unstaged', unstaged)
     call s:AddSection('Staged', staged)
     call s:AddSection('Unpushed to ' . push, unpushed)
@@ -1874,8 +1913,8 @@ function! s:StageInfo(...) abort
   return {'section': section,
         \ 'heading': getline(slnum),
         \ 'filename': matchstr(getline(lnum), '^[A-Z?] \zs.*'),
-        \ 'commit': matchstr(getline(lnum), '^[0-9a-f]\{4,\}\ze '),
-        \ 'status': matchstr(getline(lnum), '^[A-Z?]\ze '),
+        \ 'commit': matchstr(getline(lnum), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze '),
+        \ 'status': matchstr(getline(lnum), '^[A-Z?]\ze \|^\%(\x\x\x\)\@!\l\+\ze [0-9a-f]'),
         \ 'index': lnum - slnum}
 endfunction
 
@@ -2267,6 +2306,20 @@ let s:common_efm = ''
       \ . '%-G%.%#%\e[K%.%#,'
       \ . '%-G%.%#%\r%.%\+'
 
+let s:rebase_abbrevs = {
+      \ 'p': 'pick',
+      \ 'r': 'reword',
+      \ 'e': 'edit',
+      \ 's': 'squash',
+      \ 'f': 'fixup',
+      \ 'x': 'exec',
+      \ 'd': 'drop',
+      \ 'l': 'label',
+      \ 't': 'reset',
+      \ 'm': 'merge',
+      \ 'b': 'break',
+      \ }
+
 function! s:Merge(cmd, bang, mods, args) abort
   let mods = substitute(a:mods, '\C<mods>', '', '') . ' '
   if a:cmd =~# '^rebase' && ' '.a:args =~# ' -i\| --interactive'
@@ -2461,6 +2514,7 @@ endfunction
 
 function! s:UsableWin(nr) abort
   return a:nr && !getwinvar(a:nr, '&previewwindow') &&
+        \ index(['gitrebase', 'gitcommit'], getbufvar(winbufnr(a:nr), '&filetype')) < 0 &&
         \ index(['nofile','help','quickfix'], getbufvar(winbufnr(a:nr), '&buftype')) < 0
 endfunction
 
@@ -3612,7 +3666,7 @@ endfunction
 
 function! s:SquashArgument() abort
   if &filetype == 'fugitive'
-    return matchstr(getline('.'), '^[0-9a-f]\{4,\}\ze ')
+    return matchstr(getline('.'), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze ')
   else
     return s:Owner(@%)
   endif
@@ -3684,6 +3738,8 @@ function! s:StatusCfile(...) abort
     return lead . line[2:-1]
   elseif line =~# '^[0-9a-f]\{4,\}\s'
     return matchstr(line, '^\S\+')
+  elseif line =~# '^\l\+\s\+[0-9a-f]\{4,\}\s'
+    return matchstr(line, '^\l\+\s\+\zs\S\+')
   elseif line =~# '^\%(Head\|Merge\|Rebase\|Upstream\|Pull\|Push\): '
     return matchstr(line, ' \zs.*')
   else
