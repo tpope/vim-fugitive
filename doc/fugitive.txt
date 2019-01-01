@@ -29,9 +29,9 @@ that are part of Git repositories).
                                                 *fugitive-:Glcd*
 :Glcd [directory]       |:lcd| relative to the repository.
 
-                                                *fugitive-:Gstatus*
-:Gstatus                Bring up the output of git-status in the preview
-                        window.  The following maps, which work on the cursor
+                                        *fugitive-:Gstatus* *fugitive-:G*
+:Gstatus                Bring up a git-status inspired summary in the preview
+:G                      window.  The following maps, which work on the cursor
                         line file where sensible, are provided:
 
                         g?    show this help
@@ -40,7 +40,6 @@ that are part of Git repositories).
                         <CR>  |:Gedit|
                         -     |:Git| add
                         -     |:Git| reset (staged files)
-                        a     Show alternative format
                         ca    |:Gcommit| --amend
                         cc    |:Gcommit|
                         ce    |:Gcommit| --amend --no-edit
