@@ -2052,7 +2052,7 @@ function! s:StageToggle(lnum1,lnum2) abort
           1
           call search('^Unstaged','W')
           return ''
-        elseif info.status ==# 'Unstaged'
+        elseif info.section ==# 'Unstaged'
           call s:TreeChomp('add','.')
           silent! edit!
           1
