@@ -1533,8 +1533,8 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
     nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
-    nnoremap <buffer> <silent> r :<C-U>edit<CR>
-    nnoremap <buffer> <silent> R :<C-U>edit<CR>
+    nnoremap <buffer> <silent> r :<C-U>exe <SID>ReloadStatus()<CR>
+    nnoremap <buffer> <silent> R :<C-U>exe <SID>ReloadStatus()<CR>
     nnoremap <buffer> <silent> U :<C-U>echoerr 'Changed to g<Bar>'<CR>
     nnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageUndo()<CR>
     nnoremap <buffer>          . : <C-R>=<SID>fnameescape(<SID>StatusCfile())<CR><Home>
@@ -1867,6 +1867,13 @@ function! s:Status(bang, count, mods) abort
   return ''
 endfunction
 
+function! s:ReloadStatus() abort
+  let pos = getpos('.')
+  call fugitive#BufReadStatus()
+  call setpos('.', pos)
+  return ''
+endfunction
+
 function! fugitive#ReloadStatus(...) abort
   if exists('s:reloading_status')
     return
@@ -1884,9 +1891,7 @@ function! fugitive#ReloadStatus(...) abort
           endif
           try
             if !&modified
-              let pos = getpos('.')
-              call fugitive#BufReadStatus()
-              call setpos('.', pos)
+              exe s:ReloadStatus()
             endif
           finally
             if exists('restorewinnr')
@@ -1951,7 +1956,7 @@ function! s:StageReloadSeek(target,lnum1,lnum2) abort
   if empty(target[0])
     let target = a:target
   endif
-  silent! edit!
+  call s:ReloadStatus()
   1
   redraw
   let lnum = 0
