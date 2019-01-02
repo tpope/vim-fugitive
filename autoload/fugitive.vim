@@ -2478,7 +2478,7 @@ augroup fugitive_merge
         \     let s:rebase_continue = FugitiveGitDir(+expand('<abuf>')) |
         \   endif |
         \ endif
-  autocmd BufEnter *
+  autocmd BufEnter * nested
         \ if exists('s:rebase_continue') |
         \   exe s:Merge('rebase', 0, '', getfsize(fugitive#Find('.git/rebase-merge/git-rebase-todo', s:rebase_continue)) > 0 ? '--continue' : '--abort', remove(s:, 'rebase_continue')) |
         \ endif
