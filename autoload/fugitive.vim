@@ -1939,7 +1939,7 @@ function! s:StageSeek(info, fallback) abort
             let offset = +matchstr(getline(line), type . '\zs\d\+') - 1
           elseif getline(line) =~# '^[ ' . type . ']'
             let offset += 1
-          elseif getline(line) !~# '^[ @+-]'
+          elseif getline(line) !~# '^[ @\+-]'
             return line - 1
           endif
         endwhile
@@ -1953,7 +1953,7 @@ function! s:StageSeek(info, fallback) abort
     if i ==# info.index
       let backup = line
     endif
-    let i += getline(line) !~# '^[ @+-]'
+    let i += getline(line) !~# '^[ @\+-]'
     let line += 1
   endwhile
   return exists('backup') ? backup : line - 1
@@ -2004,9 +2004,9 @@ endfunction
 
 function! s:StageInfo(...) abort
   let lnum = a:0 ? a:1 : line('.')
-  let sigil = matchstr(getline('.'), '^[ @+-]')
+  let sigil = matchstr(getline('.'), '^[ @\+-]')
   let offset = -1
-  if getline(lnum) =~# '^[ @+-]'
+  if getline(lnum) =~# '^[ @\+-]'
     let type = sigil ==# '-' ? '-' : '+'
     while lnum > 0 && getline(lnum) !~# '^@'
       if getline(lnum) =~# '^[ '.type.']'
@@ -2015,7 +2015,7 @@ function! s:StageInfo(...) abort
       let lnum -= 1
     endwhile
     let offset += matchstr(getline(lnum), type.'\zs\d\+')
-    while getline(lnum) =~# '^[ @+-]'
+    while getline(lnum) =~# '^[ @\+-]'
       let lnum -= 1
     endwhile
   endif
@@ -2025,7 +2025,7 @@ function! s:StageInfo(...) abort
   while len(getline(slnum - 1)) && empty(section)
     let slnum -= 1
     let section = matchstr(getline(slnum), '^\u\l\+\ze.* (\d\+)$')
-    if empty(section) && getline(slnum) !~# '^[ @+-]'
+    if empty(section) && getline(slnum) !~# '^[ @\+-]'
       let index += 1
     endif
   endwhile
@@ -2077,16 +2077,16 @@ function! s:StageInline(mode, ...) abort
   endif
   while lnum > lnum1
     let lnum -= 1
-    while lnum > 0 && getline(lnum) =~# '^[ @+-]'
+    while lnum > 0 && getline(lnum) =~# '^[ @\+-]'
       let lnum -= 1
     endwhile
     let info = s:StageInfo(lnum)
     if !has_key(b:fugitive_diff, info.section)
       continue
     endif
-    if getline(lnum + 1) =~# '^[ @+-]'
+    if getline(lnum + 1) =~# '^[ @\+-]'
       let lnum2 = lnum + 1
-      while getline(lnum2 + 1) =~# '^[ @+-]'
+      while getline(lnum2 + 1) =~# '^[ @\+-]'
         let lnum2 += 1
       endwhile
       if a:mode !=# 'show'
@@ -2108,7 +2108,7 @@ function! s:StageInline(mode, ...) abort
       if mode ==# 'await' && line[0] ==# '@'
         let mode = 'capture'
       endif
-      if mode !=# 'head' && line !~# '^[ @+-]'
+      if mode !=# 'head' && line !~# '^[ @\+-]'
         if len(diff)
           break
         endif
@@ -2204,7 +2204,7 @@ function! s:StageApply(info, lnum1, count, reverse, extra) abort
   if empty(filter(copy(lines), 'v:val =~# "^[+-]"'))
     return ''
   endif
-  if len(filter(copy(lines), 'v:val !~# "^[ @+-]"'))
+  if len(filter(copy(lines), 'v:val !~# "^[ @\+-]"'))
     return 'fugitive: cannot apply hunks across multiple files'
   endif
   while getline(end) =~# '^[-+ ]'
