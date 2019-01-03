@@ -62,6 +62,8 @@ that are part of Git repositories).
                         o     |:Gsplit|
                         P     |:Git| add --patch
                         P     |:Git| reset --patch (staged files)
+                        s     |:Git| add
+                        u     |:Git| reset
                         X     |:Git| checkout
                         X     |:Git| checkout HEAD (staged files)
                         X     |:Git| clean (untracked files)

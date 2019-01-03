@@ -1519,9 +1519,9 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>StagePrevious(v:count1)<CR>
     exe "nnoremap <buffer> <silent>" nowait "- :<C-U>execute <SID>StageToggle(line('.'),v:count)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "- :<C-U>execute <SID>StageToggle(line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
-    exe "nnoremap <buffer> <silent>" nowait "s :<C-U>execute <SID>StageToggle(line('.'),v:count)<CR>"
+    exe "nnoremap <buffer> <silent>" nowait "s :<C-U>execute <SID>StageToggleOnly('Unstaged',line('.'),v:count)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "s :<C-U>execute <SID>StageToggle(line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
-    exe "nnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>StageToggle(line('.'),v:count)<CR>"
+    exe "nnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>StageToggleOnly('Staged',line('.'),v:count)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>StageToggle(line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
     nnoremap <buffer> <silent> ca :<C-U>Gcommit --amend<CR>
@@ -2332,6 +2332,15 @@ function! s:StageToggle(lnum1, count) abort
     return 'echoerr v:errmsg'
   endtry
   return ''
+endfunction
+
+function! s:StageToggleOnly(section, lnum1, count) abort
+  let info = s:StageInfo(a:lnum1)
+  if info.section ==# a:section
+    return s:StageToggle(a:lnum1, a:count)
+  else
+    return s:StageNext(a:count ? a:count : 1)
+  endif
 endfunction
 
 function! s:StagePatch(lnum1,lnum2) abort
