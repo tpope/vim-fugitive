@@ -2125,7 +2125,7 @@ function! s:StageInline(mode, ...) abort
       if mode ==# 'await' && line[0] ==# '@'
         let mode = 'capture'
       endif
-      if line[0] ==# 'd'
+      if mode !=# 'head' && line !~# '^[ @+-]'
         if len(diff)
           break
         endif
