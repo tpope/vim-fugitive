@@ -1297,9 +1297,9 @@ function! s:ReplaceCmd(cmd, ...) abort
   try
     set modelines=0
     if a:0
-      silent noautocmd edit!
+      silent keepjumps noautocmd edit!
     else
-      silent edit!
+      silent keepjumps edit!
     endif
   finally
     let &modelines = modelines
