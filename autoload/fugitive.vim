@@ -1775,6 +1775,9 @@ function! s:SetupTemp(file) abort
       setlocal nomodifiable
     endif
     call FugitiveDetect(a:file)
+    if &filetype ==# 'git'
+      call fugitive#MapJumps()
+    endif
   endif
   return ''
 endfunction
