@@ -49,6 +49,9 @@ that are part of Git repositories).
                         cf    |:Gcommit| --fixup=
                         cs    |:Gcommit| --squash=
                         cA    |:Gcommit| --edit --squash=
+                        =     toggle inline diff
+                        <     show inline diff
+                        >     hide inline diff
                         D     |:Gdiff|
                         ds    |:Gsdiff|
                         dp    |:Git!| diff (p for patch; use :Gw to apply)
