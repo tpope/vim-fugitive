@@ -1517,12 +1517,12 @@ function! fugitive#BufReadStatus() abort
     nunmap   <buffer>          ~
     nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>StageNext(v:count1)<CR>
     nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>StagePrevious(v:count1)<CR>
-    exe "nnoremap <buffer> <silent>" nowait "- :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>"
-    exe "xnoremap <buffer> <silent>" nowait "- :<C-U>silent execute <SID>StageToggle(line(\"'<\"),line(\"'>\"))<CR>"
-    exe "nnoremap <buffer> <silent>" nowait "s :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>"
-    exe "xnoremap <buffer> <silent>" nowait "s :<C-U>silent execute <SID>StageToggle(line(\"'<\"),line(\"'>\"))<CR>"
-    exe "nnoremap <buffer> <silent>" nowait "u :<C-U>silent execute <SID>StageToggle(line('.'),line('.')+v:count1-1)<CR>"
-    exe "xnoremap <buffer> <silent>" nowait "u :<C-U>silent execute <SID>StageToggle(line(\"'<\"),line(\"'>\"))<CR>"
+    exe "nnoremap <buffer> <silent>" nowait "- :<C-U>execute <SID>StageToggle(line('.'),v:count)<CR>"
+    exe "xnoremap <buffer> <silent>" nowait "- :<C-U>execute <SID>StageToggle(line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
+    exe "nnoremap <buffer> <silent>" nowait "s :<C-U>execute <SID>StageToggle(line('.'),v:count)<CR>"
+    exe "xnoremap <buffer> <silent>" nowait "s :<C-U>execute <SID>StageToggle(line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
+    exe "nnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>StageToggle(line('.'),v:count)<CR>"
+    exe "xnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>StageToggle(line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
     nnoremap <buffer> <silent> ca :<C-U>Gcommit --amend<CR>
     nnoremap <buffer> <silent> cc :<C-U>Gcommit<CR>
@@ -2201,42 +2201,103 @@ function! s:StageDiffEdit() abort
   endif
 endfunction
 
-function! s:StageToggle(lnum1,lnum2) abort
-  if a:lnum1 == 1 && a:lnum2 == 1
+function! s:StageApply(info, lnum1, count, reverse, extra) abort
+  let cmd = ['apply', '-p0'] + a:extra
+  let info = a:info
+  let start = a:lnum1
+  let end = start
+  if !a:count
+    while start > 0 && getline(start) !~# '^@@'
+      let start -= 1
+    endwhile
+    while getline(end + 1) =~# '^[-+ ]'
+      let end += 1
+    endwhile
+  else
+    let end = a:lnum1 + a:count - 1
+    call add(cmd, '--recount')
+  endif
+  let lines = getline(start, end)
+  if empty(filter(copy(lines), 'v:val =~# "^[+-]"'))
+    return ''
+  endif
+  if len(filter(copy(lines), 'v:val !~# "^[ @+-]"'))
+    return 'fugitive: cannot apply hunks across multiple files'
+  endif
+  while getline(end) =~# '^[-+ ]'
+    let end += 1
+    if getline(end) =~# '^[' . (a:reverse ? '+' : '-') . ' ]'
+      call add(lines, ' ' . getline(end)[1:-1])
+    endif
+  endwhile
+  while start > 0 && getline(start) !~# '^@'
+    let start -= 1
+    if getline(start) =~# '^[' . (a:reverse ? '+' : '-') . ' ]'
+      call insert(lines, ' ' . getline(start)[1:-1])
+    elseif getline(start) =~# '^@'
+      call insert(lines, getline(start))
+    endif
+  endwhile
+  if start == 0 || getline(start) !~# '^@@ '
+    return "fugitive: could not find hunk"
+  endif
+  let i = b:fugitive_expanded[info.section][info.filename][0]
+  let head = []
+  while get(b:fugitive_diff[info.section], i, '@') !~# '^@'
+    call add(head, b:fugitive_diff[info.section][i])
+    let i += 1
+  endwhile
+  call extend(lines, head, 'keep')
+  let temp = tempname()
+  call writefile(lines, temp)
+  if a:reverse
+    call add(cmd, '--reverse')
+  endif
+  call extend(cmd, ['--', temp])
+  let output = call('s:TreeChomp', cmd)
+  return v:shell_error ? output : ''
+endfunction
+
+function! s:StageToggle(lnum1, count) abort
+  if a:lnum1 == 1 && a:count == 0
     return 'Gedit .git/|call search("^index$", "wc")'
   endif
   try
-    let output = ''
-    for lnum in range(a:lnum1,a:lnum2)
-      let info = s:StageInfo(lnum)
-      if empty(info.filename)
-        if info.section ==# 'Staged'
-          call s:TreeChomp('reset','-q')
-          silent! edit!
-          1
-          call search('^Unstaged','W')
-          return ''
-        elseif info.section ==# 'Unstaged'
-          call s:TreeChomp('add','.')
-          silent! edit!
-          1
-          call search('^Staged','W')
-          return ''
-        elseif info.section ==# 'Unpushed' && len(info.commit)
-          let remote = matchstr(info.heading, 'to \zs[^/]\+\ze/')
-          if empty(remote)
-            let remote = '.'
-          endif
-          let branch = matchstr(info.heading, 'to \%([^/]\+/\)\=\zs\S\+')
-          call feedkeys(':Gpush ' . remote . ' ' . info.commit . ':' . branch)
-          return ''
-        elseif info.section ==# 'Unpulled'
-          call feedkeys(':Grebase ' . info.commit)
-          return ''
+    let info = s:StageInfo(a:lnum1)
+    if empty(info.filename)
+      if info.section ==# 'Staged'
+        call s:TreeChomp('reset','-q')
+        silent! edit!
+        1
+        call search('^Unstaged','W')
+        return ''
+      elseif info.section ==# 'Unstaged'
+        call s:TreeChomp('add','.')
+        silent! edit!
+        1
+        call search('^Staged','W')
+        return ''
+      elseif info.section ==# 'Unpushed' && len(info.commit)
+        let remote = matchstr(info.heading, 'to \zs[^/]\+\ze/')
+        if empty(remote)
+          let remote = '.'
         endif
+        let branch = matchstr(info.heading, 'to \%([^/]\+/\)\=\zs\S\+')
+        call feedkeys(':Gpush ' . remote . ' ' . info.commit . ':' . branch)
+        return ''
+      elseif info.section ==# 'Unpulled'
+        call feedkeys(':Grebase ' . info.commit)
+        return ''
       endif
+    elseif info.offset >= 0
+      let output = s:StageApply(info, a:lnum1, a:count, info.section ==# 'Staged', ['--cached'])
+      return len(output) ? 'redraw|echoerr ' . string(output) : s:ReloadStatus()
+    endif
+    let lnum2 = a:count ? a:lnum1 + a:count - 1 : a:lnum1
+    for lnum in range(a:lnum1, lnum2)
+      let info = s:StageInfo(lnum)
       let filename = info.filename
-      if empty(filename)
+      if empty(filename) || info.offset >= 0
         continue
       endif
       execute lnum
@@ -2254,16 +2315,15 @@ function! s:StageToggle(lnum1,lnum2) abort
       if !exists('target')
         let target = [filename, info.section ==# 'Staged' ? '' : 'Staged']
       endif
-      let output .= call('s:TreeChomp', cmd)."\n"
+      call call('s:TreeChomp', cmd)
     endfor
     if exists('target')
-      call s:StageReloadSeek(target, a:lnum1, a:lnum2)
+      exe s:ReloadStatus()
     endif
-    echo s:sub(s:gsub(output,'\n+','\n'),'\n$','')
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
-  return 'checktime'
+  return ''
 endfunction
 
 function! s:StagePatch(lnum1,lnum2) abort
