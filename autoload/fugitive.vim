@@ -1551,8 +1551,11 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
     nnoremap <buffer> <silent> r :<C-U>exe <SID>ReloadStatus()<CR>
     nnoremap <buffer> <silent> R :<C-U>exe <SID>ReloadStatus()<CR>
-    nnoremap <buffer> <silent> U :<C-U>echoerr 'Changed to g<Bar>'<CR>
-    nnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageUndo()<CR>
+    nnoremap <buffer> <silent> U :<C-U>echoerr 'Changed to X'<CR>
+    nnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageDelete(line('.'),v:count)<CR>
+    xnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageDelete(line("'<"),line("'>")-line("'<")+1)<CR>
+    nnoremap <buffer> <silent> X :<C-U>execute <SID>StageDelete(line('.'),v:count)<CR>
+    xnoremap <buffer> <silent> X :<C-U>execute <SID>StageDelete(line("'<"),line("'>")-line("'<")+1)<CR>
     nnoremap <buffer>          . : <C-R>=<SID>fnameescape(get(<SID>StatusCfile(),0,''))<CR><Home>
     nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
     nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
@@ -2056,29 +2059,6 @@ function! s:StageReloadSeek(target,lnum1,lnum2) abort
   return ''
 endfunction
 
-function! s:StageUndo() abort
-  let info = s:StageInfo(line('.'))
-  if empty(info.filename)
-    return ''
-  endif
-  let hash = s:TreeChomp('hash-object', '-w', './' . info.filename)
-  if !empty(hash)
-    if info.status ==# 'U'
-      call s:TreeChomp('rm', './' . info.filename)
-    elseif info.status ==# '?'
-      call s:TreeChomp('clean', '-f', './' . info.filename)
-    elseif info.section ==# 'Unstaged'
-      call s:TreeChomp('checkout', './' . info.filename)
-    else
-      call s:TreeChomp('checkout', 'HEAD^{}', './' . info.filename)
-    endif
-    call s:StageReloadSeek([info.filename, ''], line('.'), line('.'))
-    let @" = hash
-    return 'checktime|redraw|echomsg ' .
-          \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.filename)
-  endif
-endfunction
-
 function! s:StageInline(mode, ...) abort
   let lnum1 = a:0 ? a:1 : line('.')
   let lnum = lnum1 + 1
@@ -2256,6 +2236,34 @@ function! s:StageApply(info, lnum1, count, reverse, extra) abort
   call extend(cmd, ['--', temp])
   let output = call('s:TreeChomp', cmd)
   return v:shell_error ? output : ''
+endfunction
+
+function! s:StageDelete(lnum, count) abort
+  let info = s:StageInfo(a:lnum)
+  if empty(info.filename)
+    return ''
+  endif
+  let hash = s:TreeChomp('hash-object', '-w', './' . info.filename)
+  if empty(hash)
+    return ''
+  elseif info.offset >= 0
+    let output = s:StageApply(info, a:lnum, a:count, 1, info.section ==# 'Staged' ? ['--index'] : [])
+    if len(output)
+      return 'echoerr ' . string(output)
+    endif
+  elseif info.status ==# 'U'
+    call s:TreeChomp('rm', './' . info.filename)
+  elseif info.status ==# '?'
+    call s:TreeChomp('clean', '-f', './' . info.filename)
+  elseif info.section ==# 'Unstaged'
+    call s:TreeChomp('checkout', './' . info.filename)
+  else
+    call s:TreeChomp('checkout', 'HEAD^{}', './' . info.filename)
+  endif
+  exe s:ReloadStatus()
+  let @@ = hash
+  return 'redraw|echomsg ' .
+        \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.filename)
 endfunction
 
 function! s:StageToggle(lnum1, count) abort

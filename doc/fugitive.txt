@@ -58,14 +58,14 @@ that are part of Git repositories).
                         dp    |:Git| add --intent-to-add (untracked files)
                         dv    |:Gvdiff|
                         gO    |:Gvsplit|
-                        g|    |:Git| checkout
-                        g|    |:Git| checkout HEAD (staged files)
-                        g|    |:Git| clean (untracked files)
-                        g|    |:Git| rm (unmerged files)
                         O     |:Gtabedit|
                         o     |:Gsplit|
                         P     |:Git| add --patch
                         P     |:Git| reset --patch (staged files)
+                        X     |:Git| checkout
+                        X     |:Git| checkout HEAD (staged files)
+                        X     |:Git| clean (untracked files)
+                        X     |:Git| rm (unmerged files)
                         q     close status
                         r     reload status
                         .     enter |:| command line with file prepopulated
