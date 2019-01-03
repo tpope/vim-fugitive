@@ -2057,10 +2057,24 @@ function! s:StageInfo(...) abort
         \ 'index': index}
 endfunction
 
+function! s:StageReveal(...) abort
+  let begin = a:0 ? a:1 : line('.')
+  if getline(begin) =~# '^@'
+    let end = line(begin) + 1
+    while getline(end) =~# '^[ \+-]'
+      let end += 1
+    endwhile
+    while end > line('w$') && line('.') > line('w0') + &scrolloff
+      execute "normal! \<C-E>"
+    endwhile
+  endif
+endfunction
+
 function! s:StageNext(count) abort
   for i in range(a:count)
     call search('^[A-Z?] .\|^[0-9a-f]\{4,\} \|^@','W')
   endfor
+  call s:StageReveal()
   return '.'
 endfunction
 
@@ -2071,6 +2085,7 @@ function! s:StagePrevious(count) abort
     for i in range(a:count)
       call search('^[A-Z?] .\|^[0-9a-f]\{4,\} \|^@','Wbe')
     endfor
+    call s:StageReveal()
     return '.'
   endif
 endfunction
