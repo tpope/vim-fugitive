@@ -1482,8 +1482,8 @@ function! fugitive#BufReadStatus() abort
     endif
 
     let b:fugitive_diff = {
-          \ 'Staged': split(system(fugitive#Prepare('diff', '--no-ext-diff', '--no-prefix', '--cached', '--')), "\n"),
-          \ 'Unstaged': split(system(fugitive#Prepare('diff', '--no-ext-diff', '--no-prefix', '--')), "\n")}
+          \ 'Staged': split(system(fugitive#Prepare('diff', '--no-ext-diff', '--no-prefix', '--cached')), "\n"),
+          \ 'Unstaged': split(system(fugitive#Prepare('diff', '--no-ext-diff', '--no-prefix')), "\n")}
     let expanded = get(b:, 'fugitive_expanded', {'Staged': {}, 'Unstaged': {}})
     let b:fugitive_expanded = {'Staged': {}, 'Unstaged': {}}
 
