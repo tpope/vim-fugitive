@@ -2859,7 +2859,7 @@ function! s:EditParse(args) abort
 endfunction
 
 function! s:BlurStatus() abort
-  if &previewwindow && get(b:,'fugitive_type', '') ==# 'index' || exists('w:fugitive_status')
+  if (&previewwindow || exists('w:fugitive_status')) && get(b:,'fugitive_type', '') ==# 'index'
     let winnrs = filter([winnr('#')] + range(1, winnr('$')), 's:UsableWin(v:val)')
     if len(winnrs)
       exe winnrs[0].'wincmd w'
