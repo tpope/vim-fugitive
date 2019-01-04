@@ -2283,7 +2283,7 @@ function! s:StageDelete(lnum, count) abort
   endif
   exe s:ReloadStatus()
   let @@ = hash
-  return 'redraw|echomsg ' .
+  return 'checktime|redraw|echomsg ' .
         \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.filename)
 endfunction
 
