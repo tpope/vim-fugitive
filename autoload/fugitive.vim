@@ -623,7 +623,7 @@ function! fugitive#Path(url, ...) abort
     let file = '/.git'.url[strlen(dir) : -1]
   elseif len(tree) && s:cpath(url[0 : len(tree)]) ==# s:cpath(tree . '/')
     let file = url[len(tree) : -1]
-  elseif s:cpath(url) ==# s:cpath(tree) || len(argdir) && empty(file)
+  elseif s:cpath(url) ==# s:cpath(tree)
     let file = '/'
   endif
   if empty(file) && a:1 =~# '^$\|^[.:]/$'
