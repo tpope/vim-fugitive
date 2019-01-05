@@ -299,7 +299,8 @@ O                       Jump to the |fugitive-object| under the cursor in a
                         new tab.
 
                                                 *fugitive--*
--                       Go to the tree containing the current tree or blob.
+-                       Go to the tree containing the current tree or blob
+                        (i.e, the parent directory).
 
                                                 *fugitive-~*
 ~                       Go to the current file in the [count]th first
