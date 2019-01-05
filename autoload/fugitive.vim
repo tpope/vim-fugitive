@@ -1718,16 +1718,17 @@ function! fugitive#BufReadCmd(...) abort
       if &bufhidden ==# ''
         setlocal bufhidden=delete
       endif
+      let &modifiable = modifiable
       if b:fugitive_type !=# 'blob'
         setlocal filetype=git foldmethod=syntax
         nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
         nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
       else
-        let &modifiable = modifiable
         call fugitive#MapJumps()
       endif
     endtry
 
+    setlocal modifiable
     return 'silent doautocmd' . (v:version >= 704 ? ' <nomodeline>' : '') .
           \ ' BufReadPost' . (modifiable ? '' : '|setl nomodifiable')
   catch /^fugitive:/
