@@ -2836,8 +2836,9 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
   let grepprg = &grepprg
   try
     let cdback = s:Cd(s:Tree())
+    let format = before =~# ' -g\| --walk-reflogs' ? '%gD %gs' : g:fugitive_summary_format
     let &grepprg = escape(s:UserCommand() . ' --no-pager log --no-color ' .
-          \ s:shellesc('--pretty=format:fugitive://'.b:git_dir.'//%H'.path.'::'.g:fugitive_summary_format), '%#')
+          \ s:shellesc('--pretty=format:fugitive://'.b:git_dir.'//%H'.path.'::'.format), '%#')
     let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f::%m,%-G%.%#'
     exe a:cmd . (a:bang ? '! ' : ' ') . s:ShellExpand(before . after)
     if len(path) && a:line2 == -1
