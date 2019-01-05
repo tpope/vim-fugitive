@@ -71,10 +71,6 @@ and paste:
     git clone https://github.com/tpope/vim-fugitive.git
     vim -u NONE -c "helptags vim-fugitive/doc" -c q
 
-If your Vim version is below 7.2, I recommend also installing
-[vim-git](https://github.com/tpope/vim-git) for syntax highlighting and
-other Git niceties.
-
 ## FAQ
 
 > Why don't any of the commands exist?
