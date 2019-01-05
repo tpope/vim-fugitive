@@ -2840,6 +2840,12 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
           \ s:shellesc('--pretty=format:fugitive://'.b:git_dir.'//%H'.path.'::'.g:fugitive_summary_format), '%#')
     let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f::%m,%-G%.%#'
     exe a:cmd . (a:bang ? '! ' : ' ') . s:ShellExpand(before . after)
+    if len(path) && a:line2 == -1
+      redraw
+      echohl WarningMsg
+      echo ':Glog will soon default to all files. Use :0Glog to target current file'
+      echohl NONE
+    endif
   finally
     let &grepformat = grepformat
     let &grepprg = grepprg
