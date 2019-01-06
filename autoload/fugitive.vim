@@ -2978,6 +2978,9 @@ function! s:Read(count, line1, line2, range, bang, mods, args, ...) abort
   if file =~# '^fugitive:' && after is# 0
     return 'exe ' .string(mods . ' ' . fugitive#FileReadCmd(file, 0, pre)) . '|diffupdate'
   endif
+  if foldlevel(after)
+    exe after . 'foldopen!'
+  endif
   return mods . ' ' . after . 'read' . pre . ' ' . s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
 endfunction
 
