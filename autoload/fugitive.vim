@@ -1718,7 +1718,7 @@ function! fugitive#BufReadCmd(...) abort
       if &bufhidden ==# ''
         setlocal bufhidden=delete
       endif
-      let &modifiable = modifiable
+      let &l:modifiable = modifiable
       if b:fugitive_type !=# 'blob'
         setlocal filetype=git foldmethod=syntax
         nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
