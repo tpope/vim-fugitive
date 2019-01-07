@@ -2349,7 +2349,7 @@ function! s:StageToggle(lnum1, count) abort
       if info.section ==# 'Staged'
         let files_to_unstage = split(filename, ' -> ')
         let filename = files_to_unstage[-1]
-        let cmd = ['reset', '-q'] + map(copy(files_to_unstage), '"./" . v:val')
+        let cmd = ['reset', '-q', '--'] + map(copy(files_to_unstage), 's:Tree() . "/" . v:val')
       elseif getline(lnum) =~# '^D'
         let cmd = ['rm', './' . filename]
       elseif getline(lnum) =~# '^M'
