@@ -1154,39 +1154,39 @@ function! fugitive#buffer(...) abort
 endfunction
 
 function! s:buffer_getvar(var) dict abort
-  throw 'fugitive: Removed in favor of getbufvar()'
+  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().getvar() which has been removed. Replace it with the local variable or getbufvar()"
 endfunction
 
 function! s:buffer_getline(lnum) dict abort
-  throw 'fugitive: Removed in favor of getbufline()'
+  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().getline() which has been removed. Replace it with getline() or getbufline()"
 endfunction
 
 function! s:buffer_repo() dict abort
-  throw 'fugitive: Removed in favor of fugitive#repo()'
+  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().repo() which has been removed. Replace it with fugitive#repo()"
 endfunction
 
 function! s:buffer_type(...) dict abort
-  throw 'fugitive: Removed in favor of b:fugitive_type (or ideally avoid entirely)'
+  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().type() which has been removed. Replace it with get(b:, 'fugitive_type', '')"
 endfunction
 
 function! s:buffer_spec() dict abort
-  throw "fugitive: Removed in favor of bufname(), expand('%:p'), etc."
+  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().spec() which has been removed. Replace it with bufname(), expand('%:p'), etc"
 endfunction
 
 function! s:buffer_name() dict abort
-  throw "fugitive: Removed in favor of bufname(), expand('%:p'), etc."
+  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().name() which has been removed. Replace it with bufname(), expand('%:p'), etc"
 endfunction
 
 function! s:buffer_commit() dict abort
-  throw 'fugitive: Removed in favor of FugitiveParse()'
+  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().commit() which has been removed. Replace it with matchstr(FugitiveParse()[0], '^\x\+')"
 endfunction
 
 function! s:buffer_relative(...) dict abort
-  throw 'fugitive: Removed in favor of FugitivePath(bufname, ' . string(a:0 ? a:1 : '') . ')'
+  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().relative() which has been removed. Replace it with FugitivePath(@%, " . string(a:0 ? a:1 : '') . ")"
 endfunction
 
 function! s:buffer_path(...) dict abort
-  throw 'fugitive: Removed in favor of FugitivePath(bufname, ' . string(a:0 ? a:1 : '') . ')'
+  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().path() which has been removed. Replace it with FugitivePath(@%, " . string(a:0 ? a:1 : '') . ")"
 endfunction
 
 call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','commit','path','relative'])
