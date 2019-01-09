@@ -1894,12 +1894,12 @@ augroup END
 
 function! s:Status(bang, count, mods) abort
   try
-    let mods = a:mods ==# '<mods>' ? '' : a:mods
+    let mods = a:mods ==# '<mods>' || empty(a:mods) ? '' : a:mods . ' '
     if mods !~# 'aboveleft|belowright\|leftabove\|rightbelow\|topleft\|botright'
       let mods = 'topleft ' . mods
     endif
     let file = fugitive#Find(':')
-    let arg = '+setl\ foldmethod=syntax\ foldlevel=1\|let\ w:fugitive_status=FugitiveGitDir() :'
+    let arg = ' +setl\ foldmethod=syntax\ foldlevel=1\|let\ w:fugitive_status=FugitiveGitDir() :'
     for winnr in range(1, winnr('$'))
       if s:cpath(file, fnamemodify(bufname(winbufnr(winnr)), ':p'))
         exe winnr . 'wincmd w'
@@ -1908,12 +1908,11 @@ function! s:Status(bang, count, mods) abort
       endif
     endfor
     if a:count ==# 0
-      exe mods 'Gedit' . (a:bang ? '!' : '') arg
+      return mods . 'Gedit' . (a:bang ? '!' : '') . arg
     elseif a:bang
-      exe mods 'Gpedit' arg
-      wincmd P
+      return mods . 'Gpedit' . arg . '|wincmd P'
     else
-      exe mods a:count > 0 ? a:count : '' 'Gsplit' arg
+      return mods . (a:count > 0 ? a:count : '') . 'Gsplit' . arg
     endif
   catch /^fugitive:/
     return 'echoerr v:errmsg'
