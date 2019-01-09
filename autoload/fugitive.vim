@@ -1400,6 +1400,9 @@ function! fugitive#BufReadStatus() abort
       let file = line[3:-1]
       let files = file
       let i += 1
+      if line[2] !=# ' '
+        continue
+      endif
       if line[0:1] =~# '[RC]'
         let files = output[i] . ' -> ' . file
         let i += 1
