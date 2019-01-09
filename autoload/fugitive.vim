@@ -1899,7 +1899,8 @@ function! s:Status(bang, count, mods) abort
       let mods = 'topleft ' . mods
     endif
     let file = fugitive#Find(':')
-    let arg = ' +setl\ foldmethod=syntax\ foldlevel=1\|let\ w:fugitive_status=FugitiveGitDir() :'
+    let arg = ' +setl\ foldmethod=syntax\ foldlevel=1\|let\ w:fugitive_status=FugitiveGitDir() ' .
+          \ s:fnameescape(file)
     for winnr in range(1, winnr('$'))
       if s:cpath(file, fnamemodify(bufname(winbufnr(winnr)), ':p'))
         exe winnr . 'wincmd w'
@@ -1908,11 +1909,11 @@ function! s:Status(bang, count, mods) abort
       endif
     endfor
     if a:count ==# 0
-      return mods . 'Gedit' . (a:bang ? '!' : '') . arg
+      return mods . 'edit' . (a:bang ? '!' : '') . arg
     elseif a:bang
-      return mods . 'Gpedit' . arg . '|wincmd P'
+      return mods . 'pedit' . arg . '|wincmd P'
     else
-      return mods . (a:count > 0 ? a:count : '') . 'Gsplit' . arg
+      return mods . (a:count > 0 ? a:count : '') . 'split' . arg
     endif
   catch /^fugitive:/
     return 'echoerr v:errmsg'
