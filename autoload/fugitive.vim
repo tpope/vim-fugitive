@@ -1882,9 +1882,10 @@ call s:command("-bar -bang -range=-1 G       :execute s:Status(<bang>0, <count>,
 augroup fugitive_status
   autocmd!
   if !has('win32')
-    autocmd FocusGained,ShellCmdPost * call fugitive#ReloadStatus()
-    autocmd QuickFixCmdPost c*file call fugitive#ReloadStatus()
-    autocmd BufDelete term://* call fugitive#ReloadStatus()
+    autocmd ShellCmdPost        * call fugitive#ReloadStatus()
+    autocmd QuickFixCmdPost     * call fugitive#ReloadStatus()
+    autocmd FocusGained         * call fugitive#ReloadStatus()
+    autocmd BufDelete    term://* call fugitive#ReloadStatus()
   endif
 augroup END
 
