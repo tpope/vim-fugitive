@@ -1886,7 +1886,7 @@ augroup fugitive_status
   autocmd!
   if !has('win32')
     autocmd ShellCmdPost        * call fugitive#ReloadStatus()
-    autocmd QuickFixCmdPost     * call fugitive#ReloadStatus()
+    autocmd QuickFixCmdPost c*ile call fugitive#ReloadStatus()
     autocmd FocusGained         * call fugitive#ReloadStatus()
     autocmd BufDelete    term://* call fugitive#ReloadStatus()
   endif
@@ -3182,7 +3182,7 @@ function! s:Dispatch(bang, args)
     else
       silent noautocmd make!
       redraw!
-      return 'call fugitive#Cwindow()'
+      return 'call fugitive#Cwindow()|call fugitive#ReloadStatus()'
     endif
     return ''
   finally
