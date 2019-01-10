@@ -186,6 +186,34 @@ function! fugitive#GitVersion(...) abort
   return s:git_versions[g:fugitive_git_executable]
 endfunction
 
+" Return:
+" - <0 - if available version is older than requested,
+" -  0 - if available version and requested are equal,
+" - >0 - if available version is newer than requested.
+function! fugitive#GitVersionCmp(major, minor, patch)
+  " There might be more parts of the version string than 3.
+  " Let's also handle the case where there are fewer.
+  " 2.20.0.rc1.6.ga1598010f
+  let [v_major, v_minor, v_patch] = (
+			  \ map(split(fugitive#GitVersion(), '\V.'), 'str2nr(v:val)')
+			  \ + [0,0,0]
+			  \ )[:2]
+  if v_major > a:major
+    return 1
+  elseif v_major < a:major
+    return -1
+  elseif v_minor > a:minor
+    return 1
+  elseif v_minor < a:minor
+    return -1
+  elseif v_patch > a:patch
+    return 1
+  elseif v_patch < a:patch
+    return -1
+  endif
+  return 0
+endfunction
+
 let s:commondirs = {}
 function! fugitive#CommonDir(dir) abort
   if empty(a:dir)
@@ -2779,8 +2807,14 @@ function! s:Grep(cmd,bang,arg) abort
   let grepformat = &grepformat
   try
     let cdback = s:Cd(s:Tree())
-    let &grepprg = s:UserCommand() . ' --no-pager grep -n --no-color'
-    let &grepformat = '%f:%l:%m,%m %f match%ts,%f'
+    let column_supported = fugitive#GitVersionCmp(2, 19, 0) >= 0
+    if column_supported
+      let &grepprg = s:UserCommand() . ' --no-pager grep -n --column --no-color'
+      let &grepformat = '%f:%l:%c:%m,%m %f match%ts,%f'
+    else
+      let &grepprg = s:UserCommand() . ' --no-pager grep -n --no-color'
+      let &grepformat = '%f:%l:%m,%m %f match%ts,%f'
+    endif
     exe a:cmd.'! '.escape(s:ShellExpand(matchstr(a:arg, '\v\C.{-}%($|[''" ]\@=\|)@=')), '|#%')
     let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
     for entry in list
