@@ -3684,8 +3684,10 @@ endfunction
 
 function! s:BlameJump(suffix) abort
   let commit = matchstr(getline('.'),'^\^\=\zs\x\+')
+  let suffix = a:suffix
   if commit =~# '^0\+$'
     let commit = ':0'
+    let suffix = ''
   endif
   let lnum = matchstr(getline('.'),' \zs\d\+\ze\s\+[([:digit:]]')
   let path = matchstr(getline('.'),'^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
@@ -3699,7 +3701,7 @@ function! s:BlameJump(suffix) abort
   if winnr > 0
     exe winnr.'wincmd w'
   endif
-  execute 'Gedit' s:fnameescape(commit . a:suffix . ':' . path)
+  execute 'Gedit' s:fnameescape(commit . suffix . ':' . path)
   execute lnum
   if winnr > 0
     exe bufnr.'bdelete'
