@@ -3178,7 +3178,7 @@ function! s:Dispatch(bang, args)
     let &l:errorformat = s:common_efm
     let &l:makeprg = substitute(s:UserCommand() . ' ' . a:args, '\s\+$', '', '')
     if exists(':Make') == 2
-      noautocmd Make
+      Make
     else
       silent noautocmd make!
       redraw!
