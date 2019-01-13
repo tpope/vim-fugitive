@@ -183,7 +183,21 @@ function! fugitive#GitVersion(...) abort
   if !has_key(s:git_versions, g:fugitive_git_executable)
     let s:git_versions[g:fugitive_git_executable] = matchstr(system(g:fugitive_git_executable.' --version'), "\\S\\+\\ze\n")
   endif
-  return s:git_versions[g:fugitive_git_executable]
+  if !a:0
+    return s:git_versions[g:fugitive_git_executable]
+  endif
+  let components = split(s:git_versions[g:fugitive_git_executable], '\D\+')
+  if empty(components)
+    return -1
+  endif
+  for i in range(len(a:000))
+    if a:000[i] > +get(components, i)
+      return 0
+    elseif a:000[i] < +get(components, i)
+      return 1
+    endif
+  endfor
+  return a:000[i] ==# get(components, i)
 endfunction
 
 let s:commondirs = {}
@@ -213,7 +227,7 @@ function! s:Tree(...) abort
 endfunction
 
 function! s:PreparePathArgs(cmd, dir, literal) abort
-  let literal_supported = fugitive#GitVersion() !~# '^0\|^1\.[1-8]\.'
+  let literal_supported = fugitive#GitVersion(1, 9)
   if a:literal && literal_supported
     call insert(a:cmd, '--literal-pathspecs')
   endif
@@ -265,17 +279,17 @@ function! fugitive#Prepare(...) abort
           let pre = (len(pre) ? pre : 'env ') . var . '=' . s:shellesc(val) . ' '
         endif
       endif
-      if fugitive#GitVersion() =~# '^0\|^1\.[1-7]\.' || cmd[i+1] !~# '\.'
-        call remove(cmd, i, i + 1)
-      else
+      if fugitive#GitVersion(1, 8) && cmd[i+1] =~# '\.'
         let i += 2
+      else
+        call remove(cmd, i, i + 1)
       endif
     elseif cmd[i] =~# '^--.*pathspecs$'
       let explicit_pathspec_option = 1
-      if fugitive#GitVersion() =~# '^0\|^1\.[1-8]\.'
-        call remove(cmd, i)
-      else
+      if fugitive#GitVersion(1, 9)
         let i += 1
+      else
+        call remove(cmd, i)
       endif
     elseif cmd[i] !~# '^-'
       break
@@ -291,10 +305,10 @@ function! fugitive#Prepare(...) abort
   let args = join(map(copy(cmd), 's:shellesc(v:val)'))
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
     let args = s:shellesc('--git-dir=' . dir) . ' ' . args
-  elseif fugitive#GitVersion() =~# '^0\|^1\.[1-8]\.'
-    let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? ' & ' : '; ') . pre
-  else
+  elseif fugitive#GitVersion(1, 9)
     let args = '-C ' . s:shellesc(tree) . ' ' . args
+  else
+    let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? ' & ' : '; ') . pre
   endif
   return pre . g:fugitive_git_executable . ' ' . args
 endfunction
@@ -392,7 +406,7 @@ endfunction
 function! fugitive#RemoteUrl(...) abort
   let dir = a:0 > 1 ? a:2 : get(b:, 'git_dir', '')
   let remote = !a:0 || a:1 =~# '^\.\=$' ? s:Remote(dir) : a:1
-  if fugitive#GitVersion() =~# '^[01]\.\|^2\.[0-6]\.'
+  if !fugitive#GitVersion(2, 7)
     return fugitive#Config('remote.' . remote . '.url')
   endif
   let cmd = s:Prepare(dir, 'remote', 'get-url', remote, '--')
