@@ -2794,7 +2794,10 @@ function! s:Grep(cmd,bang,arg) abort
   try
     let cdback = s:Cd(s:Tree())
     let &grepprg = s:UserCommand() . ' --no-pager grep -n --no-color'
-    let &grepformat = '%f:%l:%m,%m %f match%ts,%f'
+    let &grepformat = '%f:%l:%c:%m,%f:%l:%m,%m %f match%ts,%f'
+    if fugitive#GitVersion(2, 19)
+      let &grepprg .= ' --column'
+    endif
     exe a:cmd.'! '.escape(s:ShellExpand(matchstr(a:arg, '\v\C.{-}%($|[''" ]\@=\|)@=')), '|#%')
     let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
     for entry in list
