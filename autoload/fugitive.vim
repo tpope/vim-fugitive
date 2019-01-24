@@ -1661,7 +1661,7 @@ function! fugitive#BufReadCmd(...) abort
         let error = b:fugitive_type
         unlet b:fugitive_type
         if rev =~# '^:\d:'
-          let &readonly = !filewritable(dir . '/index')
+          let &l:readonly = !filewritable(dir . '/index')
           return 'silent doautocmd BufNewFile'
         else
           setlocal readonly nomodifiable
@@ -1731,7 +1731,7 @@ function! fugitive#BufReadCmd(...) abort
       keepjumps call setpos('.',pos)
       setlocal nomodified noswapfile
       let modifiable = rev =~# '^:.:' && b:fugitive_type !=# 'tree'
-      let &readonly = !modifiable || !filewritable(dir . '/index')
+      let &l:readonly = !modifiable || !filewritable(dir . '/index')
       if &bufhidden ==# ''
         setlocal bufhidden=delete
       endif
