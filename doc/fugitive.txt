@@ -69,6 +69,8 @@ that are part of Git repositories).
                         X     |:Git| clean (untracked files)
                         X     |:Git| rm (unmerged files)
                         q     close status
+                        st    |:Git| checkout --theirs && git add (unmerged files)
+                        so    |:Git| checkout --ours && git add (unmerged files)
                         R     reload status
                         .     enter |:| command line with file prepopulated
 

@@ -1567,6 +1567,8 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> r :<C-U>exe <SID>ReloadStatus()<CR>
     nnoremap <buffer> <silent> R :<C-U>exe <SID>ReloadStatus()<CR>
     nnoremap <buffer> <silent> U :<C-U>echoerr 'Changed to X'<CR>
+    nnoremap <buffer> <silent> st :<C-U>execute <SID>StageTheirs()<CR>
+    nnoremap <buffer> <silent> so :<C-U>execute <SID>StageOurs()<CR>
     nnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageDelete(line('.'),v:count)<CR>
     xnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageDelete(line("'<"),line("'>")-line("'<")+1)<CR>
     nnoremap <buffer> <silent> X :<C-U>execute <SID>StageDelete(line('.'),v:count)<CR>
@@ -2184,6 +2186,45 @@ function! s:StageInline(mode, ...) abort
   endwhile
   return lnum
 endfunction
+
+function! s:StageOurs() abort
+  let info = s:StageInfo(line('.'))
+  if empty(info.filename)
+    return ''
+  endif
+
+  let hash = s:TreeChomp('hash-object', '-w', info.filename)
+  if !empty(hash)
+    if info.status ==# 'U'
+      call s:TreeChomp('checkout', '--ours', info.filename)
+      call s:TreeChomp('add', info.filename)
+    endif
+    call s:StageReloadSeek(info.filename, line('.'), line('.'))
+    let @" = hash
+    return 'checktime|redraw|echomsg ' .
+          \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.filename)
+  endif
+endfunction
+
+function! s:StageTheirs() abort
+  let info = s:StageInfo(line('.'))
+  if empty(info.filename)
+    return ''
+  endif
+
+  let hash = s:TreeChomp('hash-object', '-w', info.filename)
+  if !empty(hash)
+    if info.status ==# 'U'
+      call s:TreeChomp('checkout', '--theirs', info.filename)
+      call s:TreeChomp('add', info.filename)
+    endif
+    call s:StageReloadSeek(info.filename, line('.'), line('.'))
+    let @" = hash
+    return 'checktime|redraw|echomsg ' .
+          \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.filename)
+  endif
+endfunction
+
 
 function! s:StageDiff(diff) abort
   let lnum = line('.')
