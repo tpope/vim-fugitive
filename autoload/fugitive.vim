@@ -1521,7 +1521,6 @@ function! fugitive#BufReadStatus() abort
 
     set nomodified readonly noswapfile
     silent doautocmd BufReadPost
-    set foldtext=fugitive#Foldtext()
     set filetype=fugitive
     setlocal nomodifiable
     if &bufhidden ==# ''
