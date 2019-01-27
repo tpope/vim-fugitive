@@ -1909,7 +1909,7 @@ function! s:Status(bang, count, mods) abort
   try
     let mods = a:mods ==# '<mods>' || empty(a:mods) ? '' : a:mods . ' '
     if mods !~# 'aboveleft\|belowright\|leftabove\|rightbelow\|topleft\|botright'
-      let mods = 'topleft ' . mods
+      let mods = (&splitbelow ? 'botright ' : 'topleft ') . mods
     endif
     let file = fugitive#Find(':')
     let arg = ' +setl\ foldmethod=syntax\ foldlevel=1\|let\ w:fugitive_status=FugitiveGitDir() ' .
