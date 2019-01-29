@@ -83,6 +83,11 @@ that are part of Git repositories).
                         commands like git-add and git-reset while a commit
                         message is pending.
 
+                                      *g:fugitive_replace_status_on_commit*
+Global option to replace the |:Gstatus| window when performing |:Gcommit|.
+To enable |:Gcommit| view replacement: >
+    let g:fugitive_replace_status_on_commit = 1
+<
                                                 *fugitive-:Gmerge*
 :Gmerge [args]          Calls git-merge and loads errors and conflicted files
                         into the |quickfix| list.  Opens a |:Gcommit| style
