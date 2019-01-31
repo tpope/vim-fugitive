@@ -1521,7 +1521,6 @@ function! fugitive#BufReadStatus() abort
 
     set nomodified readonly noswapfile
     silent doautocmd BufReadPost
-    set filetype=fugitive
     setlocal nomodifiable
     if &bufhidden ==# ''
       setlocal bufhidden=delete
@@ -1574,6 +1573,7 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
     nnoremap <buffer> <silent> g?   :help fugitive-:Gstatus<CR>
     nnoremap <buffer> <silent> <F1> :help fugitive-:Gstatus<CR>
+    set filetype=fugitive
 
     for [lnum, section] in [[staged_end, 'Staged'], [unstaged_end, 'Unstaged']]
       while len(getline(lnum))
