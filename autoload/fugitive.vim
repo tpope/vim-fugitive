@@ -1908,7 +1908,7 @@ augroup END
 function! s:Status(bang, count, mods) abort
   try
     let mods = a:mods ==# '<mods>' || empty(a:mods) ? '' : a:mods . ' '
-    if mods !~# 'aboveleft\|belowright\|leftabove\|rightbelow\|topleft\|botright'
+    if mods !~# 'aboveleft\|belowright\|leftabove\|rightbelow\|topleft\|botright\|tab'
       let mods = (&splitbelow ? 'botright ' : 'topleft ') . mods
     endif
     let file = fugitive#Find(':')
