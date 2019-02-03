@@ -1994,6 +1994,9 @@ function! s:StageSeek(info, fallback) abort
 endfunction
 
 function! s:ReloadStatus(...) abort
+  if get(b:, 'fugitive_type', '') !=# 'index'
+    return ''
+  endif
   let original_lnum = a:0 ? a:1 : line('.')
   let info = s:StageInfo(original_lnum)
   call fugitive#BufReadStatus()
