@@ -3001,8 +3001,8 @@ endfunction
 call s:command("-bar -bang -nargs=*           -complete=customlist,fugitive#Complete Ge       execute s:Edit('edit<bang>', 0, '<mods>', <q-args>, <f-args>)")
 call s:command("-bar -bang -nargs=*           -complete=customlist,fugitive#Complete Gedit    execute s:Edit('edit<bang>', 0, '<mods>', <q-args>, <f-args>)")
 call s:command("-bar -bang -nargs=*           -complete=customlist,s:EditRunComplete Gpedit   execute s:Edit('pedit', <bang>0, '<mods>', <q-args>, <f-args>)")
-call s:command("-bar -bang -nargs=* -range=0  -complete=customlist,s:EditRunComplete Gsplit   execute s:Edit((<count> ? <count> : '').'split', <bang>0, '<mods>', <q-args>, <f-args>)")
-call s:command("-bar -bang -nargs=* -range=0  -complete=customlist,s:EditRunComplete Gvsplit  execute s:Edit((<count> ? <count> : '').'vsplit', <bang>0, '<mods>', <q-args>, <f-args>)")
+call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:EditRunComplete Gsplit   execute s:Edit((<count> > 0 ? <count> : '').(<count> ? 'split' : 'edit'), <bang>0, '<mods>', <q-args>, <f-args>)")
+call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:EditRunComplete Gvsplit  execute s:Edit((<count> > 0 ? <count> : '').(<count> ? 'vsplit' : 'edit!'), <bang>0, '<mods>', <q-args>, <f-args>)")
 call s:command("-bar -bang -nargs=* -range=0  -complete=customlist,s:EditRunComplete" . (has('patch-7.4.542') ? ' -addr=tabs' : '') . " Gtabedit execute s:Edit((<count> ? <count> : '').'tabedit', <bang>0, '<mods>', <q-args>, <f-args>)")
 call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:EditRunComplete Gread execute s:Read(<count>, <line1>, <line2>, +'<range>', <bang>0, '<mods>', <q-args>, <f-args>)")
 
