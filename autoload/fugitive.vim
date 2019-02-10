@@ -2041,9 +2041,9 @@ endfunction
 
 function! s:StageInfo(...) abort
   let lnum = a:0 ? a:1 : line('.')
-  let sigil = matchstr(getline('.'), '^[ @\+-]')
+  let sigil = matchstr(getline(lnum), '^[ @\+-]')
   let offset = -1
-  if getline(lnum) =~# '^[ @\+-]'
+  if len(sigil)
     let type = sigil ==# '-' ? '-' : '+'
     while lnum > 0 && getline(lnum) !~# '^@'
       if getline(lnum) =~# '^[ '.type.']'
