@@ -2109,11 +2109,6 @@ function! s:StagePrevious(count) abort
   endif
 endfunction
 
-function! s:StageReloadSeek(target,lnum1,lnum2) abort
-  exe s:ReloadStatus(a:lnum1)
-  return ''
-endfunction
-
 function! s:StageInline(mode, ...) abort
   let lnum1 = a:0 ? a:1 : line('.')
   let lnum = lnum1 + 1
@@ -2221,16 +2216,7 @@ function! s:StageDiffEdit() abort
     return 'Git! diff --no-ext-diff --cached '.s:shellesc(arg)
   elseif info.status ==# '?'
     call s:TreeChomp('add', '--intent-to-add', './' . arg)
-    if arg ==# '.'
-      silent! edit!
-      1
-      if !search('^Unstaged','W')
-        call search('^Staged','W')
-      endif
-    else
-      call s:StageReloadSeek([info.filename, 'Staged'], line('.'), line('.'))
-    endif
-    return ''
+    return s:ReloadStatus()
   else
     return 'Git! diff --no-ext-diff '.s:shellesc(arg)
   endif
