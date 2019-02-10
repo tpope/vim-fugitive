@@ -279,7 +279,7 @@ augroup fugitive
         \   exe fugitive#BufReadStatus() |
         \ elseif filereadable(expand('<amatch>')) |
         \   doautocmd BufReadPre |
-        \   read <amatch> |
+        \   keepalt read <amatch> |
         \   1delete_ |
         \   doautocmd BufReadPost |
         \ else |
