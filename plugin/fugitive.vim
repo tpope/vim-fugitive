@@ -271,8 +271,6 @@ augroup fugitive
         \ endif |
         \ let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') . '|setl inex= inc='
 
-  " Handle index files in Git directories, emulating normal sequence of
-  " autocommands if a file named `index` is found elsewhere:
   autocmd BufReadCmd index{,.lock}
         \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
         \   let b:git_dir = s:Slash(expand('<amatch>:p:h')) |
