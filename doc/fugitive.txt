@@ -284,7 +284,6 @@ dp                      Invoke |:Git!| diff on the file under the cursor.
                         Deprecated in favor of inline diffs. On untracked
                         files, this instead calls |:Git| add --intent-to-add.
 
-                                                *fugitive_P*
 P                       Invoke |:Git| add --patch or reset --patch on the file
                         under the cursor.
 
