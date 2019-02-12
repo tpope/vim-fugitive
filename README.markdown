@@ -39,8 +39,8 @@ making it like `git add` when called from a work tree file and like
 Use `:Gbrowse` to open the current file on the web front-end of your favorite
 hosting provider, with optional line range (try it in visual mode!).  Plugins
 are available for popular providers such as [GitHub][rhubarb.vim],
-[GitLab][fugitive-gitlab.vim], [Bitbucket][fubitive.vim], 
-and [Gitee][fugitive-gitee.vim].
+[GitLab][fugitive-gitlab.vim], [Bitbucket][fubitive.vim], and
+[Gitee][fugitive-gitee.vim].
 
 [rhubarb.vim]: https://github.com/tpope/vim-rhubarb
 [fugitive-gitlab.vim]: https://github.com/shumphrey/fugitive-gitlab.vim
