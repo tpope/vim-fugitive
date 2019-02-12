@@ -2153,9 +2153,9 @@ function! s:StageInline(mode, ...) abort
         endif
         let start = index
         let mode = 'head'
-      elseif mode ==# 'head' && line ==# '--- ' . info.filename
+      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '--- ' . info.filename
         let mode = 'await'
-      elseif mode ==# 'head' && line ==# '+++ ' . info.filename
+      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '+++ ' . info.filename
         let mode = 'await'
       elseif mode ==# 'capture'
         call add(diff, line)
