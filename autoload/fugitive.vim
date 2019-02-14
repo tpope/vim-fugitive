@@ -2071,7 +2071,7 @@ endfunction
 function! s:StageReveal(...) abort
   let begin = a:0 ? a:1 : line('.')
   if getline(begin) =~# '^@'
-    let end = line(begin) + 1
+    let end = begin + 1
     while getline(end) =~# '^[ \+-]'
       let end += 1
     endwhile
