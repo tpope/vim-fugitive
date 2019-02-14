@@ -1407,6 +1407,7 @@ function! fugitive#BufReadStatus() abort
       let branch = head
     endif
 
+    let b:fugitive_status = {'Staged': {}, 'Unstaged': {}}
     let [staged, unstaged] = [[], []]
     let i = 0
     while i < len(output)
@@ -1422,12 +1423,21 @@ function! fugitive#BufReadStatus() abort
         let i += 1
       endif
       if line[0] !~# '[ ?!#]'
-        call add(staged, {'type': 'File', 'status': line[0], 'filename': (line[0] =~# '[RC]' ? files : file)})
+        call add(staged, {'type': 'File', 'status': line[0], 'filename': files})
+        let b:fugitive_status['Staged'][files] = line[0]
       endif
       if line[1] !~# '[ !#]'
-        call add(unstaged, {'type': 'File', 'status': line[1], 'filename': (line[1] =~# '[RC]' ? files : file)})
+        call add(unstaged, {'type': 'File', 'status': line[1], 'filename': files})
+        let b:fugitive_status['Unstaged'][files] = line[1]
       endif
     endwhile
+
+    for dict in staged
+      let b:fugitive_status['Staged'][dict.filename] = dict.status
+    endfor
+    for dict in unstaged
+      let b:fugitive_status['Unstaged'][dict.filename] = dict.status
+    endfor
 
     let config = fugitive#Config()
 
@@ -2434,6 +2444,13 @@ function! s:StageDelete(lnum, count) abort
     catch /^fugitive:/
       return 'echoerr v:errmsg'
     endtry
+  elseif a:count == 2
+    call s:TreeChomp('checkout', '--ours', '--', info.paths[0])
+  elseif a:count == 3
+    call s:TreeChomp('checkout', '--theirs', '--', info.paths[0])
+  elseif info.status =~# '[ADU]' &&
+        \ get(b:fugitive_status[info.section ==# 'Staged' ? 'Unstaged' : 'Staged'], info.filename, '') =~# '[AU]'
+    call s:TreeChomp('checkout', info.section ==# 'Staged' ? '--ours' : '--theirs', '--', info.paths[0])
   elseif info.status ==# 'U'
     call s:TreeChomp('rm', '--', info.paths[0])
   elseif info.status ==# 'A'
