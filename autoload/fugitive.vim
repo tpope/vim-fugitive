@@ -1553,8 +1553,8 @@ function! fugitive#BufReadStatus() abort
     exe "nnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',0)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',1)<CR>"
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
-    nnoremap <buffer> <silent> a :<C-U>execute <SID>StageInline('toggle',line('.'),v:count)<CR>
-    nnoremap <buffer> <silent> i :<C-U>execute <SID>StageInline('toggle',line('.'),v:count)<CR>
+    nnoremap <buffer> <silent> a :<C-U>execute <SID>StatusDo('Toggle',0)<CR>
+    nnoremap <buffer> <silent> i :<C-U>execute <SID>StageIntend(v:count1)<CR>
     exe 'nnoremap <buffer> <silent>' nowait "= :<C-U>execute <SID>StageInline('toggle',line('.'),v:count)<CR>"
     exe 'nnoremap <buffer> <silent>' nowait "< :<C-U>execute <SID>StageInline('show',  line('.'),v:count)<CR>"
     exe 'nnoremap <buffer> <silent>' nowait "> :<C-U>execute <SID>StageInline('hide',  line('.'),v:count)<CR>"
@@ -2357,6 +2357,23 @@ function! s:StageInline(mode, ...) abort
     endif
   endwhile
   return lnum
+endfunction
+
+function! s:StageIntend(count) abort
+  for i in range(a:count)
+    if getline('.')[0:1] ==# '? '
+      call s:TreeChomp('add', '--intent-to-add', '--', s:Tree() . '/' . getline('.')[2:-1])
+      -
+      exe s:ReloadStatus()
+    elseif getline('.') =~# '^Unstaged'
+      call s:TreeChomp('add', '--intent-to-add', '--', s:Tree())
+      exe s:ReloadStatus()
+    else
+      call s:StageInline('show', line('.'), 1)
+    endif
+    call s:StageNext(1)
+  endfor
+  return '.'
 endfunction
 
 function! s:StageDiff(diff) abort
