@@ -1562,7 +1562,8 @@ function! fugitive#BufReadStatus() abort
     xnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageDelete(line("'<"),line("'>")-line("'<")+1)<CR>
     nnoremap <buffer> <silent> X :<C-U>execute <SID>StageDelete(line('.'),v:count)<CR>
     xnoremap <buffer> <silent> X :<C-U>execute <SID>StageDelete(line("'<"),line("'>")-line("'<")+1)<CR>
-    nnoremap <buffer>          . : <C-R>=<SID>fnameescape(get(<SID>StatusCfile(),0,''))<CR><Home>
+    nnoremap <buffer>          . :<C-U> <C-R>=<SID>StageArgs(0)<CR><Home>
+    xnoremap <buffer>          . :<C-U> <C-R>=<SID>StageArgs(1)<CR><Home>
     nnoremap <buffer> <silent> <F1> :help fugitive-mappings<CR>
     set filetype=fugitive
 
@@ -2163,6 +2164,21 @@ function! s:Selection(arg1, ...) abort
     endwhile
   endif
   return results
+endfunction
+
+function! s:StageArgs(visual) abort
+  let commits = []
+  let paths = []
+  for record in s:Selection(a:visual ? 'v' : 'n')
+    if len(record.commit)
+      call add(commits, record.commit)
+    endif
+    call extend(paths, record.paths)
+  endfor
+  if s:cpath(s:Tree(), getcwd())
+    call map(paths, 'fugitive#Path(v:val, "./")')
+  endif
+  return join(map(commits + paths, 's:fnameescape(v:val)'), ' ')
 endfunction
 
 function! s:Do(action, visual) abort
@@ -4225,7 +4241,8 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> rs    :<C-U>Grebase --skip<CR>
     nnoremap <buffer> <silent> re    :<C-U>Grebase --edit-todo<CR>
     nnoremap <buffer> <silent> ra    :<C-U>Grebase --abort<CR>
-    nmap     <buffer>          .     <SID>: <Plug><cfile><Home>
+    nnoremap <buffer>          .     :<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>
+    xnoremap <buffer>          .     :<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>
     nnoremap <buffer> <silent> g?   :help fugitive-mappings<CR>
   endif
 endfunction
