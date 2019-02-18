@@ -1408,7 +1408,7 @@ function! fugitive#BufReadStatus() abort
     endif
 
     let b:fugitive_status = {'Staged': {}, 'Unstaged': {}}
-    let [staged, unstaged] = [[], []]
+    let [staged, unstaged, untracked] = [[], [], []]
     let i = 0
     while i < len(output)
       let line = output[i]
@@ -1426,11 +1426,15 @@ function! fugitive#BufReadStatus() abort
         call add(staged, {'type': 'File', 'status': line[0], 'filename': files})
         let b:fugitive_status['Staged'][files] = line[0]
       endif
-      if line[1] !~# '[ !#]'
+      if line[1] =~# '?'
+        call add(untracked, {'type': 'File', 'status': line[1], 'filename': files})
+        let b:fugitive_status['Unstaged'][files] = line[1]
+      elseif line[1] !~# '[ !#]'
         call add(unstaged, {'type': 'File', 'status': line[1], 'filename': files})
         let b:fugitive_status['Unstaged'][files] = line[1]
       endif
     endwhile
+    let unstaged = extend(untracked, unstaged)
 
     for dict in staged
       let b:fugitive_status['Staged'][dict.filename] = dict.status
