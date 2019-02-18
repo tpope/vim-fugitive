@@ -253,7 +253,7 @@ u                       Unstage (reset) the file or hunk under the cursor.
 <C-N>                   Skip to the next file or hunk.
 
                                                 *fugitive_CTRL-P*
-<C-P>                   Skip to the next file or hunk.
+<C-P>                   Skip to the previous file or hunk.
 
                                                 *fugitive_X*
 X                       Discard the change under the cursor.  This uses
