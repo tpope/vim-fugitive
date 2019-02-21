@@ -1822,7 +1822,7 @@ function! s:Git(bang, mods, args) abort
   let args = matchstr(a:args,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
   let after = matchstr(a:args, '\v\C\\@<!%(\\\\)*\zs\|.*')
   let tree = s:Tree()
-  if has('win32')
+  if !s:CanAutoReloadStatus()
     let after = '|call fugitive#ReloadStatus()' . after
   endif
   if exists(':terminal') && has('nvim') && !get(g:, 'fugitive_force_bang_command')
@@ -1899,15 +1899,6 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe
 
 call s:command("-bar -bang -range=-1 Gstatus :execute s:Status(<bang>0, <count>, '<mods>')")
 call s:command("-bar -bang -range=-1 G       :execute s:Status(<bang>0, <count>, '<mods>')")
-augroup fugitive_status
-  autocmd!
-  if !has('win32')
-    autocmd ShellCmdPost        * call fugitive#ReloadStatus()
-    autocmd QuickFixCmdPost c*ile call fugitive#ReloadStatus()
-    autocmd FocusGained         * call fugitive#ReloadStatus()
-    autocmd BufDelete    term://* call fugitive#ReloadStatus()
-  endif
-augroup END
 
 function! s:Status(bang, count, mods) abort
   try
@@ -2042,6 +2033,24 @@ function! fugitive#ReloadStatus(...) abort
     unlet! s:reloading_status
   endtry
 endfunction
+
+function! s:CanAutoReloadStatus() abort
+  return get(g:, 'fugitive_autoreload_status', !has('win32'))
+endfunction
+
+function! s:AutoReloadStatus(...) abort
+  if s:CanAutoReloadStatus()
+    return call('fugitive#ReloadStatus', a:000)
+  endif
+endfunction
+
+augroup fugitive_status
+  autocmd!
+  autocmd ShellCmdPost         * call s:AutoReloadStatus()
+  autocmd QuickFixCmdPost c*file call s:AutoReloadStatus()
+  autocmd FocusGained          * call s:AutoReloadStatus()
+  autocmd BufDelete     term://* call s:AutoReloadStatus()
+augroup END
 
 function! s:StageInfo(...) abort
   let lnum = a:0 ? a:1 : line('.')
