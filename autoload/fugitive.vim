@@ -2436,6 +2436,8 @@ function! s:StageDelete(lnum, count) abort
     endtry
   elseif info.status ==# 'U'
     call s:TreeChomp('rm', '--', info.paths[0])
+  elseif info.status ==# 'A'
+    call s:TreeChomp('rm', '-f', '--', info.paths[0])
   elseif info.status ==# '?'
     call s:TreeChomp('clean', '-f', '--', info.paths[0])
   elseif info.section ==# 'Unstaged'
