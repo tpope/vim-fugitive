@@ -3895,7 +3895,7 @@ function! s:BlameJump(suffix) abort
   let commit = matchstr(getline('.'),'^\^\=\zs\x\+')
   let suffix = a:suffix
   if commit =~# '^0\+$'
-    let commit = ':0'
+    let commit = 'HEAD'
     let suffix = ''
   endif
   let lnum = matchstr(getline('.'),' \zs\d\+\ze\s\+[([:digit:]]')
