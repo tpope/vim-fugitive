@@ -626,7 +626,11 @@ function! fugitive#Path(url, ...) abort
     endwhile
     return a:1[0:-2] . path
   endif
-  let url = s:Slash(fnamemodify(a:url, ':p'))
+  let url = a:url
+  if has_key(get(s:temp_files, s:cpath(url), {}), 'bufnr')
+    let url = bufname(s:temp_files[s:cpath(url)].bufnr)
+  endif
+  let url = s:Slash(fnamemodify(url, ':p'))
   if url =~# '/$' && s:Slash(a:url) !~# '/$'
     let url = url[0:-2]
   endif
