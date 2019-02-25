@@ -4303,7 +4303,7 @@ function! fugitive#MapJumps(...) abort
   endif
 endfunction
 
-function! s:DoCfile(...) abort
+function! s:StatusCfile(...) abort
   let tree = FugitiveTreeForGitDir(b:git_dir)
   let lead = s:cpath(tree, getcwd()) ? './' : tree . '/'
   let info = s:StageInfo()
@@ -4328,7 +4328,7 @@ function! s:DoCfile(...) abort
 endfunction
 
 function! fugitive#StatusCfile() abort
-  let file = s:Generate(s:DoCfile()[0])
+  let file = s:Generate(s:StatusCfile()[0])
   return empty(file) ? fugitive#Cfile() : s:fnameescape(file)
 endfunction
 
@@ -4515,7 +4515,7 @@ endfunction
 
 function! s:GF(mode) abort
   try
-    let results = &filetype ==# 'fugitive' ? s:DoCfile() : &filetype ==# 'gitcommit' ? [s:MessageCfile()] : s:cfile()
+    let results = &filetype ==# 'fugitive' ? s:StatusCfile() : &filetype ==# 'gitcommit' ? [s:MessageCfile()] : s:cfile()
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   endtry
