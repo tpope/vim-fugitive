@@ -1751,9 +1751,8 @@ function! fugitive#BufReadCmd(...) abort
         setlocal filetype=git foldmethod=syntax
         nnoremap <buffer> <silent> a :<C-U>let b:fugitive_display_format += v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
         nnoremap <buffer> <silent> i :<C-U>let b:fugitive_display_format -= v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>
-      else
-        call fugitive#MapJumps()
       endif
+      call fugitive#MapJumps()
     endtry
 
     setlocal modifiable
