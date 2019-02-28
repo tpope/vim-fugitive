@@ -2059,7 +2059,6 @@ endfunction
 augroup fugitive_status
   autocmd!
   autocmd ShellCmdPost         * call s:AutoReloadStatus()
-  autocmd QuickFixCmdPost c*file call s:AutoReloadStatus()
   autocmd BufDelete     term://* call s:AutoReloadStatus()
   if !has('win32')
     autocmd FocusGained        * call s:AutoReloadStatus()
