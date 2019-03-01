@@ -1580,6 +1580,7 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
     nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
+    nnoremap <buffer> <silent> gq :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
     nnoremap <buffer> <silent> R :<C-U>exe <SID>ReloadStatus()<CR>
     nnoremap <buffer> <silent> U :<C-U>echoerr 'Changed to X'<CR>
     nnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageDelete(line('.'),v:count)<CR>

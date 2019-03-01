@@ -385,8 +385,8 @@ rd                      Perform an interactive rebase with the commit under
                                                 *fugitive-misc-mappings*
 Miscellaneous mappings ~
 
-                                                *fugitive_q*
-q                       Close the status buffer.
+                                                *fugitive_gq* *fugitive_q*
+gq                      Close the status buffer.
 
                                                 *fugitive_R*
 R                       Reload the status buffer.
