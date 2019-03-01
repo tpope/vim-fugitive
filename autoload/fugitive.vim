@@ -1541,7 +1541,7 @@ function! fugitive#BufReadStatus() abort
     call s:AddSection('Unpushed to ' . push, unpushed)
     call s:AddSection('Unpulled from ' . pull, unpulled)
 
-    set nomodified readonly noswapfile
+    setlocal nomodified readonly noswapfile
     silent doautocmd BufReadPost
     setlocal nomodifiable
     if &bufhidden ==# ''
@@ -1589,7 +1589,7 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer>          . :<C-U> <C-R>=<SID>StageArgs(0)<CR><Home>
     xnoremap <buffer>          . :<C-U> <C-R>=<SID>StageArgs(1)<CR><Home>
     nnoremap <buffer> <silent> <F1> :help fugitive-mappings<CR>
-    set filetype=fugitive
+    setlocal filetype=fugitive
 
     for [lnum, section] in [[staged_end, 'Staged'], [unstaged_end, 'Unstaged']]
       while len(getline(lnum))
@@ -3317,7 +3317,7 @@ function! s:Write(force,...) abort
     return 'echoerr v:errmsg'
   endif
   if s:cpath(fugitive#Real(@%), file) && s:DirCommitFile(@%)[1] =~# '^\d$'
-    set nomodified
+    setlocal nomodified
   endif
 
   let one = s:Generate(':1:'.file)
@@ -3349,7 +3349,7 @@ function! s:Write(force,...) abort
           silent execute '$read '.s:fnameescape(file)
           silent execute '1,'.last.'delete_'
           silent execute lnum
-          set nomodified
+          setlocal nomodified
           diffupdate
         finally
           if exists('restorewinnr')
