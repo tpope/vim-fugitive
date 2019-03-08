@@ -2906,7 +2906,7 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
       let $GIT_EDITOR = old_editor
     endif
     if exists('old_sequence_editor')
-      let $GIT_SEQUENCE_EDITOR = old_editor
+      let $GIT_SEQUENCE_EDITOR = old_sequence_editor
     endif
     execute cdback
   endtry
