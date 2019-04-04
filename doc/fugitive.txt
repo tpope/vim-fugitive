@@ -186,9 +186,10 @@ that are part of Git repositories).
                                                 *fugitive-:Gblame*
 :Gblame [flags]         Run git-blame on the file and open the results in a
                         scroll bound vertical split.  You can give any of
-                        ltfnsewMC as flags and they will be passed along to
-                        git-blame.  The following maps, which work on the
-                        cursor line commit where sensible, are provided:
+                        ltfnsewMC and --relative-date as flags and they will be
+                        passed along to git-blame.  The following maps, which
+                        work on the cursor line commit where sensible, are
+                        provided:
 
                         g?    show this help
                         A     resize to end of author column
