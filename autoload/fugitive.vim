@@ -2848,6 +2848,16 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
     return s:RebaseEdit(mods . 'split', dir)
   elseif a:cmd =~# '^rebase' && ' '.a:args =~# ' --edit-todo' && filereadable(dir . '/rebase-merge/git-rebase-todo')
     return s:RebaseEdit(mods . 'split', dir)
+  elseif a:cmd =~# '^rebase' && ' '.a:args =~# ' --continue' && !a:0
+    let rdir = dir . '/rebase-merge'
+    call system(fugitive#Prepare(dir, 'diff-index', '--cached', '--quiet', 'HEAD', '--'))
+    if v:shell_error && isdirectory(rdir)
+      if getfsize(rdir . '/amend') <= 0
+        return 'exe ' . string(mods . 'Gcommit -n -F ' . s:shellesc(dir . '/rebase-merge/message') . ' -e') . '|let b:fugitive_commit_rebase = 1'
+      elseif readfile(rdir . '/amend')[0] ==# fugitive#Head(-1, dir)
+        return 'exe ' . string(mods . 'Gcommit --amend -n -F ' . s:shellesc(dir . '/rebase-merge/message') . ' -e') . '|let b:fugitive_commit_rebase = 1'
+      endif
+    endif
   endif
   let [mp, efm] = [&l:mp, &l:efm]
   let had_merge_msg = filereadable(dir . '/MERGE_MSG')
