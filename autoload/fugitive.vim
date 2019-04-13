@@ -2836,7 +2836,25 @@ let s:rebase_abbrevs = {
       \ }
 
 function! s:RebaseEdit(cmd, dir) abort
-  return a:cmd . ' +setlocal\ bufhidden=wipe ' . s:fnameescape(a:dir . '/rebase-merge/git-rebase-todo')
+  let rebase_todo = s:fnameescape(a:dir . '/rebase-merge/git-rebase-todo')
+
+  if filereadable(rebase_todo)
+    let new_rebase_todo = readfile(rebase_todo)
+
+    for i in range(len(new_rebase_todo))
+      if new_rebase_todo[i] =~ '^[' . join(values(s:rebase_abbrevs), '|') . ']'
+        let sha = matchstr(new_rebase_todo[i], '\v[a-f0-9]{5,40}')
+        let new_rebase_todo[i] = substitute(
+              \ new_rebase_todo[i],
+              \ sha,
+              \ sha[0:7],
+              \ '',
+              \ )
+      endif
+    endfor
+    call writefile(new_rebase_todo, rebase_todo)
+  endif
+  return a:cmd . ' +setlocal\ bufhidden=wipe ' . rebase_todo
 endfunction
 
 function! s:Merge(cmd, bang, mods, args, ...) abort
