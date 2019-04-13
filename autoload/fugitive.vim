@@ -2836,7 +2836,27 @@ let s:rebase_abbrevs = {
       \ }
 
 function! s:RebaseEdit(cmd, dir) abort
-  return a:cmd . ' +setlocal\ bufhidden=wipe ' . s:fnameescape(a:dir . '/rebase-merge/git-rebase-todo')
+  let rebase_todo = s:fnameescape(a:dir . '/rebase-merge/git-rebase-todo')
+
+  if filereadable(rebase_todo)
+    let new = readfile(rebase_todo)
+    let sha_length = 0
+    let shas = {}
+
+    for i in range(len(new))
+      if new[i] =~# '^\l\+\s\+[0-9a-f]\{3,\}\>'
+        let sha = matchstr(new[i], '\C\v[a-f0-9]{5,40}')
+        if !sha_length
+          let sha_length = len(s:TreeChomp(a:dir, 'rev-parse', '--short', sha))
+        endif
+        let shortened_sha = strpart(sha, 0, sha_length)
+        let shas[shortened_sha] = sha
+        let new[i] = substitute(new[i], sha, shortened_sha, '')
+      endif
+    endfor
+    call writefile(new, rebase_todo)
+  endif
+  return a:cmd . ' +setlocal\ bufhidden=wipe\|' . escape('let b:fugitive_rebase_shas = ' . string(shas), ' ') . ' ' . rebase_todo
 endfunction
 
 function! s:Merge(cmd, bang, mods, args, ...) abort
@@ -2970,6 +2990,12 @@ function! s:RebaseClean(file) abort
   let new = copy(old)
   for i in range(len(new))
     let new[i] = substitute(new[i], '^\l\>', '\=get(s:rebase_abbrevs,submatch(0),submatch(0))', '')
+
+    let sha = matchstr(new[i], '\C\v[a-f0-9]{5,40}')
+    let rebase_shas = getbufvar(a:file, 'fugitive_rebase_shas')
+    if len(sha) && type(rebase_shas) == type({}) && has_key(rebase_shas, sha)
+      let new[i] = substitute(new[i], sha, rebase_shas[sha], '')
+    endif
   endfor
   if new !=# old
     call writefile(new, a:file)
