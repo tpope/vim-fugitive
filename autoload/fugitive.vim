@@ -2840,14 +2840,18 @@ function! s:RebaseEdit(cmd, dir) abort
 
   if filereadable(rebase_todo)
     let new_rebase_todo = readfile(rebase_todo)
+    let s:sha_length = 0
 
     for i in range(len(new_rebase_todo))
       if new_rebase_todo[i] =~ '^[' . join(values(s:rebase_abbrevs), '|') . ']'
         let sha = matchstr(new_rebase_todo[i], '\v[a-f0-9]{5,40}')
+        if !s:sha_length
+          let s:sha_length = len(call('system', ['git rev-parse --short ' . sha]))
+        endif
         let new_rebase_todo[i] = substitute(
               \ new_rebase_todo[i],
               \ sha,
-              \ sha[0:7],
+              \ sha[0:s:sha_length],
               \ '',
               \ )
       endif
