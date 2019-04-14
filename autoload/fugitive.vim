@@ -2843,7 +2843,7 @@ function! s:RebaseEdit(cmd, dir) abort
     let s:sha_length = 0
 
     for i in range(len(new_rebase_todo))
-      if new_rebase_todo[i] =~ '^[' . join(values(s:rebase_abbrevs), '|') . ']'
+      if new_rebase_todo[i] =~ '^\l\+\s\+[0-9a-f]\{3,\}\>'
         let sha = matchstr(new_rebase_todo[i], '\v[a-f0-9]{5,40}')
         if !s:sha_length
           let s:sha_length = len(call('system', ['git rev-parse --short ' . sha]))
