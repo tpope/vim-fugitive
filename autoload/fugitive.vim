@@ -2841,6 +2841,7 @@ function! s:RebaseEdit(cmd, dir) abort
   if filereadable(rebase_todo)
     let new_rebase_todo = readfile(rebase_todo)
     let s:sha_length = 0
+    let s:rebase_shas = {}
 
     for i in range(len(new_rebase_todo))
       if new_rebase_todo[i] =~ '^\l\+\s\+[0-9a-f]\{3,\}\>'
@@ -2848,10 +2849,12 @@ function! s:RebaseEdit(cmd, dir) abort
         if !s:sha_length
           let s:sha_length = len(call('system', ['git rev-parse --short ' . sha]))
         endif
+        let shortened_sha = sha[0:s:sha_length]
+        let s:rebase_shas[shortened_sha] = sha
         let new_rebase_todo[i] = substitute(
               \ new_rebase_todo[i],
               \ sha,
-              \ sha[0:s:sha_length],
+              \ shortened_sha,
               \ '',
               \ )
       endif
@@ -2992,9 +2995,15 @@ function! s:RebaseClean(file) abort
   let new = copy(old)
   for i in range(len(new))
     let new[i] = substitute(new[i], '^\l\>', '\=get(s:rebase_abbrevs,submatch(0),submatch(0))', '')
+
+    let sha = matchstr(new[i], '\v[a-f0-9]{5,40}')
+    if len(sha) && get(s:rebase_shas, sha)
+      let new[i] = substitute(new[i], sha, s:rebase_shas[sha], '')
+    endif
   endfor
   if new !=# old
     call writefile(new, a:file)
+    unlet s:rebase_shas
   endif
   return ''
 endfunction
