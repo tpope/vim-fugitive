@@ -2851,12 +2851,7 @@ function! s:RebaseEdit(cmd, dir) abort
         endif
         let shortened_sha = sha[0:s:sha_length]
         let b:rebase_shas[shortened_sha] = sha
-        let new_rebase_todo[i] = substitute(
-              \ new_rebase_todo[i],
-              \ sha,
-              \ shortened_sha,
-              \ '',
-              \ )
+        let new_rebase_todo[i] = substitute(new_rebase_todo[i], sha, shortened_sha, '')
       endif
     endfor
     call writefile(new_rebase_todo, rebase_todo)
