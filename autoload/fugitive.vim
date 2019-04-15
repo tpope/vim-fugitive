@@ -2840,23 +2840,23 @@ function! s:RebaseEdit(cmd, dir) abort
 
   if filereadable(rebase_todo)
     let new = readfile(rebase_todo)
-    let s:sha_length = 0
-    let b:rebase_shas = {}
+    let sha_length = 0
+    let shas = {}
 
     for i in range(len(new))
       if new[i] =~ '^\l\+\s\+[0-9a-f]\{3,\}\>'
         let sha = matchstr(new[i], '\v[a-f0-9]{5,40}')
-        if !s:sha_length
-          let s:sha_length = len(call('system', ['git rev-parse --short ' . sha]))
+        if !sha_length
+          let sha_length = len(call('system', ['git rev-parse --short ' . sha]))
         endif
-        let shortened_sha = sha[0:s:sha_length]
-        let b:rebase_shas[shortened_sha] = sha
+        let shortened_sha = sha[0:sha_length]
+        let shas[shortened_sha] = sha
         let new[i] = substitute(new[i], sha, shortened_sha, '')
       endif
     endfor
     call writefile(new, rebase_todo)
   endif
-  return a:cmd . ' +setlocal\ bufhidden=wipe ' . rebase_todo
+  return a:cmd . ' +setlocal\ bufhidden=wipe\|' . escape('let b:fugitive_rebase_shas = ' . string(shas), ' ') . ' ' . rebase_todo
 endfunction
 
 function! s:Merge(cmd, bang, mods, args, ...) abort
@@ -2992,13 +2992,13 @@ function! s:RebaseClean(file) abort
     let new[i] = substitute(new[i], '^\l\>', '\=get(s:rebase_abbrevs,submatch(0),submatch(0))', '')
 
     let sha = matchstr(new[i], '\v[a-f0-9]{5,40}')
-    if len(sha) && get(b:rebase_shas, sha)
-      let new[i] = substitute(new[i], sha, b:rebase_shas[sha], '')
+    if len(sha) && get(b:fugitive_rebase_shas, sha)
+      let new[i] = substitute(new[i], sha, b:fugitive_rebase_shas[sha], '')
     endif
   endfor
   if new !=# old
     call writefile(new, a:file)
-    unlet b:rebase_shas
+    unlet b:fugitive_rebase_shas
   endif
   return ''
 endfunction
