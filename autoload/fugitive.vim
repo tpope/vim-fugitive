@@ -2839,22 +2839,22 @@ function! s:RebaseEdit(cmd, dir) abort
   let rebase_todo = s:fnameescape(a:dir . '/rebase-merge/git-rebase-todo')
 
   if filereadable(rebase_todo)
-    let new_rebase_todo = readfile(rebase_todo)
+    let new = readfile(rebase_todo)
     let s:sha_length = 0
     let b:rebase_shas = {}
 
-    for i in range(len(new_rebase_todo))
-      if new_rebase_todo[i] =~ '^\l\+\s\+[0-9a-f]\{3,\}\>'
-        let sha = matchstr(new_rebase_todo[i], '\v[a-f0-9]{5,40}')
+    for i in range(len(new))
+      if new[i] =~ '^\l\+\s\+[0-9a-f]\{3,\}\>'
+        let sha = matchstr(new[i], '\v[a-f0-9]{5,40}')
         if !s:sha_length
           let s:sha_length = len(call('system', ['git rev-parse --short ' . sha]))
         endif
         let shortened_sha = sha[0:s:sha_length]
         let b:rebase_shas[shortened_sha] = sha
-        let new_rebase_todo[i] = substitute(new_rebase_todo[i], sha, shortened_sha, '')
+        let new[i] = substitute(new[i], sha, shortened_sha, '')
       endif
     endfor
-    call writefile(new_rebase_todo, rebase_todo)
+    call writefile(new, rebase_todo)
   endif
   return a:cmd . ' +setlocal\ bufhidden=wipe ' . rebase_todo
 endfunction
