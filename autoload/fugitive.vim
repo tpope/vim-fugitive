@@ -3187,7 +3187,7 @@ function! s:Open(cmd, bang, mods, arg, args) abort
   return mods . ' ' . a:cmd . pre . ' ' . s:fnameescape(file)
 endfunction
 
-function! s:ReadCommand(line1, line2, range, count, bang, mods, arg, args) abort
+function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
   let mods = a:mods ==# '<mods>' ? '' : a:mods
   let after = a:line2
   if a:count < 0
