@@ -1350,6 +1350,9 @@ endfunction
 
 function! s:QueryLog(refspec) abort
   let lines = split(system(FugitivePrepare('log', '-n', '256', '--format=%h%x09%s', a:refspec, '--')), "\n")
+  if v:shell_error
+    return []
+  endif
   call map(lines, 'split(v:val, "\t")')
   call map(lines, '{"type": "Log", "commit": v:val[0], "subject": v:val[-1]}')
   return lines
