@@ -2992,8 +2992,9 @@ function! s:RebaseClean(file) abort
     let new[i] = substitute(new[i], '^\l\>', '\=get(s:rebase_abbrevs,submatch(0),submatch(0))', '')
 
     let sha = matchstr(new[i], '\v[a-f0-9]{5,40}')
-    if len(sha) && get(b:fugitive_rebase_shas, sha)
-      let new[i] = substitute(new[i], sha, b:fugitive_rebase_shas[sha], '')
+    let rebase_shas = getbufvar(a:file, 'fugitive_rebase_shas', {})
+    if len(sha) && get(rebase_shas, sha)
+      let new[i] = substitute(new[i], sha, rebase_shas[sha], '')
     endif
   endfor
   if new !=# old
