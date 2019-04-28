@@ -2999,7 +2999,6 @@ function! s:RebaseClean(file) abort
   endfor
   if new !=# old
     call writefile(new, a:file)
-    unlet b:fugitive_rebase_shas
   endif
   return ''
 endfunction
