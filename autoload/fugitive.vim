@@ -2847,7 +2847,7 @@ function! s:RebaseEdit(cmd, dir) abort
       if new[i] =~ '^\l\+\s\+[0-9a-f]\{3,\}\>'
         let sha = matchstr(new[i], '\v[a-f0-9]{5,40}')
         if !sha_length
-          let sha_length = len(call('system', ['git rev-parse --short ' . sha]))
+          let sha_length = len(s:TreeChomp(a:dir, 'rev-parse', '--short', sha))
         endif
         let shortened_sha = sha[0:sha_length]
         let shas[shortened_sha] = sha
