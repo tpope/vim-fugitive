@@ -2849,7 +2849,7 @@ function! s:RebaseEdit(cmd, dir) abort
         if !sha_length
           let sha_length = len(s:TreeChomp(a:dir, 'rev-parse', '--short', sha))
         endif
-        let shortened_sha = sha[0:sha_length]
+        let shortened_sha = strpart(sha, 0, sha_length)
         let shas[shortened_sha] = sha
         let new[i] = substitute(new[i], sha, shortened_sha, '')
       endif
