@@ -247,7 +247,6 @@ augroup fugitive
         \ if exists('b:NERDTree.root.path.str') |
         \   call FugitiveDetect(b:NERDTree.root.path.str()) |
         \ endif
-  autocmd VimEnter * if empty(expand('<amatch>'))|call FugitiveDetect(getcwd())|endif
   autocmd CmdWinEnter * call FugitiveDetect(expand('#:p'))
 
   autocmd FileType git
@@ -296,3 +295,9 @@ augroup fugitive
 
   autocmd User ProjectionistDetect call s:ProjectionistDetect()
 augroup END
+
+" Section: Initialization at vim startup
+
+if !v:vim_did_enter && !argc()
+  call FugitiveDetect(getcwd())
+endif
