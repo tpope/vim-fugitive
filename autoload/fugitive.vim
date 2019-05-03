@@ -1318,7 +1318,7 @@ endfunction
 
 " Section: Buffer auto-commands
 
-function! s:ReplaceCmd(cmd, ...) abort
+function! s:ReplaceCmd(cmd) abort
   let temp = tempname()
   let err = s:TempCmd(temp, a:cmd)
   if v:shell_error
@@ -1330,11 +1330,7 @@ function! s:ReplaceCmd(cmd, ...) abort
   let modelines = &modelines
   try
     set modelines=0
-    if a:0
-      silent keepjumps noautocmd edit!
-    else
-      silent keepjumps edit!
-    endif
+    silent keepjumps noautocmd edit!
   finally
     let &modelines = modelines
     try
