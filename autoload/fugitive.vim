@@ -1131,7 +1131,7 @@ function! fugitive#glob(url, ...) abort
   let [dirglob, commit, glob] = s:DirCommitFile(a:url)
   let append = matchstr(glob, '/*$')
   let glob = substitute(glob, '/*$', '', '')
-  let pattern = '^' . substitute(glob, '/\=\*\*/\=\|/\=\*\|[.?\^$]', '\=get(s:globsubs, submatch(0), "\\" . submatch(0))', 'g')[1:-1] . '$'
+  let pattern = '^' . substitute(glob, '/\=\*\*/\=\|/\=\*\|[.?\$]\|^^', '\=get(s:globsubs, submatch(0), "\\" . submatch(0))', 'g')[1:-1] . '$'
   let results = []
   for dir in dirglob =~# '[*?]' ? split(glob(dirglob), "\n") : [dirglob]
     if empty(dir) || !get(g:, 'fugitive_file_api', 1) || !filereadable(dir . '/HEAD')
