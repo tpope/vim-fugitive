@@ -2844,7 +2844,7 @@ function! s:RebaseEdit(cmd, dir) abort
     let shas = {}
 
     for i in range(len(new))
-      if new[i] =~ '^\l\+\s\+[0-9a-f]\{3,\}\>'
+      if new[i] =~# '^\l\+\s\+[0-9a-f]\{3,\}\>'
         let sha = matchstr(new[i], '\v[a-f0-9]{5,40}')
         if !sha_length
           let sha_length = len(s:TreeChomp(a:dir, 'rev-parse', '--short', sha))
