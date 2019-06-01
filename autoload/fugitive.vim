@@ -2845,7 +2845,7 @@ function! s:RebaseEdit(cmd, dir) abort
 
     for i in range(len(new))
       if new[i] =~# '^\l\+\s\+[0-9a-f]\{3,\}\>'
-        let sha = matchstr(new[i], '\v[a-f0-9]{5,40}')
+        let sha = matchstr(new[i], '\C\v[a-f0-9]{5,40}')
         if !sha_length
           let sha_length = len(s:TreeChomp(a:dir, 'rev-parse', '--short', sha))
         endif
@@ -2991,7 +2991,7 @@ function! s:RebaseClean(file) abort
   for i in range(len(new))
     let new[i] = substitute(new[i], '^\l\>', '\=get(s:rebase_abbrevs,submatch(0),submatch(0))', '')
 
-    let sha = matchstr(new[i], '\v[a-f0-9]{5,40}')
+    let sha = matchstr(new[i], '\C\v[a-f0-9]{5,40}')
     let rebase_shas = getbufvar(a:file, 'fugitive_rebase_shas')
     if len(sha) && type(rebase_shas) == type({}) && has_key(rebase_shas, sha)
       let new[i] = substitute(new[i], sha, rebase_shas[sha], '')
