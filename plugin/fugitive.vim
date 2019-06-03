@@ -232,7 +232,10 @@ function! s:ProjectionistDetect() abort
     if exists('+shellslash') && !&shellslash
       let base = tr(base, '/', '\')
     endif
-    call projectionist#append(base, FugitiveCommonDir(dir) . '/info/projections.json')
+    let file = FugitiveCommonDir(dir) . '/info/projections.json'
+    if filereadable(file)
+      call projectionist#append(base, file)
+    endif
   endif
 endfunction
 
