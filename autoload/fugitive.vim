@@ -308,7 +308,17 @@ function! fugitive#Prepare(...) abort
   call s:PreparePathArgs(cmd, dir, !exists('explicit_pathspec_option'))
   let args = join(map(copy(cmd), 's:shellesc(v:val)'))
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
-    let args = s:shellesc('--git-dir=' . dir) . ' ' . args
+    let git_dir = s:shellesc('--git-dir=' . dir)
+    if exists('g:git_dir_links')
+      for d in keys(g:git_dir_links)
+        if d == dir
+          let worktree_for_git_link = substitute(g:git_dir_links[d], '\.git$', '', '')
+          let git_dir = git_dir . ' ' . s:shellesc('--work-tree=' . worktree_for_git_link)
+          break
+        endif
+      endfor
+    endif
+    let args = git_dir . ' ' . args
   elseif fugitive#GitVersion(1, 9)
     let args = '-C ' . s:shellesc(tree) . ' ' . args
   else

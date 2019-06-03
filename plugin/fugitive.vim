@@ -181,7 +181,11 @@ function! FugitiveExtractGitDir(path) abort
     if type ==# 'dir' && FugitiveIsGitDir(dir)
       return dir
     elseif type ==# 'link' && FugitiveIsGitDir(dir)
-      return resolve(dir)
+      if !exists('g:git_dir_links')
+        let g:git_dir_links = {}
+      endif
+      let g:git_dir_links[resolve(dir)] = dir
+      return dir
     elseif type !=# '' && filereadable(dir)
       let line = get(readfile(dir, '', 1), 0, '')
       if line =~# '^gitdir: \.' && FugitiveIsGitDir(root.'/'.line[8:-1])
@@ -276,6 +280,9 @@ augroup fugitive
         \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
         \   let b:git_dir = s:Slash(expand('<amatch>:p:h')) |
         \   exe fugitive#BufReadStatus() |
+        \   if exists('g:git_dir_links') && has_key(g:git_dir_links, b:git_dir) |
+        \     let b:git_dir = g:git_dir_links[b:git_dir] |
+        \   endif |
         \ elseif filereadable(expand('<amatch>')) |
         \   silent doautocmd BufReadPre |
         \   keepalt read <amatch> |
