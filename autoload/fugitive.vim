@@ -1688,12 +1688,16 @@ function! fugitive#BufReadCmd(...) abort
       if v:shell_error
         let error = b:fugitive_type
         unlet b:fugitive_type
+        setlocal noswapfile
+        if empty(&bufhidden)
+          setlocal bufhidden=delete
+        endif
         if rev =~# '^:\d:'
           let &l:readonly = !filewritable(fugitive#Find('.git/index', dir))
           return 'silent doautocmd BufNewFile'
         else
           setlocal readonly nomodifiable
-          return 'echo ' . string(error)
+          return 'silent doautocmd BufNewFile|echo ' . string(error)
         endif
       elseif b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
         return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
@@ -1760,7 +1764,7 @@ function! fugitive#BufReadCmd(...) abort
       setlocal nomodified noswapfile
       let modifiable = rev =~# '^:.:' && b:fugitive_type !=# 'tree'
       let &l:readonly = !modifiable || !filewritable(fugitive#Find('.git/index', dir))
-      if &bufhidden ==# ''
+      if empty(&bufhidden)
         setlocal bufhidden=delete
       endif
       let &l:modifiable = modifiable
