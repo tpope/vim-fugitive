@@ -1837,7 +1837,7 @@ augroup END
 
 " Section: :Git
 
-call s:command("-bang -nargs=? -complete=customlist,fugitive#CompleteGit Git", "Git")
+call s:command("-bang -nargs=? -range=-1 -complete=customlist,fugitive#CompleteGit Git", "Git")
 
 function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
   if a:bang
