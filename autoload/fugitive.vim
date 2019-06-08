@@ -942,7 +942,7 @@ function! s:PathInfo(url) abort
   let path = substitute(file[1:-1], '/*$', '', '')
   let [tree, ftime] = s:TreeInfo(dir, commit)
   let entry = empty(path) ? [ftime, '040000', 'tree', '', -1] : get(tree, path, [])
-  if empty(entry) || file =~# '/$' && entry[1] !=# 'tree'
+  if empty(entry) || file =~# '/$' && entry[2] !=# 'tree'
     return [-1, '000000', '', '', -1]
   else
     return entry
