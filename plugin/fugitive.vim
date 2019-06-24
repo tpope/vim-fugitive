@@ -336,3 +336,20 @@ augroup fugitive
 
   autocmd User ProjectionistDetect call s:ProjectionistDetect()
 augroup END
+
+let g:io_fugitive = {
+      \ 'simplify': function('fugitive#simplify'),
+      \ 'resolve': function('fugitive#resolve'),
+      \ 'getftime': function('fugitive#getftime'),
+      \ 'getfsize': function('fugitive#getfsize'),
+      \ 'getftype': function('fugitive#getftype'),
+      \ 'filereadable': function('fugitive#filereadable'),
+      \ 'filewritable': function('fugitive#filewritable'),
+      \ 'isdirectory': function('fugitive#isdirectory'),
+      \ 'getfperm': function('fugitive#getfperm'),
+      \ 'setfperm': function('fugitive#setfperm'),
+      \ 'readfile': function('fugitive#readfile'),
+      \ 'writefile': function('fugitive#writefile'),
+      \ 'glob': function('fugitive#glob'),
+      \ 'delete': function('fugitive#delete'),
+      \ 'Real': function('FugitiveReal')}
