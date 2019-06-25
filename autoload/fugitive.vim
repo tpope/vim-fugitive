@@ -4306,13 +4306,13 @@ function! s:NavigateUp(count) abort
 endfunction
 
 function! fugitive#MapJumps(...) abort
-  if get(b:, 'fugitive_type', '') ==# 'blob'
-    nnoremap <buffer> <silent> <CR>    :<C-U>.Gblame<CR>
-  else
-    nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
-  endif
   if !&modifiable
     let nowait = v:version >= 704 ? '<nowait>' : ''
+    if get(b:, 'fugitive_type', '') ==# 'blob'
+      nnoremap <buffer> <silent> <CR>    :<C-U>.Gblame<CR>
+    else
+      nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
+    endif
     if get(b:, 'fugitive_type', '') ==# 'blob'
       nnoremap <buffer> <silent> o     :<C-U>.,.+1Gblame<CR>
       nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
