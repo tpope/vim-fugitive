@@ -857,7 +857,7 @@ function! s:ExpandVar(other, var, flags, esc) abort
 endfunction
 
 function! s:Expand(rev) abort
-  if a:rev =~# '^:0'
+  if a:rev =~# '^:0$'
     call s:throw('Use ' . string(':%') . ' instead of ' . string(a:rev))
   elseif a:rev =~# '^:[1-3]$'
     call s:throw('Use ' . string(a:rev . ':%') . ' instead of ' . string(a:rev))
