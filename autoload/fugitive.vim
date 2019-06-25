@@ -858,13 +858,15 @@ endfunction
 
 function! s:Expand(rev) abort
   if a:rev =~# '^:[0-3]$'
-    let file = a:rev . s:Relative(':')
-  elseif a:rev =~# '^-'
-    let file = 'HEAD^{}' . a:rev[1:-1] . s:Relative(':')
-  elseif a:rev =~# '^@{'
-    let file = 'HEAD' . a:rev. s:Relative(':')
-  elseif a:rev =~# '^\^[0-9~^{]\|^\~[0-9~^]\|^\^$'
+    call s:throw('Use ' . string(a:rev . ':%') . ' instead of ' . string(a:rev))
+  elseif a:rev =~# '^@{' || a:rev =~# '^\^[0-9~^{]\|^\~[0-9~^]\|^\^$'
     call s:throw('Use ' . string('!' . a:rev . ':%') . ' instead of ' . string(a:rev))
+  elseif a:rev =~# '^-'
+    call s:throw('Use ' . string('!' . a:rev[1:-1] . ':%') . ' instead of ' . string(a:rev))
+  elseif a:rev =~# '^>[~^]\|^>@{\|^>:\d$'
+    let file = 'HEAD' . a:rev[1:-1] . s:Relative(':')
+  elseif a:rev =~# '^>[^> ]'
+    let file = a:rev[1:-1] . s:Relative(':')
   else
     let file = a:rev
   endif
