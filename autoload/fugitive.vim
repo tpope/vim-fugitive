@@ -2289,7 +2289,7 @@ function! s:StageReveal(...) abort
     while getline(end) =~# '^[ \+-]'
       let end += 1
     endwhile
-    while end > line('w$') && line('.') > line('w0') + &scrolloff
+    while line('w$') > line('$') && end > line('w$') && line('.') > line('w0') + &scrolloff
       execute "normal! \<C-E>"
     endwhile
   endif
