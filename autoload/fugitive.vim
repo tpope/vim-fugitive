@@ -2117,11 +2117,13 @@ function! s:StageInfo(...) abort
       let index += 1
     endif
   endwhile
+  let text = matchstr(getline(lnum), '^[A-Z?] \zs.*')
   return {'section': section,
         \ 'heading': getline(slnum),
         \ 'sigil': sigil,
         \ 'offset': offset,
-        \ 'filename': matchstr(getline(lnum), '^[A-Z?] \zs.*'),
+        \ 'filename': text,
+        \ 'paths': reverse(split(text, ' -> ')),
         \ 'commit': matchstr(getline(lnum), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze '),
         \ 'status': matchstr(getline(lnum), '^[A-Z?]\ze \|^\%(\x\x\x\)\@!\l\+\ze [0-9a-f]'),
         \ 'index': index}
@@ -2325,7 +2327,7 @@ function! s:StageInline(mode, ...) abort
   let lnum = lnum1 + 1
   if a:0 > 1 && a:2 == 0
     let info = s:StageInfo(lnum - 1)
-    if empty(info.filename) && len(info.section)
+    if empty(info.paths) && len(info.section)
       while len(getline(lnum))
         let lnum += 1
       endwhile
@@ -2355,7 +2357,7 @@ function! s:StageInline(mode, ...) abort
       endif
       continue
     endif
-    if !has_key(b:fugitive_diff, info.section) || info.status !~# '^[ADM]$' || a:mode ==# 'hide'
+    if !has_key(b:fugitive_diff, info.section) || info.status !~# '^[ADMR]$' || a:mode ==# 'hide'
       continue
     endif
     let mode = ''
@@ -2372,9 +2374,9 @@ function! s:StageInline(mode, ...) abort
         endif
         let start = index
         let mode = 'head'
-      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '--- ' . info.filename
+      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '--- ' . info.paths[-1]
         let mode = 'await'
-      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '+++ ' . info.filename
+      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '+++ ' . info.paths[0]
         let mode = 'await'
       elseif mode ==# 'capture'
         call add(diff, line)
@@ -2414,32 +2416,31 @@ function! s:StageDiff(diff) abort
   let lnum = line('.')
   let info = s:StageInfo(lnum)
   let prefix = info.offset > 0 ? '+' . info.offset : ''
-  if empty(info.filename) && info.section ==# 'Staged'
+  if empty(info.paths) && info.section ==# 'Staged'
     return 'Git! diff --no-ext-diff --cached'
-  elseif empty(info.filename)
+  elseif empty(info.paths)
     return 'Git! diff --no-ext-diff'
-  elseif info.filename =~# ' -> '
-    let [old, new] = split(info.filename,' -> ')
-    execute 'Gedit' . prefix s:fnameescape(':0:'.new)
-    return a:diff.' HEAD:'.s:fnameescape(old)
+  elseif len(info.paths) > 1
+    execute 'Gedit' . prefix s:fnameescape(':0:' . info.paths[0])
+    return a:diff.' HEAD:'.s:fnameescape(info.paths[1])
   elseif info.section ==# 'Staged' && info.sigil ==# '-'
-    execute 'Gedit' prefix s:fnameescape('@:'.info.filename)
+    execute 'Gedit' prefix s:fnameescape('@:'.info.paths[0])
     return a:diff.'! :0'
   elseif info.section ==# 'Staged'
-    execute 'Gedit' prefix s:fnameescape(':0:'.info.filename)
+    execute 'Gedit' prefix s:fnameescape(':0:'.info.paths[0])
     return a:diff . (info.sigil ==# '+' ? '!' : '') . ' -'
   elseif info.sigil ==# '-'
-    execute 'Gedit' prefix s:fnameescape(':0:'.info.filename)
+    execute 'Gedit' prefix s:fnameescape(':0:'.info.paths[0])
     return a:diff . '!'
   else
-    execute 'Gedit' prefix s:fnameescape(':(top)'.info.filename)
+    execute 'Gedit' prefix s:fnameescape(':(top)'.info.paths[0])
     return a:diff . (info.sigil ==# '+' ? '!' : '')
   endif
 endfunction
 
 function! s:StageDiffEdit() abort
   let info = s:StageInfo(line('.'))
-  let arg = (empty(info.filename) ? '.' : info.filename)
+  let arg = (empty(info.paths) ? '.' : info.paths[0])
   if info.section ==# 'Staged'
     return 'Git! diff --no-ext-diff --cached '.s:shellesc(arg)
   elseif info.status ==# '?'
@@ -2451,6 +2452,9 @@ function! s:StageDiffEdit() abort
 endfunction
 
 function! s:StageApply(info, reverse, extra) abort
+  if a:info.status ==# 'R'
+    call s:throw('fugitive: patching renamed file not yet supported')
+  endif
   let cmd = ['apply', '-p0', '--recount'] + a:extra
   let info = a:info
   let start = info.patch
@@ -2531,7 +2535,7 @@ function! s:StageDelete(lnum, count) abort
   exe s:ReloadStatus()
   let @@ = hash
   return 'checktime|redraw|echomsg ' .
-        \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.filename)
+        \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.paths[0])
 endfunction
 
 function! s:DoToggleHeadHeader(value) abort
@@ -2628,20 +2632,18 @@ function! s:StagePatch(lnum1,lnum2) abort
 
   for lnum in range(a:lnum1,a:lnum2)
     let info = s:StageInfo(lnum)
-    if empty(info.filename) && info.section ==# 'Staged'
+    if empty(info.paths) && info.section ==# 'Staged'
       return 'Git reset --patch'
-    elseif empty(info.filename) && info.section ==# 'Unstaged'
+    elseif empty(info.paths) && info.section ==# 'Unstaged'
       return 'Git add --patch'
-    elseif info.filename ==# ''
+    elseif empty(info.paths) ==# ''
       continue
     endif
     execute lnum
-    if info.filename =~ ' -> '
-      let reset += [split(info.filename,' -> ')[1]]
-    elseif info.section ==# 'Staged'
-      let reset += [info.filename]
+    if info.section ==# 'Staged'
+      let reset += info.paths
     elseif info.status !~# '^D'
-      let add += [info.filename]
+      let add += info.paths
     endif
   endfor
   try
@@ -4398,16 +4400,16 @@ function! s:StatusCfile(...) abort
   let lead = s:cpath(tree, getcwd()) ? './' : tree . '/'
   let info = s:StageInfo()
   let line = getline('.')
-  if len(info.sigil) && len(info.section) && len(info.filename)
+  if len(info.sigil) && len(info.section) && len(info.paths)
     if info.section ==# 'Unstaged' && info.sigil !=# '-'
-      return [lead . info.filename, info.offset, 'normal!zv']
+      return [lead . info.paths[0], info.offset, 'normal!zv']
     elseif info.section ==# 'Staged' && info.sigil ==# '-'
-      return ['@:' . info.filename, info.offset, 'normal!zv']
+      return ['@:' . info.paths[0], info.offset, 'normal!zv']
     else
-      return [':0:' . info.filename, info.offset, 'normal!zv']
+      return [':0:' . info.paths[0], info.offset, 'normal!zv']
     endif
-  elseif len(info.filename)
-    return [lead . info.filename]
+  elseif len(info.paths)
+    return [lead . info.paths[0]]
   elseif len(info.commit)
     return [info.commit]
   elseif line =~# '^\%(Head\|Merge\|Rebase\|Upstream\|Pull\|Push\): '
