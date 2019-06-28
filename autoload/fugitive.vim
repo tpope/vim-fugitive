@@ -2428,7 +2428,7 @@ function! s:StageDiff(diff) abort
     return a:diff.'! :0:%'
   elseif info.section ==# 'Staged'
     execute 'Gedit' prefix s:fnameescape(':0:'.info.paths[0])
-    return a:diff . (info.sigil ==# '+' ? '!' : '') . ' -'
+    return a:diff . (info.sigil ==# '+' ? '!' : '') . ' @:%'
   elseif info.sigil ==# '-'
     execute 'Gedit' prefix s:fnameescape(':0:'.info.paths[0])
     return a:diff . '!'
