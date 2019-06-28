@@ -74,6 +74,14 @@ function! s:warn(str) abort
   let v:warningmsg = a:str
 endfunction
 
+function! s:Mods(mods, ...) abort
+  let mods = a:mods ==# '<mods>' || empty(a:mods) ? '' : a:mods . ' '
+  if a:0 && mods !~# 'aboveleft\|belowright\|leftabove\|rightbelow\|topleft\|botright\|tab'
+    let mods = a:1 . ' ' . mods
+  endif
+  return mods
+endfunction
+
 function! s:Slash(path) abort
   if exists('+shellslash')
     return tr(a:path, '\', '/')
@@ -1934,10 +1942,7 @@ call s:command("-bar -bang -range=-1 G", "Status")
 
 function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
   try
-    let mods = a:mods ==# '<mods>' || empty(a:mods) ? '' : a:mods . ' '
-    if mods !~# 'aboveleft\|belowright\|leftabove\|rightbelow\|topleft\|botright'
-      let mods = (&splitbelow ? 'botright ' : 'topleft ') . mods
-    endif
+    let mods = s:Mods(a:mods, &splitbelow ? 'botright' : 'topleft')
     let file = fugitive#Find(':')
     let arg = ' +setl\ foldmethod=syntax\ foldlevel=1\|let\ w:fugitive_status=FugitiveGitDir() ' .
           \ s:fnameescape(file)
@@ -2657,7 +2662,7 @@ endfunction
 call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit", "Commit")
 
 function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
-  let mods = s:gsub(a:mods ==# '<mods>' ? '' : a:mods, '<tab>', '-tab')
+  let mods = substitute(s:Mods(a:mods), '\C\<tab\>', '-tab', 'g')
   let dir = a:0 ? a:1 : s:Dir()
   let tree = s:Tree(dir)
   let msgfile = fugitive#Find('.git/COMMIT_EDITMSG', dir)
@@ -2713,12 +2718,12 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         if args !~# '\%(^\| \)--cleanup\>'
           let args = '--cleanup=strip '.args
         endif
-        if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&mod
-          execute mods 'keepalt edit' s:fnameescape(msgfile)
+        if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&modified
+          execute mods . 'keepalt edit' s:fnameescape(msgfile)
         elseif a:arg =~# '\%(^\| \)-\w*v' || mods =~# '\<tab\>'
-          execute mods 'keepalt -tabedit' s:fnameescape(msgfile)
+          execute mods . 'keepalt -tabedit' s:fnameescape(msgfile)
         else
-          execute mods 'keepalt split' s:fnameescape(msgfile)
+          execute mods . 'keepalt split' s:fnameescape(msgfile)
         endif
         let b:fugitive_commit_arguments = args
         setlocal bufhidden=wipe filetype=gitcommit
@@ -2869,7 +2874,7 @@ endfunction
 
 function! s:Merge(cmd, bang, mods, args, ...) abort
   let dir = a:0 ? a:1 : s:Dir()
-  let mods = substitute(a:mods, '\C<mods>', '', '') . ' '
+  let mods = s:Mods(a:mods)
   if a:cmd =~# '^rebase' && ' '.a:args =~# ' -i\| --interactive'
     let cmd = fugitive#Prepare(dir, '-c', 'sequence.editor=sh ' . s:RebaseSequenceAborter(), 'rebase') . ' ' . a:args
     let out = system(cmd)[0:-2]
@@ -3193,7 +3198,7 @@ function! s:BlurStatus() abort
 endfunction
 
 function! s:Open(cmd, bang, mods, arg, args) abort
-  let mods = a:mods ==# '<mods>' ? '' : a:mods
+  let mods = s:Mods(a:mods)
 
   if a:bang
     let temp = tempname()
@@ -3212,7 +3217,7 @@ function! s:Open(cmd, bang, mods, arg, args) abort
     if a:cmd ==# 'edit'
       call s:BlurStatus()
     endif
-    silent execute mods a:cmd temp
+    silent execute mods . a:cmd temp
     call fugitive#ReloadStatus()
     return 'echo ' . string(':!' . git . ' ' . args)
   endif
@@ -3229,11 +3234,11 @@ function! s:Open(cmd, bang, mods, arg, args) abort
   if a:cmd ==# 'edit'
     call s:BlurStatus()
   endif
-  return mods . ' ' . a:cmd . pre . ' ' . s:fnameescape(file)
+  return mods . a:cmd . pre . ' ' . s:fnameescape(file)
 endfunction
 
 function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
-  let mods = a:mods ==# '<mods>' ? '' : a:mods
+  let mods = s:Mods(a:mods)
   let after = a:line2
   if a:count < 0
     let delete = 'silent 1,' . line('$') . 'delete_|'
@@ -3248,7 +3253,7 @@ function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) 
       let cdback = s:Cd(s:Tree())
       let git = s:UserCommand()
       let args = s:ShellExpand(a:arg)
-      silent execute mods after.'read!' escape(git . ' --no-pager ' . args, '!#%')
+      silent execute mods . after . 'read!' escape(git . ' --no-pager ' . args, '!#%')
     finally
       execute cdback
     endtry
@@ -3263,12 +3268,12 @@ function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) 
     return 'echoerr v:errmsg'
   endtry
   if file =~# '^fugitive:' && after is# 0
-    return 'exe ' .string(mods . ' ' . fugitive#FileReadCmd(file, 0, pre)) . '|diffupdate'
+    return 'exe ' .string(mods . fugitive#FileReadCmd(file, 0, pre)) . '|diffupdate'
   endif
   if foldlevel(after)
     exe after . 'foldopen!'
   endif
-  return mods . ' ' . after . 'read' . pre . ' ' . s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
+  return mods . after . 'read' . pre . ' ' . s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
 endfunction
 
 function! s:ReadComplete(A,L,P) abort
@@ -3846,7 +3851,7 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
         call s:throw(join(readfile(error),"\n"))
       endif
       if a:count
-        let edit = substitute(a:mods, '^<mods>$', '', '') . get(['edit', 'split', 'pedit'], a:line2 - a:line1, ' split')
+        let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit'], a:line2 - a:line1, ' split')
         return s:BlameCommit(edit, get(readfile(temp), 0, ''))
       else
         for winnr in range(winnr('$'),1,-1)
