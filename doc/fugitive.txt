@@ -75,14 +75,11 @@ that are part of Git repositories).
 :Glgrep[!] [args]       |:lgrep|[!] with git-grep as 'grepprg'.
 
                                                 *fugitive-:Glog*
-:Glog [args]            Load the commit history into the |quickfix| list.
-                        Additional git-log arguments can be given (for
-                        example, --reverse).  Provide "--" in the argument
-                        list to target all commits.  Otherwise, only commits
-                        changing the current file will be targeted.  This
-                        special casing is slated to be removed.
+:Glog[!] [args]         Use git-log [args] to load the commit history into the
+                        |quickfix| list.  Jump to the first commit unless [!]
+                        is given.
 
-:{range}Glog [args]     Use git-log -L to load previous revisions of the given
+:{range}Glog[!] [args]  Use git-log -L to load previous revisions of the given
                         range of the current file into the |quickfix| list.
                         The cursor is positioned on the first line of the
                         first diff hunk for each commit.  Use :0Glog to target
