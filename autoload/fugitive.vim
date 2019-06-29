@@ -2278,12 +2278,15 @@ function! s:Do(action, visual) abort
     if status < 0
       execute record.lnum + 1
     endif
-    call s:StageReveal()
+    let success = 1
   catch /^fugitive:/
     return 'echoerr v:errmsg'
   finally
     if reload
       execute s:ReloadStatus()
+    endif
+    if exists('success')
+      call s:StageReveal()
     endif
   endtry
   return ''
