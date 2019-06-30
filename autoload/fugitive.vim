@@ -2299,7 +2299,7 @@ function! s:StageReveal(...) abort
     while getline(end) =~# '^[ \+-]'
       let end += 1
     endwhile
-    while line('w$') > line('$') && end > line('w$') && line('.') > line('w0') + &scrolloff
+    while line('w$') < line('$') && end > line('w$') && line('.') > line('w0') + &scrolloff
       execute "normal! \<C-E>"
     endwhile
   endif
@@ -2536,6 +2536,7 @@ function! s:StageDelete(lnum, count) abort
     call s:TreeChomp('checkout', 'HEAD^{}', '--', info.paths[0])
   endif
   exe s:ReloadStatus()
+  call s:StageReveal()
   let @@ = hash
   return 'checktime|redraw|echomsg ' .
         \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.paths[0])
