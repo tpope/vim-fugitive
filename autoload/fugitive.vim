@@ -2692,6 +2692,9 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         let errors = readfile(errorfile)
         call delete(errorfile)
       else
+        if &autowrite
+          wall
+        endif
         let errors = split(s:TempCmd(outfile, command), "\n")
       endif
       let error = v:shell_error
