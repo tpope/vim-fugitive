@@ -329,9 +329,14 @@ function! s:ChompError(...) abort
   return [out, v:shell_error]
 endfunction
 
+function! s:ChompDefault(default, ...) abort
+  let [out, exec_error] = call('s:ChompError', a:000)
+  return exec_error ? a:default : out
+endfunction
+
 function! s:LinesError(...) abort
   let [out, exec_error] = call('s:ChompError', a:000)
-  return [split(out, "\n", 1), exec_error]
+  return [len(out) && !exec_error ? split(out, "\n", 1) : [], exec_error]
 endfunction
 
 function! s:TreeChomp(...) abort
@@ -360,8 +365,8 @@ function! fugitive#Head(...) abort
 endfunction
 
 function! fugitive#RevParse(rev, ...) abort
-  let hash = system(s:Prepare(a:0 ? a:1 : s:Dir(), 'rev-parse', '--verify', a:rev, '--'))[0:-2]
-  if !v:shell_error && hash =~# '^\x\{40\}$'
+  let [hash, exec_error] = s:ChompError([a:0 ? a:1 : s:Dir(), 'rev-parse', '--verify', a:rev, '--'])
+  if !exec_error && hash =~# '^\x\{40\}$'
     return hash
   endif
   call s:throw('rev-parse '.a:rev.': '.hash)
@@ -435,9 +440,7 @@ function! fugitive#RemoteUrl(...) abort
   if !fugitive#GitVersion(2, 7)
     return fugitive#Config('remote.' . remote . '.url')
   endif
-  let cmd = s:Prepare(dir, 'remote', 'get-url', remote, '--')
-  let out = substitute(system(cmd), "\n$", '', '')
-  return v:shell_error ? '' : out
+  return s:ChompDefault('', [dir, 'remote', 'get-url', remote, '--'])
 endfunction
 
 " Section: Repository Object
@@ -780,8 +783,7 @@ function! fugitive#Find(object, ...) abort
         endif
       endif
       if commit !~# '^[0-9a-f]\{40\}$'
-        let commit = system(s:Prepare(dir, 'rev-parse', '--verify', commit, '--'))[0:-2]
-        let commit = v:shell_error ? '' : commit
+        let commit = s:ChompDefault('', [dir, 'rev-parse', '--verify', commit, '--'])
       endif
       if len(commit)
         let f = 'fugitive://' . dir . '//' . commit . file
@@ -917,12 +919,12 @@ function! s:TreeInfo(dir, commit) abort
     let index = get(s:indexes, a:dir, [])
     let newftime = getftime(fugitive#Find('.git/index', a:dir))
     if get(index, 0, -1) < newftime
-      let out = system(fugitive#Prepare(a:dir, 'ls-files', '--stage', '--'))
+      let [lines, exec_error] = s:LinesError([a:dir, 'ls-files', '--stage', '--'])
       let s:indexes[a:dir] = [newftime, {'0': {}, '1': {}, '2': {}, '3': {}}]
-      if v:shell_error
+      if exec_error
         return [{}, -1]
       endif
-      for line in split(out, "\n")
+      for line in lines
         let [info, filename] = split(line, "\t")
         let [mode, sha, stage] = split(info, '\s\+')
         let s:indexes[a:dir][1][stage][filename] = [newftime, mode, 'blob', sha, -2]
@@ -938,20 +940,20 @@ function! s:TreeInfo(dir, commit) abort
       let s:trees[a:dir] = {}
     endif
     if !has_key(s:trees[a:dir], a:commit)
-      let ftime = +system(fugitive#Prepare(a:dir, 'log', '-1', '--pretty=format:%ct', a:commit, '--'))
-      if v:shell_error
+      let [ftime, exec_error] = s:ChompError([a:dir, 'log', '-1', '--pretty=format:%ct', a:commit, '--'])
+      if exec_error
         let s:trees[a:dir][a:commit] = [{}, -1]
         return s:trees[a:dir][a:commit]
       endif
       let s:trees[a:dir][a:commit] = [{}, +ftime]
-      let out = system(fugitive#Prepare(a:dir, 'ls-tree', '-rtl', '--full-name', a:commit, '--'))
-      if v:shell_error
+      let [lines, exec_error] = s:LinesError([a:dir, 'ls-tree', '-rtl', '--full-name', a:commit, '--'])
+      if exec_error
         return s:trees[a:dir][a:commit]
       endif
-      for line in split(out, "\n")
+      for line in lines
         let [info, filename] = split(line, "\t")
         let [mode, type, sha, size] = split(info, '\s\+')
-        let s:trees[a:dir][a:commit][0][filename] = [ftime, mode, type, sha, +size, filename]
+        let s:trees[a:dir][a:commit][0][filename] = [+ftime, mode, type, sha, +size, filename]
       endfor
     endif
     return s:trees[a:dir][a:commit]
@@ -1008,8 +1010,7 @@ function! fugitive#getfsize(url) abort
   let entry = s:PathInfo(a:url)
   if entry[4] == -2 && entry[2] ==# 'blob' && len(entry[3])
     let dir = s:DirCommitFile(a:url)[0]
-    let size = +system(s:Prepare(dir, 'cat-file', '-s', entry[3]))
-    let entry[4] = v:shell_error ? -1 : size
+    let entry[4] = +s:ChompDefault(-1, [dir, 'cat-file', '-s', entry[3]])
   endif
   return entry[4]
 endfunction
@@ -1069,16 +1070,17 @@ endfunction
 function! s:TempCmd(out, cmd) abort
   let prefix = ''
   try
-    let cmd = (type(a:cmd) == type([]) ? call('s:Prepare', a:cmd) : a:cmd)
+    let cmd = (type(a:cmd) == type([]) ? fugitive#Prepare(a:cmd) : a:cmd)
     let redir = ' > ' . a:out
     if s:winshell()
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      return s:System('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
+      let out = s:System('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
     elseif &shell =~# 'fish'
-      return s:System(' begin;' . prefix . cmd . redir . ';end ')
+      let out = s:System(' begin;' . prefix . cmd . redir . ';end ')
     else
-      return s:System(' (' . prefix . cmd . redir . ') ')
+      let out = s:System(' (' . prefix . cmd . redir . ') ')
     endif
+    return [out, v:shell_error]
   endtry
 endfunction
 
@@ -1100,9 +1102,8 @@ function! s:BlobTemp(url) abort
   endif
   if commit =~# '^\d$' || !filereadable(tempfile)
     let rev = s:DirRev(a:url)[1]
-    let command = s:Prepare(dir, 'cat-file', 'blob', rev)
-    call s:TempCmd(tempfile, command)
-    if v:shell_error
+    let exec_error = s:TempCmd(tempfile, [dir, 'cat-file', 'blob', rev])[1]
+    if exec_error
       call delete(tempfile)
       return ''
     endif
@@ -1132,9 +1133,9 @@ function! fugitive#writefile(lines, url, ...) abort
       call writefile(fugitive#readfile(url, 'b'), temp, 'b')
     endif
     call call('writefile', [a:lines, temp] + a:000)
-    let hash = system(s:Prepare(dir, 'hash-object', '-w', temp))[0:-2]
+    let [hash, exec_error] = s:ChompError([dir, 'hash-object', '-w', temp])
     let mode = len(entry[1]) ? entry[1] : '100644'
-    if !v:shell_error && hash =~# '^\x\{40\}$'
+    if !exec_error && hash =~# '^\x\{40\}$'
       call system(s:Prepare(dir, 'update-index', '--index-info'),
             \ mode . ' ' . hash . ' ' . commit . "\t" . file[1:-1])
       if !v:shell_error
@@ -1346,8 +1347,8 @@ endfunction
 
 function! s:ReplaceCmd(cmd) abort
   let temp = tempname()
-  let err = s:TempCmd(temp, a:cmd)
-  if v:shell_error
+  let [err, exec_error] = s:TempCmd(temp, a:cmd)
+  if exec_error
     call s:throw((len(err) ? err : filereadable(temp) ? join(readfile(temp), ' ') : 'unknown error running ' . a:cmd))
   endif
   let temp = s:Resolve(temp)
@@ -1371,10 +1372,7 @@ function! s:ReplaceCmd(cmd) abort
 endfunction
 
 function! s:QueryLog(refspec) abort
-  let lines = split(system(FugitivePrepare('log', '-n', '256', '--format=%h%x09%s', a:refspec, '--')), "\n")
-  if v:shell_error
-    return []
-  endif
+  let lines = s:LinesError(['log', '-n', '256', '--format=%h%x09%s', a:refspec, '--'])[0]
   call map(lines, 'split(v:val, "\t")')
   call map(lines, '{"type": "Log", "commit": v:val[0], "subject": v:val[-1]}')
   return lines
@@ -1558,8 +1556,8 @@ function! fugitive#BufReadStatus() abort
     endif
 
     let b:fugitive_diff = {
-          \ 'Staged': split(system(fugitive#Prepare('diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached')), "\n"),
-          \ 'Unstaged': split(system(fugitive#Prepare('diff', '--color=never', '--no-ext-diff', '--no-prefix')), "\n")}
+          \ 'Staged': s:LinesError(['diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'])[0],
+          \ 'Unstaged': s:LinesError(['diff', '--color=never', '--no-ext-diff', '--no-prefix'])[0]}
     let expanded = get(b:, 'fugitive_expanded', {'Staged': {}, 'Unstaged': {}})
     let b:fugitive_expanded = {'Staged': {}, 'Unstaged': {}}
 
@@ -1705,12 +1703,13 @@ function! fugitive#BufReadCmd(...) abort
     if rev =~# '^:\d$'
       let b:fugitive_type = 'stage'
     else
-      let b:fugitive_type = system(s:Prepare(dir, 'cat-file', '-t', rev))[0:-2]
-      if v:shell_error && rev =~# '^:0'
-        let sha = system(s:Prepare(dir, 'write-tree', '--prefix=' . rev[3:-1]))[0:-2]
+      let [b:fugitive_type, exec_error] = s:ChompError([dir, 'cat-file', '-t', rev])
+      if exec_error && rev =~# '^:0'
+        let sha = s:TreeChomp(dir, 'write-tree', '--prefix=' . rev[3:-1])
+        let exec_error = 0
         let b:fugitive_type = 'tree'
       endif
-      if v:shell_error
+      if exec_error
         let error = b:fugitive_type
         unlet b:fugitive_type
         setlocal noswapfile
@@ -2502,8 +2501,8 @@ function! s:StageApply(info, reverse, extra) abort
     call add(cmd, '--reverse')
   endif
   call extend(cmd, ['--', temp])
-  let output = call('s:TreeChomp', cmd)
-  if !v:shell_error
+  let [output, exec_error] = s:ChompError(cmd)
+  if !exec_error
     return 1
   endif
   call s:throw(output)
@@ -2697,14 +2696,15 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         let errorfile = tempname()
         noautocmd execute '!'.command.' 2> '.errorfile
         let errors = readfile(errorfile)
+        let exec_error = v:shell_error
         call delete(errorfile)
       else
         if &autowrite
           wall
         endif
-        let errors = split(s:TempCmd(outfile, command), "\n")
+        let [error_string, exec_error] = s:TempCmd(outfile, command)
+        let errors = split(error_string, "\n")
       endif
-      let error = v:shell_error
     finally
       execute cdback
       let &guioptions = guioptions
@@ -2712,7 +2712,7 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
     if !has('gui_running')
       redraw!
     endif
-    if !error
+    if !exec_error
       if filereadable(outfile)
         for line in readfile(outfile)
           echo line
@@ -2756,11 +2756,9 @@ endfunction
 
 function! s:CommitComplete(A,L,P) abort
   if a:A =~# '^--fixup=\|^--squash='
-    let [commits, exec_error] = s:LinesError(['log', '--pretty=format:%s', '@{upstream}..'])
-    if !exec_error
-      let pre = matchstr(a:A, '^--\w*=') . ':/^'
-      return map(commits, 'pre . tr(v:val, "\\ !^$*?[]()''\"`&;<>|#", "....................")')
-    endif
+    let commits = s:LinesError(['log', '--pretty=format:%s', '@{upstream}..'])[0]
+    let pre = matchstr(a:A, '^--\w*=') . ':/^'
+    return map(commits, 'pre . tr(v:val, "\\ !^$*?[]()''\"`&;<>|#", "....................")')
   elseif a:A =~ '^-' || type(a:A) == type(0) " a:A is 0 on :Gcommit -<Tab>
     let args = ['-C', '-F', '-a', '-c', '-e', '-i', '-m', '-n', '-o', '-q', '-s', '-t', '-u', '-v', '--all', '--allow-empty', '--amend', '--author=', '--cleanup=', '--dry-run', '--edit', '--file=', '--fixup=', '--include', '--interactive', '--message=', '--no-verify', '--only', '--quiet', '--reedit-message=', '--reuse-message=', '--signoff', '--squash=', '--template=', '--untracked-files', '--verbose']
     return filter(args,'v:val[0 : strlen(a:A)-1] ==# a:A')
@@ -2902,8 +2900,8 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
     return s:RebaseEdit(mods . 'split', dir)
   elseif a:cmd =~# '^rebase' && ' '.a:args =~# ' --continue' && !a:0
     let rdir = fugitive#Find('.git/rebase-merge', dir)
-    call system(fugitive#Prepare(dir, 'diff-index', '--cached', '--quiet', 'HEAD', '--'))
-    if v:shell_error && isdirectory(rdir)
+    let exec_error = s:ChompError([dir, 'diff-index', '--cached', '--quiet', 'HEAD', '--'])[1]
+    if exec_error && isdirectory(rdir)
       if getfsize(rdir . '/amend') <= 0
         return 'exe ' . string(mods . 'Gcommit -n -F ' . s:shellesc(rdir .'/message') . ' -e') . '|let b:fugitive_commit_rebase = 1'
       elseif readfile(rdir . '/amend')[0] ==# fugitive#Head(-1, dir)
