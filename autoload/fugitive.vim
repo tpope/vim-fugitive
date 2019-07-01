@@ -340,6 +340,11 @@ function! s:LinesError(...) abort
   return [len(out) && !exec_error ? split(out, "\n", 1) : [], exec_error]
 endfunction
 
+function! s:NullError(...) abort
+  let [out, exec_error] = s:SystemError(call('fugitive#Prepare', a:000))
+  return [exec_error ? [] : split(out, "\1"), exec_error ? out : '', exec_error]
+endfunction
+
 function! s:TreeChomp(...) abort
   let cmd = call('fugitive#Prepare', a:000)
   let [out, exec_error] = s:SystemError(cmd)
@@ -407,8 +412,8 @@ function! fugitive#Config(...) abort
     let dict = s:config[key][1]
   else
     let dict = {}
-    let lines = split(system(FugitivePrepare(['config', '--list', '-z'], dir)), "\1")
-    if v:shell_error
+    let [lines, message, exec_error] = s:NullError([dir, 'config', '--list', '-z'])
+    if exec_error
       return {}
     endif
     for line in lines
@@ -1434,9 +1439,9 @@ function! fugitive#BufReadStatus() abort
       let cmd += ['-c', 'GIT_INDEX_FILE=' . amatch]
     endif
     let cmd += ['status', '--porcelain', '-bz']
-    let output = split(system(fugitive#Prepare(cmd)), "\1")
-    if v:shell_error
-      throw 'fugitive: ' . join(output, ' ')
+    let [output, message, exec_error] = s:NullError(cmd)
+    if exec_error
+      throw 'fugitive: ' . message
     endif
 
     let head = matchstr(output[0], '^## \zs\S\+\ze\%($\| \[\)')
@@ -1902,8 +1907,8 @@ let s:aliases = {}
 function! s:Aliases(dir) abort
   if !has_key(s:aliases, a:dir)
     let s:aliases[a:dir] = {}
-    let lines = split(s:System(fugitive#Prepare('config','-z','--get-regexp','^alias[.]')),"\1")
-    for line in v:shell_error ? [] : lines
+    let lines = s:NullError([a:dir, 'config', '-z', '--get-regexp', '^alias[.]'])[0]
+    for line in lines
       let s:aliases[a:dir][matchstr(line, '\.\zs.\{-}\ze\n')] = matchstr(line, '\n\zs.*')
     endfor
   endif
