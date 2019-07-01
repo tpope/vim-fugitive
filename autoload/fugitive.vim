@@ -2672,7 +2672,6 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
   let tree = s:Tree(dir)
   let msgfile = fugitive#Find('.git/COMMIT_EDITMSG', dir)
   let outfile = tempname()
-  let errorfile = tempname()
   try
     let guioptions = &guioptions
     try
@@ -2687,12 +2686,13 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
       endif
       let args = s:ShellExpand(a:arg)
       let command .= s:UserCommand() . ' commit ' . args
-      if &shell =~# 'csh'
-        noautocmd silent execute '!('.escape(command, '!#%').' > '.outfile.') >& '.errorfile
-      elseif a:arg =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>'
+      if a:arg =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>' && &shell !~# 'csh'
+        let errorfile = tempname()
         noautocmd execute '!'.command.' 2> '.errorfile
+        let errors = readfile(errorfile)
+        call delete(errorfile)
       else
-        noautocmd silent execute '!'.command.' > '.outfile.' 2> '.errorfile
+        let errors = split(s:TempCmd(outfile, command), "\n")
       endif
       let error = v:shell_error
     finally
@@ -2711,7 +2711,6 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
       call fugitive#ReloadStatus()
       return ''
     else
-      let errors = readfile(errorfile)
       let error = get(errors,-2,get(errors,-1,'!'))
       if error =~# 'false''\=\.$'
         let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-[esp]|--edit|--interactive|--patch|--signoff)%($| )','')
@@ -2742,7 +2741,6 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
     return 'echoerr ' . string(v:exception)
   finally
     call delete(outfile)
-    call delete(errorfile)
   endtry
 endfunction
 
