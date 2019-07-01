@@ -1872,29 +1872,21 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
   if has('gui_running') && !has('win32')
     let git .= ' --no-pager'
   endif
+  if has('nvim') && executable('env')
+    let git = 'env GIT_TERMINAL_PROMPT=0 ' . git
+  endif
   let args = matchstr(a:arg,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
   let after = matchstr(a:arg, '\v\C\\@<!%(\\\\)*\zs\|.*')
   let tree = s:Tree()
   if !s:CanAutoReloadStatus()
     let after = '|call fugitive#ReloadStatus()' . after
   endif
-  if exists(':terminal') && has('nvim') && !get(g:, 'fugitive_force_bang_command')
-    if len(@%)
-      -tabedit %
-    else
-      -tabnew
-    endif
-    execute 'lcd' fnameescape(tree)
-    let exec = escape(git . ' ' . s:ShellExpand(args), '#%')
-    return 'exe ' . string('terminal ' . exec) . after
-  else
-    let cmd = "exe '!'.escape(" . string(git) . " . ' ' . s:ShellExpand(" . string(args) . "),'!#%')"
-    if s:cpath(tree) !=# s:cpath(getcwd())
-      let cd = s:Cd()
-      let cmd = 'try|' . cd . ' ' . tree . '|' . cmd . '|finally|' . cd . ' ' . s:fnameescape(getcwd()) . '|endtry'
-    endif
-    return cmd . after
+  let cmd = "exe '!'.escape(" . string(git) . " . ' ' . s:ShellExpand(" . string(args) . "),'!#%')"
+  if s:cpath(tree) !=# s:cpath(getcwd())
+    let cd = s:Cd()
+    let cmd = 'try|' . cd . ' ' . tree . '|' . cmd . '|finally|' . cd . ' ' . s:fnameescape(getcwd()) . '|endtry'
   endif
+  return cmd . after
 endfunction
 
 let s:exec_paths = {}
