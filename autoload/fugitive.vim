@@ -170,10 +170,6 @@ function! s:UserCommand() abort
   return get(g:, 'fugitive_git_command', g:fugitive_git_executable)
 endfunction
 
-function! s:Prepare(...) abort
-  return call('fugitive#Prepare', a:000)
-endfunction
-
 let s:git_versions = {}
 function! fugitive#GitVersion(...) abort
   if !has_key(s:git_versions, g:fugitive_git_executable)
@@ -252,20 +248,19 @@ let s:prepare_env = {
       \ 'core.editor': 'GIT_EDITOR',
       \ 'core.askpass': 'GIT_ASKPASS',
       \ }
-function! fugitive#Prepare(...) abort
-  if !a:0
-    return g:fugitive_git_executable
-  endif
-  if type(a:1) ==# type([])
+function! fugitive#PrepareDirEnvArgv(...) abort
+  if a:0 && type(a:1) ==# type([])
     let cmd = a:000[1:-1] + a:1
   else
     let cmd = copy(a:000)
   endif
-  let pre = ''
+  let env = {}
   let i = 0
   while i < len(cmd)
     if cmd[i] =~# '^$\|[\/.]' && cmd[i] !~# '^-'
       let dir = remove(cmd, 0)
+    elseif cmd[i] =~# '^--git-dir='
+      let dir = remove(cmd, 0)[10:-1]
     elseif type(cmd[i]) ==# type(0)
       let dir = s:Dir(remove(cmd, i))
     elseif cmd[i] ==# '-c' && len(cmd) > i + 1
@@ -273,11 +268,7 @@ function! fugitive#Prepare(...) abort
       if has_key(s:prepare_env, tolower(key)) || key !~# '\.'
         let var = get(s:prepare_env, tolower(key), key)
         let val = matchstr(cmd[i+1], '=\zs.*')
-        if s:winshell()
-          let pre .= 'set ' . var . '=' . s:shellesc(val) . '& '
-        else
-          let pre = (len(pre) ? pre : 'env ') . var . '=' . s:shellesc(val) . ' '
-        endif
+        let env[var] = val
       endif
       if fugitive#GitVersion(1, 8) && cmd[i+1] =~# '\.'
         let i += 2
@@ -302,15 +293,34 @@ function! fugitive#Prepare(...) abort
   endif
   let tree = s:Tree(dir)
   call s:PreparePathArgs(cmd, dir, !exists('explicit_pathspec_option'))
-  let args = join(map(copy(cmd), 's:shellesc(v:val)'))
+  return [dir, env, cmd]
+endfunction
+
+function! s:BuildShell(dir, env, args) abort
+  let cmd = copy(a:args)
+  let tree = s:Tree(a:dir)
+  let pre = ''
+  for [var, val] in items(a:env)
+    if s:winshell()
+      let pre .= 'set ' . var . '=' . s:shellesc(val) . '& '
+    else
+      let pre = (len(pre) ? pre : 'env ') . var . '=' . s:shellesc(val) . ' '
+    endif
+  endfor
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
-    let args = s:shellesc('--git-dir=' . dir) . ' ' . args
+    call insert(cmd, '--git-dir=' . a:dir)
   elseif fugitive#GitVersion(1, 9)
-    let args = '-C ' . s:shellesc(tree) . ' ' . args
+    call extend(cmd, ['-C', tree], 'keep')
   else
-    let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? ' & ' : '; ') . pre
+    let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? '& ' : '; ') . pre
   endif
-  return pre . g:fugitive_git_executable . ' ' . args
+  let cmd = join(map(cmd, 's:shellesc(v:val)'))
+  return pre . g:fugitive_git_executable . ' ' . cmd
+endfunction
+
+function! fugitive#Prepare(...) abort
+  let [dir, env, argv] = call('fugitive#PrepareDirEnvArgv', a:000)
+  return s:BuildShell(dir, env, argv)
 endfunction
 
 function! s:SystemError(cmd, ...) abort
@@ -1657,9 +1667,9 @@ function! fugitive#FileReadCmd(...) abort
     return 'noautocmd ' . line . 'read ' . s:fnameescape(amatch)
   endif
   if rev !~# ':'
-    let cmd = s:Prepare(dir, 'log', '--pretty=format:%B', '-1', rev, '--')
+    let cmd = fugitive#Prepare(dir, 'log', '--pretty=format:%B', '-1', rev, '--')
   else
-    let cmd = s:Prepare(dir, 'cat-file', '-p', rev)
+    let cmd = fugitive#Prepare(dir, 'cat-file', '-p', rev)
   endif
   return line . 'read !' . escape(cmd, '!#%')
 endfunction
@@ -1676,7 +1686,7 @@ function! fugitive#FileWriteCmd(...) abort
     if commit !~# '^[0-3]$' || !v:cmdbang && (line("'[") != 1 || line("']") != line('$'))
       return "noautocmd '[,']write" . (v:cmdbang ? '!' : '') . ' ' . s:fnameescape(amatch)
     endif
-    silent execute "'[,']write !".s:Prepare(dir, 'hash-object', '-w', '--stdin', '--').' > '.tmp
+    silent execute "'[,']write !".fugitive#Prepare(dir, 'hash-object', '-w', '--stdin', '--').' > '.tmp
     let sha1 = readfile(tmp)[0]
     let old_mode = matchstr(s:SystemError([dir, 'ls-files', '--stage', '.' . file])[0], '^\d\+')
     if empty(old_mode)
