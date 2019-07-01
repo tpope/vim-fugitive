@@ -285,7 +285,7 @@ function! fugitive#Prepare(...) abort
         let var = get(s:prepare_env, tolower(key), key)
         let val = matchstr(cmd[i+1], '=\zs.*')
         if s:winshell()
-          let pre .= 'set ' . var . '=' . s:shellesc(val) . ' & '
+          let pre .= 'set ' . var . '=' . s:shellesc(val) . '& '
         else
           let pre = (len(pre) ? pre : 'env ') . var . '=' . s:shellesc(val) . ' '
         endif
@@ -2695,7 +2695,7 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
       endif
       let cdback = s:Cd(tree)
       if s:winshell()
-        let command = 'set GIT_EDITOR=false & '
+        let command = 'set GIT_EDITOR=false& '
       else
         let command = 'env GIT_EDITOR=false '
       endif
