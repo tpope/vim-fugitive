@@ -164,17 +164,6 @@ function! s:map(mode, lhs, rhs, ...) abort
   endif
 endfunction
 
-function! s:System(cmd) abort
-  try
-    return system(a:cmd)
-  catch /^Vim\%((\a\+)\)\=:E484:/
-    let opts = ['shell', 'shellcmdflag', 'shellredir', 'shellquote', 'shellxquote', 'shellxescape', 'shellslash']
-    call filter(opts, 'exists("+".v:val) && !empty(eval("&".v:val))')
-    call map(opts, 'v:val."=".eval("&".v:val)')
-    call s:throw('failed to run `' . a:cmd . '` with ' . join(opts, ' '))
-  endtry
-endfunction
-
 " Section: Git
 
 function! s:UserCommand() abort
@@ -324,9 +313,21 @@ function! fugitive#Prepare(...) abort
   return pre . g:fugitive_git_executable . ' ' . args
 endfunction
 
+function! s:SystemError(cmd, ...) abort
+  try
+    let out = call('system', [type(a:cmd) ==# type([]) ? fugitive#Prepare(a:cmd) : a:cmd] + a:000)
+    return [out, v:shell_error]
+  catch /^Vim\%((\a\+)\)\=:E484:/
+    let opts = ['shell', 'shellcmdflag', 'shellredir', 'shellquote', 'shellxquote', 'shellxescape', 'shellslash']
+    call filter(opts, 'exists("+".v:val) && !empty(eval("&".v:val))')
+    call map(opts, 'v:val."=".eval("&".v:val)')
+    call s:throw('failed to run `' . a:cmd . '` with ' . join(opts, ' '))
+  endtry
+endfunction
+
 function! s:ChompError(...) abort
-  let out = s:sub(s:System(call('fugitive#Prepare', a:000)), '\n$', '')
-  return [out, v:shell_error]
+  let [out, exec_error] = s:SystemError(call('fugitive#Prepare', a:000))
+  return [s:sub(out, '\n$', ''), exec_error]
 endfunction
 
 function! s:ChompDefault(default, ...) abort
@@ -341,8 +342,9 @@ endfunction
 
 function! s:TreeChomp(...) abort
   let cmd = call('fugitive#Prepare', a:000)
-  let out = s:sub(s:System(cmd), '\n$', '')
-  if !v:shell_error
+  let [out, exec_error] = s:SystemError(cmd)
+  let out = s:sub(out, '\n$', '')
+  if !exec_error
     return out
   endif
   throw 'fugitive: error running `' . cmd . '`: ' . out
@@ -530,7 +532,7 @@ endfunction
 function! s:repo_git_chomp(...) dict abort
   let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
   let output = git . join(map(copy(a:000),'" ".s:shellesc(v:val)'),'')
-  return s:sub(s:System(output),'\n$','')
+  return s:sub(system(output), '\n$', '')
 endfunction
 
 function! s:repo_git_chomp_in_tree(...) dict abort
@@ -1062,9 +1064,9 @@ function! fugitive#setfperm(url, perm) abort
       \ substitute(perm, 'x', '-', 'g') !=# substitute(a:perm, 'x', '-', 'g')
     return -2
   endif
-  call system(s:Prepare(dir, 'update-index', '--index-info'),
-        \ (a:perm =~# 'x' ? '000755 ' : '000644 ') . entry[3] . ' ' . commit . "\t" . file[1:-1])
-  return v:shell_error ? -1 : 0
+  let exec_error = s:SystemError([dir, 'update-index', '--index-info'],
+        \ (a:perm =~# 'x' ? '000755 ' : '000644 ') . entry[3] . ' ' . commit . "\t" . file[1:-1])[1]
+  return exec_error ? -1 : 0
 endfunction
 
 function! s:TempCmd(out, cmd) abort
@@ -1074,13 +1076,12 @@ function! s:TempCmd(out, cmd) abort
     let redir = ' > ' . a:out
     if s:winshell()
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      let out = s:System('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
+      return s:SystemError('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
     elseif &shell =~# 'fish'
-      let out = s:System(' begin;' . prefix . cmd . redir . ';end ')
+      return s:SystemError(' begin;' . prefix . cmd . redir . ';end ')
     else
-      let out = s:System(' (' . prefix . cmd . redir . ') ')
+      return s:SystemError(' (' . prefix . cmd . redir . ') ')
     endif
-    return [out, v:shell_error]
   endtry
 endfunction
 
@@ -1136,9 +1137,9 @@ function! fugitive#writefile(lines, url, ...) abort
     let [hash, exec_error] = s:ChompError([dir, 'hash-object', '-w', temp])
     let mode = len(entry[1]) ? entry[1] : '100644'
     if !exec_error && hash =~# '^\x\{40\}$'
-      call system(s:Prepare(dir, 'update-index', '--index-info'),
-            \ mode . ' ' . hash . ' ' . commit . "\t" . file[1:-1])
-      if !v:shell_error
+      let exec_error = s:SystemError([dir, 'update-index', '--index-info'],
+            \ mode . ' ' . hash . ' ' . commit . "\t" . file[1:-1])[1]
+      if !exec_error
         return 0
       endif
     endif
@@ -1191,9 +1192,9 @@ function! fugitive#delete(url, ...) abort
   if entry[2] !=# 'blob'
     return -1
   endif
-  call system(s:Prepare(dir, 'update-index', '--index-info'),
-        \ '000000 0000000000000000000000000000000000000000 ' . commit . "\t" . file[1:-1])
-  return v:shell_error ? -1 : 0
+  let exec_error = s:SystemError([dir, 'update-index', '--index-info'],
+        \ '000000 0000000000000000000000000000000000000000 ' . commit . "\t" . file[1:-1])[1]
+  return exec_error ? -1 : 0
 endfunction
 
 " Section: Buffer Object
@@ -1672,13 +1673,13 @@ function! fugitive#FileWriteCmd(...) abort
     endif
     silent execute "'[,']write !".s:Prepare(dir, 'hash-object', '-w', '--stdin', '--').' > '.tmp
     let sha1 = readfile(tmp)[0]
-    let old_mode = matchstr(system(s:Prepare(dir, 'ls-files', '--stage', '.' . file)), '^\d\+')
+    let old_mode = matchstr(s:SystemError([dir, 'ls-files', '--stage', '.' . file])[0], '^\d\+')
     if empty(old_mode)
       let old_mode = executable(s:Tree(dir) . file) ? '100755' : '100644'
     endif
     let info = old_mode.' '.sha1.' '.commit."\t".file[1:-1]
-    let error = system(s:Prepare(dir, 'update-index', '--index-info'), info . "\n")
-    if v:shell_error == 0
+    let [error, exec_error] = s:SystemError([dir, 'update-index', '--index-info'], info . "\n")
+    if !exec_error
       setlocal nomodified
       if exists('#' . autype . 'WritePost')
         execute 'doautocmd ' . autype . 'WritePost ' . s:fnameescape(amatch)
