@@ -159,7 +159,7 @@ function! FugitiveExtractGitDir(path) abort
   endif
   let root = resolve(path)
   if root !=# path
-    silent! exe haslocaldir() ? 'lcd .' : 'cd .'
+    silent! exe (haslocaldir() ? 'lcd' : exists(':tcd') && haslocaldir(-1) ? 'tcd' : 'cd') '.'
   endif
   let previous = ""
   let env_git_dir = len($GIT_DIR) ? s:Slash(simplify(fnamemodify($GIT_DIR, ':p:s?[\/]$??'))) : ''
