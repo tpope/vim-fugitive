@@ -2681,9 +2681,7 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
       endif
       let cdback = s:Cd(tree)
       if s:winshell()
-        let command = ''
-        let old_editor = $GIT_EDITOR
-        let $GIT_EDITOR = 'false'
+        let command = 'set GIT_EDITOR=false & '
       else
         let command = 'env GIT_EDITOR=false '
       endif
@@ -2743,9 +2741,6 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   finally
-    if exists('old_editor')
-      let $GIT_EDITOR = old_editor
-    endif
     call delete(outfile)
     call delete(errorfile)
   endtry
