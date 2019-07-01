@@ -324,8 +324,23 @@ function! fugitive#Prepare(...) abort
   return pre . g:fugitive_git_executable . ' ' . args
 endfunction
 
+function! s:ChompError(...) abort
+  let out = s:sub(s:System(call('fugitive#Prepare', a:000)), '\n$', '')
+  return [out, v:shell_error]
+endfunction
+
+function! s:LinesError(...) abort
+  let [out, exec_error] = call('s:ChompError', a:000)
+  return [split(out, "\n", 1), exec_error]
+endfunction
+
 function! s:TreeChomp(...) abort
-  return s:sub(s:System(call('fugitive#Prepare', a:000)), '\n$', '')
+  let cmd = call('fugitive#Prepare', a:000)
+  let out = s:sub(s:System(cmd), '\n$', '')
+  if !v:shell_error
+    return out
+  endif
+  throw 'fugitive: error running `' . cmd . '`: ' . out
 endfunction
 
 function! fugitive#Head(...) abort
@@ -1734,7 +1749,7 @@ function! fugitive#BufReadCmd(...) abort
           call s:ReplaceCmd([dir, 'ls-tree', exists('sha') ? sha : rev])
         else
           if !exists('sha')
-            let sha = system(s:Prepare(dir, 'rev-parse', '--verify', rev, '--'))[0:-2]
+            let sha = s:TreeChomp(dir, 'rev-parse', '--verify', rev, '--')
           endif
           call s:ReplaceCmd([dir, 'show', '--no-color', sha])
         endif
@@ -1895,7 +1910,7 @@ let s:aliases = {}
 function! s:Aliases(dir) abort
   if !has_key(s:aliases, a:dir)
     let s:aliases[a:dir] = {}
-    let lines = split(s:TreeChomp('config','-z','--get-regexp','^alias[.]'),"\1")
+    let lines = split(s:System(fugitive#Prepare('config','-z','--get-regexp','^alias[.]')),"\1")
     for line in v:shell_error ? [] : lines
       let s:aliases[a:dir][matchstr(line, '\.\zs.\{-}\ze\n')] = matchstr(line, '\n\zs.*')
     endfor
@@ -2749,8 +2764,8 @@ endfunction
 
 function! s:CommitComplete(A,L,P) abort
   if a:A =~# '^--fixup=\|^--squash='
-    let commits = split(s:TreeChomp('log', '--pretty=format:%s', '@{upstream}..'), "\n")
-    if !v:shell_error
+    let [commits, exec_error] = s:LinesError(['log', '--pretty=format:%s', '@{upstream}..'])
+    if !exec_error
       let pre = matchstr(a:A, '^--\w*=') . ':/^'
       return map(commits, 'pre . tr(v:val, "\\ !^$*?[]()''\"`&;<>|#", "....................")')
     endif
@@ -3371,11 +3386,11 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
   endif
 
   if a:bang
-    let error = s:TreeChomp('add', '--force', '--', file)
+    let [error, exec_error] = s:ChompError(['add', '--force', '--', file])
   else
-    let error = s:TreeChomp('add', '--', file)
+    let [error, exec_error] = s:ChompError(['add', '--', file])
   endif
-  if v:shell_error
+  if exec_error
     let v:errmsg = 'fugitive: '.error
     return 'echoerr v:errmsg'
   endif
@@ -3614,9 +3629,6 @@ function! s:Diff(vert,keepfocus,...) abort
   if exists(':DiffGitCached')
     return 'DiffGitCached'
   elseif (empty(args) || args[0] ==# ':') && commit =~# '^[0-1]\=$' && !empty(s:TreeChomp('ls-files', '--unmerged', '--', expand('%:p')))
-    if v:shell_error
-      return 'echoerr ' . string("fugitive: error determining merge status of the current buffer")
-    endif
     let vert = empty(a:vert) ? s:diff_modifier(3) : a:vert
     let nr = bufnr('')
     execute 'leftabove '.vert.'split' s:fnameescape(s:Generate(s:Relative(':2:')))
@@ -3706,8 +3718,8 @@ function! s:Move(force, rename, destination) abort
   if isdirectory(@%)
     setlocal noswapfile
   endif
-  let message = call('s:TreeChomp', ['mv'] + (a:force ? ['-f'] : []) + ['--', expand('%:p'), destination])
-  if v:shell_error
+  let [message, exec_error] = s:ChompError(['mv'] + (a:force ? ['-f'] : []) + ['--', expand('%:p'), destination])
+  if exec_error
     let v:errmsg = 'fugitive: '.message
     return 'echoerr v:errmsg'
   endif
@@ -3747,8 +3759,8 @@ function! s:Remove(after, force) abort
   if a:force
     let cmd += ['--force']
   endif
-  let message = call('s:TreeChomp', cmd + ['--', expand('%:p')])
-  if v:shell_error
+  let [message, exec_error] = s:ChompError(cmd + ['--', expand('%:p')])
+  if exec_error
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
   else
@@ -4180,8 +4192,8 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
         let commit = ''
         if len(merge)
           let owner = s:Owner(@%)
-          let commit = s:TreeChomp('merge-base', 'refs/remotes/' . remote . '/' . merge, empty(owner) ? 'HEAD' : owner, '--')
-          if v:shell_error
+          let [commit, exec_error] = s:ChompError(['merge-base', 'refs/remotes/' . remote . '/' . merge, empty(owner) ? 'HEAD' : owner, '--'])
+          if exec_error
             let commit = ''
           endif
           if a:count && empty(a:args) && commit =~# '^\x\{40\}$'
@@ -4189,8 +4201,8 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
             call writefile([commit, ''], blame_list, 'b')
             let blame_in = tempname()
             silent exe '%write' blame_in
-            let blame = split(s:TreeChomp('blame', '--contents', blame_in, '-L', a:line1.','.a:count, '-S', blame_list, '-s', '--show-number', './' . path), "\n")
-            if !v:shell_error
+            let [blame, exec_error] = s:LinesError(['blame', '--contents', blame_in, '-L', a:line1.','.a:count, '-S', blame_list, '-s', '--show-number', './' . path])
+            if !exec_error
               let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
               if get(blame, 0) =~# blame_regex && get(blame, -1) =~# blame_regex
                 let line1 = +matchstr(blame[0], blame_regex)
