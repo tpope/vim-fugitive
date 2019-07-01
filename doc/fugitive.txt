@@ -133,7 +133,7 @@ that are part of Git repositories).
 
 :Gwrite {path}          You can give |:Gwrite| an explicit path of where in
                         the work tree to write.  You can also give a path like
-                        :0:foo.txt or even :0 to write to just that stage in
+                        :0:foo.txt or :0:% to write to just that stage in
                         the index.
 
                                                 *fugitive-:Gwq*
