@@ -1441,6 +1441,7 @@ endfunction
 function! fugitive#BufReadStatus() abort
   let amatch = s:Slash(expand('%:p'))
   let b:fugitive_type = 'index'
+  unlet! b:fugitive_reltime
   try
     silent doautocmd BufReadPre
     let cmd = [fnamemodify(amatch, ':h')]
@@ -1653,6 +1654,7 @@ function! fugitive#BufReadStatus() abort
       endwhile
     endfor
 
+    let b:fugitive_reltime = reltime()
     return ''
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
@@ -1699,7 +1701,6 @@ function! fugitive#FileWriteCmd(...) abort
       if exists('#' . autype . 'WritePost')
         execute 'doautocmd ' . autype . 'WritePost ' . s:fnameescape(amatch)
       endif
-      call fugitive#ReloadStatus()
       return ''
     else
       return 'echoerr '.string('fugitive: '.error)
@@ -1893,9 +1894,6 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
   let args = matchstr(a:arg,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
   let after = matchstr(a:arg, '\v\C\\@<!%(\\\\)*\zs\|.*')
   let tree = s:Tree()
-  if !s:CanAutoReloadStatus()
-    let after = '|call fugitive#ReloadStatus()' . after
-  endif
   let cmd = "exe '!'.escape(" . string(git) . " . ' ' . s:ShellExpand(" . string(args) . "),'!#%')"
   if s:cpath(tree) !=# s:cpath(getcwd())
     let cd = s:Cd()
@@ -2047,6 +2045,7 @@ function! s:StageSeek(info, fallback) abort
 endfunction
 
 function! s:ReloadStatus(...) abort
+  call s:ExpireStatus(-1)
   if get(b:, 'fugitive_type', '') !=# 'index'
     return ''
   endif
@@ -2058,57 +2057,99 @@ function! s:ReloadStatus(...) abort
   return ''
 endfunction
 
-function! fugitive#ReloadStatus(...) abort
-  if exists('s:reloading_status')
+let s:last_time = reltime()
+if !exists('s:last_times')
+  let s:last_times = {}
+endif
+
+function! s:ExpireStatus(bufnr) abort
+  if a:bufnr == -2
+    let s:last_time = reltime()
+    return ''
+  endif
+  let dir = s:Dir(a:bufnr)
+  if len(dir)
+    let s:last_times[s:cpath(dir)] = reltime()
+  endif
+  return ''
+endfunction
+
+function! FugitiveReloadCheck() abort
+  let t = b:fugitive_reltime
+  return [t, reltimestr(reltime(s:last_time, t)),
+        \ reltimestr(reltime(get(s:last_times, s:cpath(s:Dir()), t), t))]
+endfunction
+
+function! s:ReloadWinStatus(...) abort
+  if get(b:, 'fugitive_type', '') !=# 'index' || &modified
     return
   endif
-  try
-    let s:reloading_status = 1
-    let mytab = tabpagenr()
-    for tab in [mytab] + range(1,tabpagenr('$'))
-      for winnr in range(1,tabpagewinnr(tab,'$'))
-        if getbufvar(tabpagebuflist(tab)[winnr-1],'fugitive_type') ==# 'index'
-          execute 'tabnext '.tab
-          if winnr != winnr()
-            execute winnr.'wincmd w'
-            let restorewinnr = 1
-          endif
-          try
-            if !&modified
-              exe s:ReloadStatus()
-            endif
-          finally
-            if exists('restorewinnr')
-              unlet restorewinnr
-              wincmd p
-            endif
-            execute 'tabnext '.mytab
-          endtry
+  if !exists('b:fugitive_reltime')
+    exe s:ReloadStatus()
+    return
+  endif
+  let t = b:fugitive_reltime
+  if reltimestr(reltime(s:last_time, t)) =~# '-' ||
+        \ reltimestr(reltime(get(s:last_times, s:cpath(s:Dir()), t), t)) =~# '-'
+    exe s:ReloadStatus()
+  endif
+endfunction
+
+function! s:ReloadTabStatus(...) abort
+  let mytab = tabpagenr()
+  let tab = a:0 ? a:1 : mytab
+  for winnr in range(1, tabpagewinnr(tab, '$'))
+    if getbufvar(tabpagebuflist(tab)[winnr-1], 'fugitive_type') ==# 'index'
+      execute 'tabnext '.tab
+      if winnr != winnr()
+        execute winnr.'wincmd w'
+        let restorewinnr = 1
+      endif
+      try
+        call s:ReloadWinStatus()
+      finally
+        if exists('restorewinnr')
+          unlet restorewinnr
+          wincmd p
         endif
-      endfor
+        execute 'tabnext '.mytab
+      endtry
+    endif
+  endfor
+  unlet! t:fugitive_reload_status
+endfunction
+
+function! fugitive#ReloadStatus(...) abort
+  call s:ExpireStatus(a:0 ? a:1 : -2)
+  if a:0 > 1 ? a:2 : s:CanAutoReloadStatus()
+    let t = reltime()
+    for tabnr in range(1, tabpagenr('$'))
+      call settabvar(tabnr, 'fugitive_reload_status', t)
     endfor
-  finally
-    unlet! s:reloading_status
-  endtry
+    call s:ReloadTabStatus()
+  else
+    call s:ReloadWinStatus()
+  endif
 endfunction
 
 function! s:CanAutoReloadStatus() abort
   return get(g:, 'fugitive_autoreload_status', !has('win32'))
 endfunction
 
-function! s:AutoReloadStatus(...) abort
-  if s:CanAutoReloadStatus()
-    return call('fugitive#ReloadStatus', a:000)
-  endif
-endfunction
-
 augroup fugitive_status
   autocmd!
-  autocmd ShellCmdPost         * call s:AutoReloadStatus()
-  autocmd BufDelete     term://* call s:AutoReloadStatus()
+  autocmd BufWritePost         * call fugitive#ReloadStatus(-1, 0)
+  autocmd ShellCmdPost         * call fugitive#ReloadStatus()
+  autocmd BufDelete     term://* call fugitive#ReloadStatus()
   if !has('win32')
-    autocmd FocusGained        * call s:AutoReloadStatus()
+    autocmd FocusGained        * call fugitive#ReloadStatus(-2, 0)
   endif
+  autocmd BufEnter index,index.lock
+        \ call s:ReloadWinStatus()
+  autocmd TabEnter *
+        \ if exists('t:fugitive_reload_status') |
+        \    call s:ReloadTabStatus() |
+        \ endif
 augroup END
 
 function! s:StageInfo(...) abort
@@ -2753,7 +2794,7 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
           echo line
         endfor
       endif
-      call fugitive#ReloadStatus()
+      call fugitive#ReloadStatus(dir, 1)
       return ''
     else
       let error = get(errors,-2,get(errors,-1,'!'))
@@ -3016,7 +3057,7 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
     endif
     execute cdback
   endtry
-  call fugitive#ReloadStatus()
+  call fugitive#ReloadStatus(dir, 1)
   if empty(filter(getqflist(),'v:val.valid && v:val.type !=# "I"'))
     if a:cmd =~# '^rebase' &&
           \ filereadable(fugitive#Find('.git/rebase-merge/amend', dir)) &&
@@ -3243,9 +3284,10 @@ function! s:Open(cmd, bang, mods, arg, args) abort
   let mods = s:Mods(a:mods)
 
   if a:bang
+    let dir = s:Dir()
     let temp = tempname()
     try
-      let cdback = s:Cd(s:Tree())
+      let cdback = s:Cd(s:Tree(dir))
       let git = s:UserCommand()
       let args = s:ShellExpand(a:arg)
       silent! execute '!' . escape(git . ' --no-pager ' . args, '!#%') .
@@ -3260,7 +3302,7 @@ function! s:Open(cmd, bang, mods, arg, args) abort
       call s:BlurStatus()
     endif
     silent execute mods . a:cmd temp
-    call fugitive#ReloadStatus()
+    call fugitive#ReloadStatus(dir, 1)
     return 'echo ' . string(':!' . git . ' ' . args)
   endif
 
