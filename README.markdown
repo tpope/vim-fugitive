@@ -79,21 +79,6 @@ Fugitive cares about the current file, not the current working directory.
 Edit a file from the repository.  To avoid the blank window problem, favor
 commands like `:split` and `:tabedit` over commands like `:new` and `:tabnew`.
 
-> Here's a patch that automatically opens the quickfix window after
-> `:Ggrep`.
-
-This is a great example of why I recommend asking before patching.
-There are valid arguments to be made both for and against automatically
-opening the quickfix window.  Whenever I have to make an arbitrary
-decision like this, I ask what Vim would do.  And Vim does not open a
-quickfix window after `:grep`.
-
-Luckily, it's easy to implement the desired behavior without changing
-fugitive.vim.  The following autocommand will cause the quickfix window
-to open after any grep invocation:
-
-    autocmd QuickFixCmdPost *grep* cwindow
-
 ## Self-Promotion
 
 Like fugitive.vim? Follow the repository on
