@@ -514,7 +514,7 @@ let s:repo_prototype = {}
 let s:repos = {}
 
 function! fugitive#repo(...) abort
-  let dir = a:0 ? a:1 : (len(s:Dir()) ? s:Dir() : FugitiveExtractGitDir(expand('%:p')))
+  let dir = a:0 ? s:Dir(a:1) : (len(s:Dir()) ? s:Dir() : FugitiveExtractGitDir(expand('%:p')))
   if dir !=# ''
     if has_key(s:repos, dir)
       let repo = get(s:repos, dir)
@@ -524,7 +524,7 @@ function! fugitive#repo(...) abort
     endif
     return extend(repo, s:repo_prototype, 'keep')
   endif
-  call s:throw('not a Git repository: ' . string(dir))
+  call s:throw('not a Git repository')
 endfunction
 
 function! s:repo_dir(...) dict abort
@@ -1294,11 +1294,11 @@ function! s:buffer_getline(lnum) dict abort
 endfunction
 
 function! s:buffer_repo() dict abort
-  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().repo() which has been removed. Replace it with fugitive#repo()"
+  return fugitive#repo(self['#'])
 endfunction
 
 function! s:buffer_type(...) dict abort
-  throw "fugitive: A third-party plugin or vimrc is calling fugitive#buffer().type() which has been removed. Replace it with get(b:, 'fugitive_type', '')"
+  return getbufvar(self['#'], 'fugitive_type')
 endfunction
 
 function! s:buffer_spec() dict abort
