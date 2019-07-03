@@ -2651,7 +2651,7 @@ function! s:StagePatch(lnum1,lnum2) abort
       return 'Git reset --patch'
     elseif empty(info.paths) && info.section ==# 'Unstaged'
       return 'Git add --patch'
-    elseif empty(info.paths) ==# ''
+    elseif empty(info.paths)
       continue
     endif
     execute lnum
