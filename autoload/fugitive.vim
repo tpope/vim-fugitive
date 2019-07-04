@@ -2143,7 +2143,7 @@ endfunction
 function! s:Selection(arg1, ...) abort
   if a:arg1 ==# 'n'
     let arg1 = line('.')
-    let arg2 = v:count
+    let arg2 = -v:count
   elseif a:arg1 ==# 'v'
     let arg1 = line("'<")
     let arg2 = line("'>")
