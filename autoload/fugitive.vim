@@ -1483,7 +1483,6 @@ function! fugitive#BufReadStatus() abort
         let b:fugitive_status['Unstaged'][files] = line[1]
       endif
     endwhile
-    let unstaged = extend(untracked, unstaged)
 
     for dict in staged
       let b:fugitive_status['Staged'][dict.filename] = dict.status
@@ -1575,6 +1574,7 @@ function! fugitive#BufReadStatus() abort
       call s:AddHeader('Push', push)
     endif
     call s:AddSection('Rebasing ' . rebasing_head, rebasing)
+    call s:AddSection('Untracked', untracked)
     call s:AddSection('Unstaged', unstaged)
     let unstaged_end = len(unstaged) ? line('$') : 0
     call s:AddSection('Staged', staged)
@@ -1984,7 +1984,7 @@ function! s:StageSeek(info, fallback) abort
   endif
   let line = search('^' . info.section, 'wn')
   if !line
-    for section in get({'Staged': ['Unstaged'], 'Unstaged': ['Staged']}, info.section, [])
+    for section in get({'Staged': ['Unstaged', 'Untracked'], 'Unstaged': ['Untracked', 'Staged']}, info.section, [])
       let line = search('^' . section, 'wn')
       if line
         return line + (info.index > 0 ? 1 : 0)
@@ -2415,7 +2415,7 @@ function! s:StageIntend(count) abort
       call s:TreeChomp('add', '--intent-to-add', '--', s:Tree() . '/' . getline('.')[2:-1])
       -
       exe s:ReloadStatus()
-    elseif getline('.') =~# '^Unstaged'
+    elseif getline('.') =~# '^Unstaged\|^Untracked'
       call s:TreeChomp('add', '--intent-to-add', '--', s:Tree())
       exe s:ReloadStatus()
     else
@@ -2651,6 +2651,8 @@ function! s:StagePatch(lnum1,lnum2) abort
       return 'Git reset --patch'
     elseif empty(info.paths) && info.section ==# 'Unstaged'
       return 'Git add --patch'
+    elseif empty(info.paths) && info.section ==# 'Untracked'
+      return 'Git add --interactive'
     elseif empty(info.paths)
       continue
     endif
