@@ -2605,6 +2605,15 @@ function! s:DoStageUnstagedHeading(heading) abort
   return s:DoToggleUnstagedHeading(a:heading)
 endfunction
 
+function! s:DoToggleUntrackedHeading(...) abort
+  call s:TreeChomp('add', '.')
+  return 1
+endfunction
+
+function! s:DoStageUntrackedHeading(heading) abort
+  return s:DoToggleUntrackedHeading(a:heading)
+endfunction
+
 function! s:DoToggleStaged(record) abort
   if a:record.patch
     return s:StageApply(a:record, 1, ['--cached'])
@@ -2612,10 +2621,6 @@ function! s:DoToggleStaged(record) abort
     call s:TreeChomp(['reset', '-q', '--'] + a:record.paths)
     return 1
   endif
-endfunction
-
-function! s:DoStageStaged(record) abort
-  return -1
 endfunction
 
 function! s:DoUnstageStaged(record) abort
@@ -2642,6 +2647,15 @@ function! s:DoUnstageUnstaged(record) abort
   else
     return -1
   endif
+endfunction
+
+function! s:DoToggleUntracked(record) abort
+  call s:TreeChomp(['add', '--'] + a:record.paths)
+  return 1
+endfunction
+
+function! s:DoStageUntracked(record) abort
+  return s:DoToggleUntracked(a:record)
 endfunction
 
 function! s:StagePatch(lnum1,lnum2) abort
