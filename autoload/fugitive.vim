@@ -2134,6 +2134,7 @@ function! s:StageInfo(...) abort
         \ 'sigil': sigil,
         \ 'offset': offset,
         \ 'filename': text,
+        \ 'relative': reverse(split(text, ' -> ')),
         \ 'paths': map(reverse(split(text, ' -> ')), 's:Tree() . "/" . v:val'),
         \ 'commit': matchstr(getline(lnum), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze '),
         \ 'status': matchstr(getline(lnum), '^[A-Z?]\ze \|^\%(\x\x\x\)\@!\l\+\ze [0-9a-f]'),
@@ -2184,6 +2185,7 @@ function! s:Selection(arg1, ...) abort
         \ 'heading': heading,
         \ 'section': matchstr(heading, '^\u\l\+\ze.* (\d\+)$'),
         \ 'filename': '',
+        \ 'relative': [],
         \ 'paths': [],
         \ 'commit': '',
         \ 'status': '',
@@ -2208,6 +2210,7 @@ function! s:Selection(arg1, ...) abort
       call add(results, extend(deepcopy(template), {
             \ 'lnum': lnum,
             \ 'filename': filename,
+            \ 'relative': reverse(split(filename, ' -> ')),
             \ 'paths': map(reverse(split(filename, ' -> ')), 'root . v:val'),
             \ 'status': matchstr(line, '^[A-Z?]'),
             \ }))
@@ -2388,9 +2391,9 @@ function! s:StageInline(mode, ...) abort
         endif
         let start = index
         let mode = 'head'
-      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '--- ' . info.paths[-1]
+      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '--- ' . info.relative[-1]
         let mode = 'await'
-      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '+++ ' . info.paths[0]
+      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '+++ ' . info.relative[0]
         let mode = 'await'
       elseif mode ==# 'capture'
         call add(diff, line)
@@ -2658,9 +2661,9 @@ function! s:StagePatch(lnum1,lnum2) abort
     endif
     execute lnum
     if info.section ==# 'Staged'
-      let reset += split(info.filename, ' -> ')
+      let reset += info.relative
     elseif info.status !~# '^D'
-      let add += split(info.filename, ' -> ')
+      let add += info.relative
     endif
   endfor
   try
