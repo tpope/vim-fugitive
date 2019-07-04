@@ -3089,8 +3089,8 @@ endfunction
 
 call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
 call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:GrepComplete Glog :call s:Log('grep',<bang>0,<line1>,<count>,<q-args>)")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:GrepComplete Gllog :call s:Log('lgrep',<bang>0,<line1>,<count>,<q-args>)")
+call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:GrepComplete Glog :exe s:Log('grep',<bang>0,<line1>,<count>,<q-args>)")
+call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:GrepComplete Gllog :exe s:Log('lgrep',<bang>0,<line1>,<count>,<q-args>)")
 
 function! s:Grep(cmd,bang,arg) abort
   let grepprg = &grepprg
@@ -3154,11 +3154,23 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
   let grepprg = &grepprg
   try
     let cdback = s:Cd(s:Tree())
-    let format = before =~# ' -g\| --walk-reflogs' ? '%gD %gs' : g:fugitive_summary_format
+    let format = before =~# ' -g\| --walk-reflogs' ? '%gd>%gs' : '%h>' . g:fugitive_summary_format
     let &grepprg = escape(s:UserCommand() . ' --no-pager log --no-color ' .
-          \ s:shellesc('--pretty=format:fugitive://'.s:Dir().'//%H'.path.'::'.format), '%#')
-    let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f::%m,%-G%.%#'
-    exe a:cmd . (a:bang ? '! ' : ' ') . s:ShellExpand(before . after)
+          \ s:shellesc('--pretty=format:fugitive://'.s:Dir().'//%H'.path.'>'.format), '%#')
+    if has('patch-8.0.1782')
+      let module = '%o'
+    else
+      let module = '%[^>]%#'
+    endif
+    let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f>' . module . '>%m,%-G%.%#'
+    silent! exe a:cmd . '!' . s:ShellExpand(before . after)
+    redraw!
+    copen
+    wincmd p
+    if !a:bang
+      cfirst
+    endif
+    return ''
   finally
     let &grepformat = grepformat
     let &grepprg = grepprg
