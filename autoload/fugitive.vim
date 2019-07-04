@@ -2134,7 +2134,7 @@ function! s:StageInfo(...) abort
         \ 'sigil': sigil,
         \ 'offset': offset,
         \ 'filename': text,
-        \ 'paths': reverse(split(text, ' -> ')),
+        \ 'paths': map(reverse(split(text, ' -> ')), 's:Tree() . "/" . v:val'),
         \ 'commit': matchstr(getline(lnum), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze '),
         \ 'status': matchstr(getline(lnum), '^[A-Z?]\ze \|^\%(\x\x\x\)\@!\l\+\ze [0-9a-f]'),
         \ 'index': index}
@@ -2454,11 +2454,11 @@ endfunction
 
 function! s:StageDiffEdit() abort
   let info = s:StageInfo(line('.'))
-  let arg = (empty(info.paths) ? '.' : info.paths[0])
+  let arg = (empty(info.paths) ? s:Tree() : info.paths[0])
   if info.section ==# 'Staged'
     return 'Git! diff --no-ext-diff --cached '.s:shellesc(arg)
   elseif info.status ==# '?'
-    call s:TreeChomp('add', '--intent-to-add', './' . arg)
+    call s:TreeChomp('add', '--intent-to-add', '--', arg)
     return s:ReloadStatus()
   else
     return 'Git! diff --no-ext-diff '.s:shellesc(arg)
@@ -2656,9 +2656,9 @@ function! s:StagePatch(lnum1,lnum2) abort
     endif
     execute lnum
     if info.section ==# 'Staged'
-      let reset += info.paths
+      let reset += split(info.filename, ' -> ')
     elseif info.status !~# '^D'
-      let add += info.paths
+      let add += split(info.filename, ' -> ')
     endif
   endfor
   try
