@@ -1721,9 +1721,9 @@ function! fugitive#BufReadCmd(...) abort
     else
       let [b:fugitive_type, exec_error] = s:ChompError([dir, 'cat-file', '-t', rev])
       if exec_error && rev =~# '^:0'
-        let sha = s:TreeChomp(dir, 'write-tree', '--prefix=' . rev[3:-1])
-        let exec_error = 0
-        let b:fugitive_type = 'tree'
+        let sha = s:ChompDefault('', dir, 'write-tree', '--prefix=' . rev[3:-1])
+        let exec_error = empty(sha)
+        let b:fugitive_type = exec_error ? '' : 'tree'
       endif
       if exec_error
         let error = b:fugitive_type
