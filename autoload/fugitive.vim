@@ -4429,14 +4429,14 @@ function! s:StatusCfile(...) abort
   let line = getline('.')
   if len(info.sigil) && len(info.section) && len(info.paths)
     if info.section ==# 'Unstaged' && info.sigil !=# '-'
-      return [lead . info.paths[0], info.offset, 'normal!zv']
+      return [lead . info.relative[0], info.offset, 'normal!zv']
     elseif info.section ==# 'Staged' && info.sigil ==# '-'
-      return ['@:' . info.paths[0], info.offset, 'normal!zv']
+      return ['@:' . info.relative[0], info.offset, 'normal!zv']
     else
-      return [':0:' . info.paths[0], info.offset, 'normal!zv']
+      return [':0:' . info.relative[0], info.offset, 'normal!zv']
     endif
   elseif len(info.paths)
-    return [lead . info.paths[0]]
+    return [lead . info.relative[0]]
   elseif len(info.commit)
     return [info.commit]
   elseif line =~# '^\%(Head\|Merge\|Rebase\|Upstream\|Pull\|Push\): '
