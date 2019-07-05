@@ -2553,7 +2553,7 @@ function! s:StageDelete(lnum, count) abort
   call s:StageReveal()
   let @@ = hash
   return 'checktime|redraw|echomsg ' .
-        \ string('To restore, :Git cat-file blob '.hash[0:6].' > '.info.paths[0])
+        \ string('To restore, :Gedit ' . info.relative[0] . '|Gread ' . hash[0:6])
 endfunction
 
 function! s:DoToggleHeadHeader(value) abort
