@@ -44,7 +44,9 @@ function! s:winshell() abort
 endfunction
 
 function! s:shellesc(arg) abort
-  if a:arg =~ '^[A-Za-z0-9_/.-]\+$'
+  if type(a:arg) == type([])
+    return join(map(copy(a:arg), 's:shellesc(v:val)'))
+  elseif a:arg =~ '^[A-Za-z0-9_/.-]\+$'
     return a:arg
   elseif s:winshell()
     return '"'.s:gsub(s:gsub(a:arg, '"', '""'), '\%', '"%"').'"'
@@ -166,8 +168,25 @@ endfunction
 
 " Section: Git
 
-function! s:UserCommand() abort
-  return get(g:, 'fugitive_git_command', g:fugitive_git_executable)
+function! s:ChdirArg(dir) abort
+endfunction
+
+function! s:UserCommand(...) abort
+  let git = get(g:, 'fugitive_git_command', g:fugitive_git_executable)
+  let dir = a:0 ? s:Dir(a:1) : ''
+  if len(dir)
+  let tree = s:Tree(dir)
+    if empty(tree)
+      let git .= ' --git-dir=' . s:shellesc(dir)
+    elseif len(tree) && s:cpath(tree) !=# s:cpath(getcwd())
+      if fugitive#GitVersion(1, 9)
+        let git .= ' -C ' . s:shellesc(tree)
+      else
+        let git = 'cd ' . s:shellesc(tree) . (s:winshell() ? '& ' : '; ') . git
+      endif
+    endif
+  endif
+  return git
 endfunction
 
 let s:git_versions = {}
@@ -220,6 +239,15 @@ endfunction
 
 function! s:Tree(...) abort
   return a:0 ? FugitiveWorkTree(a:1) : FugitiveWorkTree()
+endfunction
+
+function! s:HasOpt(args, ...) abort
+  let args = a:args[0 : index(a:args, '--')]
+  for opt in a:000
+    if index(args, opt) != -1
+      return 1
+    endif
+  endfor
 endfunction
 
 function! s:PreparePathArgs(cmd, dir, literal) abort
@@ -824,10 +852,10 @@ function! s:Generate(rev, ...) abort
   return fugitive#Find(object, dir)
 endfunction
 
-function! s:DotRelative(path) abort
-  let cwd = getcwd()
+function! s:DotRelative(path, ...) abort
+  let cwd = a:0 ? a:1 : getcwd()
   let path = substitute(a:path, '^[~$]\i*', '\=expand(submatch(0))', '')
-  if s:cpath(cwd . '/', (path . '/')[0 : len(cwd)])
+  if len(cwd) && s:cpath(cwd . '/', (path . '/')[0 : len(cwd)])
     return '.' . strpart(path, len(cwd))
   endif
   return a:path
@@ -874,21 +902,34 @@ function! s:BufName(var) abort
   endif
 endfunction
 
-function! s:ExpandVar(other, var, flags, esc) abort
+function! s:ExpandVarLegacy(str) abort
+  if get(g:, 'fugitive_legacy_quoting', 1)
+    return substitute(a:str, '\\\ze[%#!]', '', 'g')
+  else
+    return a:str
+  endif
+endfunction
+
+function! s:ExpandVar(other, var, flags, esc, ...) abort
+  let cwd = a:0 ? a:1 : getcwd()
   if a:other =~# '^\'
     return a:other[1:-1]
+  elseif a:other =~# '^'''
+    return s:ExpandVarLegacy(substitute(a:other[1:-2], "''", "'", "g"))
+  elseif a:other =~# '^"'
+    return s:ExpandVarLegacy(substitute(a:other[1:-2], '""', '"', "g"))
   elseif a:other =~# '^!'
     let buffer = s:BufName(len(a:other) > 1 ? '#'. a:other[1:-1] : '%')
     let owner = s:Owner(buffer)
     return len(owner) ? owner : '@'
   endif
   let flags = a:flags
-  let file = s:DotRelative(fugitive#Real(s:BufName(a:var)))
+  let file = s:DotRelative(fugitive#Real(s:BufName(a:var)), cwd)
   while len(flags)
     let flag = matchstr(flags, s:flag)
     let flags = strpart(flags, len(flag))
     if flag ==# ':.'
-      let file = s:DotRelative(file)
+      let file = s:DotRelative(file, cwd)
     else
       let file = fnamemodify(file, flag)
     endif
@@ -897,7 +938,7 @@ function! s:ExpandVar(other, var, flags, esc) abort
   return (len(a:esc) ? shellescape(file) : file)
 endfunction
 
-function! s:Expand(rev) abort
+function! s:Expand(rev, ...) abort
   if a:rev =~# '^:0$'
     call s:throw('Use ' . string(':%') . ' instead of ' . string(a:rev))
   elseif a:rev =~# '^:[1-3]$'
@@ -907,15 +948,15 @@ function! s:Expand(rev) abort
   elseif a:rev =~# '^-'
     call s:throw('Use ' . string('!' . a:rev[1:-1] . ':%') . ' instead of ' . string(a:rev))
   elseif a:rev =~# '^>[~^]\|^>@{\|^>:\d$'
-    let file = 'HEAD' . a:rev[1:-1] . s:Relative(':')
+    let file = 'HEAD' . a:rev[1:-1] . ':%'
   elseif a:rev =~# '^>[^> ]'
-    let file = a:rev[1:-1] . s:Relative(':')
+    let file = a:rev[1:-1] . ':%'
   else
     let file = a:rev
   endif
   return substitute(file,
         \ '\(\\[' . s:fnameescape . ']\|^\\[>+-]\|!\d*\)\|' . s:expand,
-        \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),"")', 'g')
+        \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),"", a:0 ? a:1 : getcwd())', 'g')
 endfunction
 
 function! fugitive#Expand(object) abort
@@ -924,9 +965,32 @@ function! fugitive#Expand(object) abort
         \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5))', 'g')
 endfunction
 
-function! s:ShellExpand(cmd) abort
-  return substitute(a:cmd, '\(\\[!#%]\|!\d*\)\|' . s:expand,
-        \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5))', 'g')
+function! s:ExpandSplit(string, ...) abort
+  let list = []
+  let string = a:string
+  let handle_bar = a:0 && a:1
+  let dquote = handle_bar ? '"\%([^"]\|""\|\\"\)*"\|' : ''
+  while string =~# '\S'
+    if handle_bar && string =~# '^\s*|'
+      return [list, substitute(string, '^\s*', '', '')]
+    endif
+    let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|\S\)\+')
+    let string = strpart(string, len(arg))
+    let arg = substitute(substitute(arg, '^\s\+', '', ''),
+          \ '\(' . dquote . '''\%(''''\|[^'']\)*''\|\\[' . s:fnameescape . ']\|^\\[>+-]\|!\d*\)\|' . s:expand,
+          \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5), a:0 > 1 ? a:2 : getcwd())', 'g')
+    call add(list, arg)
+  endwhile
+  return handle_bar ? [list, ''] : list
+endfunction
+
+function! s:ShellExpand(cmd, ...) abort
+  return s:shellesc(s:ExpandSplit(a:cmd, 0, a:0 ? a:1 : getcwd()))
+endfunction
+
+function! s:ShellExpandChain(cmd, ...) abort
+  let [args, after] = s:ExpandSplit(a:cmd, 1, a:0 ? a:1 : getcwd())
+  return [s:shellesc(args), after]
 endfunction
 
 let s:trees = {}
@@ -1884,21 +1948,17 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
   if a:bang
     return s:Open('edit', 1, a:mods, a:arg, a:args)
   endif
-  let git = s:UserCommand()
+  let dir = s:Dir()
+  let tree = s:Tree(dir)
+  let [args, after] = s:ShellExpandChain(a:arg, tree)
+  let git = s:UserCommand(dir)
   if has('gui_running') && !has('win32')
     let git .= ' --no-pager'
   endif
   if has('nvim') && executable('env')
     let git = 'env GIT_TERMINAL_PROMPT=0 ' . git
   endif
-  let args = matchstr(a:arg,'\v\C.{-}%($|\\@<!%(\\\\)*\|)@=')
-  let after = matchstr(a:arg, '\v\C\\@<!%(\\\\)*\zs\|.*')
-  let tree = s:Tree()
-  let cmd = "exe '!'.escape(" . string(git) . " . ' ' . s:ShellExpand(" . string(args) . "),'!#%')"
-  if s:cpath(tree) !=# s:cpath(getcwd())
-    let cd = s:Cd()
-    let cmd = 'try|' . cd . ' ' . tree . '|' . cmd . '|finally|' . cd . ' ' . s:fnameescape(getcwd()) . '|endtry'
-  endif
+  let cmd = "exe '!'.escape(" . string(git . ' ' . args) . ",'!#%')"
   return cmd . after
 endfunction
 
@@ -2760,14 +2820,17 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
       if &guioptions =~# '!'
         setglobal guioptions-=!
       endif
-      let cdback = s:Cd(tree)
       if s:winshell()
         let command = 'set GIT_EDITOR=false& '
       else
         let command = 'env GIT_EDITOR=false '
       endif
-      let args = s:ShellExpand(a:arg)
-      let command .= s:UserCommand() . ' commit ' . args
+      if len(a:args)
+        let [args, after] = s:ShellExpandChain(a:arg, tree)
+      else
+        let [args, after] = [a:arg, '']
+      endif
+      let command .= s:UserCommand(dir) . ' commit ' . args
       if a:arg =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>' && &shell !~# 'csh'
         let errorfile = tempname()
         noautocmd execute '!'.command.' 2> '.errorfile
@@ -2782,7 +2845,6 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         let errors = split(error_string, "\n")
       endif
     finally
-      execute cdback
       let &guioptions = guioptions
     endtry
     if !has('gui_running')
@@ -2795,7 +2857,7 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         endfor
       endif
       call fugitive#ReloadStatus(dir, 1)
-      return ''
+      return after[1:-1]
     else
       let error = get(errors,-2,get(errors,-1,'!'))
       if error =~# 'false''\=\.$'
@@ -2815,10 +2877,10 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         endif
         let b:fugitive_commit_arguments = args
         setlocal bufhidden=wipe filetype=gitcommit
-        return '1'
+        return '1' . after
       elseif error ==# '!'
         echo get(readfile(outfile), -1, '')
-        return ''
+        return after[1:-1]
       else
         call s:throw(empty(error)?join(errors, ' '):error)
       endif
@@ -2860,11 +2922,11 @@ endfunction
 
 " Section: :Gmerge, :Grebase, :Gpull
 
-call s:command("-nargs=? -bang -complete=custom,s:RevisionComplete Gmerge " .
+call s:command("-nargs=? -bar -bang -complete=custom,s:RevisionComplete Gmerge " .
       \ "execute s:Merge('merge', <bang>0, '<mods>', <q-args>)")
-call s:command("-nargs=? -bang -complete=custom,s:RevisionComplete Grebase " .
+call s:command("-nargs=? -bar -bang -complete=custom,s:RevisionComplete Grebase " .
       \ "execute s:Merge('rebase', <bang>0, '<mods>', <q-args>)")
-call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpull " .
+call s:command("-nargs=? -bar -bang -complete=custom,s:RemoteComplete Gpull " .
       \ "execute s:Merge('pull --progress', <bang>0, '<mods>', <q-args>)")
 
 function! s:RevisionComplete(A, L, P) abort
@@ -2955,10 +3017,11 @@ function! s:RebaseEdit(cmd, dir) abort
 endfunction
 
 function! s:Merge(cmd, bang, mods, args, ...) abort
+  let args = s:shellesc(s:ExpandSplit(a:args))
   let dir = a:0 ? a:1 : s:Dir()
   let mods = s:Mods(a:mods)
-  if a:cmd =~# '^rebase' && ' '.a:args =~# ' -i\| --interactive'
-    let cmd = fugitive#Prepare(dir, '-c', 'sequence.editor=sh ' . s:RebaseSequenceAborter(), 'rebase') . ' ' . a:args
+  if a:cmd =~# '^rebase' && ' '.args =~# ' -i\| --interactive'
+    let cmd = fugitive#Prepare(dir, '-c', 'sequence.editor=sh ' . s:RebaseSequenceAborter(), 'rebase') . ' ' . args
     let out = system(cmd)[0:-2]
     for file in ['end', 'msgnum']
       let file = fugitive#Find('.git/rebase-merge/' . file, dir)
@@ -2972,9 +3035,9 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
       return ''
     endif
     return s:RebaseEdit(mods . 'split', dir)
-  elseif a:cmd =~# '^rebase' && ' '.a:args =~# ' --edit-todo' && filereadable(fugitive#Find('.git/rebase-merge/git-rebase-todo', dir))
+  elseif a:cmd =~# '^rebase' && ' '.args =~# ' --edit-todo' && filereadable(fugitive#Find('.git/rebase-merge/git-rebase-todo', dir))
     return s:RebaseEdit(mods . 'split', dir)
-  elseif a:cmd =~# '^rebase' && ' '.a:args =~# ' --continue' && !a:0
+  elseif a:cmd =~# '^rebase' && ' '.args =~# ' --continue' && !a:0
     let rdir = fugitive#Find('.git/rebase-merge', dir)
     let exec_error = s:ChompError([dir, 'diff-index', '--cached', '--quiet', 'HEAD', '--'])[1]
     if exec_error && isdirectory(rdir)
@@ -3010,15 +3073,15 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
           \ . "%+EXUNG \u0110\u1ed8T %.%#,"
           \ . "%+E\u51b2\u7a81 %.%#,"
           \ . 'U%\t%f'
-    if a:cmd =~# '^merge' && empty(a:args) &&
+    if a:cmd =~# '^merge' && empty(args) &&
           \ (had_merge_msg || isdirectory(fugitive#Find('.git/rebase-apply', dir)) ||
           \  !empty(s:TreeChomp(dir, 'diff-files', '--diff-filter=U')))
       let &l:makeprg = g:fugitive_git_executable.' diff-files --name-status --diff-filter=U'
     else
       let &l:makeprg = s:sub(s:UserCommand() . ' ' . a:cmd .
-            \ (' ' . a:args =~# ' \%(--no-edit\|--abort\|-m\)\>' || a:cmd =~# '^rebase' ? '' : ' --edit') .
-            \ (' ' . a:args =~# ' --autosquash\>' && a:cmd =~# '^rebase' ? ' --interactive' : '') .
-            \ ' ' . a:args, ' *$', '')
+            \ (' ' . args =~# ' \%(--no-edit\|--abort\|-m\)\>' || a:cmd =~# '^rebase' ? '' : ' --edit') .
+            \ (' ' . args =~# ' --autosquash\>' && a:cmd =~# '^rebase' ? ' --interactive' : '') .
+            \ ' ' . args, ' *$', '')
     endif
     if !empty($GIT_SEQUENCE_EDITOR) || has('win32')
       let old_sequence_editor = $GIT_SEQUENCE_EDITOR
@@ -3138,8 +3201,8 @@ function! s:GrepComplete(A, L, P) abort
   endif
 endfunction
 
-call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
-call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
 call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:GrepComplete Glog :exe s:Log('grep',<bang>0,<line1>,<count>,<q-args>)")
 call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:GrepComplete Gllog :exe s:Log('lgrep',<bang>0,<line1>,<count>,<q-args>)")
 
@@ -3153,14 +3216,15 @@ function! s:Grep(cmd,bang,arg) abort
     if fugitive#GitVersion(2, 19)
       let &grepprg .= ' --column'
     endif
-    exe a:cmd.'! '.escape(s:ShellExpand(matchstr(a:arg, '\v\C.{-}%($|[''" ]\@=\|)@=')), '|#%')
+    let args = s:ExpandSplit(a:arg)
+    exe a:cmd.'! '.escape(s:shellesc(args), '|#%')
     let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
     for entry in list
       if bufname(entry.bufnr) =~ ':'
         let entry.filename = s:Generate(bufname(entry.bufnr))
         unlet! entry.bufnr
         let changed = 1
-      elseif a:arg =~# '\%(^\| \)--cached\>'
+      elseif s:HasOpt(args, '--cached')
         let entry.filename = s:Generate(':0:'.bufname(entry.bufnr))
         unlet! entry.bufnr
         let changed = 1
@@ -3172,9 +3236,9 @@ function! s:Grep(cmd,bang,arg) abort
       call setqflist(list, 'r')
     endif
     if !a:bang && !empty(list)
-      return (a:cmd =~# '^l' ? 'l' : 'c').'first'.matchstr(a:arg,'\v\C[''" ]\zs\|.*')
+      return (a:cmd =~# '^l' ? 'l' : 'c').'first'
     else
-      return matchstr(a:arg,'\v\C[''" ]\|\zs.*')
+      return ''
     endif
   finally
     let &grepprg = grepprg
@@ -3285,17 +3349,13 @@ function! s:Open(cmd, bang, mods, arg, args) abort
 
   if a:bang
     let dir = s:Dir()
+    let tree = s:Tree(dir)
     let temp = tempname()
-    try
-      let cdback = s:Cd(s:Tree(dir))
-      let git = s:UserCommand()
-      let args = s:ShellExpand(a:arg)
-      silent! execute '!' . escape(git . ' --no-pager ' . args, '!#%') .
-            \ (&shell =~# 'csh' ? ' >& ' . temp : ' > ' . temp . ' 2>&1')
-    finally
-      redraw!
-      execute cdback
-    endtry
+    let git = s:UserCommand(dir)
+    let args = s:ShellExpand(a:arg, tree)
+    silent! execute '!' . escape(git . ' --no-pager ' . args, '!#%') .
+          \ (&shell =~# 'csh' ? ' >& ' . temp : ' > ' . temp . ' 2>&1')
+    redraw!
     let temp = s:Resolve(temp)
     let s:temp_files[s:cpath(temp)] = { 'dir': s:Dir(), 'filetype': 'git' }
     if a:cmd ==# 'edit'
