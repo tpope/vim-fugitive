@@ -2369,23 +2369,24 @@ endfunction
 
 function! s:Do(action, visual) abort
   let line = getline('.')
+  let reload = 0
   if !a:0 && !v:count && line =~# '^[A-Z][a-z]'
     let header = matchstr(line, '^\S\+\ze:')
     if len(header) && exists('*s:Do' . a:action . header . 'Header')
-      call s:Do{a:action}{header}Header(matchstr(line, ': \zs.*'))
+      let reload = s:Do{a:action}{header}Header(matchstr(line, ': \zs.*')) > 0
+    else
+      let section = matchstr(line, '^\S\+')
+      if exists('*s:Do' . a:action . section . 'Heading')
+        let reload = s:Do{a:action}{section}Heading(line) > 0
+      endif
     endif
-    let section = matchstr(line, '^\S\+')
-    if exists('*s:Do' . a:action . section . 'Heading')
-      call s:Do{a:action}{section}Heading(line)
-      return s:ReloadStatus()
-    endif
+    return reload ? s:ReloadStatus() : ''
   endif
   let selection = s:Selection(a:visual ? 'v' : 'n')
   if empty(selection)
     return ''
   endif
   call filter(selection, 'v:val.section ==# selection[0].section')
-  let reload = 0
   let status = 0
   let err = ''
   try
@@ -2670,6 +2671,14 @@ endfunction
 function! s:DoToggleHeadHeader(value) abort
   exe 'edit' s:fnameescape(s:Dir())
   call search('\C^index$', 'wc')
+endfunction
+
+function! s:DoStageHeadHeader(value) abort
+  exe search('^Untracked\|^Unstaged', 'wn') + 1
+endfunction
+
+function! s:DoUnstageHeadHeader(value) abort
+  exe search('^Staged', 'wn') + 1
 endfunction
 
 function! s:DoToggleUnpushedHeading(heading) abort
