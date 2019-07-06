@@ -68,11 +68,11 @@ function! s:throw(string) abort
   throw 'fugitive: '.a:string
 endfunction
 
-function! s:warn(str) abort
-  echohl WarningMsg
-  echomsg a:str
-  echohl None
-  let v:warningmsg = a:str
+function! s:DirCheck(...) abort
+  if empty(a:0 ? s:Dir(a:1) : s:Dir())
+    return 'return ' . string('echoerr "fugitive: not a Git repository"')
+  endif
+  return ''
 endfunction
 
 function! s:Mods(mods, ...) abort
@@ -1922,8 +1922,6 @@ endif
 function! s:SetupTemp(file) abort
   if has_key(s:temp_files, s:cpath(a:file))
     let dict = s:temp_files[s:cpath(a:file)]
-    let b:git_dir = dict.dir
-    call extend(b:, {'fugitive_type': 'temp'}, 'keep')
     if has_key(dict, 'filetype') && dict.filetype !=# &l:filetype
       let &l:filetype = dict.filetype
     endif
@@ -1934,9 +1932,13 @@ function! s:SetupTemp(file) abort
     if getline(1) !~# '^diff '
       setlocal nomodifiable
     endif
-    call FugitiveDetect(a:file)
-    if &filetype ==# 'git'
-      call fugitive#MapJumps()
+    if len(dict.dir)
+      let b:git_dir = dict.dir
+      call extend(b:, {'fugitive_type': 'temp'}, 'keep')
+      call FugitiveDetect(a:file)
+      if &filetype ==# 'git'
+        call fugitive#MapJumps()
+      endif
     endif
   endif
   return ''
@@ -2026,16 +2028,18 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe
 call s:command("-bar -bang -range=-1 Gstatus", "Status")
 call s:command("-bar -bang -range=-1 G", "Status")
 
-function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
+  let dir = a:0 ? a:1 : s:Dir()
+  exe s:DirCheck(dir)
   try
     let mods = s:Mods(a:mods, &splitbelow ? 'botright' : 'topleft')
-    let file = fugitive#Find(':')
+    let file = fugitive#Find(':', dir)
     let arg = ' +setl\ foldmethod=syntax\ foldlevel=1\|let\ w:fugitive_status=FugitiveGitDir() ' .
           \ s:fnameescape(file)
     for winnr in range(1, winnr('$'))
       if s:cpath(file, fnamemodify(bufname(winbufnr(winnr)), ':p'))
         exe winnr . 'wincmd w'
-        let w:fugitive_status = FugitiveGitDir()
+        let w:fugitive_status = dir
         return s:ReloadStatus()
       endif
     endfor
