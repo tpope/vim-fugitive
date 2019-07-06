@@ -983,12 +983,20 @@ function! s:ExpandSplit(string, ...) abort
   return handle_bar ? [list, ''] : list
 endfunction
 
+function! s:SplitExpand(string, ...) abort
+  return s:ExpandSplit(a:string, 0, a:0 ? a:1 : getcwd())
+endfunction
+
+function! s:SplitExpandChain(string, ...) abort
+  return s:ExpandSplit(a:string, 1, a:0 ? a:1 : getcwd())
+endfunction
+
 function! s:ShellExpand(cmd, ...) abort
-  return s:shellesc(s:ExpandSplit(a:cmd, 0, a:0 ? a:1 : getcwd()))
+  return s:shellesc(s:SplitExpand(a:cmd, a:0 ? a:1 : getcwd()))
 endfunction
 
 function! s:ShellExpandChain(cmd, ...) abort
-  let [args, after] = s:ExpandSplit(a:cmd, 1, a:0 ? a:1 : getcwd())
+  let [args, after] = s:SplitExpandChain(a:cmd, a:0 ? a:1 : getcwd())
   return [s:shellesc(args), after]
 endfunction
 
@@ -3026,7 +3034,7 @@ function! s:RebaseEdit(cmd, dir) abort
 endfunction
 
 function! s:Merge(cmd, bang, mods, args, ...) abort
-  let args = s:shellesc(s:ExpandSplit(a:args))
+  let args = s:shellesc(s:SplitExpand(a:args))
   let dir = a:0 ? a:1 : s:Dir()
   let mods = s:Mods(a:mods)
   if a:cmd =~# '^rebase' && ' '.args =~# ' -i\| --interactive'
@@ -3225,7 +3233,7 @@ function! s:Grep(cmd,bang,arg) abort
     if fugitive#GitVersion(2, 19)
       let &grepprg .= ' --column'
     endif
-    let args = s:ExpandSplit(a:arg)
+    let args = s:SplitExpand(a:arg)
     exe a:cmd.'! '.escape(s:shellesc(args), '|#%')
     let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
     for entry in list
