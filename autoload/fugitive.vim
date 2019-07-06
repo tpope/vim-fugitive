@@ -948,7 +948,7 @@ function! s:Expand(rev, ...) abort
     call s:throw('Use ' . string('!' . a:rev[1:-1] . ':%') . ' instead of ' . string(a:rev))
   elseif a:rev =~# '^>[~^]\|^>@{\|^>:\d$'
     let file = 'HEAD' . a:rev[1:-1] . ':%'
-  elseif a:rev =~# '^>[^> ]'
+  elseif a:rev =~# '^>[> ]\@!'
     let file = a:rev[1:-1] . ':%'
   else
     let file = a:rev
