@@ -2182,7 +2182,8 @@ function! fugitive#ReloadStatus(...) abort
   call s:ExpireStatus(a:0 ? a:1 : -2)
   if a:0 > 1 ? a:2 : s:CanAutoReloadStatus()
     let t = reltime()
-    for tabnr in range(1, tabpagenr('$'))
+    let t:fugitive_reload_status = t
+    for tabnr in exists('*settabvar') ? range(1, tabpagenr('$')) : []
       call settabvar(tabnr, 'fugitive_reload_status', t)
     endfor
     call s:ReloadTabStatus()
