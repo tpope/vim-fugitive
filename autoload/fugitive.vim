@@ -245,7 +245,14 @@ endfunction
 
 function! s:HasOpt(args, ...) abort
   let args = a:args[0 : index(a:args, '--')]
-  for opt in a:000
+  let opts = copy(a:000)
+  if type(opts[0]) == type([])
+    if empty(args) || index(opts[0], args[0]) == -1
+      return 0
+    endif
+    call remove(opts, 0)
+  endif
+  for opt in opts
     if index(args, opt) != -1
       return 1
     endif
@@ -1972,6 +1979,17 @@ function! s:GitExec(line1, line2, range, count, bang, mods, reg, args, dir) abor
     return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, a:args, a:dir)
   endif
   let git = s:UserCommandList(a:dir)
+  if s:HasOpt(a:args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
+        \ s:HasOpt(a:args, ['add', 'clean', 'stage'], '-i', '--interactive')
+    let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
+    if has('nvim')
+      if &autowrite | wall | endif
+      return mods . (a:count ? 'split' : 'edit') . ' term://' . s:fnameescape(s:shellesc(git + a:args)) . '|startinsert'
+    elseif has('terminal')
+      if &autowrite | wall | endif
+      return 'exe ' . string(mods . 'terminal ' . (a:count ? '' : '++curwin ') . join(map(git + a:args, 's:fnameescape(v:val)')))
+    endif
+  endif
   if has('gui_running') && !has('win32')
     call add(git, '--no-pager')
   endif
