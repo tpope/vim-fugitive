@@ -2570,12 +2570,12 @@ function! s:StageDiffEdit() abort
   let info = s:StageInfo(line('.'))
   let arg = (empty(info.paths) ? s:Tree() : info.paths[0])
   if info.section ==# 'Staged'
-    return 'Git! diff --no-ext-diff --cached '.s:shellesc(arg)
+    return 'Git! diff --no-ext-diff --cached '.s:fnameescape(arg)
   elseif info.status ==# '?'
     call s:TreeChomp('add', '--intent-to-add', '--', arg)
     return s:ReloadStatus()
   else
-    return 'Git! diff --no-ext-diff '.s:shellesc(arg)
+    return 'Git! diff --no-ext-diff '.s:fnameescape(arg)
   endif
 endfunction
 
@@ -2793,10 +2793,10 @@ function! s:StagePatch(lnum1,lnum2) abort
   endfor
   try
     if !empty(add)
-      execute "Git add --patch -- ".join(map(add,'s:shellesc(v:val)'))
+      execute "Git add --patch -- ".join(map(add,'s:fnameescape(v:val)'))
     endif
     if !empty(reset)
-      execute "Git reset --patch -- ".join(map(reset,'s:shellesc(v:val)'))
+      execute "Git reset --patch -- ".join(map(reset,'s:fnameescape(v:val)'))
     endif
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
