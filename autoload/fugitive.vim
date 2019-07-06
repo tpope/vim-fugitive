@@ -1956,12 +1956,12 @@ augroup END
 call s:command("-bang -nargs=? -range=-1 -complete=customlist,fugitive#CompleteGit Git", "Git")
 
 function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
-  if a:bang
-    return s:Open('edit', 1, a:mods, a:arg, a:args)
-  endif
   let dir = s:Dir()
   let tree = s:Tree(dir)
-  let [args, after] = s:ShellExpandChain(a:arg, tree)
+  let [args, after] = s:SplitExpandChain(a:arg, tree)
+  if a:bang
+    return s:OpenExec('edit', a:mods, args, dir) . after
+  endif
   let git = s:UserCommand(dir)
   if has('gui_running') && !has('win32')
     let git .= ' --no-pager'
@@ -1969,7 +1969,7 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
   if has('nvim') && executable('env')
     let git = 'env GIT_TERMINAL_PROMPT=0 ' . git
   endif
-  let cmd = "exe '!'.escape(" . string(git . ' ' . args) . ",'!#%')"
+  let cmd = "exe '!'.escape(" . string(git . ' ' . s:shellesc(args)) . ",'!#%')"
   return cmd . after
 endfunction
 
@@ -3367,28 +3367,30 @@ function! s:BlurStatus() abort
   endif
 endfunction
 
-function! s:Open(cmd, bang, mods, arg, args) abort
-  let mods = s:Mods(a:mods)
+function! s:OpenExec(cmd, mods, args, ...) abort
+  let dir = s:Dir(a:0 ? a:1 : -1)
+  let args = s:shellesc(a:args)
+  let temp = tempname()
+  let git = s:UserCommand(dir)
+  silent! execute '!' . escape(git . ' --no-pager ' . args, '!#%') .
+        \ (&shell =~# 'csh' ? ' >& ' . temp : ' > ' . temp . ' 2>&1')
+  redraw!
+  let temp = s:Resolve(temp)
+  let s:temp_files[s:cpath(temp)] = { 'dir': dir, 'filetype': 'git' }
+  if a:cmd ==# 'edit'
+    call s:BlurStatus()
+  endif
+  silent execute s:Mods(a:mods) . a:cmd temp
+  call fugitive#ReloadStatus(dir, 1)
+  return 'echo ' . string(':!' . git . ' ' . args)
+endfunction
 
+function! s:Open(cmd, bang, mods, arg, args) abort
   if a:bang
-    let dir = s:Dir()
-    let tree = s:Tree(dir)
-    let temp = tempname()
-    let git = s:UserCommand(dir)
-    let args = s:ShellExpand(a:arg, tree)
-    silent! execute '!' . escape(git . ' --no-pager ' . args, '!#%') .
-          \ (&shell =~# 'csh' ? ' >& ' . temp : ' > ' . temp . ' 2>&1')
-    redraw!
-    let temp = s:Resolve(temp)
-    let s:temp_files[s:cpath(temp)] = { 'dir': s:Dir(), 'filetype': 'git' }
-    if a:cmd ==# 'edit'
-      call s:BlurStatus()
-    endif
-    silent execute mods . a:cmd temp
-    call fugitive#ReloadStatus(dir, 1)
-    return 'echo ' . string(':!' . git . ' ' . args)
+    return s:OpenExec(a:cmd, a:mods, s:SplitExpand(a:arg, s:Tree()))
   endif
 
+  let mods = s:Mods(a:mods)
   try
     let [file, pre] = s:OpenParse(a:args)
     let file = s:Generate(file)
