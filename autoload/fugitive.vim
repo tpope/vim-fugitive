@@ -171,22 +171,22 @@ endfunction
 function! s:ChdirArg(dir) abort
 endfunction
 
-function! s:UserCommand(...) abort
-  let git = get(g:, 'fugitive_git_command', g:fugitive_git_executable)
+function! s:UserCommandList(...) abort
+  let git = split(get(g:, 'fugitive_git_command', g:fugitive_git_executable), '\s\+')
   let dir = a:0 ? s:Dir(a:1) : ''
   if len(dir)
-  let tree = s:Tree(dir)
+    let tree = s:Tree(dir)
     if empty(tree)
-      let git .= ' --git-dir=' . s:shellesc(dir)
+      call add(git, '--git-dir=' . dir)
     elseif len(tree) && s:cpath(tree) !=# s:cpath(getcwd())
-      if fugitive#GitVersion(1, 9)
-        let git .= ' -C ' . s:shellesc(tree)
-      else
-        let git = 'cd ' . s:shellesc(tree) . (s:winshell() ? '& ' : '; ') . git
-      endif
+      call extend(git, ['-C', tree])
     endif
   endif
   return git
+endfunction
+
+function! s:UserCommand(...) abort
+  return s:shellesc(call('s:UserCommandList', a:000))
 endfunction
 
 let s:git_versions = {}
