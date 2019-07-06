@@ -3034,11 +3034,11 @@ function! s:RebaseEdit(cmd, dir) abort
 endfunction
 
 function! s:Merge(cmd, bang, mods, args, ...) abort
-  let args = s:shellesc(s:SplitExpand(a:args))
+  let args = s:SplitExpand(a:args)
   let dir = a:0 ? a:1 : s:Dir()
   let mods = s:Mods(a:mods)
-  if a:cmd =~# '^rebase' && ' '.args =~# ' -i\| --interactive'
-    let cmd = fugitive#Prepare(dir, '-c', 'sequence.editor=sh ' . s:RebaseSequenceAborter(), 'rebase') . ' ' . args
+  if a:cmd =~# '^rebase' && s:HasOpt(args, '-i', '--interactive')
+    let cmd = fugitive#Prepare(dir, '-c', 'sequence.editor=sh ' . s:RebaseSequenceAborter(), 'rebase') . ' ' . s:shellesc(args)
     let out = system(cmd)[0:-2]
     for file in ['end', 'msgnum']
       let file = fugitive#Find('.git/rebase-merge/' . file, dir)
@@ -3052,9 +3052,9 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
       return ''
     endif
     return s:RebaseEdit(mods . 'split', dir)
-  elseif a:cmd =~# '^rebase' && ' '.args =~# ' --edit-todo' && filereadable(fugitive#Find('.git/rebase-merge/git-rebase-todo', dir))
+  elseif a:cmd =~# '^rebase' && s:HasOpt(args, '--edit-todo') && filereadable(fugitive#Find('.git/rebase-merge/git-rebase-todo', dir))
     return s:RebaseEdit(mods . 'split', dir)
-  elseif a:cmd =~# '^rebase' && ' '.args =~# ' --continue' && !a:0
+  elseif a:cmd =~# '^rebase' && s:HasOpt(args, '--continue') && !a:0
     let rdir = fugitive#Find('.git/rebase-merge', dir)
     let exec_error = s:ChompError([dir, 'diff-index', '--cached', '--quiet', 'HEAD', '--'])[1]
     if exec_error && isdirectory(rdir)
@@ -3096,9 +3096,9 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
       let &l:makeprg = g:fugitive_git_executable.' diff-files --name-status --diff-filter=U'
     else
       let &l:makeprg = s:sub(s:UserCommand() . ' ' . a:cmd .
-            \ (' ' . args =~# ' \%(--no-edit\|--abort\|-m\)\>' || a:cmd =~# '^rebase' ? '' : ' --edit') .
-            \ (' ' . args =~# ' --autosquash\>' && a:cmd =~# '^rebase' ? ' --interactive' : '') .
-            \ ' ' . args, ' *$', '')
+            \ (s:HasOpt(args, '--no-edit', '--abort', '-m') || a:cmd =~# '^rebase' ? '' : ' --edit') .
+            \ (s:HasOpt(args, '--autosquash') && a:cmd =~# '^rebase' ? ' --interactive' : '') .
+            \ ' ' . s:shellesc(args), ' *$', '')
     endif
     if !empty($GIT_SEQUENCE_EDITOR) || has('win32')
       let old_sequence_editor = $GIT_SEQUENCE_EDITOR
