@@ -1334,7 +1334,9 @@ call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','com
 " Section: Completion
 
 function! s:GlobComplete(lead, pattern) abort
-  if v:version >= 704
+  if a:lead ==# '/'
+    return []
+  elseif v:version >= 704
     let results = glob(a:lead . a:pattern, 0, 1)
   else
     let results = split(glob(a:lead . a:pattern), "\n")
@@ -1390,10 +1392,10 @@ function! fugitive#CompleteObject(base, ...) abort
       let results += map(s:GlobComplete(fugitive#CommonDir(dir) . '/', a:base . '*'), 's:Slash(v:val)')
     elseif a:base !~# '^\.\=/\|^:('
       let heads = ['HEAD', 'ORIG_HEAD', 'FETCH_HEAD', 'MERGE_HEAD', 'refs/']
-      let heads += sort(split(s:TreeChomp(["rev-parse","--symbolic","--branches","--tags","--remotes"], dir),"\n"))
+      let heads += sort(s:LinesError(["rev-parse","--symbolic","--branches","--tags","--remotes"], dir)[0])
       if filereadable(fugitive#CommonDir(dir) . '/refs/stash')
         let heads += ["stash"]
-        let heads += sort(split(s:TreeChomp(["stash","list","--pretty=format:%gd"], dir),"\n"))
+        let heads += sort(s:LinesError(["stash","list","--pretty=format:%gd"], dir)[0])
       endif
       call filter(heads,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
       let results += heads
@@ -1405,7 +1407,7 @@ function! fugitive#CompleteObject(base, ...) abort
     return results
 
   elseif a:base =~# '^:'
-    let entries = split(s:TreeChomp(['ls-files','--stage'], dir),"\n")
+    let entries = s:LinesError(['ls-files','--stage'], dir)[0]
     if a:base =~# ':\./'
       call map(entries, 'substitute(v:val, "\\M\t\\zs" . subdir, "./", "")')
     endif
@@ -1417,7 +1419,7 @@ function! fugitive#CompleteObject(base, ...) abort
 
   else
     let tree = matchstr(a:base, '.*[:/]')
-    let entries = split(s:TreeChomp(['ls-tree', substitute(tree,  ':\zs\./', '\=subdir', '')], dir),"\n")
+    let entries = s:LinesError(['ls-tree', substitute(tree,  ':\zs\./', '\=subdir', '')], dir)[0]
     call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
     call map(entries,'tree.s:sub(v:val,".*\t","")')
 
@@ -2958,11 +2960,11 @@ endfunction
 function! s:RemoteComplete(A, L, P) abort
   let remote = matchstr(a:L, ' \zs\S\+\ze ')
   if !empty(remote)
-    let matches = split(s:TreeChomp('ls-remote', remote), "\n")
+    let matches = s:LinesError('ls-remote', remote)[0]
     call filter(matches, 'v:val =~# "\t" && v:val !~# "{"')
     call map(matches, 's:sub(v:val, "^.*\t%(refs/%(heads/|tags/)=)=", "")')
   else
-    let matches = split(s:TreeChomp('remote'), "\n")
+    let matches = s:LinesError('remote')[0]
   endif
   return join(matches, "\n")
 endfunction
