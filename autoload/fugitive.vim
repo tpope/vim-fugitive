@@ -1430,10 +1430,6 @@ function! fugitive#CompleteObject(base, ...) abort
   return map(entries, 's:fnameescape(v:val)')
 endfunction
 
-function! fugitive#Complete(...) abort
-  return call('fugitive#CompleteObject', a:000)
-endfunction
-
 " Section: Buffer auto-commands
 
 function! s:ReplaceCmd(cmd) abort
@@ -1961,23 +1957,36 @@ augroup END
 " Section: :Git
 
 call s:command("-bang -nargs=? -range=-1 -complete=customlist,fugitive#CompleteGit Git", "Git")
+call s:command("-bar -bang -range=-1 -nargs=* -complete=customlist,fugitive#CompleteGit G", "")
+
+function! s:GitExec(line1, line2, range, count, bang, mods, reg, args, dir) abort
+  if empty(a:args)
+    return s:StatusCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, '', [])
+  endif
+  if a:bang
+    return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, a:args, a:dir)
+  endif
+  let git = s:UserCommandList(a:dir)
+  if has('gui_running') && !has('win32')
+    call add(git, '--no-pager')
+  endif
+  let pre = ''
+  if has('nvim') && executable('env')
+    let pre .= 'env GIT_TERMINAL_PROMPT=0 '
+  endif
+  return 'exe ' . string('!' . escape(pre . s:shellesc(git + a:args), '!#%'))
+endfunction
 
 function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
   let dir = s:Dir()
-  let tree = s:Tree(dir)
-  let [args, after] = s:SplitExpandChain(a:arg, tree)
-  if a:bang
-    return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, args, dir) . after
-  endif
-  let git = s:UserCommand(dir)
-  if has('gui_running') && !has('win32')
-    let git .= ' --no-pager'
-  endif
-  if has('nvim') && executable('env')
-    let git = 'env GIT_TERMINAL_PROMPT=0 ' . git
-  endif
-  let cmd = "exe '!'.escape(" . string(git . ' ' . s:shellesc(args)) . ",'!#%')"
-  return cmd . after
+  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
+  return s:GitExec(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, args, dir) . after
+endfunction
+
+function! s:Command(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
+  let dir = a:0 ? s:Dir(a:1) : s:Dir()
+  let args = s:SplitExpand(a:arg, s:Tree(dir))
+  return s:GitExec(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, args, dir)
 endfunction
 
 let s:exec_paths = {}
@@ -2017,6 +2026,10 @@ function! fugitive#CompleteGit(lead, ...) abort
   return filter(results, 'strpart(v:val, 0, strlen(a:lead)) ==# a:lead')
 endfunction
 
+function! fugitive#Complete(...) abort
+  return call('fugitive#CompleteGit', a:000)
+endfunction
+
 " Section: :Gcd, :Glcd
 
 function! s:DirComplete(A, L, P) abort
@@ -2038,7 +2051,6 @@ call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe
 " Section: :Gstatus
 
 call s:command("-bar -bang -range=-1 Gstatus", "Status")
-call s:command("-bar -bang -range=-1 G", "Status")
 
 function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
   let dir = a:0 ? a:1 : s:Dir()

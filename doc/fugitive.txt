@@ -15,12 +15,16 @@ COMMANDS                                        *fugitive-commands*
 These commands are local to the buffers in which they work (generally, buffers
 that are part of Git repositories).
 
+                                        *fugitive-:G* *fugitive-:Gstatus*
+:G                      Bring up a summary window vaguely akin to git-status.
+:Gstatus                Press g? or see |fugitive-mappings| for usage.
+
                                                 *fugitive-:Git*
-:Git [args]             Run an arbitrary git command. Similar to :!git [args]
-                        but chdir to the repository tree first.
+:Git {args}             Run an arbitrary git command. Similar to :!git [args]
+:G {args}               but chdir to the repository tree first.
 
                                                 *fugitive-:Git!*
-:Git! [args]            Like |:Git|, but capture the output into a temp file,
+:Git! {args}            Like |:Git|, but capture the output into a temp file,
                         and |:split| that that temp file.  Use :0Git to
                         |:edit| the temp file instead.
 
@@ -29,10 +33,6 @@ that are part of Git repositories).
 
                                                 *fugitive-:Glcd*
 :Glcd [directory]       |:lcd| relative to the repository.
-
-                                        *fugitive-:Gstatus* *fugitive-:G*
-:G                      Bring up a summary window vaguely akin to git-status.
-:Gstatus                Press g? or see |fugitive-mappings| for usage.
 
                                                 *fugitive-:Gcommit*
 :Gcommit [args]         A wrapper around git-commit.  Unless the arguments
