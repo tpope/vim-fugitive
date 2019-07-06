@@ -1960,7 +1960,7 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
   let tree = s:Tree(dir)
   let [args, after] = s:SplitExpandChain(a:arg, tree)
   if a:bang
-    return s:OpenExec('edit', a:mods, args, dir) . after
+    return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, args, dir) . after
   endif
   let git = s:UserCommand(dir)
   if has('gui_running') && !has('win32')

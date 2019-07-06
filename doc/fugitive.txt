@@ -21,7 +21,8 @@ that are part of Git repositories).
 
                                                 *fugitive-:Git!*
 :Git! [args]            Like |:Git|, but capture the output into a temp file,
-                        and edit that temp file.
+                        and |:split| that that temp file.  Use :0Git to
+                        |:edit| the temp file instead.
 
                                                 *fugitive-:Gcd*
 :Gcd [directory]        |:cd| relative to the repository.
@@ -106,8 +107,10 @@ that are part of Git repositories).
 
 :Gsplit! [args]                 *fugitive-:Gsplit!* *fugitive-:Gvsplit!*
 :Gvsplit! [args]                *fugitive-:Gtabedit!* *fugitive-:Gpedit!*
-:Gtabedit! [args]       Like |:Git!|, but open the resulting temp file in a
-:Gpedit! [args]         split, tab, or preview window.
+:Gtabedit! [args]       Capture the output of `git [args]` to a temp file and
+:Gpedit! [args]         open it in a split, tab, or preview window.  Use
+                        :0Gsplit! to suppress the split and open it in the
+                        current window.
 
                                                 *fugitive-:Gread*
 :Gread [object]         Empty the buffer and |:read| a |fugitive-object|.
