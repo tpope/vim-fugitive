@@ -342,8 +342,7 @@ function! s:BuildShell(dir, env, args) abort
   else
     let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? '& ' : '; ') . pre
   endif
-  let cmd = join(map(cmd, 's:shellesc(v:val)'))
-  return pre . g:fugitive_git_executable . ' ' . cmd
+  return pre . g:fugitive_git_executable . ' ' . join(map(cmd, 's:shellesc(v:val)'))
 endfunction
 
 function! fugitive#Prepare(...) abort
