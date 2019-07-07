@@ -2848,13 +2848,22 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
       else
         let command = 'env GIT_EDITOR=false '
       endif
-      if len(a:args)
-        let [args, after] = s:ShellExpandChain(a:arg, tree)
+      if type(a:arg) == type([])
+        let [argv, after] = [a:arg, '']
       else
-        let [args, after] = [a:arg, '']
+        let [argv, after] = s:SplitExpandChain(a:arg, tree)
       endif
-      let command .= s:UserCommand(dir) . ' commit ' . args
-      if a:arg =~# '\%(^\| \)-\%(-interactive\|p\|-patch\)\>' && &shell !~# 'csh'
+      let i = 0
+      while get(argv, i, '--') !=# '--'
+        if argv[i] =~# '^-[apzsneiovq].'
+          call insert(argv, argv[i][0:1])
+          let argv[i+1] = '-' . argv[i+1][2:-1]
+        else
+          let i += 1
+        endif
+      endwhile
+      let command .= s:UserCommand(dir) . ' commit ' . s:shellesc(argv)
+      if s:HasOpt(argv, '-i', '--interactive', '-p', '--patch') && &shell !~# 'csh'
         let errorfile = tempname()
         noautocmd execute '!'.command.' 2> '.errorfile
         let errors = readfile(errorfile)
@@ -2884,21 +2893,34 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
     else
       let error = get(errors,-2,get(errors,-1,'!'))
       if error =~# 'false''\=\.$'
-        let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-[esp]|--edit|--interactive|--patch|--signoff)%($| )','')
-        let args = s:gsub(args,'%(%(^| )-- )@<!%(^| )@<=%(-c|--reedit-message|--reuse-message|-F|--file|-m|--message)%(\s+|\=)%(''[^'']*''|"%(\\.|[^"])*"|\\.|\S)*','')
-        let args = s:sub(args, '\ze -- |$', ' --no-edit --no-interactive --no-signoff')
-        let args = '-F '.s:shellesc(msgfile).' '.args
-        if args !~# '\%(^\| \)--cleanup\>'
-          let args = '--cleanup=strip '.args
+        let i = 0
+        while get(argv, i, '--') !=# '--'
+          if argv[i] =~# '^\%(-[eips]\|-[CcFm].\+\|--edit\|--interactive\|--patch\|--signoff\|--reedit-message=.*\|--reuse-message=.*\|--file=.*\|--message=.*\)$'
+            call remove(argv, i)
+          elseif argv[i] =~# '^\%(-[CcFm]\|--reedit-message\|--reuse-message\|--file\|--message\)$'
+            call remove(argv, i, i + 1)
+          else
+            if argv[i] =~# '^--cleanup\>'
+              let cleanup = 1
+            endif
+            let i += 1
+          endif
+        endwhile
+        call insert(argv, '--no-signoff', i)
+        call insert(argv, '--no-interactive', i)
+        call insert(argv, '--no-edit', i)
+        if !exists('cleanup')
+          call insert(argv, '--cleanup=strip')
         endif
+        call extend(argv, ['-F', msgfile], 'keep')
         if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&modified
           execute mods . 'keepalt edit' s:fnameescape(msgfile)
-        elseif a:arg =~# '\%(^\| \)-\w*v' || mods =~# '\<tab\>'
+        elseif s:HasOpt(argv, '-v') || mods =~# '\<tab\>'
           execute mods . 'keepalt -tabedit' s:fnameescape(msgfile)
         else
           execute mods . 'keepalt split' s:fnameescape(msgfile)
         endif
-        let b:fugitive_commit_arguments = args
+        let b:fugitive_commit_arguments = argv
         setlocal bufhidden=wipe filetype=gitcommit
         return '1' . after
       elseif error ==# '!'
@@ -2933,7 +2955,7 @@ function! s:FinishCommit() abort
   let buf = +expand('<abuf>')
   let args = getbufvar(buf, 'fugitive_commit_arguments')
   if !empty(args)
-    call setbufvar(buf, 'fugitive_commit_arguments', '')
+    call setbufvar(buf, 'fugitive_commit_arguments', [])
     if getbufvar(buf, 'fugitive_commit_rebase')
       call setbufvar(buf, 'fugitive_commit_rebase', 0)
       let s:rebase_continue = s:Dir(buf)
@@ -3622,7 +3644,7 @@ endfunction
 
 augroup fugitive_commit
   autocmd!
-  autocmd VimLeavePre,BufDelete COMMIT_EDITMSG execute s:sub(s:FinishCommit(), '^echoerr (.*)', 'echohl ErrorMsg|echo \1|echohl NONE')
+  autocmd VimLeavePre,BufDelete COMMIT_EDITMSG execute substitute(s:FinishCommit(), '\C^echoerr \(''[^'']*''\)*', 'redraw|echohl ErrorMsg|echo \1|echohl NONE', '')
 augroup END
 
 " Section: :Gpush, :Gfetch

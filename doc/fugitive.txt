@@ -39,11 +39,8 @@ that are part of Git repositories).
                         given would skip the invocation of an editor (e.g.,
                         -m), a split window will be used to obtain a commit
                         message, or a new tab if -v is given.  Write and close
-                        that window (:wq or |:Gwrite|) to finish the commit.
-                        Unlike when running the actual git-commit command, it
-                        is possible (but unadvisable) to alter the index with
-                        commands like git-add and git-reset while a commit
-                        message is pending.
+                        the window (:wq) to finish the commit. To cancel, use
+                        an empty message.
 
                                                 *fugitive-:Gmerge*
 :Gmerge [args]          Calls git-merge and loads errors and conflicted files
