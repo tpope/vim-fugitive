@@ -4231,6 +4231,9 @@ function! s:BlameSyntax() abort
   hi def link FugitiveblameShort              FugitiveblameDelimiter
   hi def link FugitiveblameDelimiter          Delimiter
   hi def link FugitiveblameNotCommittedYet    Comment
+  if !get(g:, 'fugitive_dynamic_colors', 1)
+    return
+  endif
   let seen = {}
   for lnum in range(1, line('$'))
     let hash = matchstr(getline(lnum), '^\^\=\zs\x\{6\}')
