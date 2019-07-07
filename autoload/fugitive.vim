@@ -1997,14 +1997,17 @@ endfunction
 function! fugitive#CompleteGit(lead, ...) abort
   let dir = a:0 == 1 ? a:1 : a:0 == 3 ? a:3 : s:Dir()
   let pre = a:0 > 1 ? strpart(a:1, 0, a:2) : ''
-  if pre !~# '\u\w*[! ] *[[:alnum:]-]\+ '
-    let cmds = s:Subcommands()
-    return filter(sort(cmds+keys(s:Aliases(dir))), 'strpart(v:val, 0, strlen(a:lead)) ==# a:lead')
+  let subcmd = matchstr(pre, '\u\w*[! ] *\zs[[:alnum:]-]\+\ze ')
+  if empty(subcmd)
+    let results = sort(s:Subcommands() + keys(s:Aliases(dir)))
   elseif pre =~# ' -- '
     return fugitive#CompletePath(a:lead, dir)
+  elseif a:lead =~# '^-'
+    let results = split(s:ChompDefault('', dir, subcmd, '--git-completion-helper'), ' ')
   else
     return fugitive#CompleteObject(a:lead, dir)
   endif
+  return filter(results, 'strpart(v:val, 0, strlen(a:lead)) ==# a:lead')
 endfunction
 
 " Section: :Gcd, :Glcd
