@@ -3982,7 +3982,6 @@ endfunction
 augroup fugitive_blame
   autocmd!
   autocmd FileType fugitiveblame setlocal nomodeline | if len(s:Dir()) | let &l:keywordprg = s:Keywordprg() | endif
-  autocmd Syntax fugitiveblame call s:BlameSyntax()
   autocmd User Fugitive
         \ if get(b:, 'fugitive_type') =~# '^\%(file\|blob\|blame\)$' || filereadable(@%) |
         \   exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:BlameCommand(<line1>,<line2>,+'<range>',<count>,<bang>0,'<mods>',<q-reg>,<q-args>,[<f-args>])" |
@@ -4206,8 +4205,7 @@ endfunction
 
 let s:hash_colors = {}
 
-function! s:BlameSyntax() abort
-  let b:current_syntax = 'fugitiveblame'
+function! fugitive#BlameSyntax() abort
   let conceal = has('conceal') ? ' conceal' : ''
   syn match FugitiveblameBoundary "^\^"
   syn match FugitiveblameBlank                      "^\s\+\s\@=" nextgroup=FugitiveblameAnnotation,fugitiveblameOriginalFile,FugitiveblameOriginalLineNumber skipwhite
