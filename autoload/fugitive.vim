@@ -138,6 +138,8 @@ function! s:executable(binary) abort
   return s:executables[a:binary]
 endfunction
 
+let s:nowait = v:version >= 704 ? '<nowait>' : ''
+
 function! s:map(mode, lhs, rhs, ...) abort
   let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
   let head = a:lhs
@@ -1704,8 +1706,10 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> K :<C-U>execute <SID>StagePrevious(v:count1)<CR>
     nnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
-    nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
-    exe 'nnoremap <buffer> <silent>' nowait "gq :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>"
+    if empty(mapcheck('q'))
+      nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
+    endif
+    exe 'nnoremap <buffer> <silent>' s:nowait "gq :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>"
     nnoremap <buffer> <silent> R :echohl WarningMsg<Bar>echo 'Reloading is automatic.  Use :e to force'<Bar>echohl NONE<CR>
     nnoremap <buffer> <silent> U :<C-U>echoerr 'Changed to X'<CR>
     nnoremap <buffer> <silent> g<Bar> :<C-U>execute <SID>StageDelete(line('.'),v:count)<CR>
@@ -1930,7 +1934,10 @@ function! s:SetupTemp(file) abort
     setlocal foldmarker=<<<<<<<,>>>>>>>
     setlocal bufhidden=delete nobuflisted
     setlocal buftype=nowrite
-    nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
+    if empty(mapcheck('q'))
+      nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
+    endif
+    exe 'nnoremap <buffer> <silent>' s:nowait "gq :<C-U>bdelete<CR>"
     if getline(1) !~# '^diff '
       setlocal nomodifiable
     endif
@@ -4094,8 +4101,10 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
         let nowait = v:version >= 704 ? '<nowait>' : ''
         nnoremap <buffer> <silent> <F1> :help fugitive-:Gblame<CR>
         nnoremap <buffer> <silent> g?   :help fugitive-:Gblame<CR>
-        nnoremap <buffer> <silent> q    :exe substitute(bufwinnr(b:fugitive_blamed_bufnr).' wincmd w<Bar>'.bufnr('').'bdelete','^-1','','')<CR>
-        exe 'nnoremap <buffer> <silent>' nowait "gq :exe substitute(bufwinnr(b:fugitive_blamed_bufnr).' wincmd w<Bar>'.bufnr('').'bdelete<Bar>if expand(''%:p'') =~# ''^fugitive:[\\/][\\/]''<Bar>Gedit<Bar>endif','^-1','','')<CR>"
+        if empty(mapcheck('q'))
+          nnoremap <buffer> <silent> q    :exe substitute(bufwinnr(b:fugitive_blamed_bufnr).' wincmd w<Bar>'.bufnr('').'bdelete','^-1','','')<CR>
+        endif
+        exe 'nnoremap <buffer> <silent>' s:nowait "gq :exe substitute(bufwinnr(b:fugitive_blamed_bufnr).' wincmd w<Bar>'.bufnr('').'bdelete<Bar>if expand(''%:p'') =~# ''^fugitive:[\\/][\\/]''<Bar>Gedit<Bar>endif','^-1','','')<CR>"
         nnoremap <buffer> <silent> <CR> :<C-U>exe <SID>BlameCommit("exe 'norm q'<Bar>edit")<CR>
         nnoremap <buffer> <silent> -    :<C-U>exe <SID>BlameJump('')<CR>
         nnoremap <buffer> <silent> P    :<C-U>exe <SID>BlameJump('^'.v:count1)<CR>
@@ -4528,7 +4537,6 @@ endfunction
 
 function! fugitive#MapJumps(...) abort
   if !&modifiable
-    let nowait = v:version >= 704 ? '<nowait>' : ''
     if get(b:, 'fugitive_type', '') ==# 'blob'
       nnoremap <buffer> <silent> <CR>    :<C-U>.Gblame<CR>
     else
@@ -4547,7 +4555,7 @@ function! fugitive#MapJumps(...) abort
       nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
       nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
     endif
-    exe "nnoremap <buffer> <silent>" nowait  "-     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40,\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>"
+    exe "nnoremap <buffer> <silent>" s:nowait  "-     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40,\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>"
     nnoremap <buffer> <silent> P     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
