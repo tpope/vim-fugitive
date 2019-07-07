@@ -385,9 +385,6 @@ Miscellaneous mappings ~
                                                 *fugitive_gq* *fugitive_q*
 gq                      Close the status buffer.
 
-                                                *fugitive_R*
-R                       Reload the status buffer.
-
                                                 *fugitive_.*
 .                       Start a |:| command line with the file under the
                         cursor prepopulated.
