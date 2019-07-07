@@ -1997,7 +1997,7 @@ endfunction
 function! fugitive#CompleteGit(lead, ...) abort
   let dir = a:0 == 1 ? a:1 : a:0 == 3 ? a:3 : s:Dir()
   let pre = a:0 > 1 ? strpart(a:1, 0, a:2) : ''
-  if pre !~# ' [[:alnum:]-]\+ '
+  if pre !~# '\u\w*[! ] *[[:alnum:]-]\+ '
     let cmds = s:Subcommands()
     return filter(sort(cmds+keys(s:Aliases(dir))), 'strpart(v:val, 0, strlen(a:lead)) ==# a:lead')
   elseif pre =~# ' -- '
