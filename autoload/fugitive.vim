@@ -1683,6 +1683,11 @@ function! fugitive#BufReadStatus() abort
     exe "xnoremap <buffer> <silent>" nowait "s :<C-U>execute <SID>Do('Stage',1)<CR>"
     exe "nnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',0)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',1)<CR>"
+    nnoremap <buffer> <silent> gu :<C-U>exe <SID>StageJump(v:count, 'Unstaged')<CR>
+    nnoremap <buffer> <silent> gU :<C-U>exe <SID>StageJump(v:count, 'Untracked')<CR>
+    nnoremap <buffer> <silent> gs :<C-U>exe <SID>StageJump(v:count, 'Staged')<CR>
+    nnoremap <buffer> <silent> gp :<C-U>exe <SID>StageJump(v:count, 'Unpushed')<CR>
+    nnoremap <buffer> <silent> gP :<C-U>exe <SID>StageJump(v:count, 'Unpulled')<CR>
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
     nnoremap <buffer> <silent> a :<C-U>execute <SID>Do('Toggle',0)<CR>
     nnoremap <buffer> <silent> i :<C-U>execute <SID>StageIntend(v:count1)<CR>
@@ -2077,6 +2082,15 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
+  return ''
+endfunction
+
+function! s:StageJump(offset, section, ...) abort
+  let line = search('^' . a:section, 'nw')
+  if line
+    exe line
+    return s:StageNext(a:offset ? a:offset : 1)
+  endif
   return ''
 endfunction
 
@@ -2707,14 +2721,6 @@ endfunction
 function! s:DoToggleHeadHeader(value) abort
   exe 'edit' s:fnameescape(s:Dir())
   call search('\C^index$', 'wc')
-endfunction
-
-function! s:DoStageHeadHeader(value) abort
-  exe search('^Untracked\|^Unstaged', 'wn') + 1
-endfunction
-
-function! s:DoUnstageHeadHeader(value) abort
-  exe search('^Staged', 'wn') + 1
 endfunction
 
 function! s:DoToggleUnpushedHeading(heading) abort

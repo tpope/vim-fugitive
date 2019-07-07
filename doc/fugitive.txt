@@ -323,6 +323,21 @@ C                       Open the commit containing the current file.
 <C-W>C                  Open the commit containing the current file in a new
                         split.
 
+                                                *fugitive_gu*
+gu                      Jump to "Unstaged" section.
+
+                                                *fugitive_gU*
+gU                      Jump to "Untracked" section.
+
+                                                *fugitive_gs*
+gs                      Jump to "Staged" section.
+
+                                                *fugitive_gp*
+gp                      Jump to "Unpushed" section.
+
+                                                *fugitive_gP*
+gP                      Jump to "Unpulled" section.
+
                                                 *fugitive_c*
 Commit mappings ~
 
