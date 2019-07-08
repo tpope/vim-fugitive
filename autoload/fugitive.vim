@@ -1728,8 +1728,6 @@ function! fugitive#BufReadStatus() abort
     let nowait = v:version >= 704 ? '<nowait>' : ''
     nunmap   <buffer>          P
     nunmap   <buffer>          ~
-    nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>StageNext(v:count1)<CR>
-    nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>StagePrevious(v:count1)<CR>
     nnoremap <buffer> <silent> [[ :<C-U>execute <SID>PreviousSection(v:count1)<CR>
     nnoremap <buffer> <silent> ]] :<C-U>execute <SID>NextSection(v:count1)<CR>
     exe "nnoremap <buffer> <silent>" nowait "- :<C-U>execute <SID>Do('Toggle',0)<CR>"
@@ -1758,8 +1756,6 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> ds :<C-U>execute <SID>StageDiff('Ghdiffsplit')<CR>
     nnoremap <buffer> <silent> dp :<C-U>execute <SID>StageDiffEdit()<CR>
     nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiffsplit')<CR>
-    nnoremap <buffer> <silent> J :<C-U>execute <SID>StageNext(v:count1)<CR>
-    nnoremap <buffer> <silent> K :<C-U>execute <SID>StagePrevious(v:count1)<CR>
     nnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
     if empty(mapcheck('q'))
@@ -2155,7 +2151,7 @@ function! s:StageJump(offset, section, ...) abort
   let line = search('^' . a:section, 'nw')
   if line
     exe line
-    return s:StageNext(a:offset ? a:offset : 1)
+    return s:NextFileHunk(a:offset ? a:offset : 1)
   endif
   return ''
 endfunction
@@ -2547,24 +2543,20 @@ function! s:StageReveal(...) abort
   endif
 endfunction
 
-function! s:StageNext(count) abort
+function! s:NextFileHunk(count) abort
   for i in range(a:count)
-    call search('^[A-Z?] .\|^[0-9a-f]\{4,\} \|^@','W')
+    call search('^[A-Z?] .\|^diff --\|^[0-9a-f]\{4,\} \|^@','W')
   endfor
   call s:StageReveal()
   return '.'
 endfunction
 
-function! s:StagePrevious(count) abort
-  if line('.') == 1 && exists(':CtrlP') && get(g:, 'ctrl_p_map') =~? '^<c-p>$'
-    return 'CtrlP '.fnameescape(s:Tree())
-  else
-    for i in range(a:count)
-      call search('^[A-Z?] .\|^[0-9a-f]\{4,\} \|^@','Wbe')
-    endfor
-    call s:StageReveal()
-    return '.'
-  endif
+function! s:PreviousFileHunk(count) abort
+  for i in range(a:count)
+    call search('^[A-Z?] .\|^diff --\|^[0-9a-f]\{4,\} \|^@','Wbe')
+  endfor
+  call s:StageReveal()
+  return '.'
 endfunction
 
 function! s:NextSection(count) abort
@@ -2675,7 +2667,7 @@ function! s:StageIntend(count) abort
     else
       call s:StageInline('show', line('.'), 1)
     endif
-    call s:StageNext(1)
+    call s:NextFileHunk(1)
   endfor
   return '.'
 endfunction
@@ -4691,6 +4683,18 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> P     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+
+    if exists(':CtrlP') && get(g:, 'ctrl_p_map') =~? '^<c-p>$'
+      nnoremap <buffer> <silent> <C-P> :<C-U>execute line('.') == 1 ? 'CtrlP ' . fnameescape(<SID>Tree()) : <SID>PreviousFileHunk(v:count1)<CR>
+    else
+      nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
+    endif
+    nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
+    nnoremap <buffer> <silent> (  :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
+    nnoremap <buffer> <silent> )  :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
+    nnoremap <buffer> <silent> K  :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
+    nnoremap <buffer> <silent> J  :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
+
     nnoremap <buffer> <silent> co    :<C-U>echoerr 'Use CTRL-W C'<CR>
     nnoremap <buffer> <silent> <C-W>C :<C-U>exe 'Gsplit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> cp    :<C-U>echoerr 'Use gC'<CR>
