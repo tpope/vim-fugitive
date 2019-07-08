@@ -765,6 +765,7 @@ function! fugitive#Find(object, ...) abort
   let rev = s:Slash(a:object)
   let tree = s:Tree(dir)
   let base = len(tree) ? tree : 'fugitive://' . dir . '//0'
+  let g:rev = rev
   if rev ==# '.git'
     let f = len(tree) ? tree . '/.git' : dir
   elseif rev =~# '^\.git/'
@@ -810,7 +811,12 @@ function! fugitive#Find(object, ...) abort
       let f = fugitive#Find('.git/index', dir)
     endif
   elseif rev =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
-    let f = base . '/' . matchstr(rev, ')\zs.*')
+    let f = matchstr(rev, ')\zs.*')
+    if f=~# '^\.\.\=\%(/\|$\)'
+      let f = simplify(getcwd() . '/' . f)
+    elseif f !~# '^/\|^\%(\a\a\+:\).*\%(//\|::\)' . (has('win32') ? '\|^\a:/' : '')
+      let f = base . '/' . f
+    endif
   elseif rev =~# '^:/\@!'
     let f = 'fugitive://' . dir . '//0/' . rev[1:-1]
   else
