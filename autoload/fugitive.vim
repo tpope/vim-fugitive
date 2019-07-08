@@ -1349,6 +1349,14 @@ call s:add_methods('buffer',['getvar','getline','repo','type','spec','name','com
 
 " Section: Completion
 
+function! s:FilterEscape(items, ...) abort
+  let items = copy(a:items)
+  if a:0 && type(a:1) == type('')
+    call filter(items, 'strpart(v:val, 0, strlen(a:1)) ==# a:1')
+  endif
+  return map(items, 's:fnameescape(v:val)')
+endfunction
+
 function! s:GlobComplete(lead, pattern) abort
   if a:lead ==# '/'
     return []
@@ -1440,8 +1448,39 @@ function! fugitive#CompleteObject(base, ...) abort
     call map(entries,'tree.s:sub(v:val,".*\t","")')
 
   endif
-  call filter(entries, 'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-  return map(entries, 's:fnameescape(v:val)')
+  return s:FilterEscape(entries, a:base)
+endfunction
+
+function! s:CompleteSubcommand(subcommand, A, L, P, ...) abort
+  let pre = strpart(a:L, 0, a:P)
+  if pre =~# ' -- '
+    return fugitive#CompletePath(a:A)
+  elseif a:A =~# '^-' || a:A is# 0
+    return s:FilterEscape(split(s:ChompDefault('', a:subcommand, '--git-completion-helper'), ' '), a:A)
+  elseif !a:0
+    return fugitive#CompleteObject(a:A)
+  elseif type(a:1) == type(function('tr'))
+    return call(a:1, [a:A, a:L, a:P])
+  else
+    return s:FilterEscape(a:1, a:A)
+  endif
+endfunction
+
+function! s:CompleteRevision(A, L, P) abort
+  return s:FilterEscape(['HEAD', 'FETCH_HEAD', 'MERGE_HEAD', 'ORIG_HEAD'] +
+        \ s:LinesError('rev-parse', '--symbolic', '--branches', '--tags', '--remotes')[0], a:A)
+endfunction
+
+function! s:CompleteRemote(A, L, P) abort
+  let remote = matchstr(a:L, '\u\w*[! ] *\zs\S\+\ze ')
+  if !empty(remote)
+    let matches = s:LinesError('ls-remote', remote)[0]
+    call filter(matches, 'v:val =~# "\t" && v:val !~# "{"')
+    call map(matches, 's:sub(v:val, "^.*\t%(refs/%(heads/|tags/)=)=", "")')
+  else
+    let matches = s:LinesError('remote')[0]
+  endif
+  return s:FilterEscape(matches, a:A)
 endfunction
 
 " Section: Buffer auto-commands
@@ -2882,8 +2921,6 @@ endfunction
 
 " Section: :Gcommit
 
-call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit", "Commit")
-
 function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
   let mods = substitute(s:Mods(a:mods), '\C\<tab\>', '-tab', 'g')
   let dir = a:0 ? a:1 : s:Dir()
@@ -2990,16 +3027,19 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
   endtry
 endfunction
 
-function! s:CommitComplete(A,L,P) abort
+function! s:CommitComplete(A, L, P) abort
   if a:A =~# '^--fixup=\|^--squash='
     let commits = s:LinesError(['log', '--pretty=format:%s', '@{upstream}..'])[0]
-    let pre = matchstr(a:A, '^--\w*=') . ':/^'
-    return map(commits, 'pre . tr(v:val, "\\ !^$*?[]()''\"`&;<>|#", "....................")')
-  elseif a:A =~ '^-' || type(a:A) == type(0) " a:A is 0 on :Gcommit -<Tab>
-    let args = ['-C', '-F', '-a', '-c', '-e', '-i', '-m', '-n', '-o', '-q', '-s', '-t', '-u', '-v', '--all', '--allow-empty', '--amend', '--author=', '--cleanup=', '--dry-run', '--edit', '--file=', '--fixup=', '--include', '--interactive', '--message=', '--no-verify', '--only', '--quiet', '--reedit-message=', '--reuse-message=', '--signoff', '--squash=', '--template=', '--untracked-files', '--verbose']
-    return filter(args,'v:val[0 : strlen(a:A)-1] ==# a:A')
+    let pre = matchstr(a:A, '^--\w*=''\=') . ':/^'
+    if pre =~# "'"
+      call map(commits, 'pre . string(tr(v:val, "|\"^$*[]", "......."))[1:-1]')
+      call filter(commits, 'strpart(v:val, 0, strlen(a:A)) ==# a:A')
+      return commits
+    else
+      return s:FilterEscape(map(commits, 'pre . tr(v:val, "\\ !^$*?[]()''\"`&;<>|#", "....................")'), a:A)
+    endif
   else
-    return fugitive#CompletePath(a:A, s:Dir())
+    return s:CompleteSubcommand('commit', a:A, a:L, a:P, function('fugitive#CompletePath'))
   endif
   return []
 endfunction
@@ -3018,30 +3058,20 @@ function! s:FinishCommit() abort
   return ''
 endfunction
 
+call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit", "Commit")
+
 " Section: :Gmerge, :Grebase, :Gpull
 
-call s:command("-nargs=? -bar -bang -complete=custom,s:RevisionComplete Gmerge " .
-      \ "execute s:Merge('merge', <bang>0, '<mods>', <q-args>)")
-call s:command("-nargs=? -bar -bang -complete=custom,s:RevisionComplete Grebase " .
-      \ "execute s:Merge('rebase', <bang>0, '<mods>', <q-args>)")
-call s:command("-nargs=? -bar -bang -complete=custom,s:RemoteComplete Gpull " .
-      \ "execute s:Merge('pull --progress', <bang>0, '<mods>', <q-args>)")
-
-function! s:RevisionComplete(A, L, P) abort
-  return s:TreeChomp('rev-parse', '--symbolic', '--branches', '--tags', '--remotes')
-        \ . "\nHEAD\nFETCH_HEAD\nMERGE_HEAD\nORIG_HEAD"
+function! s:MergeComplete(A, L, P) abort
+  return s:CompleteSubcommand('merge', a:A, a:L, a:P, function('s:CompleteRevision'))
 endfunction
 
-function! s:RemoteComplete(A, L, P) abort
-  let remote = matchstr(a:L, ' \zs\S\+\ze ')
-  if !empty(remote)
-    let matches = s:LinesError('ls-remote', remote)[0]
-    call filter(matches, 'v:val =~# "\t" && v:val !~# "{"')
-    call map(matches, 's:sub(v:val, "^.*\t%(refs/%(heads/|tags/)=)=", "")')
-  else
-    let matches = s:LinesError('remote')[0]
-  endif
-  return join(matches, "\n")
+function! s:RebaseComplete(A, L, P) abort
+  return s:CompleteSubcommand('rebase', a:A, a:L, a:P, function('s:CompleteRevision'))
+endfunction
+
+function! s:PullComplete(A, L, P) abort
+  return s:CompleteSubcommand('pull', a:A, a:L, a:P, function('s:CompleteRemote'))
 endfunction
 
 function! s:RebaseSequenceAborter() abort
@@ -3285,6 +3315,13 @@ augroup fugitive_merge
         \ endif
 augroup END
 
+call s:command("-nargs=? -bar -bang -complete=customlist,s:MergeComplete Gmerge " .
+      \ "execute s:Merge('merge', <bang>0, '<mods>', <q-args>)")
+call s:command("-nargs=? -bar -bang -complete=customlist,s:RebaseComplete Grebase " .
+      \ "execute s:Merge('rebase', <bang>0, '<mods>', <q-args>)")
+call s:command("-nargs=? -bar -bang -complete=customlist,s:PullComplete Gpull " .
+      \ "execute s:Merge('pull --progress', <bang>0, '<mods>', <q-args>)")
+
 " Section: :Ggrep, :Glog
 
 if !exists('g:fugitive_summary_format')
@@ -3292,17 +3329,12 @@ if !exists('g:fugitive_summary_format')
 endif
 
 function! s:GrepComplete(A, L, P) abort
-  if strpart(a:L, 0, a:P) =~# ' -- '
-    return fugitive#CompletePath(a:A, s:Dir())
-  else
-    return fugitive#CompleteObject(a:A, s:Dir())
-  endif
+  return s:CompleteSubcommand('grep', a:A, a:L, a:P)
 endfunction
 
-call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
-call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:GrepComplete Glog :exe s:Log('grep',<bang>0,<line1>,<count>,<q-args>)")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:GrepComplete Gllog :exe s:Log('lgrep',<bang>0,<line1>,<count>,<q-args>)")
+function! s:LogComplete(A, L, P) abort
+  return s:CompleteSubcommand('log', a:A, a:L, a:P)
+endfunction
 
 function! s:Grep(cmd,bang,arg) abort
   let grepprg = &grepprg
@@ -3390,6 +3422,11 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
     execute cdback
   endtry
 endfunction
+
+call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
+call s:command("-bar -bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Glog :exe s:Log('grep',<bang>0,<line1>,<count>,<q-args>)")
+call s:command("-bar -bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Gllog :exe s:Log('lgrep',<bang>0,<line1>,<count>,<q-args>)")
 
 " Section: :Gedit, :Gpedit, :Gsplit, :Gvsplit, :Gtabedit, :Gread
 
@@ -3702,8 +3739,13 @@ augroup END
 
 " Section: :Gpush, :Gfetch
 
-call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gpush  execute s:Dispatch('<bang>', 'push '.<q-args>)")
-call s:command("-nargs=? -bang -complete=custom,s:RemoteComplete Gfetch execute s:Dispatch('<bang>', 'fetch '.<q-args>)")
+function! s:PushComplete(A, L, P) abort
+  return s:CompleteSubcommand('push', a:A, a:L, a:P, function('s:CompleteRemote'))
+endfunction
+
+function! s:FetchComplete(A, L, P) abort
+  return s:CompleteSubcommand('fetch', a:A, a:L, a:P, function('s:CompleteRemote'))
+endfunction
 
 function! s:Dispatch(bang, args)
   let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
@@ -3737,6 +3779,9 @@ function! s:Dispatch(bang, args)
     execute cdback
   endtry
 endfunction
+
+call s:command("-nargs=? -bang -complete=customlist,s:PushComplete Gpush  execute s:Dispatch('<bang>', 'push '.<q-args>)")
+call s:command("-nargs=? -bang -complete=customlist,s:FetchComplete Gfetch execute s:Dispatch('<bang>', 'fetch '.<q-args>)")
 
 " Section: :Gdiff
 
