@@ -4057,10 +4057,11 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
     if empty(s:Relative('/'))
       call s:throw('file or blob required')
     endif
-    if filter(copy(a:args),'v:val !~# "^\\%(--abbrev=\\d*\\|--relative-date\\|--first-parent\\|--root\\|--show-name\\|-\\=\\%([ltfnsew]\\|[MC]\\d*\\)\\+\\)$"') != []
+    if filter(copy(a:args),'v:val !~# "^-"') != []
+      call s:throw("'-' required for all options")
+    elseif filter(copy(a:args),'v:val !~# "^\\%(--abbrev=\\d*\\|--relative-date\\|--first-parent\\|--root\\|--show-name\\|-\\%([ltfnsew]\\|[MC]\\d*\\)\\+\\)$"') != []
       call s:throw('unsupported option')
     endif
-    call map(a:args,'s:sub(v:val,"^\\ze[^-]","-")')
     let cmd = ['--no-pager', 'blame', '--show-number']
     if a:count
       let cmd += ['-L', a:line1 . ',' . a:line1]
