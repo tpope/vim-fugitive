@@ -4097,7 +4097,7 @@ augroup fugitive_blame
   autocmd FileType fugitiveblame setlocal nomodeline | if len(s:Dir()) | let &l:keywordprg = s:Keywordprg() | endif
   autocmd User Fugitive
         \ if get(b:, 'fugitive_type') =~# '^\%(file\|blob\|blame\)$' || filereadable(@%) |
-        \   exe "command! -buffer -bar -bang -range=0 -nargs=* Gblame :execute s:BlameCommand(<line1>,<line2>,+'<range>',<count>,<bang>0,'<mods>',<q-reg>,<q-args>,[<f-args>])" |
+        \   exe "command! -buffer -bar -bang -range=-1 -nargs=* Gblame :execute s:BlameCommand(<line1>,<line2>,+'<range>',<count>,<bang>0,'<mods>',<q-reg>,<q-args>,[<f-args>])" |
         \ endif
   autocmd ColorScheme,GUIEnter * call s:RehighlightBlame()
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
@@ -4127,8 +4127,8 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
       call s:throw('unsupported option')
     endif
     let cmd = ['--no-pager', 'blame', '--show-number']
-    if a:count
-      let cmd += ['-L', a:line1 . ',' . a:line1]
+    if a:count > 0
+      let cmd += ['-L', (a:line1 ? a:line1 : line('.')) . ',' . (a:line1 ? a:line1 : line('.'))]
     endif
     let cmd += a:args
     if s:DirCommitFile(@%)[1] =~# '\D\|..'
@@ -4154,8 +4154,8 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
       if v:shell_error
         call s:throw(join(readfile(error),"\n"))
       endif
-      if a:count
-        let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit'], a:line2 - a:line1, ' split')
+      if a:count > 0
+        let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit'], a:count - (a:line1 ? a:line1 : 1), 'split')
         return s:BlameCommit(edit, get(readfile(temp), 0, ''))
       else
         for winnr in range(winnr('$'),1,-1)
@@ -4645,16 +4645,16 @@ endfunction
 function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
-      nnoremap <buffer> <silent> <CR>    :<C-U>.Gblame<CR>
+      nnoremap <buffer> <silent> <CR>    :<C-U>0,3Gblame<CR>
     else
       nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
     endif
     if get(b:, 'fugitive_type', '') ==# 'blob'
-      nnoremap <buffer> <silent> o     :<C-U>.,.+1Gblame<CR>
+      nnoremap <buffer> <silent> o     :<C-U>0,2Gblame<CR>
       nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
-      nnoremap <buffer> <silent> gO    :<C-U>vertical .,.+1Gblame<CR>
-      nnoremap <buffer> <silent> O     :<C-U>tab .,.+1Gblame<CR>
-      nnoremap <buffer> <silent> p     :<C-U>.,.+2Gblame<CR>
+      nnoremap <buffer> <silent> gO    :<C-U>vertical 0,2Gblame<CR>
+      nnoremap <buffer> <silent> O     :<C-U>tab 0,2Gblame<CR>
+      nnoremap <buffer> <silent> p     :<C-U>0,3Gblame<CR>
     else
       nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
       nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
