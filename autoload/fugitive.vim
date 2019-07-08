@@ -3399,16 +3399,16 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
   let grepprg = &grepprg
   try
     let cdback = s:Cd(s:Tree())
-    let format = before =~# ' -g\| --walk-reflogs' ? '%gd>%gs' : '%h>' . g:fugitive_summary_format
+    let format = before =~# ' -g\| --walk-reflogs' ? '%gd >%gs' : '%h >' . g:fugitive_summary_format
     let &grepprg = escape(s:UserCommand() . ' --no-pager log --no-color ' .
-          \ s:shellesc('--pretty=format:fugitive://'.s:Dir().'//%H'.path.'>'.format), '%#')
+          \ s:shellesc('--pretty=format:fugitive://'.s:Dir().'//%H'.path.' >'.format), '%#')
     if has('patch-8.0.1782')
       let module = '%o'
     else
-      let module = '%[^>]%#'
+      let module = '%[^<> :]%#'
     endif
-    let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f>' . module . '>%m,%-G%.%#'
-    silent! exe a:cmd . '!' . s:ShellExpand(before . after)
+    let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f >' . module . ' >%m,%-G%.%#'
+    silent! exe a:cmd . '!' . escape(s:ShellExpand(before . after), '|')
     redraw!
     copen
     wincmd p
