@@ -3645,7 +3645,11 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
   endif
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
-  let file = len(a:args) ? s:Generate(s:Expand(join(a:args, ' '))) : fugitive#Real(@%)
+  try
+    let file = len(a:args) ? s:Generate(s:Expand(join(a:args, ' '))) : fugitive#Real(@%)
+  catch /^fugitive:/
+    return 'echoerr ' . string(v:exception)
+  endtry
   if empty(file)
     return 'echoerr '.string('fugitive: cannot determine file path')
   endif
@@ -3986,14 +3990,12 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
       let file = s:Relative()
     elseif arg ==# ':'
       let file = s:Relative(':0:')
-    elseif arg =~# '^:/.'
+    else
       try
-        let file = fugitive#RevParse(arg).s:Relative(':')
+        let file = arg =~# '^:/.' ? fugitive#RevParse(arg) . s:Relative(':') : s:Expand(arg)
       catch /^fugitive:/
         return 'echoerr ' . string(v:exception)
       endtry
-    else
-      let file = s:Expand(arg)
     endif
     if file !~# ':' && file !~# '^/' && s:TreeChomp('cat-file','-t',file) =~# '^\%(tag\|commit\)$'
       let file = file.s:Relative(':')
@@ -4621,6 +4623,12 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
       else
         return 'echomsg '.string(url).'|call netrw#NetrwBrowseX('.string(url).', 0)'
       endif
+    endif
+  catch /^fugitive: Use '!:%' instead of '-'/
+    if a:count >= 0
+      return 'echoerr ' . string('fugitive: ''-'' no longer required to get persistent URL')
+    else
+      return 'echoerr ' . string('fugitive: use :0Gbrowse instead of :Gbrowse -')
     endif
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
