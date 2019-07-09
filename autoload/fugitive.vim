@@ -3427,17 +3427,21 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
     let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f' . "\t\t" . module . "\t\t%m,%-G%.%#"
     silent! exe a:cmd . '!' . escape(s:ShellExpand(before . after), '|')
     redraw!
-    copen
-    wincmd p
-    if !a:bang
-      cfirst
-    endif
-    return ''
   finally
     let &grepformat = grepformat
     let &grepprg = grepprg
     execute cdback
   endtry
+  let winnr = winnr()
+  let letter = a:cmd =~# '^l' ? 'l' : 'c'
+  exe letter . 'open'
+  if winnr != winnr()
+    wincmd p
+  endif
+  if !a:bang && len(letter ==# 'l' ? getloclist(0) : getqflist())
+    return letter . 'first'
+  endif
+  return ''
 endfunction
 
 call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
