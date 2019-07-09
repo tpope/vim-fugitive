@@ -79,7 +79,7 @@ endfunction
 
 function! s:Mods(mods, ...) abort
   let mods = substitute(a:mods, '\C<mods>', '', '')
-  let mods = mods =~# '\S$' ? a:mods . ' ' : a:mods
+  let mods = mods =~# '\S$' ? mods . ' ' : mods
   if a:0 && mods !~# '\<\%(aboveleft\|belowright\|leftabove\|rightbelow\|topleft\|botright\|tab\)\>'
     let mods = a:1 . ' ' . mods
   endif
