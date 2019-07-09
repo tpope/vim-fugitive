@@ -3162,8 +3162,8 @@ function! s:RebaseEdit(cmd, dir) abort
 endfunction
 
 function! s:Merge(cmd, bang, mods, args, ...) abort
-  let args = s:SplitExpand(a:args)
   let dir = a:0 ? a:1 : s:Dir()
+  let args = s:SplitExpand(a:args, s:Tree(dir))
   let mods = s:Mods(a:mods)
   if a:cmd =~# '^rebase' && s:HasOpt(args, '-i', '--interactive')
     let cmd = fugitive#Prepare(dir, '-c', 'sequence.editor=sh ' . s:RebaseSequenceAborter(), 'rebase') . ' ' . s:shellesc(args)
