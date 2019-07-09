@@ -3421,16 +3421,16 @@ function! s:Log(type, bang, line1, line2, args) abort
   else
     let paths = []
   endif
-  let path = fugitive#Path(@%, '', dir)
-  if path =~# '^\.git\%(/\|$\)' || a:line2 < 0
+  let path = fugitive#Path(@%, '/', dir)
+  if path =~# '^/\.git\%(/\|$\)\|^$' || a:line2 < 0
     let path = ''
   elseif a:line2 > 0
-    call add(args, '-L' . a:line1 . ',' . a:line2 . ':' . path)
+    call add(args, '-L' . a:line1 . ',' . a:line2 . ':' . path[1:-1])
   else
     if empty(paths)
       call add(paths, '--')
     endif
-    call add(paths, path)
+    call add(paths, path ==# '/' ? '.' : path[1:-1])
   endif
   if len(path) && empty(filter(copy(args), 'v:val =~# "^[^-]"'))
     let owner = s:Owner(@%, dir)
