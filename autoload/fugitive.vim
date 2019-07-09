@@ -1009,15 +1009,6 @@ function! s:SplitExpandChain(string, ...) abort
   return s:ExpandSplit(a:string, 1, a:0 ? a:1 : getcwd())
 endfunction
 
-function! s:ShellExpand(cmd, ...) abort
-  return s:shellesc(s:SplitExpand(a:cmd, a:0 ? a:1 : getcwd()))
-endfunction
-
-function! s:ShellExpandChain(cmd, ...) abort
-  let [args, after] = s:SplitExpandChain(a:cmd, a:0 ? a:1 : getcwd())
-  return [s:shellesc(args), after]
-endfunction
-
 let s:trees = {}
 let s:indexes = {}
 function! s:TreeInfo(dir, commit) abort
@@ -3581,14 +3572,10 @@ function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) 
     let delete = ''
   endif
   if a:bang
-    try
-      let cdback = s:Cd(s:Tree())
-      let git = s:UserCommand()
-      let args = s:ShellExpand(a:arg)
-      silent execute mods . after . 'read!' escape(git . ' --no-pager ' . args, '!#%')
-    finally
-      execute cdback
-    endtry
+    let dir = s:Dir()
+    let git = s:UserCommand(dir)
+    let args = s:shellesc(s:SplitExpand(a:arg, s:Tree(dir)))
+    silent execute mods . after . 'read!' escape(git . ' --no-pager ' . args, '!#%')
     execute delete . 'diffupdate'
     call fugitive#ReloadStatus()
     return 'redraw|echo '.string(':!'.git.' '.args)
@@ -4189,18 +4176,13 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
     endif
     let cmd += ['--', expand('%:p')]
     let basecmd = escape(fugitive#Prepare(cmd), '!#%')
-    try
-      let cdback = s:Cd(s:Tree())
-      let error = tempname()
-      let temp = error.'.fugitiveblame'
-      if &shell =~# 'csh'
-        silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
-      else
-        silent! execute '%write !'.basecmd.' > '.temp.' 2> '.error
-      endif
-    finally
-      execute cdback
-    endtry
+    let error = tempname()
+    let temp = error.'.fugitiveblame'
+    if &shell =~# 'csh'
+      silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
+    else
+      silent! execute '%write !'.basecmd.' > '.temp.' 2> '.error
+    endif
     try
       if v:shell_error
         call s:throw(join(readfile(error),"\n"))
