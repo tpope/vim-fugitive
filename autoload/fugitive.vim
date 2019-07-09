@@ -57,7 +57,9 @@ endfunction
 
 let s:fnameescape = " \t\n*?[{`$\\%#'\"|!<"
 function! s:fnameescape(file) abort
-  if exists('*fnameescape')
+  if type(a:file) == type([])
+    return join(map(copy(a:file), 's:fnameescape(v:val)'))
+  elseif exists('*fnameescape')
     return fnameescape(a:file)
   else
     return escape(a:file, s:fnameescape)
@@ -739,7 +741,7 @@ function! fugitive#Path(url, ...) abort
 endfunction
 
 function! s:Relative(...) abort
-  return fugitive#Path(@%, a:0 ? a:1 : ':(top)')
+  return fugitive#Path(@%, a:0 ? a:1 : ':(top)', a:0 > 1 ? a:2 : s:Dir())
 endfunction
 
 function! fugitive#Find(object, ...) abort
@@ -3394,60 +3396,72 @@ function! s:Grep(cmd,bang,arg) abort
   endtry
 endfunction
 
-function! s:Log(cmd, bang, line1, line2, ...) abort
-  let args = ' ' . join(a:000, ' ')
-  let before = substitute(args, ' --\S\@!.*', '', '')
-  let after = strpart(args, len(before))
-  let path = s:Relative('/')
-  if path =~# '^/\.git\%(/\|$\)' || a:line2 < 0
+function! s:Log(type, bang, line1, line2, args) abort
+  let dir = s:Dir()
+  let args = s:SplitExpand(a:args, s:Tree(dir))
+  let split = index(args, '--')
+  if split > 0
+    let paths = args[split : -1]
+    let args = args[0 : split - 1]
+  elseif split == 0
+    let paths = args
+    let args = []
+  else
+    let paths = []
+  endif
+  let path = fugitive#Path(@%, '', dir)
+  if path =~# '^\.git\%(/\|$\)' || a:line2 < 0
     let path = ''
   elseif a:line2 > 0
-    let before .= ' -L ' . s:shellesc(a:line1 . ',' . a:line2 . ':' . path[1:-1])
+    call add(args, '-L' . a:line1 . ',' . a:line2 . ':' . path)
   else
-    let after = (len(after) > 3 ? after : ' -- ') . path[1:-1]
+    if empty(paths)
+      call add(paths, '--')
+    endif
+    call add(paths, path)
   endif
-  if len(path) && before !~# '\s[^[:space:]-]'
-    let owner = s:Owner(@%)
+  if len(path) && empty(filter(copy(args), 'v:val =~# "^[^-]"'))
+    let owner = s:Owner(@%, dir)
     if len(owner)
-      let before .= ' ' . s:shellesc(owner)
+      call add(args, owner)
     endif
   endif
   let grepformat = &grepformat
   let grepprg = &grepprg
   try
-    let cdback = s:Cd(s:Tree())
-    let format = before =~# ' -g\| --walk-reflogs' ? "%gd\t\t%gs" : "%h\t\t" . g:fugitive_summary_format
-    let &grepprg = escape(s:UserCommand() . ' --no-pager log --no-color ' .
-          \ s:shellesc('--pretty=format:fugitive://'.s:Dir().'//%H'.path."\t\t".format), '%#')
+    let format = s:HasOpt(args, '-g', '--walk-reflogs') ? "%gd\t\t%gs" : "%h\t\t" . g:fugitive_summary_format
+    let &grepprg = escape(s:UserCommand(dir) . ' --no-pager log --no-color ' .
+          \ s:shellesc('--pretty=format:fugitive://' . dir . '//%H' . path . "\t\t" . format), '%#|')
     if has('patch-8.0.1782')
       let module = '%o'
     else
       let module = '%[^[:space:]]%#'
     endif
     let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%-G,%A%f' . "\t\t" . module . "\t\t%m"
-    silent! exe a:cmd . '!' . escape(s:ShellExpand(before . after), '|')
+    silent! exe (a:type ==# 'l' ? 'lgrep' : 'grep') . '!' . escape(s:shellesc(args + paths), '|')
+    if exists(':chistory')
+      call setqflist([], 'a', {'title': (a:type ==# 'l' ? ':Gllog ' : ':Glog ') . s:fnameescape(args + paths)})
+    endif
     redraw!
   finally
     let &grepformat = grepformat
     let &grepprg = grepprg
-    execute cdback
   endtry
   let winnr = winnr()
-  let letter = a:cmd =~# '^l' ? 'l' : 'c'
-  exe letter . 'open'
+  exe a:type . 'open'
   if winnr != winnr()
     wincmd p
   endif
-  if !a:bang && len(letter ==# 'l' ? getloclist(0) : getqflist())
-    return letter . 'first'
+  if !a:bang && len(a:type ==# 'l' ? getloclist(0) : getqflist())
+    return a:type . 'first'
   endif
   return ''
 endfunction
 
 call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('grep',<bang>0,<q-args>)")
 call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep('lgrep',<bang>0,<q-args>)")
-call s:command("-bar -bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Glog :exe s:Log('grep',<bang>0,<line1>,<count>,<q-args>)")
-call s:command("-bar -bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Gllog :exe s:Log('lgrep',<bang>0,<line1>,<count>,<q-args>)")
+call s:command("-bar -bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Glog :exe s:Log('c',<bang>0,<line1>,<count>,<q-args>)")
+call s:command("-bar -bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Gllog :exe s:Log('l',<bang>0,<line1>,<count>,<q-args>)")
 
 " Section: :Gedit, :Gpedit, :Gsplit, :Gvsplit, :Gtabedit, :Gread
 
