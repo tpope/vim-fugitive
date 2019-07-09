@@ -3347,6 +3347,22 @@ if !exists('g:fugitive_summary_format')
   let g:fugitive_summary_format = '%s'
 endif
 
+function! s:GetLocList(nr, ...) abort
+  if a:nr < 0
+    return call('getqflist', a:000)
+  else
+    return call('getloclist', [a:nr] + a:000)
+  endif
+endfunction
+
+function! s:SetLocList(nr, ...) abort
+  if a:nr < 0
+    return call('setqflist', a:000)
+  else
+    return call('setloclist', [a:nr] + a:000)
+  endif
+endfunction
+
 function! s:GrepComplete(A, L, P) abort
   return s:CompleteSubcommand('grep', a:A, a:L, a:P)
 endfunction
@@ -3356,6 +3372,7 @@ function! s:LogComplete(A, L, P) abort
 endfunction
 
 function! s:Grep(cmd,bang,arg) abort
+  let listnr = a:cmd =~# '^l' ? 0 : -1
   let grepprg = &grepprg
   let grepformat = &grepformat
   try
@@ -3367,7 +3384,7 @@ function! s:Grep(cmd,bang,arg) abort
     endif
     let args = s:SplitExpand(a:arg)
     exe a:cmd.'! '.escape(s:shellesc(args), '|#%')
-    let list = a:cmd =~# '^l' ? getloclist(0) : getqflist()
+    let list = s:GetLocList(listnr)
     for entry in list
       if bufname(entry.bufnr) =~ ':'
         let entry.filename = s:Generate(bufname(entry.bufnr))
@@ -3379,13 +3396,11 @@ function! s:Grep(cmd,bang,arg) abort
         let changed = 1
       endif
     endfor
-    if a:cmd =~# '^l' && exists('changed')
-      call setloclist(0, list, 'r')
-    elseif exists('changed')
-      call setqflist(list, 'r')
+    if exists('changed')
+      call s:SetLocList(listnr, list, 'r')
     endif
     if !a:bang && !empty(list)
-      return (a:cmd =~# '^l' ? 'l' : 'c').'first'
+      return (listnr < 0 ? 'c' : 'l').'first'
     else
       return ''
     endif
@@ -3398,6 +3413,7 @@ endfunction
 
 function! s:Log(type, bang, line1, line2, args) abort
   let dir = s:Dir()
+  let listnr = a:type =~# '^l' ? 0 : -1
   let args = s:SplitExpand(a:args, s:Tree(dir))
   let split = index(args, '--')
   if split > 0
@@ -3438,9 +3454,9 @@ function! s:Log(type, bang, line1, line2, args) abort
       let module = "%[%^\t]%#"
     endif
     let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%-G,%A%f' . "\t\t" . module . "\t\t%m"
-    silent! exe (a:type ==# 'l' ? 'lgrep' : 'grep') . '!' . escape(s:shellesc(args + paths), '|')
+    silent! exe (listnr < 0 ? 'grep' : 'lgrep') . '!' . escape(s:shellesc(args + paths), '|')
     if exists(':chistory')
-      call setqflist([], 'a', {'title': (a:type ==# 'l' ? ':Gllog ' : ':Glog ') . s:fnameescape(args + paths)})
+      call s:SetLocList(listnr, [], 'a', {'title': (listnr < 0 ? ':Glog ' : ':Gllog ') . s:fnameescape(args + paths)})
     endif
     redraw!
   finally
@@ -3452,7 +3468,7 @@ function! s:Log(type, bang, line1, line2, args) abort
   if winnr != winnr()
     wincmd p
   endif
-  if !a:bang && len(a:type ==# 'l' ? getloclist(0) : getqflist())
+  if !a:bang && len(s:GetLocList(listnr))
     return a:type . 'first'
   endif
   return ''
