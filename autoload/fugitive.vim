@@ -3497,7 +3497,7 @@ function! s:BlurStatus() abort
 endfunction
 
 function! s:OpenExec(cmd, mods, args, ...) abort
-  let dir = s:Dir(a:0 ? a:1 : -1)
+  let dir = a:0 ? s:Dir(a:1) : s:Dir()
   let args = s:shellesc(a:args)
   let temp = tempname()
   let git = s:UserCommand(dir)
