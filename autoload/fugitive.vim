@@ -2262,8 +2262,8 @@ function! s:ReloadWinStatus(...) abort
     return
   endif
   let t = b:fugitive_reltime
-  if reltimestr(reltime(s:last_time, t)) =~# '-' ||
-        \ reltimestr(reltime(get(s:last_times, s:cpath(s:Dir()), t), t)) =~# '-'
+  if reltimestr(reltime(s:last_time, t)) =~# '-\|\d\{10\}\.' ||
+        \ reltimestr(reltime(get(s:last_times, s:cpath(s:Dir()), t), t)) =~# '-\|\d\{10\}\.'
     exe s:ReloadStatus()
   endif
 endfunction
