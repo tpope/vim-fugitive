@@ -3424,7 +3424,7 @@ function! s:Log(cmd, bang, line1, line2, ...) abort
     else
       let module = '%[^[:space:]]%#'
     endif
-    let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%A%f' . "\t\t" . module . "\t\t%m,%-G%.%#"
+    let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%-G,%A%f' . "\t\t" . module . "\t\t%m"
     silent! exe a:cmd . '!' . escape(s:ShellExpand(before . after), '|')
     redraw!
   finally
