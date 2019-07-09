@@ -1456,7 +1456,7 @@ function! s:CompleteSubcommand(subcommand, A, L, P, ...) abort
   elseif a:A =~# '^-' || a:A is# 0
     return s:FilterEscape(split(s:ChompDefault('', a:subcommand, '--git-completion-helper'), ' '), a:A)
   elseif !a:0
-    return fugitive#CompleteObject(a:A)
+    return fugitive#CompleteObject(a:A, s:Dir())
   elseif type(a:1) == type(function('tr'))
     return call(a:1, [a:A, a:L, a:P])
   else
