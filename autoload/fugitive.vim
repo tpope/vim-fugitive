@@ -995,13 +995,17 @@ function! s:ExpandSplit(string, ...) abort
     let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^[:space:] ' . (handle_bar ? '|' : '') . ']\)\+')
     let string = strpart(string, len(arg))
     let arg = substitute(arg, '^\s\+', '', '')
-    if arg =~# '^\.\.\=\%(/\|$\)'
-      let arg = s:DotRelative(s:Slash(simplify(getcwd() . '/' . arg)), cwd)
+    if !exists('seen_separator')
+      let arg = substitute(arg, '^\%([^:.][^:]*:\|^:\|^:[0-3]:\)\=\zs\.\.\=\%(/.*\)\=$',
+            \ '\=s:DotRelative(s:Slash(simplify(getcwd() . "/" . submatch(0))), cwd)', '')
     endif
     let arg = substitute(arg,
           \ '\(' . dquote . '''\%(''''\|[^'']\)*''\|\\[' . s:fnameescape . ']\|^\\[>+-]\|!\d*\)\|' . s:expand,
           \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5), cwd)', 'g')
     call add(list, arg)
+    if arg ==# '--'
+      let seen_separator = 1
+    endif
   endwhile
   return handle_bar ? [list, ''] : list
 endfunction
@@ -1401,7 +1405,7 @@ endfunction
 
 function! fugitive#CompleteObject(base, ...) abort
   let dir = a:0 == 1 ? a:1 : a:0 == 3 ? a:3 : s:Dir()
-  let cwd = a:0 == 1 ? s:Tree(dir) : getcwd()
+  let cwd = getcwd()
   let tree = s:Tree(dir) . '/'
   let subdir = ''
   if len(tree) > 1 && s:cpath(tree, cwd[0 : len(tree) - 1])
