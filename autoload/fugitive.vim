@@ -987,15 +987,20 @@ function! s:ExpandSplit(string, ...) abort
   let string = a:string
   let handle_bar = a:0 && a:1
   let dquote = handle_bar ? '"\%([^"]\|""\|\\"\)*"\|' : ''
+  let cwd = a:0 > 1 ? a:2 : getcwd()
   while string =~# '\S'
     if handle_bar && string =~# '^\s*|'
       return [list, substitute(string, '^\s*', '', '')]
     endif
     let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^[:space:] ' . (handle_bar ? '|' : '') . ']\)\+')
     let string = strpart(string, len(arg))
-    let arg = substitute(substitute(arg, '^\s\+', '', ''),
+    let arg = substitute(arg, '^\s\+', '', '')
+    if arg =~# '^\.\.\=\%(/\|$\)'
+      let arg = s:DotRelative(s:Slash(simplify(getcwd() . '/' . arg)), cwd)
+    endif
+    let arg = substitute(arg,
           \ '\(' . dquote . '''\%(''''\|[^'']\)*''\|\\[' . s:fnameescape . ']\|^\\[>+-]\|!\d*\)\|' . s:expand,
-          \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5), a:0 > 1 ? a:2 : getcwd())', 'g')
+          \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5), cwd)', 'g')
     call add(list, arg)
   endwhile
   return handle_bar ? [list, ''] : list
