@@ -3435,7 +3435,7 @@ function! s:Log(type, bang, line1, line2, args) abort
     if has('patch-8.0.1782')
       let module = '%o'
     else
-      let module = '%[^[:space:]]%#'
+      let module = "%[%^\t]%#"
     endif
     let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%-G,%A%f' . "\t\t" . module . "\t\t%m"
     silent! exe (a:type ==# 'l' ? 'lgrep' : 'grep') . '!' . escape(s:shellesc(args + paths), '|')
