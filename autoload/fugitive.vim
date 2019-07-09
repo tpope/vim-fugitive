@@ -4678,22 +4678,22 @@ function! fugitive#MapJumps(...) abort
       nnoremap <buffer> <silent> gO    :<C-U>exe <SID>GF("vsplit")<CR>
       nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
       nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
+
+      if exists(':CtrlP') && get(g:, 'ctrl_p_map') =~? '^<c-p>$'
+        nnoremap <buffer> <silent> <C-P> :<C-U>execute line('.') == 1 ? 'CtrlP ' . fnameescape(<SID>Tree()) : <SID>PreviousFileHunk(v:count1)<CR>
+      else
+        nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
+      endif
+      nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
+      nnoremap <buffer> <silent> (  :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
+      nnoremap <buffer> <silent> )  :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
+      nnoremap <buffer> <silent> K  :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
+      nnoremap <buffer> <silent> J  :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
     endif
     exe "nnoremap <buffer> <silent>" s:nowait  "-     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40,\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>"
     nnoremap <buffer> <silent> P     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
-
-    if exists(':CtrlP') && get(g:, 'ctrl_p_map') =~? '^<c-p>$'
-      nnoremap <buffer> <silent> <C-P> :<C-U>execute line('.') == 1 ? 'CtrlP ' . fnameescape(<SID>Tree()) : <SID>PreviousFileHunk(v:count1)<CR>
-    else
-      nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
-    endif
-    nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
-    nnoremap <buffer> <silent> (  :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
-    nnoremap <buffer> <silent> )  :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
-    nnoremap <buffer> <silent> K  :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
-    nnoremap <buffer> <silent> J  :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
 
     nnoremap <buffer> <silent> co    :<C-U>echoerr 'Use CTRL-W C'<CR>
     nnoremap <buffer> <silent> <C-W>C :<C-U>exe 'Gsplit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
