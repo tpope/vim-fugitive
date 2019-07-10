@@ -3189,9 +3189,9 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
     let exec_error = s:ChompError([dir, 'diff-index', '--cached', '--quiet', 'HEAD', '--'])[1]
     if exec_error && isdirectory(rdir)
       if getfsize(rdir . '/amend') <= 0
-        return 'exe ' . string(mods . 'Gcommit -n -F ' . s:shellesc(rdir .'/message') . ' -e') . '|let b:fugitive_commit_rebase = 1'
+        return 'exe ' . string(mods . 'Gcommit -n -F ' . s:fnameescape(rdir .'/message') . ' -e') . '|let b:fugitive_commit_rebase = 1'
       elseif readfile(rdir . '/amend')[0] ==# fugitive#Head(-1, dir)
-        return 'exe ' . string(mods . 'Gcommit --amend -n -F ' . s:shellesc(rdir . '/message') . ' -e') . '|let b:fugitive_commit_rebase = 1'
+        return 'exe ' . string(mods . 'Gcommit --amend -n -F ' . s:fnameescape(rdir . '/message') . ' -e') . '|let b:fugitive_commit_rebase = 1'
       endif
     endif
   endif
@@ -3274,10 +3274,10 @@ function! s:Merge(cmd, bang, mods, args, ...) abort
           \ filereadable(fugitive#Find('.git/rebase-merge/done', dir)) &&
           \ get(readfile(fugitive#Find('.git/rebase-merge/done', dir)), -1, '') =~# '^[^e]'
       cclose
-      return 'exe ' . string(mods . 'Gcommit --amend -n -F ' . s:shellesc(fugitive#Find('.git/rebase-merge/message', dir)) . ' -e') . '|let b:fugitive_commit_rebase = 1'
+      return 'exe ' . string(mods . 'Gcommit --amend -n -F ' . s:fnameescape(fugitive#Find('.git/rebase-merge/message', dir)) . ' -e') . '|let b:fugitive_commit_rebase = 1'
     elseif !had_merge_msg && filereadable(fugitive#Find('.git/MERGE_MSG', dir))
       cclose
-      return mods . 'Gcommit --no-status -n -t '.s:shellesc(fugitive#Find('.git/MERGE_MSG', dir))
+      return mods . 'Gcommit --no-status -n -t '.s:fnameescape(fugitive#Find('.git/MERGE_MSG', dir))
     endif
   endif
   let qflist = getqflist()
