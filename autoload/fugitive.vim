@@ -3820,41 +3820,46 @@ function! s:FetchComplete(A, L, P) abort
   return s:CompleteSubcommand('fetch', a:A, a:L, a:P, function('s:CompleteRemote'))
 endfunction
 
-function! s:Dispatch(bang, args)
+function! s:Dispatch(bang, cmd, arg) abort
+  let dir = s:Dir()
+  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
   let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
   try
-    let cdback = s:Cd(s:Tree())
     let b:current_compiler = 'git'
     let &l:errorformat = s:common_efm
-    let &l:makeprg = substitute(s:UserCommand() . ' ' . a:args, '\s\+$', '', '')
+    let &l:makeprg = s:shellesc(s:UserCommandList(dir) + [a:cmd] + args)
     if exists(':Make') == 2
       Make
+      return after[1:-1]
     else
-      try
-        if !has('patch-8.1.0334') && &autowrite
-          let autowrite_was_set = 1
-          set noautowrite
-          wall
-        endif
-        silent noautocmd make!
-      finally
-        if exists('autowrite_was_set')
-          set autowrite
-        endif
-      endtry
+      if !has('patch-8.1.0334') && &autowrite
+        let autowrite_was_set = 1
+        set noautowrite
+        wall
+      endif
+      silent noautocmd make!
       redraw!
-      return 'call fugitive#Cwindow()|call fugitive#ReloadStatus()'
+      return 'call fugitive#Cwindow()|call fugitive#ReloadStatus()' . after
     endif
-    return ''
   finally
     let [&l:mp, &l:efm, b:current_compiler] = [mp, efm, cc]
     if empty(cc) | unlet! b:current_compiler | endif
-    execute cdback
+    if exists('autowrite_was_set')
+      set autowrite
+    endif
   endtry
 endfunction
 
-call s:command("-nargs=? -bang -complete=customlist,s:PushComplete Gpush  execute s:Dispatch('<bang>', 'push '.<q-args>)")
-call s:command("-nargs=? -bang -complete=customlist,s:FetchComplete Gfetch execute s:Dispatch('<bang>', 'fetch '.<q-args>)")
+function! s:PushCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+  return s:Dispatch(a:bang ? '!' : '', 'push', a:arg)
+endfunction
+
+function! s:FetchCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+  return s:Dispatch(a:bang ? '!' : '', 'fetch', a:arg)
+endfunction
+
+call s:command("-nargs=? -bang -complete=customlist,s:PushComplete Gpush", "Push")
+call s:command("-nargs=? -bang -complete=customlist,s:FetchComplete Gfetch", "Fetch")
 
 " Section: :Gdiff
 
