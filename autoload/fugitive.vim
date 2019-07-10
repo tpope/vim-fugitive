@@ -3411,7 +3411,7 @@ function! s:Grep(cmd,bang,arg) abort
   endtry
 endfunction
 
-function! s:Log(type, bang, line1, line2, args) abort
+function! s:Log(type, bang, line1, count, args) abort
   let dir = s:Dir()
   let listnr = a:type =~# '^l' ? 0 : -1
   let args = s:SplitExpand(a:args, s:Tree(dir))
@@ -3426,10 +3426,10 @@ function! s:Log(type, bang, line1, line2, args) abort
     let paths = []
   endif
   let path = fugitive#Path(@%, '/', dir)
-  if path =~# '^/\.git\%(/\|$\)\|^$' || a:line2 < 0
+  if path =~# '^/\.git\%(/\|$\)\|^$' || a:count < 0
     let path = ''
-  elseif a:line2 > 0
-    call add(args, '-L' . a:line1 . ',' . a:line2 . ':' . path[1:-1])
+  elseif a:count > 0
+    call add(args, '-L' . a:line1 . ',' . a:count . ':' . path[1:-1])
   else
     if empty(paths)
       call add(paths, '--')
@@ -3571,12 +3571,12 @@ endfunction
 
 function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
   let mods = s:Mods(a:mods)
-  let after = a:line2
+  let after = a:count
   if a:count < 0
     let delete = 'silent 1,' . line('$') . 'delete_|'
     let after = line('$')
   elseif a:range == 2
-    let delete = 'silent ' . a:line1 . ',' . a:line2 . 'delete_|'
+    let delete = 'silent ' . a:line1 . ',' . a:count . 'delete_|'
   else
     let delete = ''
   endif
