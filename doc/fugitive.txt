@@ -66,13 +66,13 @@ that are part of Git repositories).
                                                 *fugitive-:Gfetch*
 :Gfetch [args]          Like |:Gpush|, but for git-fetch.
 
-                                                *fugitive-:Ggrep*
+                                        *fugitive-:Ggrep* *fugitive-:Gcgrep*
 :Ggrep[!] [args]        |:grep|[!] with git-grep as 'grepprg'.
 
                                                 *fugitive-:Glgrep*
 :Glgrep[!] [args]       |:lgrep|[!] with git-grep as 'grepprg'.
 
-                                                *fugitive-:Glog*
+                                        *fugitive-:Glog* *fugitive-:Gclog*
 :Glog[!] [args]         Use git-log [args] to load the commit history into the
                         |quickfix| list.  Jump to the first commit unless [!]
                         is given.

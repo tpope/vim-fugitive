@@ -3502,8 +3502,10 @@ function! s:Log(type, bang, line1, count, args) abort
 endfunction
 
 call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('c',<bang>0,<q-args>)")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Gcgrep :execute s:Grep('c',<bang>0,<q-args>)")
 call s:command("-bar -bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep('l',<bang>0,<q-args>)")
 call s:command("-bar -bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Glog :exe s:Log('c',<bang>0,<line1>,<count>,<q-args>)")
+call s:command("-bar -bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Gclog :exe s:Log('c',<bang>0,<line1>,<count>,<q-args>)")
 call s:command("-bar -bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Gllog :exe s:Log('l',<bang>0,<line1>,<count>,<q-args>)")
 
 " Section: :Gedit, :Gpedit, :Gsplit, :Gvsplit, :Gtabedit, :Gread
