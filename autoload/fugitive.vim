@@ -2996,10 +2996,9 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
       redraw!
     endif
     if !exec_error
+      echo join(errors, "\n")
       if filereadable(outfile)
-        for line in readfile(outfile)
-          echo line
-        endfor
+        echo join(readfile(outfile), "\n")
       endif
       call fugitive#ReloadStatus(dir, 1)
       return after[1:-1]
@@ -3036,11 +3035,13 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         let b:fugitive_commit_arguments = argv
         setlocal bufhidden=wipe filetype=gitcommit
         return '1' . after
-      elseif error ==# '!'
-        echo get(readfile(outfile), -1, '')
+      elseif empty(errors)
+        let out = readfile(outfile)
+        echo get(out, -1, '') =~# 'stash\|\d' ? get(out, -2, '') : out[-1]
         return after[1:-1]
       else
-        call s:throw(empty(error)?join(errors, ' '):error)
+        echo join(errors, "\n")
+        return after[1:-1]
       endif
     endif
   catch /^fugitive:/
