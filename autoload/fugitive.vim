@@ -4262,7 +4262,7 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
         let current = line('.')
         let temp = s:Resolve(temp)
         let s:temp_files[s:cpath(temp)] = { 'dir': s:Dir(), 'filetype': 'fugitiveblame', 'args': cmd, 'bufnr': bufnr }
-        exe 'keepalt' (a:bang ? 'split' : 'leftabove vsplit') . temp
+        exe 'keepalt' (a:bang ? 'split' : 'leftabove vsplit') s:fnameescape(temp)
         let b:fugitive_blamed_bufnr = bufnr
         let b:fugitive_type = 'blame'
         let w:fugitive_leave = restore
