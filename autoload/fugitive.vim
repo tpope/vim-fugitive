@@ -184,7 +184,11 @@ function! s:UserCommandList(...) abort
     if empty(tree)
       call add(git, '--git-dir=' . dir)
     elseif len(tree) && s:cpath(tree) !=# s:cpath(getcwd())
-      call extend(git, ['-C', tree])
+      if fugitive#GitVersion(1, 8, 5)
+        call extend(git, ['-C', tree])
+      else
+        throw 'fugitive: Git 1.8.5 or higher required to change directory'
+      endif
     endif
   endif
   return git
@@ -349,7 +353,7 @@ function! s:BuildShell(dir, env, args) abort
   endfor
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
     call insert(cmd, '--git-dir=' . a:dir)
-  elseif fugitive#GitVersion(1, 9)
+  elseif fugitive#GitVersion(1, 8, 5)
     call extend(cmd, ['-C', tree], 'keep')
   else
     let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? '& ' : '; ') . pre
