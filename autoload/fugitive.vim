@@ -2030,10 +2030,10 @@ function! s:GitExec(line1, line2, range, count, bang, mods, reg, args, dir) abor
         \ s:HasOpt(a:args, ['add', 'clean', 'stage'], '-i', '--interactive')
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
     if has('nvim')
-      if &autowrite | wall | endif
+      if &autowrite || &autowriteall | silent! wall | endif
       return mods . (a:count ? 'split' : 'edit') . ' term://' . s:fnameescape(s:shellesc(git + a:args)) . '|startinsert'
     elseif has('terminal')
-      if &autowrite | wall | endif
+      if &autowrite || &autowriteall | silent! wall | endif
       return 'exe ' . string(mods . 'terminal ' . (a:count ? '' : '++curwin ') . join(map(git + a:args, 's:fnameescape(v:val)')))
     endif
   endif
@@ -2983,8 +2983,8 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         let exec_error = v:shell_error
         call delete(errorfile)
       else
-        if &autowrite && !a:0
-          wall
+        if (&autowrite || &autowriteall) && !a:0
+          silent! wall
         endif
         let [error_string, exec_error] = s:TempCmd(outfile, command)
         let errors = split(error_string, "\n")
@@ -3247,21 +3247,17 @@ function! s:MergeRebase(cmd, bang, mods, args, ...) abort
     else
       let &l:makeprg = 'env GIT_EDITOR=false ' . substitute(&l:makeprg, '^env ', '', '')
     endif
-    try
-      if !has('patch-8.1.0334') && &autowrite
-        let autowrite_was_set = 1
-        set noautowrite
-        wall
-      endif
-      silent noautocmd make!
-    finally
-      if exists('autowrite_was_set')
-        set autowrite
-      endif
-    endtry
-    catch /^Vim\%((\a\+)\)\=:E211/
+    if !has('patch-8.1.0334') && has('terminal') && &autowrite
+      let autowrite_was_set = 1
+      set noautowrite
+      silent! wall
+    endif
+    silent noautocmd make!
     let err = v:exception
   finally
+    if exists('autowrite_was_set')
+      set autowrite
+    endif
     redraw!
     let [&l:mp, &l:efm] = [mp, efm]
     if exists('old_editor')
@@ -3851,10 +3847,10 @@ function! s:Dispatch(bang, cmd, arg) abort
       Make
       return after[1:-1]
     else
-      if !has('patch-8.1.0334') && &autowrite
+      if !has('patch-8.1.0334') && has('terminal') && &autowrite
         let autowrite_was_set = 1
         set noautowrite
-        wall
+        silent! wall
       endif
       silent noautocmd make!
       redraw!
