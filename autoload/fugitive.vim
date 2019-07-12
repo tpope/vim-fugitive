@@ -2983,7 +2983,7 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         let exec_error = v:shell_error
         call delete(errorfile)
       else
-        if &autowrite
+        if &autowrite && !a:0
           wall
         endif
         let [error_string, exec_error] = s:TempCmd(outfile, command)
