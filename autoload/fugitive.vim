@@ -3999,7 +3999,13 @@ function! s:CompareAge(mine, theirs) abort
 endfunction
 
 function! s:IsConflicted() abort
-  return !empty(s:TreeChomp('ls-files', '--unmerged', '--', expand('%:p')))
+  try
+    return !empty(s:TreeChomp('ls-files', '--unmerged', '--', expand('%:p')) )
+  catch /^fugitive:/
+    echoerr string(v:exception)
+    return v:false
+  endtry
+  return v:false
 endfunction
 
 function! s:Diff(autodir, keepfocus, mods, ...) abort
