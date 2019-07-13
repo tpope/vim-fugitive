@@ -173,9 +173,6 @@ endfunction
 
 " Section: Git
 
-function! s:ChdirArg(dir) abort
-endfunction
-
 function! s:UserCommandList(...) abort
   let git = split(get(g:, 'fugitive_git_command', g:fugitive_git_executable), '\s\+')
   let dir = a:0 ? s:Dir(a:1) : ''
