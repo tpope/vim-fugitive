@@ -3995,7 +3995,7 @@ function! s:CompareAge(mine, theirs) abort
 endfunction
 
 function! s:IsConflicted() abort
-  return !empty(s:TreeChomp('ls-files', '--unmerged', '--', expand('%:p')))
+  return len(@%) && !empty(s:ChompDefault('', 'ls-files', '--unmerged', '--', expand('%:p')))
 endfunction
 
 function! s:Diff(autodir, keepfocus, mods, ...) abort
