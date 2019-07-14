@@ -197,6 +197,32 @@ function! s:QuickfixCreate(nr, opts) abort
   endif
 endfunction
 
+function! s:QuickfixStream(nr, title, cmd, first, callback, ...) abort
+  call s:QuickfixCreate(a:nr, {'title': a:title})
+  let winnr = winnr()
+  exe a:nr < 0 ? 'copen' : 'lopen'
+  if winnr != winnr()
+    wincmd p
+  endif
+
+  let buffer = []
+  let lines = split(s:SystemError(s:shellesc(a:cmd))[0], "\n")
+  for line in lines
+    call extend(buffer, call(a:callback, a:000 + [line]))
+    if len(buffer) >= 20
+      call s:QuickfixSet(a:nr, remove(buffer, 0, -1), 'a')
+      redraw
+    endif
+  endfor
+  call s:QuickfixSet(a:nr, extend(buffer, call(a:callback, a:000 + [0])), 'a')
+
+  if a:first && len(s:QuickfixGet(a:nr))
+    return a:nr < 0 ? 'cfirst' : 'lfirst'
+  else
+    return 'exe'
+  endif
+endfunction
+
 " Section: Git
 
 function! s:UserCommandList(...) abort
@@ -3450,6 +3476,61 @@ function! s:Grep(type, bang, arg) abort
   endif
 endfunction
 
+function! s:LogFlushQueue(state) abort
+  let queue = remove(a:state, 'queue')
+  if a:state.child_found
+    call remove(queue, 0)
+  endif
+  if len(queue) && queue[-1] ==# {'text': ''}
+    call remove(queue, -1)
+  endif
+  return queue
+endfunction
+
+function! s:LogParse(state, target, dir, line) abort
+  if a:state.context ==# 'hunk' && a:line =~# '^[-+ ]'
+    return []
+  endif
+  let list = matchlist(a:line, '^\%(fugitive \(.\{-\}\)\t\|commit \|From \)\=\(\x\{40,\}\)\%( \(.*\)\)\=$')
+  if len(list)
+    let a:state.context = 'commit'
+    let a:state.base = 'fugitive://' . a:dir . '//' . list[2]
+    let a:state.base_module = len(list[1]) ? list[1] : list[2]
+    let a:state.message = list[3]
+    if has_key(a:state, 'diffing')
+      call remove(a:state, 'diffing')
+    endif
+    let queue = s:LogFlushQueue(a:state)
+    let a:state.queue = [{
+          \ 'valid': 1,
+          \ 'filename': a:state.base . a:target,
+          \ 'module': a:state.base_module . substitute(a:target, '^/', ':', ''),
+          \ 'text': a:state.message}]
+    let a:state.child_found = 0
+    return queue
+  elseif type(a:line) == type(0)
+    return s:LogFlushQueue(a:state)
+  elseif a:line =~# '^diff'
+    let a:state.context = 'diffhead'
+  elseif a:line =~# '^[+-]\{3\} \w/' && a:state.context ==# 'diffhead'
+    let a:state.diffing = a:line[5:-1]
+  elseif a:line =~# '^@@[^@]*+\d' && has_key(a:state, 'diffing') && has_key(a:state, 'base')
+    let a:state.context = 'hunk'
+    if empty(a:target) || a:target ==# a:state.diffing
+      let a:state.child_found = 1
+      call add(a:state.queue, {
+            \ 'valid': 1,
+            \ 'filename': a:state.base . a:state.diffing,
+            \ 'module': a:state.base_module . substitute(a:state.diffing, '^/', ':', ''),
+            \ 'lnum': +matchstr(a:line, '+\zs\d\+'),
+            \ 'text': a:state.message . matchstr(a:line, ' @@\+ .\+')})
+    endif
+  elseif a:state.context ==# 'commit' || a:state.context ==# 'init'
+    call add(a:state.queue, {'text': a:line})
+  endif
+  return []
+endfunction
+
 function! s:Log(type, bang, line1, count, args) abort
   let dir = s:Dir()
   let listnr = a:type =~# '^l' ? 0 : -1
@@ -3464,16 +3545,25 @@ function! s:Log(type, bang, line1, count, args) abort
   else
     let paths = []
   endif
-  let path = fugitive#Path(@%, '/', dir)
-  if path =~# '^/\.git\%(/\|$\)\|^$' || a:count < 0
-    let path = ''
-  elseif a:count > 0
-    call add(args, '-L' . a:line1 . ',' . a:count . ':' . path[1:-1])
+  if a:line1 == 0 && a:count
+    let path = fugitive#Path(bufname(a:count), '/', dir)
+  elseif a:count >= 0
+    let path = fugitive#Path(@%, '/', dir)
   else
-    if empty(paths)
-      call add(paths, '--')
+     let path = ''
+  endif
+  let range = ''
+  let extra = []
+  if path =~# '^/\.git\%(/\|$\)\|^$'
+    let path = ''
+  elseif a:line1 == 0
+    let range = "0," . (a:count ? a:count : bufnr(''))
+    let extra = (len(paths) ? [] : ['--']) + [path[1:-1]]
+  elseif a:count > 0
+    if !s:HasOpt(args, '--merges', '--no-merges')
+      call insert(args, '--no-merges')
     endif
-    call add(paths, path ==# '/' ? '.' : path[1:-1])
+    call add(args, '-L' . a:line1 . ',' . a:count . ':' . path[1:-1])
   endif
   if len(path) && empty(filter(copy(args), 'v:val =~# "^[^-]"'))
     let owner = s:Owner(@%, dir)
@@ -3481,36 +3571,26 @@ function! s:Log(type, bang, line1, count, args) abort
       call add(args, owner)
     endif
   endif
-  let grepformat = &grepformat
-  let grepprg = &grepprg
-  try
-    let format = s:HasOpt(args, '-g', '--walk-reflogs') ? "%gd\t\t%gs" : "%h\t\t" . g:fugitive_summary_format
-    let &grepprg = escape(s:UserCommand(dir) . ' --no-pager log --no-color ' .
-          \ s:shellesc('--pretty=format:fugitive://' . dir . '//%H' . path . "\t\t" . format), '%#|')
-    if has('patch-8.0.1782')
-      let module = '%o'
-    else
-      let module = "%[%^\t]%#"
-    endif
-    let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%-G,%A%f' . "\t\t" . module . "\t\t%m"
-    silent! exe (listnr < 0 ? 'grep' : 'lgrep') . '!' . escape(s:shellesc(args + paths), '|')
-    if exists(':chistory')
-      call s:QuickfixSet(listnr, [], 'a', {'title': (listnr < 0 ? ':Glog ' : ':Gllog ') . s:fnameescape(args + paths)})
-    endif
-    redraw!
-  finally
-    let &grepformat = grepformat
-    let &grepprg = grepprg
-  endtry
-  let winnr = winnr()
-  exe a:type . 'open'
-  if winnr != winnr()
-    wincmd p
+  if empty(extra)
+    let path = ''
   endif
-  if !a:bang && len(s:QuickfixGet(listnr))
-    return a:type . 'first' . after
+  if s:HasOpt(args, '-g', '--walk-reflogs')
+    let format = "%gd\t%H %gs"
+  else
+    let format = "%h\t%H " . g:fugitive_summary_format
   endif
-  return after[1:-1]
+  let cmd = s:UserCommandList(dir) + ['--no-pager']
+  if fugitive#GitVersion(1, 9)
+    call extend(cmd, ['-c', 'diff.context=0', 'log'])
+  else
+    call extend(cmd, ['log', '-U0', '--no-patch'])
+  endif
+  call extend(cmd,
+        \ ['--no-color', '--no-ext-diff', '--pretty=format:fugitive ' . format] +
+        \ args + paths + extra)
+  let state = {'context': 'init', 'child_found': 0, 'queue': []}
+  let title = (listnr < 0 ? ':Glog ' : ':Gllog ') . s:fnameescape(args + paths)
+  return s:QuickfixStream(listnr, title, cmd, !a:bang, s:function('s:LogParse'), state, path, dir) . after
 endfunction
 
 call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('c',<bang>0,<q-args>)")
