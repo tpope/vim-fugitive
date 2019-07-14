@@ -3253,6 +3253,7 @@ function! s:MergeRebase(cmd, bang, mods, args, ...) abort
       silent! wall
     endif
     silent noautocmd make!
+  catch /^Vim\%((\a\+)\)\=:E211/
     let err = v:exception
   finally
     if exists('autowrite_was_set')
