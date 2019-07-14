@@ -171,6 +171,32 @@ function! s:map(mode, lhs, rhs, ...) abort
   endif
 endfunction
 
+" Section: Quickfix
+
+function! s:QuickfixGet(nr, ...) abort
+  if a:nr < 0
+    return call('getqflist', a:000)
+  else
+    return call('getloclist', [a:nr] + a:000)
+  endif
+endfunction
+
+function! s:QuickfixSet(nr, ...) abort
+  if a:nr < 0
+    return call('setqflist', a:000)
+  else
+    return call('setloclist', [a:nr] + a:000)
+  endif
+endfunction
+
+function! s:QuickfixCreate(nr, opts) abort
+  if has('patch-7.4.2200')
+    call s:QuickfixSet(a:nr, [], ' ', a:opts)
+  else
+    call s:QuickfixSet(a:nr, [], ' ')
+  endif
+endfunction
+
 " Section: Git
 
 function! s:UserCommandList(...) abort
@@ -3357,22 +3383,6 @@ if !exists('g:fugitive_summary_format')
   let g:fugitive_summary_format = '%s'
 endif
 
-function! s:GetLocList(nr, ...) abort
-  if a:nr < 0
-    return call('getqflist', a:000)
-  else
-    return call('getloclist', [a:nr] + a:000)
-  endif
-endfunction
-
-function! s:SetLocList(nr, ...) abort
-  if a:nr < 0
-    return call('setqflist', a:000)
-  else
-    return call('setloclist', [a:nr] + a:000)
-  endif
-endfunction
-
 function! s:GrepComplete(A, L, P) abort
   return s:CompleteSubcommand('grep', a:A, a:L, a:P)
 endfunction
@@ -3424,18 +3434,15 @@ function! s:Grep(type, bang, arg) abort
     call add(cmd, '--column')
   endif
   let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
-  if exists(':chistory')
-    call s:SetLocList(listnr, [], ' ', {'title': (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)})
-  else
-    call s:SetLocList(listnr, [], ' ')
-  endif
+  let cached = s:HasOpt(args, '--cached')
+  let name_only = s:HasOpt(args, '-l', '--files-with-matches', '--name-only', '-L', '--files-without-match')
+  let title = [listnr < 0 ? ':Ggrep' : ':Glgrep'] + args
+  call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)})
   let tempfile = tempname()
   exe '!' . s:shellesc(cmd + args)
         \ printf(&shellpipe . (&shellpipe =~# '%s' ? '' : ' %s'), s:shellesc(tempfile))
-  let cached = s:HasOpt(args, '--cached')
-  let name_only = s:HasOpt(args, '-l', '--files-with-matches', '--name-only', '-L', '--files-without-match')
   let list = map(readfile(tempfile), 's:GrepParseLine(cached, name_only, dir, v:val)')
-  call s:SetLocList(listnr, list, 'a')
+  call s:QuickfixSet(listnr, list, 'a')
   if !a:bang && !empty(list)
     return (listnr < 0 ? 'c' : 'l').'first' . after
   else
@@ -3488,7 +3495,7 @@ function! s:Log(type, bang, line1, count, args) abort
     let &grepformat = '%Cdiff %.%#,%C--- %.%#,%C+++ %.%#,%Z@@ -%\d%\+\,%\d%\+ +%l\,%\d%\+ @@,%-G-%.%#,%-G+%.%#,%-G %.%#,%-G,%A%f' . "\t\t" . module . "\t\t%m"
     silent! exe (listnr < 0 ? 'grep' : 'lgrep') . '!' . escape(s:shellesc(args + paths), '|')
     if exists(':chistory')
-      call s:SetLocList(listnr, [], 'a', {'title': (listnr < 0 ? ':Glog ' : ':Gllog ') . s:fnameescape(args + paths)})
+      call s:QuickfixSet(listnr, [], 'a', {'title': (listnr < 0 ? ':Glog ' : ':Gllog ') . s:fnameescape(args + paths)})
     endif
     redraw!
   finally
@@ -3500,7 +3507,7 @@ function! s:Log(type, bang, line1, count, args) abort
   if winnr != winnr()
     wincmd p
   endif
-  if !a:bang && len(s:GetLocList(listnr))
+  if !a:bang && len(s:QuickfixGet(listnr))
     return a:type . 'first' . after
   endif
   return after[1:-1]
