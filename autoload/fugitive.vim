@@ -4737,17 +4737,14 @@ endfunction
 function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
-      nnoremap <buffer> <silent> <CR>    :<C-U>0,3Gblame<CR>
-    else
-      nnoremap <buffer> <silent> <CR>    :<C-U>exe <SID>GF("edit")<CR>
-    endif
-    if get(b:, 'fugitive_type', '') ==# 'blob'
+      nnoremap <buffer> <silent> <CR>  :<C-U>0,1Gblame<CR>
       nnoremap <buffer> <silent> o     :<C-U>0,2Gblame<CR>
       nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
       nnoremap <buffer> <silent> gO    :<C-U>vertical 0,2Gblame<CR>
       nnoremap <buffer> <silent> O     :<C-U>tab 0,2Gblame<CR>
       nnoremap <buffer> <silent> p     :<C-U>0,3Gblame<CR>
     else
+      nnoremap <buffer> <silent> <CR>  :<C-U>exe <SID>GF("edit")<CR>
       nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
       nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
       nnoremap <buffer> <silent> gO    :<C-U>exe <SID>GF("vsplit")<CR>
