@@ -4859,8 +4859,7 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer>          c-    :Gcommit -
     nnoremap <buffer>       c<Space> :Gcommit<Space>
     nnoremap <buffer>          c<CR> :Gcommit<CR>
-    nnoremap <buffer> <silent> co    :<C-U>echoerr 'Use CTRL-W C'<CR>
-    nnoremap <buffer> <silent> <C-W>C :<C-U>exe 'Gsplit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> co    :<C-U>echoerr 'Use CTRL-W sC'<CR>
     nnoremap <buffer> <silent> cp    :<C-U>echoerr 'Use gC'<CR>
     nnoremap <buffer> <silent> gC    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> gc    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>

@@ -317,10 +317,6 @@ P                       Open the current file in the [count]th parent.
                                                 *fugitive_C*
 C                       Open the commit containing the current file.
 
-                                                *fugitive_CTRL-W_C*
-<C-W>C                  Open the commit containing the current file in a new
-                        split.
-
                                                 *fugitive_CTRL-P*
 <C-P>                   Jump to the previous file or hunk.
 
