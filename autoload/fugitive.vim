@@ -46,7 +46,7 @@ endfunction
 function! s:shellesc(arg) abort
   if type(a:arg) == type([])
     return join(map(copy(a:arg), 's:shellesc(v:val)'))
-  elseif a:arg =~ '^[A-Za-z0-9_/.-]\+$'
+  elseif a:arg =~ '^[A-Za-z0-9_/:.-]\+$'
     return a:arg
   elseif s:winshell()
     return '"'.s:gsub(s:gsub(a:arg, '"', '""'), '\%', '"%"').'"'
