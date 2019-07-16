@@ -4735,7 +4735,7 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
     endfor
 
     if empty(url)
-      call s:throw("No Gbrowse handler found for '".raw."'")
+      call s:throw("No Gbrowse handler installed for '".raw."'")
     endif
 
     let url = s:gsub(url, '[ <>]', '\="%".printf("%02X",char2nr(submatch(0)))')
