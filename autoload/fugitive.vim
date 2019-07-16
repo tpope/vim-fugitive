@@ -897,7 +897,7 @@ function! fugitive#Find(object, ...) abort
         endif
       endif
       if commit !~# '^[0-9a-f]\{40,\}$'
-        let commit = s:ChompDefault('', [dir, 'rev-parse', '--verify', commit, '--'])
+        let commit = matchstr(s:ChompDefault('', [dir, 'rev-parse', '--verify', commit, '--']), '\<[0-9a-f]\{40,\}\>')
       endif
       if len(commit)
         let f = 'fugitive://' . dir . '//' . commit . file
