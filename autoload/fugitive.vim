@@ -3417,10 +3417,7 @@ function! s:LogComplete(A, L, P) abort
   return s:CompleteSubcommand('log', a:A, a:L, a:P)
 endfunction
 
-function! s:GrepParseLine(cached, name_only, dir, line) abort
-  if a:line =~# '^git: \|^usage: \|^error: \|^fatal: '
-    return {'text': a:line}
-  endif
+function! s:GrepParseLine(prefix, name_only, dir, line) abort
   let entry = {'valid': 1}
   let match = matchlist(a:line, '^\(.\{-\}\):\(\d\+\):\(\d\+:\)\=\(.*\)$')
   if len(match)
@@ -3428,6 +3425,8 @@ function! s:GrepParseLine(cached, name_only, dir, line) abort
     let entry.lnum = +match[2]
     let entry.col = +match[3]
     let entry.text = match[4]
+  elseif a:line =~# '^git: \|^usage: \|^error: \|^fatal: '
+    return {'text': a:line}
   else
     let entry.module = matchstr(a:line, '\CBinary file \zs.*\ze matches$')
     if len(entry.module)
@@ -3441,11 +3440,8 @@ function! s:GrepParseLine(cached, name_only, dir, line) abort
   if empty(entry.module)
     return {'text': a:line}
   endif
-  if a:cached
-    let entry.module = ':0:' . entry.module
-  endif
   if entry.module !~# ':'
-    let entry.filename = fugitive#Find(':(top)' . entry.module, a:dir)
+    let entry.filename = a:prefix . entry.module
   else
     let entry.filename = fugitive#Find(entry.module, a:dir)
   endif
@@ -3459,15 +3455,16 @@ function! s:Grep(type, bang, arg) abort
   if fugitive#GitVersion(2, 19)
     call add(cmd, '--column')
   endif
-  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
-  let cached = s:HasOpt(args, '--cached')
+  let tree = s:Tree(dir)
+  let [args, after] = s:SplitExpandChain(a:arg, tree)
+  let prefix = s:PlatformSlash(s:HasOpt(args, '--cached') || empty(tree) ? 'fugitive://' . dir . '//0/' : tree . '/')
   let name_only = s:HasOpt(args, '-l', '--files-with-matches', '--name-only', '-L', '--files-without-match')
   let title = [listnr < 0 ? ':Ggrep' : ':Glgrep'] + args
   call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)})
   let tempfile = tempname()
   exe '!' . s:shellesc(cmd + args)
         \ printf(&shellpipe . (&shellpipe =~# '%s' ? '' : ' %s'), s:shellesc(tempfile))
-  let list = map(readfile(tempfile), 's:GrepParseLine(cached, name_only, dir, v:val)')
+  let list = map(readfile(tempfile), 's:GrepParseLine(prefix, name_only, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
   if !a:bang && !empty(list)
     return (listnr < 0 ? 'c' : 'l').'first' . after
