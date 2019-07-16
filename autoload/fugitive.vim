@@ -217,6 +217,7 @@ function! s:QuickfixStream(nr, title, cmd, first, callback, ...) abort
   call s:QuickfixSet(a:nr, extend(buffer, call(a:callback, a:000 + [0])), 'a')
 
   if a:first && len(s:QuickfixGet(a:nr))
+    call s:BlurStatus()
     return a:nr < 0 ? 'cfirst' : 'lfirst'
   else
     return 'exe'
@@ -3342,6 +3343,7 @@ function! s:MergeRebase(cmd, bang, mods, args, ...) abort
   if found
     call setqflist(qflist, 'r')
     if !a:bang
+      call s:BlurStatus()
       return 'cfirst'
     endif
   endif
@@ -3467,6 +3469,7 @@ function! s:Grep(type, bang, arg) abort
   let list = map(readfile(tempfile), 's:GrepParseLine(prefix, name_only, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
   if !a:bang && !empty(list)
+    call s:BlurStatus()
     return (listnr < 0 ? 'c' : 'l').'first' . after
   else
     return after[1:-1]
