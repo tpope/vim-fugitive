@@ -2069,7 +2069,8 @@ augroup END
 
 function! s:GitExec(line1, line2, range, count, bang, mods, reg, args, dir) abort
   if empty(a:args)
-    return s:StatusCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, '', [])
+    let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, '', [])
+    return empty(cmd) ? 'exe' : cmd
   endif
   if a:bang
     return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, a:args, a:dir)
