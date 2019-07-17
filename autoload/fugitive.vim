@@ -2077,7 +2077,8 @@ function! s:GitExec(line1, line2, range, count, bang, mods, reg, args, dir) abor
   endif
   let git = s:UserCommandList(a:dir)
   if s:HasOpt(a:args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
-        \ s:HasOpt(a:args, ['add', 'clean', 'stage'], '-i', '--interactive')
+        \ s:HasOpt(a:args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
+        \ index(['fetch', 'pull', 'push'], a:args[0]) >= 0
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
     if has('nvim')
       if &autowrite || &autowriteall | silent! wall | endif
