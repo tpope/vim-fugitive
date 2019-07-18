@@ -317,11 +317,13 @@ P                       Open the current file in the [count]th parent.
                                                 *fugitive_C*
 C                       Open the commit containing the current file.
 
-                                                *fugitive_CTRL-P*
-<C-P>                   Jump to the previous file or hunk.
+                                                *fugitive_CTRL-P* *fugitive_(*
+(                       Jump to the previous file or hunk.
+<C-P>
 
-                                                *fugitive_CTRL-N*
-<C-N>                   Jump to the next file or hunk.
+                                                *fugitive_CTRL-N* *fugitive_)*
+)                       Jump to the next file or hunk.
+<C-N>
 
                                                 *fugitive_[[*
 [[                      Jump to the previous section.
