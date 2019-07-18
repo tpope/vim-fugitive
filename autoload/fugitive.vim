@@ -3560,7 +3560,7 @@ function! s:Log(type, bang, line1, count, args) abort
     let path = ''
   elseif a:line1 == 0
     let range = "0," . (a:count ? a:count : bufnr(''))
-    let extra = (len(paths) ? [] : ['--']) + [path[1:-1]]
+    let extra = ['.' . path]
   elseif a:count > 0
     if !s:HasOpt(args, '--merges', '--no-merges')
       call insert(args, '--no-merges')
