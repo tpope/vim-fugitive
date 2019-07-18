@@ -6,7 +6,7 @@ if exists('g:autoloaded_fugitive')
 endif
 let g:autoloaded_fugitive = 1
 
-if !exists('g:fugitive_git_executable')
+if !exists('g:fugitive_git_executable') || g:fugitive_git_executable =~# '^LANG='
   let g:fugitive_git_executable = 'git'
 endif
 

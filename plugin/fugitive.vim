@@ -8,6 +8,10 @@ if exists('g:loaded_fugitive')
 endif
 let g:loaded_fugitive = 1
 
+if get(g:, 'fugitive_git_executable', '') =~# '^LANG='
+  echoerr 'Including "LANG=..." in g:fugitive_git_executable is no longer necessary or supported.  Remove the "let g:fugitive_git_executable = ..." line from your vimrc.'
+endif
+
 function! FugitiveGitDir(...) abort
   if !a:0 || a:1 ==# -1
     return get(b:, 'git_dir', '')
