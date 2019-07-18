@@ -2110,11 +2110,15 @@ function! s:Command(line1, line2, range, count, bang, mods, reg, arg, args, ...)
 endfunction
 
 let s:exec_paths = {}
-function! s:Subcommands() abort
+function! s:ExecPath() abort
   if !has_key(s:exec_paths, g:fugitive_git_executable)
     let s:exec_paths[g:fugitive_git_executable] = s:sub(system(g:fugitive_git_executable.' --exec-path'),'\n$','')
   endif
-  let exec_path = s:exec_paths[g:fugitive_git_executable]
+  return s:exec_paths[g:fugitive_git_executable]
+endfunction
+
+function! s:Subcommands() abort
+  let exec_path = s:ExecPath()
   return map(split(glob(exec_path.'/git-*'),"\n"),'s:sub(v:val[strlen(exec_path)+5 : -1],"\\.exe$","")')
 endfunction
 
@@ -3921,6 +3925,18 @@ function! s:FetchComplete(A, L, P) abort
   return s:CompleteSubcommand('fetch', a:A, a:L, a:P, function('s:CompleteRemote'))
 endfunction
 
+function! s:AskPassArgs(dir) abort
+  if (len($DISPLAY) || len($TERM_PROGRAM) || has('gui_running')) && fugitive#GitVersion(1, 8) &&
+        \ empty($GIT_ASKPASS) && empty($SSH_ASKPASS) && empty(fugitive#Config('core.askPass', a:dir))
+    if s:executable(s:ExecPath() . '/git-gui--askpass')
+      return ['-c', 'core.askPass=' . s:ExecPath() . '/git-gui--askpass']
+    elseif s:executable('ssh-askpass')
+      return ['-c', 'core.askPass=ssh-askpass']
+    endif
+  endif
+  return []
+endfunction
+
 function! s:Dispatch(bang, cmd, arg) abort
   let dir = s:Dir()
   let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
@@ -3928,7 +3944,7 @@ function! s:Dispatch(bang, cmd, arg) abort
   try
     let b:current_compiler = 'git'
     let &l:errorformat = s:common_efm
-    let &l:makeprg = s:shellesc(s:UserCommandList(dir) + [a:cmd] + args)
+    let &l:makeprg = s:shellesc(s:UserCommandList(dir) + s:AskPassArgs(dir) + [a:cmd] + args)
     if exists(':Make') == 2
       Make
       return after[1:-1]
