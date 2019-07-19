@@ -3470,7 +3470,7 @@ function! s:Grep(type, bang, arg) abort
   let title = [listnr < 0 ? ':Ggrep' : ':Glgrep'] + args
   call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)})
   let tempfile = tempname()
-  exe '!' . s:shellesc(cmd + args)
+  exe '!' . escape(s:shellesc(cmd + args), '%#!')
         \ printf(&shellpipe . (&shellpipe =~# '%s' ? '' : ' %s'), s:shellesc(tempfile))
   let list = map(readfile(tempfile), 's:GrepParseLine(prefix, name_only, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
