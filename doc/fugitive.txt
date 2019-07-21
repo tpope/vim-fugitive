@@ -249,6 +249,9 @@ u                       Unstage (reset) the file or hunk under the cursor.
                                                 *fugitive_-*
 -                       Stage or unstage the file or hunk under the cursor.
 
+                                                *fugitive_U*
+U                       Unstage everything.
+
                                                 *fugitive_X*
 X                       Discard the change under the cursor.  This uses
                         `checkout` or `clean` under the hood.  A command is

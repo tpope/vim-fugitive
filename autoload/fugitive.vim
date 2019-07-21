@@ -458,6 +458,12 @@ function! s:TreeChomp(...) abort
   throw 'fugitive: error running `' . cmd . '`: ' . out
 endfunction
 
+function! s:EchoExec(...) abort
+  echo call('s:ChompError', a:000)[0]
+  call fugitive#ReloadStatus(-1, 1)
+  return 'checktime'
+endfunction
+
 function! fugitive#Head(...) abort
   let dir = a:0 > 1 ? a:2 : s:Dir()
   if empty(dir) || !filereadable(fugitive#Find('.git/HEAD', dir))
@@ -1791,6 +1797,7 @@ function! fugitive#BufReadStatus() abort
     exe "xnoremap <buffer> <silent>" nowait "s :<C-U>execute <SID>Do('Stage',1)<CR>"
     exe "nnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',0)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',1)<CR>"
+    nnoremap <buffer> <silent> U :exe <SID>EchoExec('reset', '-q')<CR>
     nnoremap <buffer> <silent> gu :<C-U>exe <SID>StageJump(v:count, 'Unstaged')<CR>
     nnoremap <buffer> <silent> gU :<C-U>exe <SID>StageJump(v:count, 'Untracked')<CR>
     nnoremap <buffer> <silent> gs :<C-U>exe <SID>StageJump(v:count, 'Staged')<CR>
@@ -1819,7 +1826,6 @@ function! fugitive#BufReadStatus() abort
     endif
     exe 'nnoremap <buffer> <silent>' s:nowait "gq :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>"
     nnoremap <buffer> <silent> R :echohl WarningMsg<Bar>echo 'Reloading is automatic.  Use :e to force'<Bar>echohl NONE<CR>
-    nnoremap <buffer> <silent> U :<C-U>echoerr 'Changed to X'<CR>
     nnoremap <buffer> <silent> g<Bar> :<C-U>echoerr 'Changed to X'<CR>
     xnoremap <buffer> <silent> g<Bar> :<C-U>echoerr 'Changed to X'<CR>
     nnoremap <buffer> <silent> X :<C-U>execute <SID>StageDelete(line('.'),v:count)<CR>
