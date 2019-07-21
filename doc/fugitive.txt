@@ -346,6 +346,9 @@ gp                      Jump to "Unpushed" section.
                                                 *fugitive_gP*
 gP                      Jump to "Unpulled" section.
 
+                                                *fugitive_gr*
+gr                      Jump to "Rebasing" section.
+
                                                 *fugitive_c*
 Commit mappings ~
 
