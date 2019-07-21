@@ -3766,13 +3766,15 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
     silent write
     setlocal buftype=nowrite
     if matchstr(getline(2),'index [[:xdigit:]]\+\.\.\zs[[:xdigit:]]\{7\}') ==# fugitive#RevParse(':0:'.filename)[0:6]
-      let err = s:TreeChomp('apply', '--cached', '--reverse', '--', expand('%:p'))
+      let [message, exec_error] = s:ChompError(['apply', '--cached', '--reverse', '--', expand('%:p')])
     else
-      let err = s:TreeChomp('apply', '--cached', '--', expand('%:p'))
+      let [message, exec_error] = s:ChompError(['apply', '--cached', '--', expand('%:p')])
     endif
-    if err !=# ''
-      let v:errmsg = split(err,"\n")[0]
-      return 'echoerr v:errmsg'
+    if exec_error
+      echohl ErrorMsg
+      echo message
+      echohl NONE
+      return ''
     elseif a:bang
       return 'bdelete'
     else
