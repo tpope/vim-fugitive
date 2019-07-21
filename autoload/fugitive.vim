@@ -4887,14 +4887,14 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> P     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
-
-    nnoremap <buffer>          c-    :Gcommit -
-    nnoremap <buffer>       c<Space> :Gcommit<Space>
-    nnoremap <buffer>          c<CR> :Gcommit<CR>
     nnoremap <buffer> <silent> co    :<C-U>echoerr 'Use CTRL-W sC'<CR>
     nnoremap <buffer> <silent> cp    :<C-U>echoerr 'Use gC'<CR>
     nnoremap <buffer> <silent> gC    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> gc    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+
+    nnoremap <buffer>          c-    :Gcommit -
+    nnoremap <buffer>       c<Space> :Gcommit<Space>
+    nnoremap <buffer>          c<CR> :Gcommit<CR>
     nnoremap <buffer> <silent> ca    :<C-U>Gcommit --amend<CR>
     nnoremap <buffer> <silent> cc    :<C-U>Gcommit<CR>
     nnoremap <buffer> <silent> ce    :<C-U>Gcommit --amend --no-edit<CR>
@@ -4906,6 +4906,8 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer>          cs    :<C-U>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cS    :<C-U><Bar>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cA    :<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>
+    nnoremap <buffer> <silent> c?    :<C-U>help fugitive_c<CR>
+
     nnoremap <buffer>          r-    :Grebase -
     nnoremap <buffer>       r<Space> :Grebase<Space>
     nnoremap <buffer>          r<CR> :Grebase<CR>
@@ -4922,9 +4924,11 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> rs    :<C-U>Grebase --skip<CR>
     nnoremap <buffer> <silent> re    :<C-U>Grebase --edit-todo<CR>
     nnoremap <buffer> <silent> ra    :<C-U>Grebase --abort<CR>
+    nnoremap <buffer> <silent> r?    :<C-U>help fugitive_r<CR>
+
     nnoremap <buffer>          .     :<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>
     xnoremap <buffer>          .     :<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>
-    nnoremap <buffer> <silent> g?   :help fugitive-mappings<CR>
+    nnoremap <buffer> <silent> g?    :<C-U>help fugitive-mappings<CR>
   endif
 endfunction
 

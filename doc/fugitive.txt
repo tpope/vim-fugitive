@@ -382,6 +382,8 @@ cS                      Create a `squash!` commit for the commit under the
 cA                      Create a `squash!` commit for the commit under the
                         cursor and edit the message.
 
+c?                      Show this help.
+
                                                 *fugitive_r*
 Rebase mappings ~
 
@@ -414,6 +416,8 @@ rm                      Perform an interactive rebase with the commit under
 rd                      Perform an interactive rebase with the commit under
                         the cursor set to `drop`.
 
+r?                      Show this help.
+
                                                 *fugitive-misc-mappings*
 Miscellaneous mappings ~
 
@@ -425,7 +429,7 @@ gq                      Close the status buffer.
                         cursor prepopulated.
 
                                                 *fugitive_g?*
-g?                      Open this help.
+g?                      Show help for |fugitive-mappings|.
 
                                                 *fugitive-global-mappings*
 Global mappings ~
