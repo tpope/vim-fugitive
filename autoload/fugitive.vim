@@ -1006,15 +1006,9 @@ function! s:ExpandVar(other, var, flags, esc, ...) abort
 endfunction
 
 function! s:Expand(rev, ...) abort
-  if a:rev =~# '^:0$'
-    call s:throw('Use ' . string(':%') . ' instead of ' . string(a:rev))
-  elseif a:rev =~# '^:[1-3]$'
-    call s:throw('Use ' . string(a:rev . ':%') . ' instead of ' . string(a:rev))
-  elseif a:rev =~# '^@{' || a:rev =~# '^\^[0-9~^{]\|^\~[0-9~^]\|^\^$'
-    call s:throw('Use ' . string('!' . a:rev . ':%') . ' instead of ' . string(a:rev))
-  elseif a:rev =~# '^-'
-    call s:throw('Use ' . string('!' . a:rev[1:-1] . ':%') . ' instead of ' . string(a:rev))
-  elseif a:rev =~# '^>[~^]\|^>@{\|^>:\d$'
+  if a:rev =~# '^:[0-3]$'
+    let file = a:rev . ':%'
+  elseif a:rev =~# '^>[~^]\|^>@{\|^>$'
     let file = 'HEAD' . a:rev[1:-1] . ':%'
   elseif a:rev =~# '^>[> ]\@!'
     let file = a:rev[1:-1] . ':%'
