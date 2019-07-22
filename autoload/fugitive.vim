@@ -4701,7 +4701,7 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
     let line1 = a:count > 0 ? a:line1 : 0
     let line2 = a:count > 0 ? a:count : 0
     if empty(commit) && path !~# '^\.git/'
-      if a:line1 && !a:count && !empty(merge)
+      if a:count < 0 && !empty(merge)
         let commit = merge
       else
         let commit = ''
@@ -4711,7 +4711,7 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
           if exec_error
             let commit = ''
           endif
-          if a:count && empty(a:args) && commit =~# '^\x\{40,\}$'
+          if a:count > 0 && empty(a:args) && commit =~# '^\x\{40,\}$'
             let blame_list = tempname()
             call writefile([commit, ''], blame_list, 'b')
             let blame_in = tempname()
