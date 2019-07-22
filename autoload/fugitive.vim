@@ -487,7 +487,7 @@ function! fugitive#RevParse(rev, ...) abort
   if !exec_error && hash =~# '^\x\{40,\}$'
     return hash
   endif
-  call s:throw('rev-parse '.a:rev.': '.hash)
+  throw 'vim-fugitive: rev-parse '.a:rev.': '.hash
 endfunction
 
 function! s:ConfigTimestamps(dir, dict) abort
@@ -4897,6 +4897,15 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer>          cS    :<C-U><Bar>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cA    :<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer> <silent> c?    :<C-U>help fugitive_c<CR>
+
+    nnoremap <buffer>      cz<Space> :G stash<Space>
+    nnoremap <buffer>         cz<CR> :G stash<CR>
+    nnoremap <buffer> <silent> cza   :<C-U>exe <SID>EchoExec(['stash', 'apply', '--quiet', 'stash@{' . v:count . '}'])<CR>
+    nnoremap <buffer> <silent> czp   :<C-U>exe <SID>EchoExec(['stash', 'pop', '--quiet', 'stash@{' . v:count . '}'])<CR>
+    nnoremap <buffer> <silent> czv   :<C-U>exe 'Gedit' fugitive#RevParse('stash@{' . v:count . '}')<CR>
+    nnoremap <buffer> <silent> czw   :<C-U>exe <SID>EchoExec(['stash', '--keep-index'] + (v:count > 1 ? ['--all'] : v:count ? ['--include-untracked'] : []))<CR>
+    nnoremap <buffer> <silent> czz   :<C-U>exe <SID>EchoExec(['stash'] + (v:count > 1 ? ['--all'] : v:count ? ['--include-untracked'] : []))<CR>
+    nnoremap <buffer> <silent> cz?   :<C-U>help fugitive_cz<CR>
 
     nnoremap <buffer>          r-    :Grebase -
     nnoremap <buffer>       r<Space> :Grebase<Space>

@@ -384,6 +384,21 @@ cA                      Create a `squash!` commit for the commit under the
 
 c?                      Show this help.
 
+                                                *fugitive_cz*
+Stash mappings ~
+
+czz                     Push stash.  Pass a [count] of 1 to add
+                        `--include-untracked` or 2 to add `--all`.
+
+czw                     Push stash of worktree.  Like `czz` with
+                        `--include-index`.
+
+cza                     Apply topmost stash, or stash@{count}.
+
+czp                     Pop topmost stash, or stash@{count}.
+
+cz?                     Show this help.
+
                                                 *fugitive_r*
 Rebase mappings ~
 
