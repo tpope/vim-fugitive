@@ -4157,6 +4157,8 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
       let file = s:Relative()
     elseif arg ==# ':'
       let file = s:Relative(':0:')
+    elseif arg =~# '^:\d$'
+      let file = s:Relative(arg . ':')
     else
       try
         let file = arg =~# '^:/.' ? fugitive#RevParse(arg) . s:Relative(':') : s:Expand(arg)
