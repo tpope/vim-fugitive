@@ -4587,7 +4587,7 @@ endfunction
 
 " Section: :Gbrowse
 
-call s:command("-bar -bang -range=0 -nargs=* -complete=customlist,fugitive#CompleteObject Gbrowse", "Browse")
+call s:command("-bar -bang -range=-1 -nargs=* -complete=customlist,fugitive#CompleteObject Gbrowse", "Browse")
 
 let s:redirects = {}
 
@@ -4595,7 +4595,13 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
   let dir = s:Dir()
   try
     let validremote = '\.\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)\='
-    if len(a:args)
+    if a:args ==# ['-']
+      if a:count >= 0
+        return 'echoerr ' . string('fugitive: ''-'' no longer required to get persistent URL if range given')
+      else
+        return 'echoerr ' . string('fugitive: use :0Gbrowse instead of :Gbrowse -')
+      endif
+    elseif len(a:args)
       let remote = matchstr(join(a:args, ' '),'@\zs\%('.validremote.'\)$')
       let rev = substitute(join(a:args, ' '),'@\%('.validremote.'\)$','','')
     else
@@ -4792,12 +4798,6 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
       else
         return 'echomsg '.string(url).'|call netrw#NetrwBrowseX('.string(url).', 0)'
       endif
-    endif
-  catch /^fugitive: Use '!:%' instead of '-'/
-    if a:count >= 0
-      return 'echoerr ' . string('fugitive: ''-'' no longer required to get persistent URL')
-    else
-      return 'echoerr ' . string('fugitive: use :0Gbrowse instead of :Gbrowse -')
     endif
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
