@@ -884,12 +884,6 @@ function! fugitive#Find(object, ...) abort
   elseif rev =~# '^:/\@!'
     let f = 'fugitive://' . dir . '//0/' . rev[1:-1]
   else
-    if rev =~# 'HEAD$\|^refs/' && rev !~# ':'
-      let cdir = rev =~# '^refs/' ? fugitive#CommonDir(dir) : dir
-      if filereadable(cdir . '/' . rev)
-        let f = simplify(cdir . '/' . rev)
-      endif
-    endif
     if !exists('f')
       let commit = substitute(matchstr(rev, '^[^:]\+\|^:.*'), '^@\%($\|[~^]\|@{\)\@=', 'HEAD', '')
       let file = substitute(matchstr(rev, '^[^:]\+\zs:.*'), '^:', '/', '')
@@ -949,13 +943,8 @@ function! fugitive#Object(...) abort
   if empty(rev) && empty(tree)
   elseif empty(rev)
     let rev = fugitive#Path(a:0 ? a:1 : @%, './', dir)
-    let cdir = fugitive#CommonDir(dir)
-    if rev =~# '^\./\.git/refs/\%(tags\|heads\|remotes\)/.\|^\./\.git/\w*HEAD$'
-      let rev = rev[7:-1]
-    elseif s:cpath(cdir . '/refs/', rev[0 : len(cdir)])
-      let rev = strpart(rev, len(cdir)+1)
-    elseif rev =~# '^\./.git\%(/\|$\)'
-      return fnamemodify(a:0 ? a:1 : @%, ':p')
+    if rev =~# '^\./.git\%(/\|$\)'
+      return fnamemodify(a:0 ? a:1 : @%, ':p' . (rev =~# '/$' ? '' : ':s?/$??'))
     endif
   endif
   if rev !~# '^\.\%(/\|$\)' || s:cpath(getcwd(), tree)
