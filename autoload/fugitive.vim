@@ -1808,7 +1808,7 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> gr :<C-U>exe <SID>StageJump(v:count, 'Rebasing')<CR>
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
     nnoremap <buffer> <silent> a :<C-U>execute <SID>Do('Toggle',0)<CR>
-    nnoremap <buffer> <silent> i :<C-U>execute <SID>StageIntend(v:count1)<CR>
+    nnoremap <buffer> <silent> i :<C-U>execute <SID>NextExpandedHunk(v:count1)<CR>
     exe 'nnoremap <buffer> <silent>' nowait "= :<C-U>execute <SID>StageInline('toggle',line('.'),v:count)<CR>"
     exe 'nnoremap <buffer> <silent>' nowait "< :<C-U>execute <SID>StageInline('show',  line('.'),v:count)<CR>"
     exe 'nnoremap <buffer> <silent>' nowait "> :<C-U>execute <SID>StageInline('hide',  line('.'),v:count)<CR>"
@@ -2730,19 +2730,15 @@ function! s:StageInline(mode, ...) abort
   return lnum
 endfunction
 
-function! s:StageIntend(count) abort
+function! s:NextExpandedHunk(count) abort
   for i in range(a:count)
-    if getline('.')[0:1] ==# '? '
-      call s:TreeChomp('add', '--intent-to-add', '--', s:Tree() . '/' . getline('.')[2:-1])
-      -
-      exe s:ReloadStatus()
-    elseif getline('.') =~# '^Unstaged\|^Untracked'
+    if getline('.') =~# '^Unstaged\|^Untracked'
       call s:TreeChomp('add', '--intent-to-add', '--', s:Tree())
       exe s:ReloadStatus()
     else
       call s:StageInline('show', line('.'), 1)
     endif
-    call s:NextFileHunk(1)
+    call search('^[A-Z?] .\|^diff --\|^@','W')
   endfor
   return '.'
 endfunction
