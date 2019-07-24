@@ -1799,11 +1799,11 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> a :<C-U>execute <SID>Do('Toggle',0)<CR>
     nnoremap <buffer> <silent> i :<C-U>execute <SID>NextExpandedHunk(v:count1)<CR>
     exe 'nnoremap <buffer> <silent>' nowait "= :<C-U>execute <SID>StageInline('toggle',line('.'),v:count)<CR>"
-    exe 'nnoremap <buffer> <silent>' nowait "< :<C-U>execute <SID>StageInline('show',  line('.'),v:count)<CR>"
-    exe 'nnoremap <buffer> <silent>' nowait "> :<C-U>execute <SID>StageInline('hide',  line('.'),v:count)<CR>"
+    exe 'nnoremap <buffer> <silent>' nowait "< :<C-U>execute <SID>StageInline('hide',  line('.'),v:count)<CR>"
+    exe 'nnoremap <buffer> <silent>' nowait "> :<C-U>execute <SID>StageInline('show',  line('.'),v:count)<CR>"
     exe 'xnoremap <buffer> <silent>' nowait "= :<C-U>execute <SID>StageInline('toggle',line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
-    exe 'xnoremap <buffer> <silent>' nowait "< :<C-U>execute <SID>StageInline('show',  line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
-    exe 'xnoremap <buffer> <silent>' nowait "> :<C-U>execute <SID>StageInline('hide',  line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
+    exe 'xnoremap <buffer> <silent>' nowait "< :<C-U>execute <SID>StageInline('hide',  line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
+    exe 'xnoremap <buffer> <silent>' nowait "> :<C-U>execute <SID>StageInline('show',  line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
     nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff('Gdiffsplit')<CR>
     nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gdiffsplit')<CR>
     nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Ghdiffsplit')<CR>

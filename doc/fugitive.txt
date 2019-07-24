@@ -264,11 +264,11 @@ X                       Discard the change under the cursor.  This uses
                                                 *fugitive_=*
 =                       Toggle an inline diff of the file under the cursor.
 
-                                                *fugitive_<*
-<                       Insert an inline diff of the file under the cursor.
-
                                                 *fugitive_>*
->                       Remove the inline diff of the file under the cursor.
+>                       Insert an inline diff of the file under the cursor.
+
+                                                *fugitive_<*
+<                       Remove the inline diff of the file under the cursor.
 
 P                       Invoke |:Git| add --patch or reset --patch on the file
                         under the cursor. On untracked files, this instead
