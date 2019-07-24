@@ -2970,6 +2970,7 @@ endfunction
 function! s:StagePatch(lnum1,lnum2) abort
   let add = []
   let reset = []
+  let intend = []
 
   for lnum in range(a:lnum1,a:lnum2)
     let info = s:StageInfo(lnum)
@@ -2985,11 +2986,16 @@ function! s:StagePatch(lnum1,lnum2) abort
     execute lnum
     if info.section ==# 'Staged'
       let reset += info.relative
+    elseif info.section ==# 'Untracked'
+      let intend += info.paths
     elseif info.status !~# '^D'
       let add += info.relative
     endif
   endfor
   try
+    if !empty(intend)
+      call s:TreeChomp(['add', '--intent-to-add', '--'] + intend)
+    endif
     if !empty(add)
       execute "Git add --patch -- ".join(map(add,'s:fnameescape(v:val)'))
     endif
