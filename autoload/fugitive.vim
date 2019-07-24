@@ -1821,6 +1821,8 @@ function! fugitive#BufReadStatus() abort
     xnoremap <buffer> <silent> g<Bar> :<C-U>echoerr 'Changed to X'<CR>
     nnoremap <buffer> <silent> X :<C-U>execute <SID>StageDelete(line('.'), 0, v:count)<CR>
     xnoremap <buffer> <silent> X :<C-U>execute <SID>StageDelete(line("'<"), line("'>"), v:count)<CR>
+    nnoremap <buffer> <silent> gI :<C-U>execute <SID>StageIgnore(line('.'), line('.'), v:count)<CR>
+    xnoremap <buffer> <silent> gI :<C-U>execute <SID>StageIgnore(line("'<"), line("'>"), v:count)<CR>
     nnoremap <buffer>          . :<C-U> <C-R>=<SID>StageArgs(0)<CR><Home>
     xnoremap <buffer>          . :<C-U> <C-R>=<SID>StageArgs(1)<CR><Home>
     nnoremap <buffer> <silent> <F1> :help fugitive-mappings<CR>
@@ -2852,6 +2854,23 @@ function! s:StageDelete(lnum1, lnum2, count) abort
   let @@ = hash
   return 'checktime|redraw|echomsg ' .
         \ string('To restore, :Gedit ' . info.relative[0] . '|Gread ' . hash[0:6])
+endfunction
+
+function! s:StageIgnore(lnum1, lnum2, count) abort
+  let paths = []
+  for info in s:Selection(a:lnum1, a:lnum2)
+    call extend(paths, info.relative)
+  endfor
+  call map(paths, '"/" . v:val')
+  exe 'Gsplit' (a:count ? '.gitignore' : '.git/info/exclude')
+  let last = line('$')
+  if last == 1 && empty(getline(1))
+    call setline(last, paths)
+  else
+    call append(last, paths)
+    exe last + 1
+  endif
+  return ''
 endfunction
 
 function! s:DoToggleHeadHeader(value) abort
@@ -4881,6 +4900,7 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> cp    :<C-U>echoerr 'Use gC'<CR>
     nnoremap <buffer> <silent> gC    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> gc    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
+    nnoremap <buffer> <silent> gi    :<C-U>exe 'Gsplit' (v:count ? '.gitignore' : '.git/info/exclude')<CR>
 
     nnoremap <buffer>          c-    :Gcommit -
     nnoremap <buffer>       c<Space> :Gcommit<Space>
