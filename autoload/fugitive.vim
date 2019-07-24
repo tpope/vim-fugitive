@@ -2732,12 +2732,7 @@ endfunction
 
 function! s:NextExpandedHunk(count) abort
   for i in range(a:count)
-    if getline('.') =~# '^Unstaged\|^Untracked'
-      call s:TreeChomp('add', '--intent-to-add', '--', s:Tree())
-      exe s:ReloadStatus()
-    else
-      call s:StageInline('show', line('.'), 1)
-    endif
+    call s:StageInline('show', line('.'), 1)
     call search('^[A-Z?] .\|^diff --\|^@','W')
   endfor
   return '.'
