@@ -278,6 +278,8 @@ P                       Invoke |:Git| add --patch or reset --patch on the file
                         under the cursor. On untracked files, this instead
                         calls |:Git| add --intent-to-add.
 
+                                                *fugitive_d*
+Diff mappings ~
                                                 *fugitive_dp*
 dp                      Invoke |:Git!| diff on the file under the cursor.
                         Deprecated in favor of inline diffs.
@@ -292,6 +294,8 @@ dv                      Perform a |:Gvdiffsplit| on the file under the cursor.
 ds                      Perform a |:Ghdiffsplit| on the file under the cursor.
 dh
 
+                                                *fugitive_d?*
+d?                      Show this help.
 
                                                 *fugitive-navigation-mappings*
 Navigation mappings ~
@@ -390,7 +394,22 @@ cS                      Create a `squash!` commit for the commit under the
 cA                      Create a `squash!` commit for the commit under the
                         cursor and edit the message.
 
+c<Space>                Populate command line with ":Gcommit ".
+
 c?                      Show this help.
+
+                                                *fugitive_cb*
+                                                *fugitive_co*
+Checkout/branch mappings ~
+
+coo                     Check out the commit under the cursor.
+
+cb<Space>               Populate command line with ":G branch ".
+
+co<Space>               Populate command line with ":G checkout ".
+
+cb?                     Show this help.
+co?
 
                                                 *fugitive_cz*
 Stash mappings ~
@@ -404,6 +423,8 @@ czw                     Push stash of worktree.  Like `czz` with
 cza                     Apply topmost stash, or stash@{count}.
 
 czp                     Pop topmost stash, or stash@{count}.
+
+cz<Space>               Populate command line with ":G stash ".
 
 cz?                     Show this help.
 
@@ -438,6 +459,8 @@ rm                      Perform an interactive rebase with the commit under
 
 rd                      Perform an interactive rebase with the commit under
                         the cursor set to `drop`.
+
+r<Space>                Populate command line with ":Grebase ".
 
 r?                      Show this help.
 

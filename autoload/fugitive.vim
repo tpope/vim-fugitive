@@ -1804,6 +1804,7 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> ds :<C-U>execute <SID>StageDiff('Ghdiffsplit')<CR>
     nnoremap <buffer> <silent> dp :<C-U>execute <SID>StageDiffEdit()<CR>
     nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiffsplit')<CR>
+    nnoremap <buffer> <silent> d? :<C-U>help fugitive_d<CR>
     nnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
     if empty(mapcheck('q', 'n'))
@@ -1819,7 +1820,6 @@ function! fugitive#BufReadStatus() abort
     xnoremap <buffer> <silent> gI :<C-U>execute <SID>StageIgnore(line("'<"), line("'>"), v:count)<CR>
     nnoremap <buffer>          . :<C-U> <C-R>=<SID>StageArgs(0)<CR><Home>
     xnoremap <buffer>          . :<C-U> <C-R>=<SID>StageArgs(1)<CR><Home>
-    nnoremap <buffer> <silent> <F1> :help fugitive-mappings<CR>
     setlocal filetype=fugitive
 
     for [lnum, section] in [[staged_end, 'Staged'], [unstaged_end, 'Unstaged']]
@@ -4890,15 +4890,15 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> P     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> C     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
-    nnoremap <buffer> <silent> co    :<C-U>echoerr 'Use CTRL-W sC'<CR>
     nnoremap <buffer> <silent> cp    :<C-U>echoerr 'Use gC'<CR>
     nnoremap <buffer> <silent> gC    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> gc    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> gi    :<C-U>exe 'Gsplit' (v:count ? '.gitignore' : '.git/info/exclude')<CR>
 
-    nnoremap <buffer>          c-    :Gcommit -
     nnoremap <buffer>       c<Space> :Gcommit<Space>
     nnoremap <buffer>          c<CR> :Gcommit<CR>
+    nnoremap <buffer>      cv<Space> :Gcommit -v<Space>
+    nnoremap <buffer>         cv<CR> :Gcommit -v<CR>
     nnoremap <buffer> <silent> ca    :<C-U>Gcommit --amend<CR>
     nnoremap <buffer> <silent> cc    :<C-U>Gcommit<CR>
     nnoremap <buffer> <silent> ce    :<C-U>Gcommit --amend --no-edit<CR>
@@ -4921,7 +4921,15 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> czz   :<C-U>exe <SID>EchoExec(['stash'] + (v:count > 1 ? ['--all'] : v:count ? ['--include-untracked'] : []))<CR>
     nnoremap <buffer> <silent> cz?   :<C-U>help fugitive_cz<CR>
 
-    nnoremap <buffer>          r-    :Grebase -
+    nnoremap <buffer>      co<Space> :G checkout<Space>
+    nnoremap <buffer>         co<CR> :G checkout<CR>
+    nnoremap <buffer>          coo   :exe <SID>EchoExec(['checkout'] + split(<SID>SquashArgument()) + ['--'])<CR>
+    nnoremap <buffer>          co?   :<C-U>help fugitive_co<CR>
+
+    nnoremap <buffer>      cb<Space> :G branch<Space>
+    nnoremap <buffer>         cb<CR> :G branch<CR>
+    nnoremap <buffer>         cb?    :<C-U>help fugitive_cb<CR>
+
     nnoremap <buffer>       r<Space> :Grebase<Space>
     nnoremap <buffer>          r<CR> :Grebase<CR>
     nnoremap <buffer> <silent> ri    :<C-U>Grebase --interactive<C-R>=<SID>RebaseArgument()<CR><CR>
@@ -4942,6 +4950,7 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer>          .     :<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>
     xnoremap <buffer>          .     :<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>
     nnoremap <buffer> <silent> g?    :<C-U>help fugitive-mappings<CR>
+    nnoremap <buffer> <silent> <F1>  :<C-U>help fugitive-mappings<CR>
   endif
 endfunction
 
