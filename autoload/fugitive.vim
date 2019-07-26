@@ -3827,7 +3827,7 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
 
   if treebufnr > 0 && treebufnr != bufnr('')
     let temp = tempname()
-    silent execute '%write '.temp
+    silent execute 'keepalt %write '.temp
     for tab in [mytab] + range(1,tabpagenr('$'))
       for winnr in range(1,tabpagewinnr(tab,'$'))
         if tabpagebuflist(tab)[winnr-1] == treebufnr
