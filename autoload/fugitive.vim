@@ -3813,7 +3813,7 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
   if file =~# '^fugitive:'
     return 'write' . (a:bang ? '! ' : ' ') . s:fnameescape(file)
   endif
-  let always_permitted = s:cpath(fugitive#Real(@%), file) && s:DirCommitFile(@%)[1] =~# '^0\=$'
+  let always_permitted = s:cpath(fugitive#Real(@%), file) && empty(s:DirCommitFile(@%)[1])
   if !always_permitted && !a:bang && (len(s:TreeChomp('diff', '--name-status', 'HEAD', '--', file)) || len(s:TreeChomp('ls-files', '--others', '--', file)))
     let v:errmsg = 'fugitive: file has uncommitted changes (use ! to override)'
     return 'echoerr v:errmsg'
