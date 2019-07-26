@@ -3031,7 +3031,7 @@ function! s:StagePatch(lnum1,lnum2) abort
   return s:ReloadStatus()
 endfunction
 
-" Section: :Gcommit
+" Section: :Gcommit, :Grevert
 
 function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
   let mods = substitute(s:Mods(a:mods), '\C\<tab\>', '-tab', 'g')
@@ -3140,6 +3140,19 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
   endtry
 endfunction
 
+function! s:RevertCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+  let dir = s:Dir()
+  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
+  let no_commit = s:HasOpt(args, '-n', '--no-commit', '--no-edit')
+  let cmd = s:UserCommand(dir) . ' revert ' . (no_commit ? '' : '-n ') . s:shellesc(args)
+  let [out, exec_error] = s:SystemError(cmd)
+  call fugitive#ReloadStatus(-1, 1)
+  if no_commit || exec_error
+    return 'echo ' . string(substitute(out, "\n$", '', '')) . after
+  endif
+  return s:CommitCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, after, [], dir)
+endfunction
+
 function! s:CommitComplete(A, L, P) abort
   if a:A =~# '^--fixup=\|^--squash='
     let commits = s:LinesError(['log', '--pretty=format:%s', '@{upstream}..'])[0]
@@ -3157,6 +3170,10 @@ function! s:CommitComplete(A, L, P) abort
   return []
 endfunction
 
+function! s:RevertComplete(A, L, P) abort
+  return s:CompleteSubcommand('revert', a:A, a:L, a:P, function('s:CompleteRevision'))
+endfunction
+
 function! s:FinishCommit() abort
   let buf = +expand('<abuf>')
   let args = getbufvar(buf, 'fugitive_commit_arguments')
@@ -3172,6 +3189,7 @@ function! s:FinishCommit() abort
 endfunction
 
 call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit", "Commit")
+call s:command("-nargs=? -complete=customlist,s:RevertComplete Grevert", "Revert")
 
 " Section: :Gmerge, :Grebase, :Gpull
 
@@ -4934,6 +4952,8 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer>          cs    :<C-U>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cS    :<C-U><Bar>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cA    :<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>
+    nnoremap <buffer> <silent> cr    :<C-U>Grevert <C-R>=<SID>SquashArgument()<CR><CR>
+    nnoremap <buffer> <silent> cR    :<C-U>Grevert <C-R>=<SID>SquashArgument()<CR><CR>
     nnoremap <buffer> <silent> c?    :<C-U>help fugitive_c<CR>
 
     nnoremap <buffer>      cz<Space> :G stash<Space>

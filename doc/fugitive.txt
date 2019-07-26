@@ -42,6 +42,9 @@ that are part of Git repositories).
                         the window (:wq) to finish the commit. To cancel, use
                         an empty message.
 
+                                                *fugitive-:Grevert*
+:Grevert [args]         A wrapper around git-revert.  Similar to |:Gcommit|.
+
                                                 *fugitive-:Gmerge*
 :Gmerge [args]          Calls git-merge and loads errors and conflicted files
                         into the |quickfix| list.  Opens a |:Gcommit| style
@@ -394,6 +397,8 @@ cS                      Create a `squash!` commit for the commit under the
 
 cA                      Create a `squash!` commit for the commit under the
                         cursor and edit the message.
+
+cr                      Revert the commit under the cursor.
 
 c<Space>                Populate command line with ":Gcommit ".
 
