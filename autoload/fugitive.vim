@@ -3111,7 +3111,7 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         return '1' . after
       elseif empty(errors)
         let out = readfile(outfile)
-        echo get(out, -1, '') =~# 'stash\|\d' ? get(out, -2, '') : out[-1]
+        echo get(out, -1, '') =~# 'stash\|\d' ? get(out, -2, '') : get(out, -1, '')
         return after[1:-1]
       else
         echo join(errors, "\n")
