@@ -420,6 +420,14 @@ endfunction
 
 function! s:SystemError(cmd, ...) abort
   try
+    if &shellredir ==# '>' && &shell =~# 'sh\|cmd'
+      let shellredir = &shellredir
+      if &shell =~# 'csh'
+        set shellredir=>&
+      else
+        set shellredir=>%s\ 2>&1
+      endif
+    endif
     let out = call('system', [type(a:cmd) ==# type([]) ? fugitive#Prepare(a:cmd) : a:cmd] + a:000)
     return [out, v:shell_error]
   catch /^Vim\%((\a\+)\)\=:E484:/
@@ -427,6 +435,10 @@ function! s:SystemError(cmd, ...) abort
     call filter(opts, 'exists("+".v:val) && !empty(eval("&".v:val))')
     call map(opts, 'v:val."=".eval("&".v:val)')
     call s:throw('failed to run `' . a:cmd . '` with ' . join(opts, ' '))
+  finally
+    if exists('shellredir')
+      let &shellpipe = shellredir
+    endif
   endtry
 endfunction
 
