@@ -5172,8 +5172,8 @@ function! s:GF(mode) abort
   endtry
   if len(results) > 1
     return 'G' . a:mode .
-          \ ' +' . escape(join(results[1:-1], '|'), '| ') . ' ' .
-          \ s:fnameescape(results[0])
+          \ ' +' . escape(results[1], ' ') . ' ' .
+          \ s:fnameescape(results[0]) . join(map(results[2:-1], '"|" . v:val'), '')
   elseif len(results) && len(results[0])
     return 'G' . a:mode . ' ' . s:fnameescape(results[0])
   else
