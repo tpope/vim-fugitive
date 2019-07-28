@@ -1798,12 +1798,12 @@ function! fugitive#BufReadStatus() abort
     exe 'xnoremap <buffer> <silent>' nowait "= :<C-U>execute <SID>StageInline('toggle',line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
     exe 'xnoremap <buffer> <silent>' nowait "< :<C-U>execute <SID>StageInline('hide',  line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
     exe 'xnoremap <buffer> <silent>' nowait "> :<C-U>execute <SID>StageInline('show',  line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>"
-    nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff('Gdiffsplit')<CR>
-    nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gdiffsplit')<CR>
-    nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Ghdiffsplit')<CR>
-    nnoremap <buffer> <silent> ds :<C-U>execute <SID>StageDiff('Ghdiffsplit')<CR>
+    nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff('Gdiffsplit!')<Bar>redraw<Bar>echohl WarningMsg<Bar> echo ':Gstatus D is deprecated in favor of dd'<Bar>echohl NONE<CR>
+    nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gdiffsplit!')<CR>
+    nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Ghdiffsplit!')<CR>
+    nnoremap <buffer> <silent> ds :<C-U>execute <SID>StageDiff('Ghdiffsplit!')<CR>
     nnoremap <buffer> <silent> dp :<C-U>execute <SID>StageDiffEdit()<CR>
-    nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiffsplit')<CR>
+    nnoremap <buffer> <silent> dv :<C-U>execute <SID>StageDiff('Gvdiffsplit!')<CR>
     nnoremap <buffer> <silent> d? :<C-U>help fugitive_d<CR>
     nnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
