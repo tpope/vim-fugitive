@@ -274,8 +274,9 @@ X                       Discard the change under the cursor.  This uses
 gI                      Open .git/info/exclude in a split and add the file
                         under the cursor.  Use a count to open .gitignore.
 
-P                       Invoke |:Git| add --patch or reset --patch on the file
-                        under the cursor. On untracked files, this instead
+                                                *fugitive_I*
+I                       Invoke |:Git| add --patch or reset --patch on the file
+P                       under the cursor. On untracked files, this instead
                         calls |:Git| add --intent-to-add.
 
                                                 *fugitive_d*

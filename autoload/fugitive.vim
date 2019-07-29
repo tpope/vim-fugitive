@@ -1826,6 +1826,8 @@ function! fugitive#BufReadStatus() abort
     nnoremap <buffer> <silent> d? :<C-U>help fugitive_d<CR>
     nnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>
     xnoremap <buffer> <silent> P :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
+    nnoremap <buffer> <silent> I :<C-U>execute <SID>StagePatch(line('.'),line('.'))<CR>
+    xnoremap <buffer> <silent> I :<C-U>execute <SID>StagePatch(line("'<"),line("'>"))<CR>
     if empty(mapcheck('q', 'n'))
       nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
     endif
@@ -2958,7 +2960,7 @@ function! s:DoUnstageStaged(record) abort
 endfunction
 
 function! s:DoToggleUnstaged(record) abort
-  if a:record.patch
+  if a:record.patch && a:record.status !=# 'A'
     return s:StageApply(a:record, 0, ['--cached'])
   else
     call s:TreeChomp(['add', '-A', '--'] + a:record.paths)
