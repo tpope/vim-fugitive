@@ -3502,10 +3502,13 @@ function! s:Grep(type, bang, arg) abort
   let title = [listnr < 0 ? ':Ggrep' : ':Glgrep'] + args
   call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)})
   let tempfile = tempname()
+  if v:version > 704 | exe 'silent doautocmd <nomodeline> QuickFixCmdPre ' (listnr < 0 ? 'Ggrep' : 'Glgrep') | endif
   exe '!' . escape(s:shellesc(cmd + args), '%#!')
         \ printf(&shellpipe . (&shellpipe =~# '%s' ? '' : ' %s'), s:shellesc(tempfile))
   let list = map(readfile(tempfile), 's:GrepParseLine(prefix, name_only, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
+  if v:version > 704 | exe 'silent doautocmd <nomodeline> QuickFixCmdPost ' (listnr < 0 ? 'Ggrep' : 'Glgrep') | endif
+  redraw
   if !a:bang && !empty(list)
     call s:BlurStatus()
     return (listnr < 0 ? 'c' : 'l').'first' . after
