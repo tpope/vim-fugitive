@@ -437,7 +437,7 @@ function! s:SystemError(cmd, ...) abort
     call s:throw('failed to run `' . a:cmd . '` with ' . join(opts, ' '))
   finally
     if exists('shellredir')
-      let &shellpipe = shellredir
+      let &shellredir = shellredir
     endif
   endtry
 endfunction
