@@ -421,9 +421,15 @@ czz                     Push stash.  Pass a [count] of 1 to add
 czw                     Push stash of worktree.  Like `czz` with
                         `--include-index`.
 
-cza                     Apply topmost stash, or stash@{count}.
+czA                     Apply topmost stash, or stash@{count}.
 
-czp                     Pop topmost stash, or stash@{count}.
+cza                     Apply topmost stash, or stash@{count}, preserving the
+                        index.
+
+czP                     Pop topmost stash, or stash@{count}.
+
+czp                     Pop topmost stash, or stash@{count}, preserving the
+                        index.
 
 cz<Space>               Populate command line with ":G stash ".
 
