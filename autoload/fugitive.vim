@@ -499,7 +499,7 @@ function! fugitive#RevParse(rev, ...) abort
   if !exec_error && hash =~# '^\x\{40,\}$'
     return hash
   endif
-  throw 'vim-fugitive: rev-parse '.a:rev.': '.hash
+  throw 'fugitive: rev-parse '.a:rev.': '.hash
 endfunction
 
 function! s:ConfigTimestamps(dir, dict) abort
