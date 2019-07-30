@@ -2087,7 +2087,7 @@ function! s:GitExec(line1, line2, range, count, bang, mods, reg, args, dir) abor
     let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, '', [])
     return empty(cmd) ? 'exe' : cmd
   endif
-  if a:bang
+  if a:bang || a:args[0] =~# '^-P$\|^--no-pager$'
     return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, a:args, a:dir)
   endif
   let git = s:UserCommandList(a:dir)
