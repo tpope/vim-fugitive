@@ -1808,8 +1808,6 @@ function! fugitive#BufReadStatus() abort
     let nowait = v:version >= 704 ? '<nowait>' : ''
     nunmap   <buffer>          P
     nunmap   <buffer>          ~
-    nnoremap <buffer> <silent> [[ :<C-U>execute <SID>PreviousSection(v:count1)<CR>
-    nnoremap <buffer> <silent> ]] :<C-U>execute <SID>NextSection(v:count1)<CR>
     exe "nnoremap <buffer> <silent>" nowait "- :<C-U>execute <SID>Do('Toggle',0)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "- :<C-U>execute <SID>Do('Toggle',1)<CR>"
     exe "nnoremap <buffer> <silent>" nowait "s :<C-U>execute <SID>Do('Stage',0)<CR>"
@@ -1817,12 +1815,12 @@ function! fugitive#BufReadStatus() abort
     exe "nnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',0)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',1)<CR>"
     nnoremap <buffer> <silent> U :exe <SID>EchoExec('reset', '-q')<CR>
-    nnoremap <buffer> <silent> gu :<C-U>exe <SID>StageJump(v:count, 'Unstaged')<CR>
-    nnoremap <buffer> <silent> gU :<C-U>exe <SID>StageJump(v:count, 'Untracked')<CR>
-    nnoremap <buffer> <silent> gs :<C-U>exe <SID>StageJump(v:count, 'Staged')<CR>
-    nnoremap <buffer> <silent> gp :<C-U>exe <SID>StageJump(v:count, 'Unpushed')<CR>
-    nnoremap <buffer> <silent> gP :<C-U>exe <SID>StageJump(v:count, 'Unpulled')<CR>
-    nnoremap <buffer> <silent> gr :<C-U>exe <SID>StageJump(v:count, 'Rebasing')<CR>
+    call s:MapEx('gu', "exe <SID>StageJump(v:count, 'Unstaged')")
+    call s:MapEx('gU', "exe <SID>StageJump(v:count, 'Untracked')")
+    call s:MapEx('gs', "exe <SID>StageJump(v:count, 'Staged')")
+    call s:MapEx('gp', "exe <SID>StageJump(v:count, 'Unpushed')")
+    call s:MapEx('gP', "exe <SID>StageJump(v:count, 'Unpulled')")
+    call s:MapEx('gr', "exe <SID>StageJump(v:count, 'Rebasing')")
     nnoremap <buffer> <silent> C :<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>
     nnoremap <buffer> <silent> a :<C-U>execute <SID>Do('Toggle',0)<CR>
     nnoremap <buffer> <silent> i :<C-U>execute <SID>NextExpandedHunk(v:count1)<CR>
@@ -4913,6 +4911,12 @@ function! s:NavigateUp(count) abort
   return rev
 endfunction
 
+function! s:MapEx(lhs, rhs) abort
+  execute "nnoremap <buffer> <silent>" s:nowait a:lhs ":<C-U>" . a:rhs . "<CR>"
+  execute "onoremap <buffer> <silent>" s:nowait a:lhs ":<C-U>" . a:rhs . "<CR>"
+  execute "xnoremap <buffer> <silent>" s:nowait a:lhs ":<C-U>exe 'normal! gv'<Bar>" . a:rhs . "<CR>"
+endfunction
+
 function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
@@ -4936,10 +4940,12 @@ function! fugitive#MapJumps(...) abort
         nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
       endif
       nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
-      nnoremap <buffer> <silent> (  :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
-      nnoremap <buffer> <silent> )  :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
-      nnoremap <buffer> <silent> K  :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
-      nnoremap <buffer> <silent> J  :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
+      call s:MapEx('(', 'exe <SID>PreviousFileHunk(v:count1)')
+      call s:MapEx(')', 'exe <SID>NextFileHunk(v:count1)')
+      call s:MapEx('K', 'exe <SID>PreviousFileHunk(v:count1)')
+      call s:MapEx('J', 'exe <SID>NextFileHunk(v:count1)')
+      call s:MapEx('[[', 'exe <SID>PreviousSection(v:count1)')
+      call s:MapEx(']]', 'exe <SID>NextSection(v:count1)')
     endif
     exe "nnoremap <buffer> <silent>" s:nowait  "-     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40,\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>"
     nnoremap <buffer> <silent> P     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
@@ -4949,6 +4955,7 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> gC    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> gc    :<C-U>exe 'Gpedit ' . <SID>fnameescape(<SID>ContainingCommit())<CR>
     nnoremap <buffer> <silent> gi    :<C-U>exe 'Gsplit' (v:count ? '.gitignore' : '.git/info/exclude')<CR>
+    xnoremap <buffer> <silent> gi    :<C-U>exe 'Gsplit' (v:count ? '.gitignore' : '.git/info/exclude')<CR>
 
     nnoremap <buffer>       c<Space> :Gcommit<Space>
     nnoremap <buffer>          c<CR> :Gcommit<CR>
