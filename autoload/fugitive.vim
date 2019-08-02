@@ -3506,9 +3506,9 @@ function! s:GrepParseLine(prefix, name_only, dir, line) abort
   return entry
 endfunction
 
-function! s:Grep(type, bang, arg) abort
+function! s:Grep(listnr, bang, arg) abort
   let dir = s:Dir()
-  let listnr = a:type =~# '^l' ? 0 : -1
+  let listnr = a:listnr
   let cmd = s:UserCommandList(dir) + ['--no-pager', 'grep', '-n', '--no-color', '--full-name']
   if fugitive#GitVersion(2, 19)
     call add(cmd, '--column')
@@ -3518,6 +3518,12 @@ function! s:Grep(type, bang, arg) abort
   let prefix = s:PlatformSlash(s:HasOpt(args, '--cached') || empty(tree) ? 'fugitive://' . dir . '//0/' : tree . '/')
   let name_only = s:HasOpt(args, '-l', '--files-with-matches', '--name-only', '-L', '--files-without-match')
   let title = [listnr < 0 ? ':Ggrep' : ':Glgrep'] + args
+  if listnr > 0
+    exe listnr 'wincmd w'
+  else
+    call s:BlurStatus()
+  endif
+  redraw
   call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)})
   let tempfile = tempname()
   if v:version > 704 | exe 'silent doautocmd <nomodeline> QuickFixCmdPre ' (listnr < 0 ? 'Ggrep' : 'Glgrep') | endif
@@ -3528,7 +3534,6 @@ function! s:Grep(type, bang, arg) abort
   if v:version > 704 | exe 'silent doautocmd <nomodeline> QuickFixCmdPost ' (listnr < 0 ? 'Ggrep' : 'Glgrep') | endif
   redraw
   if !a:bang && !empty(list)
-    call s:BlurStatus()
     return (listnr < 0 ? 'c' : 'l').'first' . after
   else
     return after[1:-1]
@@ -3652,9 +3657,9 @@ function! s:Log(type, bang, line1, count, args) abort
   return s:QuickfixStream(listnr, title, cmd, !a:bang, s:function('s:LogParse'), state, path, dir) . after
 endfunction
 
-call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Ggrep :execute s:Grep('c',<bang>0,<q-args>)")
-call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Gcgrep :execute s:Grep('c',<bang>0,<q-args>)")
-call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep('l',<bang>0,<q-args>)")
+call s:command("-bang -nargs=? -range=-1 -complete=customlist,s:GrepComplete Ggrep :execute s:Grep(<count>,<bang>0,<q-args>)")
+call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Gcgrep :execute s:Grep(-1,<bang>0,<q-args>)")
+call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:Grep(0,<bang>0,<q-args>)")
 call s:command("-bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Glog :exe s:Log('c',<bang>0,<line1>,<count>,<q-args>)")
 call s:command("-bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Gclog :exe s:Log('c',<bang>0,<line1>,<count>,<q-args>)")
 call s:command("-bang -nargs=? -range=-1 -complete=customlist,s:LogComplete Gllog :exe s:Log('l',<bang>0,<line1>,<count>,<q-args>)")
