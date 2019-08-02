@@ -25,8 +25,8 @@ that are part of Git repositories).
 
                                                 *fugitive-:Git!*
 :Git! {args}            Like |:Git|, but capture the output into a temp file,
-                        and |:split| that that temp file.  Use :0Git to
-                        |:edit| the temp file instead.
+:Git --no-pager {args}  and |:split| that that temp file.  Use :0Git to
+:Git -P {args}          |:edit| the temp file instead.
 
                                                 *fugitive-:Gcd*
 :Gcd [directory]        |:cd| relative to the repository.
