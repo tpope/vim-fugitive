@@ -29,6 +29,9 @@ that are part of Git repositories).
 :Git -P {args}          |:edit| the temp file instead.  A temp file is always
                         used for diff and log commands.
 
+:Git --paginate {args}  Like |:Git|, but use |:terminal| if it is available.
+:Git -p {args}
+
                                                 *fugitive-:Gcd*
 :Gcd [directory]        |:cd| relative to the repository.
 
