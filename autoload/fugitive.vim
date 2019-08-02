@@ -2104,7 +2104,7 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
     let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, '', [])
     return (empty(cmd) ? 'exe' : cmd) . after
   endif
-  if a:bang || args[0] =~# '^-P$\|^--no-pager$'
+  if a:bang || args[0] =~# '^-P$\|^--no-pager$\|diff\%(tool\)\@!\|log'
     return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, args, dir) . after
   endif
   let git = s:UserCommandList(dir)
