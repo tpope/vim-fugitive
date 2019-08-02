@@ -2071,6 +2071,7 @@ function! s:SetupTemp(file) abort
     setlocal foldmarker=<<<<<<<,>>>>>>>
     setlocal bufhidden=delete nobuflisted
     setlocal buftype=nowrite
+    setlocal nomodeline
     if empty(mapcheck('q', 'n'))
       nnoremap <buffer> <silent> q    :<C-U>bdelete<CR>
     endif
