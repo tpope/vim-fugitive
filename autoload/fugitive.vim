@@ -581,10 +581,18 @@ function! s:add_methods(namespace, method_names) abort
   endfor
 endfunction
 
+function! s:Command(command, line1, line2, range, bang, mods, arg, args) abort
+  try
+    return s:{a:command}Command(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', a:arg, a:args)
+  catch /^fugitive:/
+    return 'echoerr ' . string(v:exception)
+  endtry
+endfunction
+
 let s:commands = []
 function! s:command(definition, ...) abort
   if a:0
-    call add(s:commands, a:definition . ' execute s:' . a:1 . "Command(<line1>, <line2>, +'<range>', <count>, <bang>0, '<mods>', <q-reg>, <q-args>, [<f-args>])")
+    call add(s:commands, a:definition . ' execute s:Command(' . string(a:1) . ", <line1>, <count>, +'<range>', <bang>0, '<mods>', <q-args>, [<f-args>])")
   else
     call add(s:commands, a:definition)
   endif
