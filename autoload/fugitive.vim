@@ -2236,7 +2236,7 @@ function! s:StageJump(offset, section, ...) abort
   let line = search('^' . a:section, 'nw')
   if line
     exe line
-    return s:NextFileHunk(a:offset ? a:offset : 1)
+    return s:NextItem(a:offset ? a:offset : 1)
   endif
   return ''
 endfunction
@@ -2622,23 +2622,36 @@ function! s:StageReveal(...) abort
     while getline(end) =~# '^[ \+-]'
       let end += 1
     endwhile
+  elseif getline(begin) =~# '^commit '
+    let end = begin
+    while end < line('$') && getline(end + 1) !~# '^commit '
+      let end += 1
+    endwhile
+  endif
+  if exists('end')
     while line('w$') < line('$') && end > line('w$') && line('.') > line('w0') + &scrolloff
       execute "normal! \<C-E>"
     endwhile
   endif
 endfunction
 
-function! s:NextFileHunk(count) abort
+let s:item_pattern = '^[A-Z?] .\|^diff --\|^\%(\l\{3,\} \)\=[0-9a-f]\{4,\} \|^@'
+
+function! s:NextItem(count) abort
   for i in range(a:count)
-    call search('^[A-Z?] .\|^diff --\|^\%(\l\{3,\} \)\=[0-9a-f]\{4,\} \|^@','W')
+    if !search(s:item_pattern, 'W') && getline('.') !~# s:item_pattern
+      call search('^commit ', 'W')
+    endif
   endfor
   call s:StageReveal()
   return '.'
 endfunction
 
-function! s:PreviousFileHunk(count) abort
+function! s:PreviousItem(count) abort
   for i in range(a:count)
-    call search('^[A-Z?] .\|^diff --\|^[0-9a-f]\{4,\} \|^@','Wbe')
+    if !search(s:item_pattern, 'Wbe') && getline('.') !~# s:item_pattern
+      call search('^commit ', 'Wbe')
+    endif
   endfor
   call s:StageReveal()
   return '.'
@@ -4935,15 +4948,15 @@ function! fugitive#MapJumps(...) abort
       nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
 
       if exists(':CtrlP') && get(g:, 'ctrl_p_map') =~? '^<c-p>$'
-        nnoremap <buffer> <silent> <C-P> :<C-U>execute line('.') == 1 ? 'CtrlP ' . fnameescape(<SID>Tree()) : <SID>PreviousFileHunk(v:count1)<CR>
+        nnoremap <buffer> <silent> <C-P> :<C-U>execute line('.') == 1 ? 'CtrlP ' . fnameescape(<SID>Tree()) : <SID>PreviousItem(v:count1)<CR>
       else
-        nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>PreviousFileHunk(v:count1)<CR>
+        nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>PreviousItem(v:count1)<CR>
       endif
-      nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>NextFileHunk(v:count1)<CR>
-      call s:MapEx('(', 'exe <SID>PreviousFileHunk(v:count1)')
-      call s:MapEx(')', 'exe <SID>NextFileHunk(v:count1)')
-      call s:MapEx('K', 'exe <SID>PreviousFileHunk(v:count1)')
-      call s:MapEx('J', 'exe <SID>NextFileHunk(v:count1)')
+      nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>NextItem(v:count1)<CR>
+      call s:MapEx('(', 'exe <SID>PreviousItem(v:count1)')
+      call s:MapEx(')', 'exe <SID>NextItem(v:count1)')
+      call s:MapEx('K', 'exe <SID>PreviousItem(v:count1)')
+      call s:MapEx('J', 'exe <SID>NextItem(v:count1)')
       call s:MapEx('[[', 'exe <SID>PreviousSection(v:count1)')
       call s:MapEx(']]', 'exe <SID>NextSection(v:count1)')
     endif

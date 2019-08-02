@@ -333,12 +333,10 @@ P                       Open the current file in the [count]th parent.
 C                       Open the commit containing the current file.
 
                                                 *fugitive_CTRL-P* *fugitive_(*
-(                       Jump to the previous file or hunk.
-<C-P>
+(                       Jump to the previous file, hunk, or revision.
 
                                                 *fugitive_CTRL-N* *fugitive_)*
-)                       Jump to the next file or hunk.
-<C-N>
+)                       Jump to the next file, hunk, or revision.
 
                                                 *fugitive_i*
 i                       Jump to the next file or hunk, expanding inline diffs
