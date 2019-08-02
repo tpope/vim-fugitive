@@ -2082,25 +2082,27 @@ augroup END
 
 " Section: :Git
 
-function! s:GitExec(line1, line2, range, count, bang, mods, reg, args, dir) abort
-  if empty(a:args)
+function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+  let dir = s:Dir()
+  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
+  if empty(args)
     let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, '', [])
-    return empty(cmd) ? 'exe' : cmd
+    return (empty(cmd) ? 'exe' : cmd) . after
   endif
-  if a:bang || a:args[0] =~# '^-P$\|^--no-pager$'
-    return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, a:args, a:dir)
+  if a:bang || args[0] =~# '^-P$\|^--no-pager$'
+    return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, args, dir) . after
   endif
-  let git = s:UserCommandList(a:dir)
-  if s:HasOpt(a:args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
-        \ s:HasOpt(a:args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
-        \ index(['fetch', 'pull', 'push', '--paginate', '-p'], a:args[0]) >= 0
+  let git = s:UserCommandList(dir)
+  if s:HasOpt(args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
+        \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
+        \ index(['fetch', 'pull', 'push', '--paginate', '-p'], args[0]) >= 0
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
     if has('nvim')
       if &autowrite || &autowriteall | silent! wall | endif
-      return mods . (a:count ? 'split' : 'edit') . ' term://' . s:fnameescape(s:shellesc(git + a:args)) . '|startinsert'
+      return mods . (a:count ? 'split' : 'edit') . ' term://' . s:fnameescape(s:shellesc(git + args)) . '|startinsert' . after
     elseif has('terminal')
       if &autowrite || &autowriteall | silent! wall | endif
-      return 'exe ' . string(mods . 'terminal ' . (a:count ? '' : '++curwin ') . join(map(git + a:args, 's:fnameescape(v:val)')))
+      return 'exe ' . string(mods . 'terminal ' . (a:count ? '' : '++curwin ') . join(map(git + args, 's:fnameescape(v:val)'))) . after
     endif
   endif
   if has('gui_running') && !has('win32')
@@ -2110,19 +2112,7 @@ function! s:GitExec(line1, line2, range, count, bang, mods, reg, args, dir) abor
   if has('nvim') && executable('env')
     let pre .= 'env GIT_TERMINAL_PROMPT=0 '
   endif
-  return 'exe ' . string('!' . escape(pre . s:shellesc(git + a:args), '!#%'))
-endfunction
-
-function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
-  let dir = s:Dir()
-  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
-  return s:GitExec(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, args, dir) . after
-endfunction
-
-function! s:Command(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
-  let dir = a:0 ? s:Dir(a:1) : s:Dir()
-  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
-  return s:GitExec(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, args, dir) . after
+  return 'exe ' . string('!' . escape(pre . s:shellesc(git + args), '!#%')) . after
 endfunction
 
 let s:exec_paths = {}
@@ -2171,7 +2161,7 @@ function! fugitive#Complete(...) abort
 endfunction
 
 call s:command("-bang -nargs=? -range=-1 -complete=customlist,fugitive#CompleteGit Git", "Git")
-call s:command("-bang -nargs=? -range=-1 -complete=customlist,fugitive#CompleteGit G", "")
+call s:command("-bang -nargs=? -range=-1 -complete=customlist,fugitive#CompleteGit G", "Git")
 
 " Section: :Gcd, :Glcd
 
