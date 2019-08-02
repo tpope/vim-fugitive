@@ -25,7 +25,7 @@ that are part of Git repositories).
 
                                                 *fugitive-:Git!*
 :Git! {args}            Like |:Git|, but capture the output into a temp file,
-:Git --no-pager {args}  and |:split| that that temp file.  Use :0Git to
+:Git --no-pager {args}  and |:split| that temp file.  Use :0Git to
 :Git -P {args}          |:edit| the temp file instead.  A temp file is always
                         used for diff and log commands.
 
@@ -189,8 +189,8 @@ that are part of Git repositories).
 
                                                 *fugitive-:Gblame*
 :Gblame [flags]         Run git-blame on the file and open the results in a
-                        scroll bound vertical split.  You can give any of
-                        -ltsewMC as flags and they will be passed along to
+                        scroll-bound vertical split.  You can give any of
+                        -ltsewMC as flags, and they will be passed along to
                         git-blame.  The following maps, which work on the
                         cursor line commit where sensible, are provided:
 
