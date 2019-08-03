@@ -343,28 +343,34 @@ i                       Jump to the next file or hunk, expanding inline diffs
                         automatically.
 
                                                 *fugitive_[[*
-[[                      Jump to the previous section.
+[[                      Jump [count] sections backward.
 
                                                 *fugitive_]]*
-]]                      Jump to the next section.
+]]                      Jump [count] sections forward.
+
+                                                *fugitive_[]*
+[]                      Jump [count] section ends backward.
+
+                                                *fugitive_][*
+][                      Jump [count] section ends forward.
 
                                                 *fugitive_gu*
-gu                      Jump to "Unstaged" section.
+gu                      Jump to file [count] in the "Unstaged" section.
 
                                                 *fugitive_gU*
-gU                      Jump to "Untracked" section.
+gU                      Jump to file [count] in the "Untracked" section.
 
                                                 *fugitive_gs*
-gs                      Jump to "Staged" section.
+gs                      Jump to file [count] in the "Staged" section.
 
                                                 *fugitive_gp*
-gp                      Jump to "Unpushed" section.
+gp                      Jump to file [count] in the "Unpushed" section.
 
                                                 *fugitive_gP*
-gP                      Jump to "Unpulled" section.
+gP                      Jump to file [count] in the "Unpulled" section.
 
                                                 *fugitive_gr*
-gr                      Jump to "Rebasing" section.
+gr                      Jump to file [count] in the "Rebasing" section.
 
                                                 *fugitive_gi*
 gi                      Open .git/info/exclude in a split.  Use a count to

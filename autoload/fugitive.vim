@@ -2236,7 +2236,18 @@ function! s:StageJump(offset, section, ...) abort
   let line = search('^' . a:section, 'nw')
   if line
     exe line
-    return s:NextItem(a:offset ? a:offset : 1)
+    if a:offset
+      for i in range(a:offset)
+        call search(s:file_pattern . '\|^$')
+        if empty(line('.'))
+          return ''
+        endif
+      endfor
+      call s:StageReveal()
+    else
+      call s:StageReveal()
+      +
+    endif
   endif
   return ''
 endfunction
@@ -2627,15 +2638,21 @@ function! s:StageReveal(...) abort
     while end < line('$') && getline(end + 1) !~# '^commit '
       let end += 1
     endwhile
+  elseif getline(begin) =~# s:section_pattern
+    let end = begin
+    while len(getline(end + 1))
+      let end += 1
+    endwhile
   endif
   if exists('end')
-    while line('w$') < line('$') && end > line('w$') && line('.') > line('w0') + &scrolloff
+    while line('.') > line('w0') + &scrolloff && end > line('w$')
       execute "normal! \<C-E>"
     endwhile
   endif
 endfunction
 
-let s:item_pattern = '^[A-Z?] .\|^diff --\|^\%(\l\{3,\} \)\=[0-9a-f]\{4,\} \|^@'
+let s:file_pattern = '^[A-Z?] .\|^diff --'
+let s:item_pattern = s:file_pattern . '\|^\%(\l\{3,\} \)\=[0-9a-f]\{4,\} \|^@@'
 
 function! s:NextItem(count) abort
   for i in range(a:count)
@@ -2657,27 +2674,72 @@ function! s:PreviousItem(count) abort
   return '.'
 endfunction
 
+let s:section_pattern = '^[A-Z][a-z][^:]*$'
+let s:section_commit_pattern = s:section_pattern . '\|^commit '
+
 function! s:NextSection(count) abort
+  let orig = line('.')
+  if getline('.') !~# '^commit '
+    -
+  endif
   for i in range(a:count)
-    if !search('^[A-Z][a-z][^:]*$','W')
-      return '.'
+    if !search(s:section_commit_pattern, 'W')
+      break
     endif
-    +
   endfor
-  call s:StageReveal()
-  return '.'
+  if getline('.') =~# s:section_commit_pattern
+    call s:StageReveal()
+    return getline('.') =~# s:section_pattern ? '+' : ':'
+  else
+    return orig
+  endif
 endfunction
 
 function! s:PreviousSection(count) abort
-  -
+  let orig = line('.')
+  if getline('.') !~# '^commit '
+    -
+  endif
   for i in range(a:count)
-    if !search('^[A-Z][a-z][^:]*$\|\%^','bW') || line('.') == 1
-      return '.'
+    if !search(s:section_commit_pattern . '\|\%^', 'bW')
+      break
     endif
-    +
   endfor
-  call s:StageReveal()
-  return '.'
+  if getline('.') =~# s:section_commit_pattern || line('.') == 1
+    call s:StageReveal()
+    return getline('.') =~# s:section_pattern ? '+' : ':'
+  else
+    return orig
+  endif
+endfunction
+
+function! s:NextSectionEnd(count) abort
+  +
+  if empty(getline('.'))
+    +
+  endif
+  for i in range(a:count)
+    if !search(s:section_commit_pattern, 'W')
+      return '$'
+    endif
+  endfor
+  return search('^.', 'Wb')
+endfunction
+
+function! s:PreviousSectionEnd(count) abort
+  let old = line('.')
+  for i in range(a:count)
+    if search(s:section_commit_pattern, 'Wb') <= 1
+      exe old
+      if i
+        break
+      else
+        return ''
+      endif
+    endif
+    let old = line('.')
+  endfor
+  return search('^.', 'Wb')
 endfunction
 
 function! s:StageInline(mode, ...) abort
@@ -2756,7 +2818,7 @@ endfunction
 function! s:NextExpandedHunk(count) abort
   for i in range(a:count)
     call s:StageInline('show', line('.'), 1)
-    call search('^[A-Z?] .\|^diff --\|^@','W')
+    call search(s:file_pattern . '\|^@','W')
   endfor
   return '.'
 endfunction
@@ -4959,6 +5021,8 @@ function! fugitive#MapJumps(...) abort
       call s:MapEx('J', 'exe <SID>NextItem(v:count1)')
       call s:MapEx('[[', 'exe <SID>PreviousSection(v:count1)')
       call s:MapEx(']]', 'exe <SID>NextSection(v:count1)')
+      call s:MapEx('[]', 'exe <SID>PreviousSectionEnd(v:count1)')
+      call s:MapEx('][', 'exe <SID>NextSectionEnd(v:count1)')
     endif
     exe "nnoremap <buffer> <silent>" s:nowait  "-     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40,\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>"
     nnoremap <buffer> <silent> P     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
