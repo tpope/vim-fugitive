@@ -4881,6 +4881,8 @@ endfunction
 function! s:SquashArgument(...) abort
   if &filetype == 'fugitive'
     let commit = matchstr(getline('.'), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze ')
+  elseif has_key(s:temp_files, s:cpath(expand('%:p')))
+    let commit = matchstr(getline('.'), '\<\x\{4,\}\>')
   else
     let commit = s:Owner(@%)
   endif
