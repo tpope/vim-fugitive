@@ -2654,6 +2654,63 @@ endfunction
 let s:file_pattern = '^[A-Z?] .\|^diff --'
 let s:item_pattern = s:file_pattern . '\|^\%(\l\{3,\} \)\=[0-9a-f]\{4,\} \|^@@'
 
+function! s:NextHunk(count) abort
+  if &filetype ==# 'fugitive' && getline('.') =~# s:file_pattern
+    exe s:StageInline('show')
+  endif
+  for i in range(a:count)
+    if &filetype ==# 'fugitive'
+      call search(s:file_pattern . '\|^@', 'W')
+      if getline('.') =~# s:file_pattern
+        exe s:StageInline('show')
+        if getline(line('.') + 1) =~# '^@'
+          +
+        endif
+      endif
+    else
+      call search('^@@', 'W')
+    endif
+  endfor
+  call s:StageReveal()
+  return '.'
+endfunction
+
+function! s:PreviousHunk(count) abort
+  for i in range(a:count)
+    if &filetype ==# 'fugitive'
+      let lnum = search(s:file_pattern . '\|^@','Wbn')
+      call s:StageInline('show', lnum)
+      call search('^? .\|^@','Wb')
+    else
+      call search('^@@', 'Wb')
+    endif
+  endfor
+  call s:StageReveal()
+  return '.'
+endfunction
+
+function! s:NextFile(count) abort
+  for i in range(a:count)
+    exe s:StageInline('hide')
+    if !search(s:file_pattern, 'W')
+      break
+    endif
+  endfor
+  exe s:StageInline('hide')
+  return '.'
+endfunction
+
+function! s:PreviousFile(count) abort
+  exe s:StageInline('hide')
+  for i in range(a:count)
+    if !search(s:file_pattern, 'Wb')
+      break
+    endif
+    exe s:StageInline('hide')
+  endfor
+  return '.'
+endfunction
+
 function! s:NextItem(count) abort
   for i in range(a:count)
     if !search(s:item_pattern, 'W') && getline('.') !~# s:item_pattern
@@ -2743,6 +2800,9 @@ function! s:PreviousSectionEnd(count) abort
 endfunction
 
 function! s:StageInline(mode, ...) abort
+  if &filetype !=# 'fugitive'
+    return ''
+  endif
   let lnum1 = a:0 ? a:1 : line('.')
   let lnum = lnum1 + 1
   if a:0 > 1 && a:2 == 0
@@ -5017,8 +5077,14 @@ function! fugitive#MapJumps(...) abort
       nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>NextItem(v:count1)<CR>
       call s:MapEx('(', 'exe <SID>PreviousItem(v:count1)')
       call s:MapEx(')', 'exe <SID>NextItem(v:count1)')
-      call s:MapEx('K', 'exe <SID>PreviousItem(v:count1)')
-      call s:MapEx('J', 'exe <SID>NextItem(v:count1)')
+      call s:MapEx('K', 'exe <SID>PreviousHunk(v:count1)')
+      call s:MapEx('J', 'exe <SID>NextHunk(v:count1)')
+      call s:MapEx('[c', 'exe <SID>PreviousHunk(v:count1)')
+      call s:MapEx(']c', 'exe <SID>NextHunk(v:count1)')
+      call s:MapEx('[/', 'exe <SID>PreviousFile(v:count1)')
+      call s:MapEx(']/', 'exe <SID>NextFile(v:count1)')
+      call s:MapEx('[m', 'exe <SID>PreviousFile(v:count1)')
+      call s:MapEx(']m', 'exe <SID>NextFile(v:count1)')
       call s:MapEx('[[', 'exe <SID>PreviousSection(v:count1)')
       call s:MapEx(']]', 'exe <SID>NextSection(v:count1)')
       call s:MapEx('[]', 'exe <SID>PreviousSectionEnd(v:count1)')

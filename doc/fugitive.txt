@@ -338,6 +338,26 @@ C                       Open the commit containing the current file.
                                                 *fugitive_CTRL-N* *fugitive_)*
 )                       Jump to the next file, hunk, or revision.
 
+                                                *fugitive_[c*
+[c                      Jump to previous hunk, expanding inline diffs
+                        automatically.  (This shadows the Vim built-in |[c|
+                        that provides a similar operation in |diff| mode.)
+
+                                                *fugitive_]c*
+]c                      Jump to next hunk, expanding inline diffs
+                        automatically.  (This shadows the Vim built-in |]c|
+                        that provides a similar operation in |diff| mode.)
+
+                                                *fugitive_[/* *fugitive_[m*
+[/                      Jump to previous file, collapsing inline diffs
+[m                      automatically.  (Mnemonic: "/" appears in filenames,
+                        "m" appears in "filenames".)
+
+                                                *fugitive_]/* *fugitive_]m*
+]/                      Jump to next file, collapsing inline diffs
+]m                      automatically.  (Mnemonic: "/" appears in filenames,
+                        "m" appears in "filenames".)
+
                                                 *fugitive_i*
 i                       Jump to the next file or hunk, expanding inline diffs
                         automatically.
