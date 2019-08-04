@@ -3,6 +3,10 @@
 I'm not going to lie to you; fugitive.vim may very well be the best
 Git wrapper of all time.  Check out these features:
 
+Bring up an enhanced version of `git status` with `:G` (also known as
+`:Gstatus`).  Press `g?` to bring up a list of mappings for numerous
+operations including diffing, staging, committing, rebasing, and stashing.
+
 View any blob, tree, commit, or tag in the repository with `:Gedit` (and
 `:Gsplit`, `:Gvsplit`, `:Gtabedit`, ...).  Edit a file in the index and
 write to it to stage the changes.  Use `:Gdiffsplit` to bring up the staged
@@ -13,10 +17,6 @@ changes.
 Commit, merge, and rebase with `:Gcommit`, `:Gmerge`, and `:Grebase`, using
 the current Vim instance to edit commit messages and the rebase todo list.
 Use `:Gpush`, `:Gfetch`, and `:Gpull` to send and retrieve upstream changes.
-
-Bring up an enhanced version of `git status` with `:Gstatus`.  Press `-` to
-`add`/`reset` a file's changes, or `=` to expand an inline diff and operate on
-individual hunks.
 
 `:Gblame` brings up an interactive vertical split with `git blame`
 output.  Press enter on a line to edit the commit where the line

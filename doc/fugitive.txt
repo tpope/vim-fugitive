@@ -245,7 +245,7 @@ operate on the file or hunk under the cursor are generally available in visual
 mode to operate on multiple files or partial hunks.
 
                                                 *fugitive-staging-mappings*
-Staging and resetting mappings ~
+Staging/unstaging mappings ~
 
                                                 *fugitive_s*
 s                       Stage (add) the file or hunk under the cursor.
