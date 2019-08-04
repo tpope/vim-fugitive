@@ -10,10 +10,13 @@ version of the file side by side with the working tree version and use
 Vim's diff handling capabilities to stage a subset of the file's
 changes.
 
+Commit, merge, and rebase with `:Gcommit`, `:Gmerge`, and `:Grebase`, using
+the current Vim instance to edit commit messages and the rebase todo list.
+Use `:Gpush`, `:Gfetch`, and `:Gpull` to send and retrieve upstream changes.
+
 Bring up an enhanced version of `git status` with `:Gstatus`.  Press `-` to
 `add`/`reset` a file's changes, or `=` to expand an inline diff and operate on
-individual hunks.  Use `:Gcommit %` to commit the current file, editing the
-commit message inside the currently running Vim.
+individual hunks.
 
 `:Gblame` brings up an interactive vertical split with `git blame`
 output.  Press enter on a line to edit the commit where the line
