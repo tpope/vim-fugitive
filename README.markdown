@@ -82,6 +82,21 @@ Fugitive cares about the current file, not the current working directory.
 Edit a file from the repository.  To avoid the blank window problem, favor
 commands like `:split` and `:tabedit` over commands like `:new` and `:tabnew`.
 
+> Why can't I enter my password when I `:Gpush`?
+
+It is highly recommended to use SSH keys or [credentials caching][] to avoid
+entering your password on every upstream interaction.  If this isn't an
+option, the official solution is to use the `core.askPass` Git option to
+request the password via a GUI.  Fugitive will configure this for you
+automatically if you have `ssh-askpass` or `git-gui` installed; otherwise it's
+your responsibility to set this up.
+
+As an absolute last resort, you can invoke `:Git --paginate push`.  Fugitive
+recognizes the pagination request and fires up a `:terminal`, which allows for
+interactive password entry.
+
+[credentials caching]: https://help.github.com/en/articles/caching-your-github-password-in-git
+
 ## Self-Promotion
 
 Like fugitive.vim? Follow the repository on
