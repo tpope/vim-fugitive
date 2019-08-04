@@ -426,9 +426,18 @@ cS                      Create a `squash!` commit for the commit under the
 cA                      Create a `squash!` commit for the commit under the
                         cursor and edit the message.
 
-cr                      Revert the commit under the cursor.
-
 c<Space>                Populate command line with ":Gcommit ".
+
+                                                *fugitive_cr*
+crc                     Revert the commit under the cursor.
+
+crn                     Revert the commit under the cursor in the index and
+                        work tree, but do not actually commit the changes.
+
+cr<Space>               Populate command line with ":Grevert ".
+
+                                                *fugitive_cm*
+cm<Space>               Populate command line with ":Gmerge ".
 
 c?                      Show this help.
 

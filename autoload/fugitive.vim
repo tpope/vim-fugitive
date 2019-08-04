@@ -5115,9 +5115,18 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer>          cs    :<C-U>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cS    :<C-U><Bar>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cA    :<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer> <silent> cr    :<C-U>Grevert <C-R>=<SID>SquashArgument()<CR><CR>
-    nnoremap <buffer> <silent> cR    :<C-U>Grevert <C-R>=<SID>SquashArgument()<CR><CR>
     nnoremap <buffer> <silent> c?    :<C-U>help fugitive_c<CR>
+
+    nnoremap <buffer>      cr<Space> :Grevert<Space>
+    nnoremap <buffer>         cr<CR> :Grevert<CR>
+    nnoremap <buffer> <silent> crc   :<C-U>Grevert <C-R>=<SID>SquashArgument()<CR><CR>
+    nnoremap <buffer> <silent> crn   :<C-U>Grevert --no-commit <C-R>=<SID>SquashArgument()<CR><CR>
+    nnoremap <buffer> <silent> cR    :<C-U>Grevert <C-R>=<SID>SquashArgument()<CR><CR>
+    nnoremap <buffer> <silent> cr?   :help fugitive_cr<CR>
+
+    nnoremap <buffer>      cm<Space> :Gmerge<Space>
+    nnoremap <buffer>         cm<CR> :Gmerge<CR>
+    nnoremap <buffer> <silent> cm?   :help fugitive_cm<CR>
 
     nnoremap <buffer>      cz<Space> :G stash<Space>
     nnoremap <buffer>         cz<CR> :G stash<CR>
