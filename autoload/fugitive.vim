@@ -3047,7 +3047,7 @@ function! s:DoToggleHeadHeader(value) abort
   call search('\C^index$', 'wc')
 endfunction
 
-function! s:DoToggleUnpushedHeading(heading) abort
+function! s:DoStageUnpushedHeading(heading) abort
   let remote = matchstr(a:heading, 'to \zs[^/]\+\ze/')
   if empty(remote)
     let remote = '.'
@@ -3056,7 +3056,11 @@ function! s:DoToggleUnpushedHeading(heading) abort
   call feedkeys(':Gpush ' . remote . ' ' . 'HEAD:' . branch)
 endfunction
 
-function! s:DoToggleUnpushed(record) abort
+function! s:DoToggleUnpushedHeading(heading) abort
+  return s:DoStageUnpushedHeading(a:heading)
+endfunction
+
+function! s:DoStageUnpushed(record) abort
   let remote = matchstr(a:record.heading, 'to \zs[^/]\+\ze/')
   if empty(remote)
     let remote = '.'
@@ -3065,12 +3069,28 @@ function! s:DoToggleUnpushed(record) abort
   call feedkeys(':Gpush ' . remote . ' ' . a:record.commit . ':' . branch)
 endfunction
 
-function! s:DoToggleUnpulledHeading(heading) abort
+function! s:DoToggleUnpushed(record) abort
+  return s:DoStageUnpushed(a:record)
+endfunction
+
+function! s:DoUnstageUnpulledHeading(heading) abort
   call feedkeys(':Grebase')
 endfunction
 
+function! s:DoToggleUnpulledHeading(heading) abort
+  call s:DoUnstageUnpulledHeading(a:heading)
+endfunction
+
+function! s:DoUnstageUnpulled(record) abort
+  call feedkeys(':Grebase ' . a:record.commit . '^')
+endfunction
+
 function! s:DoToggleUnpulled(record) abort
-  call feedkeys(':Grebase ' . a:record.commit)
+  call s:DoUnstageUnpulled(a:record)
+endfunction
+
+function! s:DoUnstageUnpushed(record) abort
+  call s:DoUnstageUnpulled(a:record)
 endfunction
 
 function! s:DoToggleStagedHeading(...) abort
