@@ -21,7 +21,9 @@ that are part of Git repositories).
 
                                                 *fugitive-:Git*
 :Git {args}             Run an arbitrary git command. Similar to :!git [args]
-:G {args}               but chdir to the repository tree first.
+:G {args}               but chdir to the repository tree first.  For some
+                        subcommands, a Fugitive command is called instead.
+                        Invoking :Git push will call :Gpush for example.
 
                                                 *fugitive-:Git!*
 :Git! {args}            Like |:Git|, but capture the output into a temp file,

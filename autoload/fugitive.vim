@@ -583,6 +583,12 @@ endfunction
 
 function! s:Command(command, line1, line2, range, bang, mods, arg, args) abort
   try
+    if exists('*s:' . a:command . 'Subcommand')
+      let dir = s:Dir()
+      exe s:DirCheck(dir)
+      let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
+      return 'exe ' . string(s:{a:command}Subcommand(a:line1, a:line2, a:range, a:bang, s:Mods(a:mods), args)) . after
+    endif
     return s:{a:command}Command(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', a:arg, a:args)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
@@ -2103,13 +2109,22 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
     let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, '', [])
     return (empty(cmd) ? 'exe' : cmd) . after
   endif
+  let name = substitute(args[0], '\%(^\|-\)\(\l\)', '\u\1', 'g')
+  if exists('*s:' . name . 'Subcommand')
+    try
+      exe s:DirCheck(dir)
+      return 'exe ' . string(s:{name}Subcommand(a:line1, a:count, a:range, a:bang, a:mods, args[1:-1])) . after
+    catch /^fugitive:/
+      return 'echoerr ' . string(v:exception)
+    endtry
+  endif
   if a:bang || args[0] =~# '^-P$\|^--no-pager$\|diff\%(tool\)\@!\|log'
     return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, args, dir) . after
   endif
   let git = s:UserCommandList(dir)
   if s:HasOpt(args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
         \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
-        \ index(['fetch', 'pull', 'push', '--paginate', '-p'], args[0]) >= 0
+        \ index(['--paginate', '-p'], args[0]) >= 0
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
     if has('nvim')
       if &autowrite || &autowriteall | silent! wall | endif
@@ -3172,7 +3187,7 @@ endfunction
 
 " Section: :Gcommit, :Grevert
 
-function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
+function! s:CommitSubcommand(line1, line2, range, bang, mods, args, ...) abort
   let mods = substitute(s:Mods(a:mods), '\C\<tab\>', '-tab', 'g')
   let dir = a:0 ? a:1 : s:Dir()
   let tree = s:Tree(dir)
@@ -3189,11 +3204,7 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
       else
         let command = 'env GIT_EDITOR=false '
       endif
-      if type(a:arg) == type([])
-        let [argv, after] = [a:arg, '']
-      else
-        let [argv, after] = s:SplitExpandChain(a:arg, tree)
-      endif
+      let argv = a:args
       let i = 0
       while get(argv, i, '--') !=# '--'
         if argv[i] =~# '^-[apzsneiovq].'
@@ -3229,7 +3240,7 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         echo join(readfile(outfile), "\n")
       endif
       call fugitive#ReloadStatus(dir, 1)
-      return after[1:-1]
+      return ''
     else
       let error = get(errors,-2,get(errors,-1,'!'))
       if error =~# 'false''\=\.$'
@@ -3262,14 +3273,14 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
         endif
         let b:fugitive_commit_arguments = argv
         setlocal bufhidden=wipe filetype=gitcommit
-        return '1' . after
+        return '1'
       elseif empty(errors)
         let out = readfile(outfile)
         echo get(out, -1, '') =~# 'stash\|\d' ? get(out, -2, '') : get(out, -1, '')
-        return after[1:-1]
+        return ''
       else
         echo join(errors, "\n")
-        return after[1:-1]
+        return ''
       endif
     endif
   catch /^fugitive:/
@@ -3279,17 +3290,16 @@ function! s:CommitCommand(line1, line2, range, count, bang, mods, reg, arg, args
   endtry
 endfunction
 
-function! s:RevertCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+function! s:RevertSubcommand(line1, line2, range, bang, mods, args) abort
   let dir = s:Dir()
-  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
-  let no_commit = s:HasOpt(args, '-n', '--no-commit', '--no-edit')
-  let cmd = s:UserCommand(dir) . ' revert ' . (no_commit ? '' : '-n ') . s:shellesc(args)
+  let no_commit = s:HasOpt(a:args, '-n', '--no-commit', '--no-edit')
+  let cmd = s:UserCommand(dir) . ' revert ' . (no_commit ? '' : '-n ') . s:shellesc(a:args)
   let [out, exec_error] = s:SystemError(cmd)
   call fugitive#ReloadStatus(-1, 1)
   if no_commit || exec_error
-    return 'echo ' . string(substitute(out, "\n$", '', '')) . after
+    return 'echo ' . string(substitute(out, "\n$", '', ''))
   endif
-  return s:CommitCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, after, [], dir)
+  return s:CommitSubcommand(a:line1, a:line2, a:range, a:bang, a:mods, [], dir)
 endfunction
 
 function! s:CommitComplete(A, L, P) abort
@@ -3322,7 +3332,7 @@ function! s:FinishCommit() abort
       call setbufvar(buf, 'fugitive_commit_rebase', 0)
       let s:rebase_continue = s:Dir(buf)
     endif
-    return s:CommitCommand(-1, -1, 0, -1, 0, '', '', args, [], s:Dir(buf))
+    return s:CommitSubcommand(-1, -1, 0, 0, '', args, s:Dir(buf))
   endif
   return ''
 endfunction
@@ -3568,19 +3578,16 @@ function! s:RebaseClean(file) abort
   return ''
 endfunction
 
-function! s:MergeCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
-  let [args, after] = s:SplitExpandChain(a:arg, s:Tree())
-  return s:MergeRebase('merge', a:bang, a:mods, args) . after
+function! s:MergeSubcommand(line1, line2, range, bang, mods, args) abort
+  return s:MergeRebase('merge', a:bang, a:mods, a:args)
 endfunction
 
-function! s:RebaseCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
-  let [args, after] = s:SplitExpandChain(a:arg, s:Tree())
-  return s:MergeRebase('rebase', a:bang, a:mods, args) . after
+function! s:RebaseSubcommand(line1, line2, range, bang, mods, args) abort
+  return s:MergeRebase('rebase', a:bang, a:mods, a:args)
 endfunction
 
-function! s:PullCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
-  let [args, after] = s:SplitExpandChain(a:arg, s:Tree())
-  return s:MergeRebase('pull --progress', a:bang, a:mods, args) . after
+function! s:PullSubcommand(line1, line2, range, bang, mods, args) abort
+  return s:MergeRebase('pull --progress', a:bang, a:mods, a:args)
 endfunction
 
 augroup fugitive_merge
@@ -4138,17 +4145,16 @@ function! s:AskPassArgs(dir) abort
   return []
 endfunction
 
-function! s:Dispatch(bang, cmd, arg) abort
+function! s:Dispatch(bang, cmd, args) abort
   let dir = s:Dir()
-  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
   let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
   try
     let b:current_compiler = 'git'
     let &l:errorformat = s:common_efm
-    let &l:makeprg = s:shellesc(s:UserCommandList(dir) + s:AskPassArgs(dir) + [a:cmd] + args)
+    let &l:makeprg = s:shellesc(s:UserCommandList(dir) + s:AskPassArgs(dir) + [a:cmd] + a:args)
     if exists(':Make') == 2
       Make
-      return after[1:-1]
+      return ''
     else
       if !has('patch-8.1.0334') && has('terminal') && &autowrite
         let autowrite_was_set = 1
@@ -4157,7 +4163,7 @@ function! s:Dispatch(bang, cmd, arg) abort
       endif
       silent noautocmd make!
       redraw!
-      return 'call fugitive#Cwindow()|call fugitive#ReloadStatus()' . after
+      return 'call fugitive#Cwindow()|call fugitive#ReloadStatus()'
     endif
   finally
     let [&l:mp, &l:efm, b:current_compiler] = [mp, efm, cc]
@@ -4168,12 +4174,12 @@ function! s:Dispatch(bang, cmd, arg) abort
   endtry
 endfunction
 
-function! s:PushCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
-  return s:Dispatch(a:bang ? '!' : '', 'push', a:arg)
+function! s:PushSubcommand(line1, line2, range, bang, mods, args) abort
+  return s:Dispatch(a:bang ? '!' : '', 'push', a:args)
 endfunction
 
-function! s:FetchCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
-  return s:Dispatch(a:bang ? '!' : '', 'fetch', a:arg)
+function! s:FetchSubcommand(line1, line2, range, bang, mods, args) abort
+  return s:Dispatch(a:bang ? '!' : '', 'fetch', a:args)
 endfunction
 
 call s:command("-nargs=? -bang -complete=customlist,s:PushComplete Gpush", "Push")
