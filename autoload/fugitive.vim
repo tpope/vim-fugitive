@@ -3312,7 +3312,7 @@ endfunction
 
 function! s:RevertSubcommand(line1, line2, range, bang, mods, args) abort
   let dir = s:Dir()
-  let no_commit = s:HasOpt(a:args, '-n', '--no-commit', '--no-edit')
+  let no_commit = s:HasOpt(a:args, '-n', '--no-commit', '--no-edit', '--abort', '--continue', '--quit')
   let cmd = s:UserCommand(dir) . ' revert ' . (no_commit ? '' : '-n ') . s:shellesc(a:args)
   let [out, exec_error] = s:SystemError(cmd)
   call fugitive#ReloadStatus(-1, 1)
