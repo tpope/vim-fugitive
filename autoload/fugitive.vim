@@ -1821,8 +1821,8 @@ function! fugitive#BufReadStatus() abort
     exe "nnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',0)<CR>"
     exe "xnoremap <buffer> <silent>" nowait "u :<C-U>execute <SID>Do('Unstage',1)<CR>"
     nnoremap <buffer> <silent> U :exe <SID>EchoExec('reset', '-q')<CR>
-    call s:MapEx('gu', "exe <SID>StageJump(v:count, 'Unstaged')")
-    call s:MapEx('gU', "exe <SID>StageJump(v:count, 'Untracked')")
+    call s:MapEx('gu', "exe <SID>StageJump(v:count, 'Untracked', 'Unstaged')")
+    call s:MapEx('gU', "exe <SID>StageJump(v:count, 'Unstaged', 'Untracked')")
     call s:MapEx('gs', "exe <SID>StageJump(v:count, 'Staged')")
     call s:MapEx('gp', "exe <SID>StageJump(v:count, 'Unpushed')")
     call s:MapEx('gP', "exe <SID>StageJump(v:count, 'Unpulled')")
@@ -2248,13 +2248,19 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
 endfunction
 
 function! s:StageJump(offset, section, ...) abort
-  let line = search('^' . a:section, 'nw')
+  let line = search('^\%(' . a:section . '\)', 'nw')
+  if !line && a:0
+    let line = search('^\%(' . a:1 . '\)', 'nw')
+  endif
   if line
     exe line
     if a:offset
       for i in range(a:offset)
         call search(s:file_pattern . '\|^$')
-        if empty(line('.'))
+        if empty(getline('.')) && a:0 && getline(line('.') + 1) =~# '^\%(' . a:1 . '\)'
+          call search(s:file_pattern . '\|^$')
+        endif
+        if empty(getline('.'))
           return ''
         endif
       endfor

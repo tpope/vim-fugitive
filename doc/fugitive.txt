@@ -377,10 +377,11 @@ i                       Jump to the next file or hunk, expanding inline diffs
 ][                      Jump [count] section ends forward.
 
                                                 *fugitive_gu*
-gu                      Jump to file [count] in the "Unstaged" section.
+gu                      Jump to file [count] in the "Untracked" or "Unstaged"
+                        section.
 
                                                 *fugitive_gU*
-gU                      Jump to file [count] in the "Untracked" section.
+gU                      Jump to file [count] in the "Unstaged" section.
 
                                                 *fugitive_gs*
 gs                      Jump to file [count] in the "Staged" section.
