@@ -2207,8 +2207,8 @@ function! s:DirArg(path) abort
   endif
 endfunction
 
-call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :exe 'cd<bang>'  s:fnameescape(s:DirArg(<q-args>))")
-call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe 'lcd<bang>' s:fnameescape(s:DirArg(<q-args>))")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Gcd  :exe s:DirCheck()|exe 'cd<bang>'  s:fnameescape(s:DirArg(<q-args>))")
+call s:command("-bar -bang -nargs=? -complete=customlist,s:DirComplete Glcd :exe s:DirCheck()|exe 'lcd<bang>' s:fnameescape(s:DirArg(<q-args>))")
 
 " Section: :Gstatus
 
@@ -3676,6 +3676,7 @@ endfunction
 
 function! s:Grep(listnr, bang, arg) abort
   let dir = s:Dir()
+  exe s:DirCheck(dir)
   let listnr = a:listnr
   let cmd = s:UserCommandList(dir) + ['--no-pager', 'grep', '-n', '--no-color', '--full-name']
   if fugitive#GitVersion(2, 19)
@@ -3765,6 +3766,7 @@ endfunction
 
 function! s:Log(type, bang, line1, count, args) abort
   let dir = s:Dir()
+  exe s:DirCheck(dir)
   let listnr = a:type =~# '^l' ? 0 : -1
   let [args, after] = s:SplitExpandChain(a:args, s:Tree(dir))
   let split = index(args, '--')
@@ -3905,6 +3907,7 @@ function! s:Open(cmd, bang, mods, arg, args) abort
   if a:bang
     return s:OpenExec(a:cmd, a:mods, s:SplitExpand(a:arg, s:Tree()))
   endif
+  exe s:DirCheck()
 
   let mods = s:Mods(a:mods)
   try
@@ -3942,6 +3945,7 @@ function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) 
     call fugitive#ReloadStatus()
     return 'redraw|echo '.string(':!'.git.' '.args)
   endif
+  exe s:DirCheck()
   try
     let [file, pre] = s:OpenParse(a:args)
     let file = s:Generate(file)
@@ -3980,6 +3984,7 @@ call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject
 call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gwq", "Wq")
 
 function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+  exe s:DirCheck()
   if exists('b:fugitive_commit_arguments')
     return 'write|bdelete'
   elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
@@ -4331,6 +4336,7 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
   if exists(':DiffGitCached') && !a:0
     return s:Mods(a:mods) . 'DiffGitCached'
   endif
+  exe s:DirCheck()
   let args = copy(a:000)
   let post = ''
   if get(args, 0) =~# '^+'
@@ -4539,6 +4545,7 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
   if exists('b:fugitive_blamed_bufnr')
     return 'bdelete'
   endif
+  exe s:DirCheck()
   try
     if empty(s:Relative('/'))
       call s:throw('file or blob required')
@@ -4806,6 +4813,7 @@ let s:redirects = {}
 
 function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
   let dir = s:Dir()
+  exe s:DirCheck(dir)
   try
     let validremote = '\.\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)\='
     if a:args ==# ['-']
