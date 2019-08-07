@@ -2256,9 +2256,9 @@ function! s:StageJump(offset, section, ...) abort
     exe line
     if a:offset
       for i in range(a:offset)
-        call search(s:file_pattern . '\|^$')
+        call search(s:file_commit_pattern . '\|^$', 'W')
         if empty(getline('.')) && a:0 && getline(line('.') + 1) =~# '^\%(' . a:1 . '\)'
-          call search(s:file_pattern . '\|^$')
+          call search(s:file_commit_pattern . '\|^$', 'W')
         endif
         if empty(getline('.'))
           return ''
@@ -2280,7 +2280,7 @@ function! s:StageSeek(info, fallback) abort
   endif
   let line = search('^' . info.section, 'wn')
   if !line
-    for section in get({'Staged': ['Unstaged', 'Untracked'], 'Unstaged': ['Untracked', 'Staged'], 'Untracked': ['Unstaged', 'Stacked']}, info.section, [])
+    for section in get({'Staged': ['Unstaged', 'Untracked'], 'Unstaged': ['Untracked', 'Staged'], 'Untracked': ['Unstaged', 'Staged']}, info.section, [])
       let line = search('^' . section, 'wn')
       if line
         return line + (info.index > 0 ? 1 : 0)
@@ -2673,7 +2673,8 @@ function! s:StageReveal(...) abort
 endfunction
 
 let s:file_pattern = '^[A-Z?] .\|^diff --'
-let s:item_pattern = s:file_pattern . '\|^\%(\l\{3,\} \)\=[0-9a-f]\{4,\} \|^@@'
+let s:file_commit_pattern = s:file_pattern . '\|^\%(\l\{3,\} \)\=[0-9a-f]\{4,\} '
+let s:item_pattern = s:file_commit_pattern . '\|^@@'
 
 function! s:NextHunk(count) abort
   if &filetype ==# 'fugitive' && getline('.') =~# s:file_pattern
