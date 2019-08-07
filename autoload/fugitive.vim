@@ -3725,7 +3725,9 @@ function! s:Grep(listnr, bang, arg) abort
   let list = map(readfile(tempfile), 's:GrepParseLine(prefix, name_only, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
   if v:version > 704 | exe 'silent doautocmd <nomodeline> QuickFixCmdPost ' (listnr < 0 ? 'Ggrep' : 'Glgrep') | endif
-  redraw
+  if !has('gui_running')
+    redraw
+  endif
   if !a:bang && !empty(list)
     return (listnr < 0 ? 'c' : 'l').'first' . after
   else
