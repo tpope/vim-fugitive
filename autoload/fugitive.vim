@@ -1530,7 +1530,7 @@ function! fugitive#CompleteObject(base, ...) abort
   return s:FilterEscape(entries, a:base)
 endfunction
 
-function! s:CompleteSubcommand(subcommand, A, L, P, ...) abort
+function! s:CompleteSub(subcommand, A, L, P, ...) abort
   let pre = strpart(a:L, 0, a:P)
   if pre =~# ' -- '
     return fugitive#CompletePath(a:A)
@@ -3346,13 +3346,13 @@ function! s:CommitComplete(A, L, P) abort
       return s:FilterEscape(map(commits, 'pre . tr(v:val, "\\ !^$*?[]()''\"`&;<>|#", "....................")'), a:A)
     endif
   else
-    return s:CompleteSubcommand('commit', a:A, a:L, a:P, function('fugitive#CompletePath'))
+    return s:CompleteSub('commit', a:A, a:L, a:P, function('fugitive#CompletePath'))
   endif
   return []
 endfunction
 
 function! s:RevertComplete(A, L, P) abort
-  return s:CompleteSubcommand('revert', a:A, a:L, a:P, function('s:CompleteRevision'))
+  return s:CompleteSub('revert', a:A, a:L, a:P, function('s:CompleteRevision'))
 endfunction
 
 function! s:FinishCommit() abort
@@ -3375,15 +3375,15 @@ call s:command("-nargs=? -complete=customlist,s:RevertComplete Grevert", "Revert
 " Section: :Gmerge, :Grebase, :Gpull
 
 function! s:MergeComplete(A, L, P) abort
-  return s:CompleteSubcommand('merge', a:A, a:L, a:P, function('s:CompleteRevision'))
+  return s:CompleteSub('merge', a:A, a:L, a:P, function('s:CompleteRevision'))
 endfunction
 
 function! s:RebaseComplete(A, L, P) abort
-  return s:CompleteSubcommand('rebase', a:A, a:L, a:P, function('s:CompleteRevision'))
+  return s:CompleteSub('rebase', a:A, a:L, a:P, function('s:CompleteRevision'))
 endfunction
 
 function! s:PullComplete(A, L, P) abort
-  return s:CompleteSubcommand('pull', a:A, a:L, a:P, function('s:CompleteRemote'))
+  return s:CompleteSub('pull', a:A, a:L, a:P, function('s:CompleteRemote'))
 endfunction
 
 function! s:RebaseSequenceAborter() abort
@@ -3660,11 +3660,11 @@ if !exists('g:fugitive_summary_format')
 endif
 
 function! s:GrepComplete(A, L, P) abort
-  return s:CompleteSubcommand('grep', a:A, a:L, a:P)
+  return s:CompleteSub('grep', a:A, a:L, a:P)
 endfunction
 
 function! s:LogComplete(A, L, P) abort
-  return s:CompleteSubcommand('log', a:A, a:L, a:P)
+  return s:CompleteSub('log', a:A, a:L, a:P)
 endfunction
 
 function! s:GrepParseLine(prefix, name_only, dir, line) abort
@@ -4175,11 +4175,11 @@ augroup END
 " Section: :Gpush, :Gfetch
 
 function! s:PushComplete(A, L, P) abort
-  return s:CompleteSubcommand('push', a:A, a:L, a:P, function('s:CompleteRemote'))
+  return s:CompleteSub('push', a:A, a:L, a:P, function('s:CompleteRemote'))
 endfunction
 
 function! s:FetchComplete(A, L, P) abort
-  return s:CompleteSubcommand('fetch', a:A, a:L, a:P, function('s:CompleteRemote'))
+  return s:CompleteSub('fetch', a:A, a:L, a:P, function('s:CompleteRemote'))
 endfunction
 
 function! s:AskPassArgs(dir) abort
