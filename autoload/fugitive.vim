@@ -2109,6 +2109,11 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
     let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, '', [])
     return (empty(cmd) ? 'exe' : cmd) . after
   endif
+  let alias = get(s:Aliases(dir), args[0], '!')
+  if alias !~# '^!\|[\"'']' && !filereadable(s:ExecPath() . '/git-' . args[0])
+    call remove(args, 0)
+    call extend(args, split(alias, '\s\+'), 'keep')
+  endif
   let name = substitute(args[0], '\%(^\|-\)\(\l\)', '\u\1', 'g')
   if exists('*s:' . name . 'Subcommand')
     try
