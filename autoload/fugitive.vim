@@ -2245,7 +2245,8 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
           exe winnr . 'wincmd w'
         endif
         let w:fugitive_status = dir
-        return 1
+        1
+        return ''
       endif
     endfor
     if a:count ==# 0
@@ -3228,6 +3229,16 @@ endfunction
 
 " Section: :Gcommit, :Grevert
 
+function! s:CommitInteractive(line1, line2, range, bang, mods, args, patch) abort
+  let status = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [])
+  let status = len(status) ? status . '|' : ''
+  if a:patch
+    return status . 'if search("^Unstaged")|exe "+"|endif'
+  else
+    return status . 'if search("^Untracked\\|^Unstaged")|exe "+"|endif'
+  endif
+endfunction
+
 function! s:CommitSubcommand(line1, line2, range, bang, mods, args, ...) abort
   let mods = substitute(s:Mods(a:mods), '\C\<tab\>', '-tab', 'g')
   let dir = a:0 ? a:1 : s:Dir()
@@ -3256,16 +3267,14 @@ function! s:CommitSubcommand(line1, line2, range, bang, mods, args, ...) abort
         endif
       endwhile
       let command .= s:UserCommand(dir) . ' commit ' . s:shellesc(argv)
-      if s:HasOpt(argv, '-i', '--interactive', '-p', '--patch') && &shell !~# 'csh'
-        let errorfile = tempname()
-        noautocmd execute '!'.command.' 2> '.errorfile
-        let errors = readfile(errorfile)
-        let exec_error = v:shell_error
-        call delete(errorfile)
+      if (&autowrite || &autowriteall) && !a:0
+        silent! wall
+      endif
+      if s:HasOpt(argv, '-i', '--interactive')
+        return s:CommitInteractive(a:line1, a:line2, a:range, a:bang, a:mods, argv, 0)
+      elseif s:HasOpt(argv, '-p', '--patch')
+        return s:CommitInteractive(a:line1, a:line2, a:range, a:bang, a:mods, argv, 1)
       else
-        if (&autowrite || &autowriteall) && !a:0
-          silent! wall
-        endif
         let [error_string, exec_error] = s:TempCmd(outfile, command)
         let errors = split(error_string, "\n")
       endif
