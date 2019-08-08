@@ -2111,6 +2111,7 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
   endif
   let alias = get(s:Aliases(dir), args[0], '!')
   if alias !~# '^!\|[\"'']' && !filereadable(s:ExecPath() . '/git-' . args[0])
+        \ && !(has('win32') && filereadable(s:ExecPath() . '/git-' . args[0] . '.exe'))
     call remove(args, 0)
     call extend(args, split(alias, '\s\+'), 'keep')
   endif
