@@ -4568,8 +4568,13 @@ function! s:linechars(pattern) abort
   return chars
 endfunction
 
+function! s:BlameBufnr(...) abort
+  let val = getbufvar(a:0 ? a:1 : '', 'fugitive_blamed_bufnr')
+  return val > 0 ? val : -1
+endfunction
+
 function! s:BlameLeave() abort
-  let bufwinnr = bufwinnr(get(b:, 'fugitive_blamed_bufnr', -1))
+  let bufwinnr = bufwinnr(s:BlameBufnr())
   if bufwinnr > 0
     let bufnr = bufnr('')
     exe bufwinnr . 'wincmd w'
@@ -4628,14 +4633,14 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
       endif
       if a:count > 0
         let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit'], a:count - (a:line1 ? a:line1 : 1), 'split')
-        return s:BlameCommit(edit, get(readfile(temp), 0, ''))
+        return s:BlameCommit(edit, get(readfile(temp), 0, ''), bufnr(''))
       else
         for winnr in range(winnr('$'),1,-1)
           call setwinvar(winnr, '&scrollbind', 0)
           if exists('+cursorbind')
             call setwinvar(winnr, '&cursorbind', 0)
           endif
-          if getbufvar(winbufnr(winnr), 'fugitive_blamed_bufnr')
+          if s:BlameBufnr(winbufnr(winnr)) > 0
             execute winbufnr(winnr).'bdelete'
           endif
         endfor
@@ -4715,8 +4720,11 @@ function! s:BlameCommit(cmd, ...) abort
   endif
   let lnum = matchstr(line, ' \zs\d\+\ze\s\+[([:digit:]]')
   let path = matchstr(line, '^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
-  if path ==# ''
-    let path = fugitive#Path(a:0 ? @% : bufname(b:fugitive_blamed_bufnr), '')
+  if empty(path)
+    let path = fugitive#Path(bufname(a:0 ? a:2 : s:BlameBufnr()), '')
+  endif
+  if empty(path)
+    return 'echoerr ' . string('fugitive: could not determine filename for blame')
   endif
   execute cmd
   if a:cmd ==# 'pedit'
@@ -4761,13 +4769,17 @@ function! s:BlameJump(suffix) abort
   endif
   let lnum = matchstr(getline('.'),' \zs\d\+\ze\s\+[([:digit:]]')
   let path = matchstr(getline('.'),'^\^\=\x\+\s\+\zs.\{-\}\ze\s*\d\+ ')
-  if path ==# ''
-    let path = fugitive#Path(bufname(b:fugitive_blamed_bufnr), '')
+  let original_bufnr = s:BlameBufnr()
+  if empty(path)
+    let path = fugitive#Path(bufname(original_bufnr), '')
   endif
-  let args = b:fugitive_blame_arguments
+  if empty(path)
+    return 'echoerr ' . string('fugitive: could not determine filename for blame')
+  endif
+  let args = get(b:, 'fugitive_blame_arguments', '')
   let offset = line('.') - line('w0')
   let bufnr = bufnr('%')
-  let winnr = bufwinnr(b:fugitive_blamed_bufnr)
+  let winnr = bufwinnr(original_bufnr)
   if winnr > 0
     exe winnr.'wincmd w'
   endif
