@@ -4647,8 +4647,10 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
         let temp = s:Resolve(temp)
         let s:temp_files[s:cpath(temp)] = {'dir': s:Dir(), 'filetype': 'fugitiveblame', 'args': cmd}
         for winnr in range(winnr('$'),1,-1)
-          call setwinvar(winnr, '&scrollbind', 0)
-          if exists('+cursorbind')
+          if getwinvar(winnr, '&scrollbind')
+            call setwinvar(winnr, '&scrollbind', 0)
+          endif
+          if exists('+cursorbind') && getwinvar(winnr, '&cursorbind')
             call setwinvar(winnr, '&cursorbind', 0)
           endif
           if s:BlameBufnr(winbufnr(winnr)) > 0
