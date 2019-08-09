@@ -812,8 +812,9 @@ function! fugitive#Path(url, ...) abort
     return a:1[0:-2] . path
   endif
   let url = a:url
-  if has_key(get(s:temp_files, s:cpath(url), {}), 'bufnr')
-    let url = bufname(s:temp_files[s:cpath(url)].bufnr)
+  let temp_state = s:TempState(url)
+  if has_key(temp_state, 'bufnr')
+    let url = bufname(temp_state.bufnr)
   endif
   let url = s:Slash(fnamemodify(url, ':p'))
   if url =~# '/$' && s:Slash(a:url) !~# '/$'
@@ -993,9 +994,9 @@ let s:expand = '\%(\(' . s:var . '\)\(' . s:flag . '*\)\(:S\)\=\)'
 
 function! s:BufName(var) abort
   if a:var ==# '%'
-    return bufname(get(b:, 'fugitive_blamed_bufnr', ''))
+    return bufname(get(s:TempState(), 'bufnr', ''))
   elseif a:var =~# '^#\d*$'
-    let nr = getbufvar(+a:var[1:-1], 'fugitive_blamed_bufnr', '')
+    let nr = get(s:TempState(bufname(+a:var[1:-1])), 'bufnr', '')
     return bufname(nr ? nr : +a:var[1:-1])
   else
     return expand(a:var)
@@ -2065,6 +2066,10 @@ endfunction
 if !exists('s:temp_files')
   let s:temp_files = {}
 endif
+
+function! s:TempState(...) abort
+  return get(s:temp_files, s:cpath(fnamemodify(a:0 ? a:1 : @%, ':p')), {})
+endfunction
 
 function! s:SetupTemp(file) abort
   if has_key(s:temp_files, s:cpath(a:file))
@@ -4551,7 +4556,7 @@ augroup fugitive_blame
   autocmd!
   autocmd FileType fugitiveblame setlocal nomodeline | if len(s:Dir()) | let &l:keywordprg = s:Keywordprg() | endif
   autocmd User Fugitive
-        \ if get(b:, 'fugitive_type') =~# '^\%(file\|blob\|blame\)$' || filereadable(@%) |
+        \ if get(b:, 'fugitive_type') =~# '^\%(file\|blob\)$' || s:BlameBufnr() > 0 || filereadable(@%) |
         \   exe "command! -buffer -bar -bang -range=-1 -nargs=* Gblame :execute s:BlameCommand(<line1>,<line2>,+'<range>',<count>,<bang>0,'<mods>',<q-reg>,<q-args>,[<f-args>])" |
         \ endif
   autocmd ColorScheme,GUIEnter * call s:RehighlightBlame()
@@ -4569,8 +4574,12 @@ function! s:linechars(pattern) abort
 endfunction
 
 function! s:BlameBufnr(...) abort
-  let val = getbufvar(a:0 ? a:1 : '', 'fugitive_blamed_bufnr')
-  return val > 0 ? val : -1
+  let state = s:TempState(bufname(a:0 ? a:1 : ''))
+  if get(state, 'filetype', '') ==# 'fugitiveblame'
+    return get(state, 'bufnr', -1)
+  else
+    return -1
+  endif
 endfunction
 
 function! s:BlameLeave() abort
@@ -4665,8 +4674,6 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
         let top = line('w0') + &scrolloff
         let current = line('.')
         exe 'keepalt' (a:bang ? 'split' : 'leftabove vsplit') s:fnameescape(temp)
-        let b:fugitive_blamed_bufnr = bufnr
-        let b:fugitive_type = 'blame'
         let w:fugitive_leave = restore
         let b:fugitive_blame_arguments = join(a:args,' ')
         execute top
