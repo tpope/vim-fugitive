@@ -1688,14 +1688,11 @@ function! fugitive#BufReadStatus() abort
       endif
       if line[0] !~# '[ ?!#]'
         call add(staged, {'type': 'File', 'status': line[0], 'filename': files})
-        let b:fugitive_status['Staged'][files] = line[0]
       endif
       if line[0:1] ==# '??'
         call add(untracked, {'type': 'File', 'status': line[1], 'filename': files})
-        let b:fugitive_status['Unstaged'][files] = line[1]
       elseif line[1] !~# '[ !#]'
         call add(unstaged, {'type': 'File', 'status': line[1], 'filename': files})
-        let b:fugitive_status['Unstaged'][files] = line[1]
       endif
     endwhile
 
