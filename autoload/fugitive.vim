@@ -584,10 +584,8 @@ endfunction
 function! s:Command(command, line1, line2, range, bang, mods, arg, args) abort
   try
     if exists('*s:' . a:command . 'Subcommand')
-      let dir = s:Dir()
-      exe s:DirCheck(dir)
-      let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
-      return 'exe ' . string(s:{a:command}Subcommand(a:line1, a:line2, a:range, a:bang, s:Mods(a:mods), args)) . after
+      let hyphenated = tolower(substitute(a:command, '\l\zs\u', '-\1', 'g'))
+      return s:GitCommand(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', hyphenated . ' ' . a:arg, [hyphenated] + a:args)
     endif
     return s:{a:command}Command(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', a:arg, a:args)
   catch /^fugitive:/
@@ -2115,13 +2113,13 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
     return (empty(cmd) ? 'exe' : cmd) . after
   endif
   let alias = get(s:Aliases(dir), args[0], '!')
-  if alias !~# '^!\|[\"'']' && !filereadable(s:ExecPath() . '/git-' . args[0])
+  if get(args, 1, '') !=# '--help' && alias !~# '^!\|[\"'']' && !filereadable(s:ExecPath() . '/git-' . args[0])
         \ && !(has('win32') && filereadable(s:ExecPath() . '/git-' . args[0] . '.exe'))
     call remove(args, 0)
     call extend(args, split(alias, '\s\+'), 'keep')
   endif
   let name = substitute(args[0], '\%(^\|-\)\(\l\)', '\u\1', 'g')
-  if exists('*s:' . name . 'Subcommand')
+  if exists('*s:' . name . 'Subcommand') && get(args, 1, '') !=# '--help'
     try
       exe s:DirCheck(dir)
       return 'exe ' . string(s:{name}Subcommand(a:line1, a:count, a:range, a:bang, a:mods, args[1:-1])) . after
@@ -2130,7 +2128,8 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
     endtry
   endif
   if a:bang || args[0] =~# '^-P$\|^--no-pager$\|diff\%(tool\)\@!\|log\|^show$' ||
-        \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show')
+        \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show') ||
+        \ (args[0] ==# 'help' || get(args, 1, '') ==# '--help') && !s:HasOpt(args, '--web')
     return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, args, dir) . after
   endif
   let git = s:UserCommandList(dir)
@@ -3924,11 +3923,25 @@ function! s:OpenExec(cmd, mods, args, ...) abort
   let args = s:shellesc(a:args)
   let temp = tempname()
   let git = s:UserCommand(dir)
-  silent! execute '!' . escape(git . ' --no-pager ' . args, '!#%') .
+  let columns = get(g:, 'fugitive_columns', 80)
+  if columns <= 0
+    let env = ''
+  elseif s:winshell()
+    let env = 'set COLUMNS=' . columns . '& '
+  else
+    let env = 'env COLUMNS=' . columns . ' '
+  endif
+  silent! execute '!' . escape(env . git . ' --no-pager ' . args, '!#%') .
         \ (&shell =~# 'csh' ? ' >& ' . temp : ' > ' . temp . ' 2>&1')
   redraw!
   let temp = s:Resolve(temp)
-  let s:temp_files[s:cpath(temp)] = { 'dir': dir, 'filetype': 'git', 'modifiable': get(readfile(temp, 1), '') =~# '^diff ' }
+  let first = join(readfile(temp, '', 2), "\n")
+  if first =~# '\<\([[:upper:][:digit:]_-]\+(\d\+)\).*\1'
+    let filetype = 'man'
+  else
+    let filetype = 'git'
+  endif
+  let s:temp_files[s:cpath(temp)] = { 'dir': dir, 'filetype': filetype, 'modifiable': first =~# '^diff ' }
   if a:cmd ==# 'edit'
     call s:BlurStatus()
   endif
