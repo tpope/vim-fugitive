@@ -203,9 +203,8 @@ that are part of Git repositories).
                         A     resize to end of author column
                         C     resize to end of commit column
                         D     resize to end of date/time column
-                        q     close blame and return to blamed window
-                        gq    q, then |:Gedit| to return to work tree version
-                        <CR>  q, then open commit
+                        gq    close blame, then |:Gedit| to return to work tree version
+                        <CR>  close blame, then open commit
                         o     open commit in horizontal split
                         O     open commit in new tab
                         p     open commit in preview window
