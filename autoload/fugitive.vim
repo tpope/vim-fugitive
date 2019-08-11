@@ -4619,7 +4619,7 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
     elseif filter(copy(a:args),'v:val !~# "^\\%(--abbrev=\\d*\\|--relative-date\\|--first-parent\\|--root\\|--show-name' . (len(commit) ? '\\|--reverse' : '') . '\\|-\\%([ltfnsew]\\|[MC]\\d*\\)\\+\\)$"') != []
       call s:throw('unsupported option' . commit)
     endif
-    let cmd = ['--no-pager', '-c', 'blame.coloring=none', 'blame', '--show-number']
+    let cmd = ['--no-pager', '-c', 'blame.coloring=none', '-c', 'blame.blankBoundary=false', 'blame', '--show-number']
     if a:count > 0
       let cmd += ['-L', (a:line1 ? a:line1 : line('.')) . ',' . (a:line1 ? a:line1 : line('.'))]
     endif
@@ -4818,10 +4818,15 @@ let s:hash_colors = {}
 
 function! fugitive#BlameSyntax() abort
   let conceal = has('conceal') ? ' conceal' : ''
-  syn match FugitiveblameBoundary "^\^"
+  let config = fugitive#Config()
   syn match FugitiveblameBlank                      "^\s\+\s\@=" nextgroup=FugitiveblameAnnotation,FugitiveblameScoreDebug,FugitiveblameOriginalFile,FugitiveblameOriginalLineNumber skipwhite
   syn match FugitiveblameHash       "\%(^\^\=\)\@<=\<\x\{7,\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameScoreDebug,FugitiveblameOriginalLineNumber,FugitiveblameOriginalFile skipwhite
   syn match FugitiveblameUncommitted "\%(^\^\=\)\@<=\<0\{7,\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameScoreDebug,FugitiveblameOriginalLineNumber,FugitiveblameOriginalFile skipwhite
+  if get(get(config, 'blame.blankboundary', ['x']), 0, 'x') =~# '^$\|^true$'
+    syn match FugitiveblameBoundaryIgnore "^\^\x\{7,\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameScoreDebug,FugitiveblameOriginalLineNumber,FugitiveblameOriginalFile skipwhite
+  else
+    syn match FugitiveblameBoundary "^\^"
+  endif
   syn match FugitiveblameScoreDebug        " *\d\+\s\+\d\+\s\@=" nextgroup=FugitiveblameAnnotation,FugitiveblameOriginalLineNumber,fugitiveblameOriginalFile contained skipwhite
   syn region FugitiveblameAnnotation matchgroup=FugitiveblameDelimiter start="(" end="\%(\s\d\+\)\@<=)" contained keepend oneline
   syn match FugitiveblameTime "[0-9:/+-][0-9:/+ -]*[0-9:/+-]\%(\s\+\d\+)\)\@=" contained containedin=FugitiveblameAnnotation
@@ -4833,6 +4838,7 @@ function! fugitive#BlameSyntax() abort
   syn match FugitiveblameNotCommittedYet "(\@<=Not Committed Yet\>" contained containedin=FugitiveblameAnnotation
   hi def link FugitiveblameBoundary           Keyword
   hi def link FugitiveblameHash               Identifier
+  hi def link FugitiveblameBoundaryIgnore     Ignore
   hi def link FugitiveblameUncommitted        Ignore
   hi def link FugitiveblameScoreDebug         Debug
   hi def link FugitiveblameTime               PreProc
