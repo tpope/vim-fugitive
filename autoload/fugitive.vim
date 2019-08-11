@@ -2129,7 +2129,8 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
       return 'echoerr ' . string(v:exception)
     endtry
   endif
-  if a:bang || args[0] =~# '^-P$\|^--no-pager$\|diff\%(tool\)\@!\|log'
+  if a:bang || args[0] =~# '^-P$\|^--no-pager$\|diff\%(tool\)\@!\|log\|^show$' ||
+        \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show')
     return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, args, dir) . after
   endif
   let git = s:UserCommandList(dir)
