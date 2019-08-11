@@ -4643,7 +4643,7 @@ function! s:BlameCommand(line1, line2, range, count, bang, mods, reg, arg, args)
         call s:throw(join(readfile(error),"\n"))
       endif
       if a:count > 0
-        let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit'], a:count - (a:line1 ? a:line1 : 1), 'split')
+        let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit', 'vsplit', 'tabedit'], a:count - (a:line1 ? a:line1 : 1), 'split')
         return s:BlameCommit(edit, get(readfile(temp), 0, ''), bufnr(''))
       else
         let temp = s:Resolve(temp)
@@ -5165,8 +5165,8 @@ function! fugitive#MapJumps(...) abort
       nnoremap <buffer> <silent> <CR>  :<C-U>0,1Gblame<CR>
       nnoremap <buffer> <silent> o     :<C-U>0,2Gblame<CR>
       nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
-      nnoremap <buffer> <silent> gO    :<C-U>vertical 0,2Gblame<CR>
-      nnoremap <buffer> <silent> O     :<C-U>tab 0,2Gblame<CR>
+      nnoremap <buffer> <silent> gO    :<C-U>0,4Gblame<CR>
+      nnoremap <buffer> <silent> O     :<C-U>0,5Gblame<CR>
       nnoremap <buffer> <silent> p     :<C-U>0,3Gblame<CR>
     else
       nnoremap <buffer> <silent> <CR>  :<C-U>exe <SID>GF("edit")<CR>
