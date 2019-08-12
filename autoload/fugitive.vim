@@ -3230,7 +3230,7 @@ function! s:CommitInteractive(line1, line2, range, bang, mods, args, patch) abor
   let status = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [])
   let status = len(status) ? status . '|' : ''
   if a:patch
-    return status . 'if search("^Unstaged")|exe "+"|endif'
+    return status . 'if search("^Unstaged")|exe "normal >"|exe "+"|endif'
   else
     return status . 'if search("^Untracked\\|^Unstaged")|exe "+"|endif'
   endif
