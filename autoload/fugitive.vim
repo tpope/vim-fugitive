@@ -3302,7 +3302,7 @@ function! s:CommitSubcommand(line1, line2, range, bang, mods, args, ...) abort
           call insert(argv, '--cleanup=strip')
         endif
         call extend(argv, ['-F', msgfile], 'keep')
-        if bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&modified
+        if (bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&modified) || a:line2 == 0
           execute mods . 'keepalt edit' s:fnameescape(msgfile)
         elseif s:HasOpt(argv, '-v') || mods =~# '\<tab\>'
           execute mods . 'keepalt -tabedit' s:fnameescape(msgfile)
@@ -3375,8 +3375,8 @@ function! s:FinishCommit() abort
   return ''
 endfunction
 
-call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit", "commit")
-call s:command("-nargs=? -complete=customlist,s:RevertComplete Grevert", "revert")
+call s:command("-nargs=? -range=-1 -complete=customlist,s:CommitComplete Gcommit", "commit")
+call s:command("-nargs=? -range=-1 -complete=customlist,s:RevertComplete Grevert", "revert")
 
 " Section: :Gmerge, :Grebase, :Gpull
 
