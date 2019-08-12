@@ -583,9 +583,8 @@ endfunction
 
 function! s:Command(command, line1, line2, range, bang, mods, arg, args) abort
   try
-    if exists('*s:' . a:command . 'Subcommand')
-      let hyphenated = tolower(substitute(a:command, '\l\zs\u', '-\1', 'g'))
-      return s:GitCommand(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', hyphenated . ' ' . a:arg, [hyphenated] + a:args)
+    if a:command =~# '^\l[[:alnum:]-]\+$'
+      return s:GitCommand(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', a:command . ' ' . a:arg, [a:command] + a:args)
     endif
     return s:{a:command}Command(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', a:arg, a:args)
   catch /^fugitive:/
@@ -3376,8 +3375,8 @@ function! s:FinishCommit() abort
   return ''
 endfunction
 
-call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit", "Commit")
-call s:command("-nargs=? -complete=customlist,s:RevertComplete Grevert", "Revert")
+call s:command("-nargs=? -complete=customlist,s:CommitComplete Gcommit", "commit")
+call s:command("-nargs=? -complete=customlist,s:RevertComplete Grevert", "revert")
 
 " Section: :Gmerge, :Grebase, :Gpull
 
@@ -3656,9 +3655,9 @@ augroup fugitive_merge
         \ endif
 augroup END
 
-call s:command("-nargs=? -bang -complete=customlist,s:MergeComplete Gmerge", "Merge")
-call s:command("-nargs=? -bang -complete=customlist,s:RebaseComplete Grebase", "Rebase")
-call s:command("-nargs=? -bang -complete=customlist,s:PullComplete Gpull", "Pull")
+call s:command("-nargs=? -bang -complete=customlist,s:MergeComplete Gmerge", "merge")
+call s:command("-nargs=? -bang -complete=customlist,s:RebaseComplete Grebase", "rebase")
+call s:command("-nargs=? -bang -complete=customlist,s:PullComplete Gpull", "pull")
 
 " Section: :Ggrep, :Glog
 
@@ -4254,8 +4253,8 @@ function! s:FetchSubcommand(line1, line2, range, bang, mods, args) abort
   return s:Dispatch(a:bang ? '!' : '', 'fetch', a:args)
 endfunction
 
-call s:command("-nargs=? -bang -complete=customlist,s:PushComplete Gpush", "Push")
-call s:command("-nargs=? -bang -complete=customlist,s:FetchComplete Gfetch", "Fetch")
+call s:command("-nargs=? -bang -complete=customlist,s:PushComplete Gpush", "push")
+call s:command("-nargs=? -bang -complete=customlist,s:FetchComplete Gfetch", "fetch")
 
 " Section: :Gdiff
 
