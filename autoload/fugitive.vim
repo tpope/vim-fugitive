@@ -3804,7 +3804,7 @@ function! s:LogParse(state, target, dir, line) abort
   return []
 endfunction
 
-function! s:Log(type, bang, line1, count, args) abort
+function! s:Log(type, bang, line1, count, args, legacy) abort
   let dir = s:Dir()
   exe s:DirCheck(dir)
   let listnr = a:type =~# '^l' ? 0 : -1
@@ -3863,16 +3863,19 @@ function! s:Log(type, bang, line1, count, args) abort
         \ ['--no-color', '--no-ext-diff', '--pretty=format:fugitive ' . format] +
         \ args + paths + extra)
   let state = {'context': 'init', 'child_found': 0, 'queue': []}
-  let title = (listnr < 0 ? ':Glog ' : ':Gllog ') . s:fnameescape(args + paths)
+  let title = (listnr < 0 ? ':Gclog ' : ':Gllog ') . s:fnameescape(args + paths)
+  if empty(paths + extra) && a:legacy && len(s:Relative('/'))
+    let after = '|echohl WarningMsg|echo ' . string('Use :0Glog or :0Gclog for old behavior of targeting current file') . '|echohl NONE' . after
+  endif
   return s:QuickfixStream(listnr, title, cmd, !a:bang, s:function('s:LogParse'), state, path, dir) . after
 endfunction
 
 call s:command("-bang -nargs=? -range=-1 -addr=windows -complete=customlist,s:GrepComplete Ggrep", "grep")
 call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Gcgrep :execute s:GrepSubcommand(-1, -1, 0, <bang>0, '<mods>', <q-args>)")
 call s:command("-bang -nargs=? -complete=customlist,s:GrepComplete Glgrep :execute s:GrepSubcommand(0, 0, 0, <bang>0, '<mods>', <q-args>)")
-call s:command("-bang -nargs=? -range=-1 -addr=other -complete=customlist,s:LogComplete Glog :exe s:Log('c',<bang>0,<line1>,<count>,<q-args>)")
-call s:command("-bang -nargs=? -range=-1 -addr=other -complete=customlist,s:LogComplete Gclog :exe s:Log('c',<bang>0,<line1>,<count>,<q-args>)")
-call s:command("-bang -nargs=? -range=-1 -addr=other -complete=customlist,s:LogComplete Gllog :exe s:Log('l',<bang>0,<line1>,<count>,<q-args>)")
+call s:command("-bang -nargs=? -range=-1 -addr=other -complete=customlist,s:LogComplete Glog :exe s:Log('c',<bang>0,<line1>,<count>,<q-args>, 1)")
+call s:command("-bang -nargs=? -range=-1 -addr=other -complete=customlist,s:LogComplete Gclog :exe s:Log('c',<bang>0,<line1>,<count>,<q-args>, 0)")
+call s:command("-bang -nargs=? -range=-1 -addr=other -complete=customlist,s:LogComplete Gllog :exe s:Log('l',<bang>0,<line1>,<count>,<q-args>, 0)")
 
 " Section: :Gedit, :Gpedit, :Gsplit, :Gvsplit, :Gtabedit, :Gread
 

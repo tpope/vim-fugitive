@@ -29,8 +29,9 @@ the buffer.
 
 Use `:Ggrep` to search the work tree (or any arbitrary commit) with
 `git grep`, skipping over that which is not tracked in the repository.
-`:Glog` loads all previous revisions of a file into the quickfix list so
-you can iterate over them and watch the file evolve.
+`:Gclog` and `:Gllog` load all previous commits into the quickfix or location
+list.  Give them a range (e.g., using visual mode and `:'<,'>Gclog`) to
+iterate over every change to that portion of the current file.
 
 `:Gread` is a variant of `git checkout -- filename` that operates on the
 buffer rather than the filename.  This means you can use `u` to undo it
