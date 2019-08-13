@@ -4852,7 +4852,6 @@ function! s:BlameCommit(cmd, ...) abort
     while search('^@@ \|^diff ') && getline('.') =~# '^@@ '
       let top = +matchstr(getline('.'),' ' . sigil .'\zs\d\+')
       let len = +matchstr(getline('.'),' ' . sigil . '\d\+,\zs\d\+')
-      echo [sigil, top, len]
       if lnum >= top && lnum <= top + len
         let offset = lnum - top
         if &scrolloff
