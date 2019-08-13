@@ -4837,6 +4837,7 @@ function! s:BlameCommit(cmd, ...) abort
   if commit =~# '^0*$'
     return 'echoerr ' . string('fugitive: no commit')
   endif
+  let sigil = has_key(a:0 ? a:2 : s:TempState(), 'blame_reverse_end') ? '-' : '+'
   let cmd = s:Open((s:BlameBufnr() < 0 ? '' : &splitbelow ? "botright " : "topleft ") . a:cmd, 0, '', commit, [commit])
   if cmd =~# '^echoerr'
     return cmd
@@ -4849,8 +4850,9 @@ function! s:BlameCommit(cmd, ...) abort
     call search('^+++')
     let head = line('.')
     while search('^@@ \|^diff ') && getline('.') =~# '^@@ '
-      let top = +matchstr(getline('.'),' +\zs\d\+')
-      let len = +matchstr(getline('.'),' +\d\+,\zs\d\+')
+      let top = +matchstr(getline('.'),' ' . sigil .'\zs\d\+')
+      let len = +matchstr(getline('.'),' ' . sigil . '\d\+,\zs\d\+')
+      echo [sigil, top, len]
       if lnum >= top && lnum <= top + len
         let offset = lnum - top
         if &scrolloff
@@ -4862,7 +4864,7 @@ function! s:BlameCommit(cmd, ...) abort
         endif
         while offset > 0 && line('.') < line('$')
           +
-          if getline('.') =~# '^[ +]'
+          if getline('.') =~# '^[ ' . sigil . ']'
             let offset -= 1
           endif
         endwhile
