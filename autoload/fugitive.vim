@@ -4763,15 +4763,20 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         let temp = s:Resolve(temp)
         let s:temp_files[s:cpath(temp)] = temp_state
         if len(ranges + commits + files) || raw
+          let mods = s:Mods(a:mods)
           if a:count != 0
-            exe 'silent keepalt split ' . s:fnameescape(temp)
+            exe 'silent keepalt' mods 'split' . s:fnameescape(temp)
           elseif !&modified || a:bang || &bufhidden ==# 'hide' || (empty(&bufhidden) && &hidden)
-            exe 'silent edit' . (a:bang ? '! ' : ' ') . s:fnameescape(temp)
+            exe 'silent' mods 'edit' . (a:bang ? '! ' : ' ') . s:fnameescape(temp)
           else
-            return 'edit ' . s:fnameescape(temp)
+            return mods . 'edit ' . s:fnameescape(temp)
           endif
           return ''
         endif
+        if a:mods =~# '\<tab\>'
+          silent tabedit %
+        endif
+        let mods = substitute(a:mods, '\<tab\>', '', 'g')
         for winnr in range(winnr('$'),1,-1)
           if getwinvar(winnr, '&scrollbind')
             call setwinvar(winnr, '&scrollbind', 0)
@@ -4801,7 +4806,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         endif
         let top = line('w0') + &scrolloff
         let current = line('.')
-        exe 'silent keepalt' (a:bang ? 'split' : 'leftabove vsplit') s:fnameescape(temp)
+        exe 'silent keepalt' (a:bang ? s:Mods(mods) . 'split' : s:Mods(mods, 'leftabove') . 'vsplit') s:fnameescape(temp)
         let w:fugitive_leave = restore
         execute top
         normal! zt
