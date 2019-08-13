@@ -4591,14 +4591,17 @@ endfunction
 
 function! s:BlameCommitFileLnum(...) abort
   let line = a:0 ? a:1 : getline('.')
+  let state = a:0 ? a:2 : s:TempState()
   let commit = matchstr(line, '^\^\=\zs\x\+')
   if commit =~# '^0\+$'
     let commit = ''
+  elseif line !~# '^\^' && has_key(state, 'blame_reverse_end')
+    let commit = get(s:LinesError('log', '--pretty=format:%H', '-1', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, commit)
   endif
   let lnum = +matchstr(line, ' \zs\d\+\ze \%((\| *\d\+)\)')
   let path = matchstr(line, '^\^\=\x* \+\%(\d\+ \+\d\+ \+\)\=\zs.\{-\}\ze\s\+\%(\%( \d\+ \)\@<!([^()]*\w \d\+)\|\d\+ \)')
   if empty(path) && lnum
-    let path = a:0 ? a:2 : get(s:TempState(), 'blame_file', '')
+    let path = get(state, 'blame_file', '')
   endif
   return [commit, path, lnum]
 endfunction
@@ -4749,12 +4752,16 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         endfor
         return ''
       endif
+      let temp_state = {'dir': s:Dir(), 'filetype': (raw ? '' : 'fugitiveblame'), 'blame_flags': flags, 'blame_file': file, 'modifiable': 0}
+      if s:HasOpt(flags, '--reverse')
+        let temp_state.blame_reverse_end = matchstr(get(commits, 0, ''), '\.\.\zs.*')
+      endif
       if (a:line1 == 0 || a:range == 1) && a:count > 0
         let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit', 'vsplit', 'tabedit'], a:count - (a:line1 ? a:line1 : 1), 'split')
-        return s:BlameCommit(edit, get(readfile(temp), 0, ''), file)
+        return s:BlameCommit(edit, get(readfile(temp), 0, ''), temp_state)
       else
         let temp = s:Resolve(temp)
-        let s:temp_files[s:cpath(temp)] = {'dir': s:Dir(), 'filetype': (raw ? '' : 'fugitiveblame'), 'blame_flags': flags, 'blame_file': file, 'modifiable': 0}
+        let s:temp_files[s:cpath(temp)] = temp_state
         if len(ranges + commits + files) || raw
           if a:count != 0
             exe 'silent keepalt split ' . s:fnameescape(temp)
@@ -4777,7 +4784,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
           endif
         endfor
         let bufnr = bufnr('')
-        let s:temp_files[s:cpath(temp)].bufnr = bufnr
+        let temp_state.bufnr = bufnr
         let restore = 'call setwinvar(bufwinnr('.bufnr.'),"&scrollbind",0)'
         if exists('+cursorbind')
           let restore .= '|call setwinvar(bufwinnr('.bufnr.'),"&cursorbind",0)'
