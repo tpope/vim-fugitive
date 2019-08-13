@@ -4596,7 +4596,7 @@ function! s:BlameCommitFileLnum(...) abort
   if commit =~# '^0\+$'
     let commit = ''
   elseif line !~# '^\^' && has_key(state, 'blame_reverse_end')
-    let commit = get(s:LinesError('log', '--pretty=format:%H', '-1', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, commit)
+    let commit = get(s:LinesError('log', '--pretty=format:%H', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, commit)
   endif
   let lnum = +matchstr(line, ' \zs\d\+\ze \%((\| *\d\+)\)')
   let path = matchstr(line, '^\^\=\x* \+\%(\d\+ \+\d\+ \+\)\=\zs.\{-\}\ze\s\+\%(\%( \d\+ \)\@<!([^()]*\w \d\+)\|\d\+ \)')
