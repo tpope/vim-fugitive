@@ -53,8 +53,7 @@ are available for popular providers such as [GitHub][rhubarb.vim],
 Add `%{FugitiveStatusline()}` to `'statusline'` to get an indicator
 with the current branch in your statusline.
 
-Last but not least, there's `:Git` for running any arbitrary command,
-and `Git!` to open the output of a command in a temp file.
+Last but not least, there's `:Git` for running any arbitrary command.
 
 ## Screencasts
 
