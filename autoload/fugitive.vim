@@ -4596,7 +4596,7 @@ function! s:BlameCommitFileLnum(...) abort
   if commit =~# '^0\+$'
     let commit = ''
   elseif line !~# '^\^' && has_key(state, 'blame_reverse_end')
-    let commit = get(s:LinesError('rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, commit)
+    let commit = get(s:LinesError('rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, '')
   endif
   let lnum = +matchstr(line, ' \zs\d\+\ze \%((\| *\d\+)\)')
   let path = matchstr(line, '^\^\=\x* \+\%(\d\+ \+\d\+ \+\)\=\zs.\{-\}\ze\s\+\%(\%( \d\+ \)\@<!([^()]*\w \d\+)\|\d\+ \)')
@@ -4833,12 +4833,23 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
 endfunction
 
 function! s:BlameCommit(cmd, ...) abort
-  let [commit, path, lnum] = call('s:BlameCommitFileLnum', a:000)
+  let line = a:0 ? a:1 : getline('.')
+  let state = a:0 ? a:2 : s:TempState()
+  let sigil = has_key(state, 'blame_reverse_end') ? '-' : '+'
+  let mods = (s:BlameBufnr() < 0 ? '' : &splitbelow ? "botright " : "topleft ")
+  let [commit, path, lnum] = s:BlameCommitFileLnum(line, state)
+  if empty(commit) && len(path) && has_key(state, 'blame_reverse_end')
+    let path = (len(state.blame_reverse_end) ? state.blame_reverse_end . ':' : ':(top)') . path
+    return s:Open(mods . a:cmd, 0, '', '+' . lnum . ' ' . s:fnameescape(path), ['+' . lnum, path])
+  endif
   if commit =~# '^0*$'
     return 'echoerr ' . string('fugitive: no commit')
   endif
-  let sigil = has_key(a:0 ? a:2 : s:TempState(), 'blame_reverse_end') ? '-' : '+'
-  let cmd = s:Open((s:BlameBufnr() < 0 ? '' : &splitbelow ? "botright " : "topleft ") . a:cmd, 0, '', commit, [commit])
+  if line =~# '^\^' && !has_key(state, 'blame_reverse_end')
+    let path = commit . ':' . path
+    return s:Open(mods . a:cmd, 0, '', '+' . lnum . ' ' . s:fnameescape(path), ['+' . lnum, path])
+  endif
+  let cmd = s:Open(mods . a:cmd, 0, '', commit, [commit])
   if cmd =~# '^echoerr'
     return cmd
   endif
