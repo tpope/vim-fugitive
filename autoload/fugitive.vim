@@ -4677,7 +4677,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         call add(commits, remove(flags, i))
         continue
       endif
-      if s:HasOpt(flags, '--reverse') && arg =~# '\.\.' && empty(commits)
+      if arg =~# '\.\.' && arg !~# '^\.\.\=\%(/\|$\)' && empty(commits)
         call add(commits, remove(flags, i))
         continue
       endif
