@@ -1806,7 +1806,6 @@ function! fugitive#BufReadStatus() abort
     endif
     let b:dispatch = ':Gfetch --all'
     call fugitive#MapJumps()
-    let nowait = v:version >= 704 ? '<nowait>' : ''
     call s:Map('n', '-', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
     call s:Map('x', '-', ":<C-U>execute <SID>Do('Toggle',1)<CR>", '<silent>')
     call s:Map('n', 's', ":<C-U>execute <SID>Do('Stage',0)<CR>", '<silent>')
@@ -2928,19 +2927,19 @@ function! s:StageDiff(diff) abort
     return 'Git! diff --no-ext-diff'
   elseif len(info.paths) > 1
     execute 'Gedit' . prefix s:fnameescape(':0:' . info.paths[0])
-    return a:diff.' HEAD:'.s:fnameescape(info.paths[1])
+    return a:diff.'! HEAD:'.s:fnameescape(info.paths[1])
   elseif info.section ==# 'Staged' && info.sigil ==# '-'
-    execute 'Gedit' prefix s:fnameescape('@:'.info.paths[0])
+    execute 'Gedit' prefix s:fnameescape(':0:'.info.paths[0])
     return a:diff.'! :0:%'
   elseif info.section ==# 'Staged'
     execute 'Gedit' prefix s:fnameescape(':0:'.info.paths[0])
-    return a:diff . (info.sigil ==# '+' ? '!' : '') . ' @:%'
+    return a:diff . '! @:%'
   elseif info.sigil ==# '-'
     execute 'Gedit' prefix s:fnameescape(':0:'.info.paths[0])
-    return a:diff . '!'
+    return a:diff . '! :(top)%'
   else
     execute 'Gedit' prefix s:fnameescape(':(top)'.info.paths[0])
-    return a:diff . (info.sigil ==# '+' ? '!' : '')
+    return a:diff . '!'
   endif
 endfunction
 
@@ -4405,23 +4404,37 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
     let mods = 'keepalt ' . a:mods
   endif
   let back = exists('*win_getid') ? 'call win_gotoid(' . win_getid() . ')' : 'wincmd p'
-  if (empty(args) || args[0] ==# ':') && commit =~# '^[0-1]\=$' && a:keepfocus && s:IsConflicted()
-    let mods = (a:autodir ? s:diff_modifier(3) : '') . s:Mods(mods, 'leftabove')
+  if (empty(args) || args[0] ==# ':') && a:keepfocus
+    if empty(commit) && s:IsConflicted()
+      let parents = [s:Relative(':2:'), s:Relative(':3:')]
+    elseif empty(commit)
+      let parents = [s:Relative(':0:')]
+    elseif commit =~# '^\d\=$'
+      let parents = [s:Relative('HEAD:')]
+    elseif commit =~# '^\x\x\+$'
+      let parents = s:LinesError(['rev-parse', commit . '^@'])[0]
+      call map(parents, 's:Relative(v:val . ":")')
+    endif
+  endif
+  if exists('parents') && len(parents) > 1
+    let mods = (a:autodir ? s:diff_modifier(len(parents) + 1) : '') . s:Mods(mods, 'leftabove')
     let nr = bufnr('')
-    execute mods 'split' s:fnameescape(s:Generate(s:Relative(':2:')))
+    execute mods 'split' s:fnameescape(s:Generate(parents[0]))
     call s:Map('n', 'dp', ':diffput '.nr.'<Bar>diffupdate<CR>', '<silent>')
     let nr2 = bufnr('')
     call s:diffthis()
     exe back
-    let mods = substitute(mods, '\Cleftabove\|rightbelow\|aboveleft\|belowright', '\=submatch(0) =~# "f" ? "rightbelow" : "leftabove"', '')
-    execute mods 'split' s:fnameescape(s:Generate(s:Relative(':3:')))
-    call s:Map('n', 'dp', ':diffput '.nr.'<Bar>diffupdate<CR>', '<silent>')
-    let nr3 = bufnr('')
-    call s:diffthis()
-    exe back
-    call s:diffthis()
     call s:Map('n', 'd2o', ':diffget '.nr2.'<Bar>diffupdate<CR>', '<silent>')
-    call s:Map('n', 'd3o', ':diffget '.nr3.'<Bar>diffupdate<CR>', '<silent>')
+    let mods = substitute(mods, '\Cleftabove\|rightbelow\|aboveleft\|belowright', '\=submatch(0) =~# "f" ? "rightbelow" : "leftabove"', '')
+    for i in range(len(parents)-1, 1, -1)
+      execute mods 'split' s:fnameescape(s:Generate(parents[i]))
+      call s:Map('n', 'dp', ':diffput '.nr.'<Bar>diffupdate<CR>', '<silent>')
+      let nrx = bufnr('')
+      call s:diffthis()
+      exe back
+      call s:Map('n', 'd' . (i + 2) . 'o', ':diffget '.nrx.'<Bar>diffupdate<CR>', '<silent>')
+    endfor
+    call s:diffthis()
     return post
   elseif len(args)
     let arg = join(args, ' ')
@@ -4443,6 +4456,8 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
     if file !~# ':' && file !~# '^/' && s:TreeChomp('cat-file','-t',file) =~# '^\%(tag\|commit\)$'
       let file = file.s:Relative(':')
     endif
+  elseif exists('parents') && len(parents)
+    let file = parents[-1]
   elseif len(commit)
     let file = s:Relative()
   elseif s:IsConflicted()

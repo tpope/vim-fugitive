@@ -159,12 +159,15 @@ that are part of Git repositories).
                         Vim's |do| and |dp| to stage and unstage changes.
 
                                                 *fugitive-:Gdiffsplit!*
-:Gdiffsplit! [object]   During a merge conflict, do a three-way diff against
-                        both ancestors.  Additional d2o and d3o maps are
+:Gdiffsplit!            Diff against any and all direct ancestors, retaining
+                        focus on the current window.  During a merge conflict,
+                        this is a three-way diff against the "ours" and
+                        "theirs" ancestors.  Additional d2o and d3o maps are
                         provided to to obtain the hunk from the "ours" or
-                        "theirs" ancestor, respectively.  If the file is not
-                        conflicted, behaves the same as if no bang was given,
-                        but keeps focus in the original window.
+                        "theirs" ancestor, respectively.
+
+:Gdiffsplit! {object}   Like |:Gdiffsplit|, but retain focus on the current
+                        window.
 
                                                 *fugitive-:Gvdiffsplit*
 :Gvdiffsplit [object]   Like |:Gdiffsplit|, but always split vertically.
