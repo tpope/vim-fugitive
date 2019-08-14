@@ -332,6 +332,11 @@ gO                      Open the file or |fugitive-object| under the cursor in
 O                       Open the file or |fugitive-object| under the cursor in
                         a new tab.
 
+                                                *fugitive_p*
+p                       Open the file or |fugitive-object| under the cursor in
+                        a preview window.  In the status buffer, 1p is
+                        required to bypass the legacy usage instructions.
+
                                                 *fugitive_~*
 ~                       Open the current file in the [count]th first ancestor.
 
