@@ -2091,7 +2091,9 @@ function! s:TempReadPost(file) abort
     if empty(mapcheck('q', 'n'))
       nnoremap <buffer> <silent> q    :<C-U>bdelete<Bar>echohl WarningMsg<Bar>echo "Temp file q is deprecated in favor of the built-in <Lt>C-W>q"<Bar>echohl NONE<CR>
     endif
-    call s:Map('n', 'gq', ":<C-U>bdelete<CR>", '<silent>')
+    if !&modifiable
+      call s:Map('n', 'gq', ":<C-U>bdelete<CR>", '<silent> <unique>')
+    endif
   endif
   return ''
 endfunction
