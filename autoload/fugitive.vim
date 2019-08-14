@@ -145,7 +145,7 @@ endfunction
 
 let s:nowait = v:version >= 704 ? '<nowait>' : ''
 
-function! s:map(mode, lhs, rhs, ...) abort
+function! s:Map(mode, lhs, rhs, ...) abort
   let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
   let head = a:lhs
   let tail = ''
@@ -171,6 +171,10 @@ function! s:map(mode, lhs, rhs, ...) abort
             \ '|sil! exe "' . a:mode . 'unmap <buffer> ' . head.tail . '"'
     endif
   endif
+endfunction
+
+function! s:map(...) abort
+  return call('s:Map', a:000)
 endfunction
 
 " Section: Quickfix
@@ -5333,19 +5337,18 @@ endfunction
 function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
-      nnoremap <buffer> <silent> <CR>  :<C-U>0,1Gblame<CR>
-      nnoremap <buffer> <silent> o     :<C-U>0,2Gblame<CR>
-      nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
-      nnoremap <buffer> <silent> gO    :<C-U>0,4Gblame<CR>
-      nnoremap <buffer> <silent> O     :<C-U>0,5Gblame<CR>
-      nnoremap <buffer> <silent> p     :<C-U>0,3Gblame<CR>
+      let blame_map = 'Gblame<C-R>=v:count ? " --reverse" : ""<CR><CR>'
+      call s:Map('n', '<CR>', ':<C-U>0,1' . blame_map, '<silent>')
+      call s:Map('n', 'o',    ':<C-U>0,2' . blame_map, '<silent>')
+      call s:Map('n', 'p',    ':<C-U>0,3' . blame_map, '<silent>')
+      call s:Map('n', 'gO',   ':<C-U>0,4' . blame_map, '<silent>')
+      call s:Map('n', 'O',    ':<C-U>0,5' . blame_map, '<silent>')
     else
-      nnoremap <buffer> <silent> <CR>  :<C-U>exe <SID>GF("edit")<CR>
-      nnoremap <buffer> <silent> o     :<C-U>exe <SID>GF("split")<CR>
-      nnoremap <buffer> <silent> S     :<C-U>echoerr 'Use gO'<CR>
-      nnoremap <buffer> <silent> gO    :<C-U>exe <SID>GF("vsplit")<CR>
-      nnoremap <buffer> <silent> O     :<C-U>exe <SID>GF("tabedit")<CR>
-      nnoremap <buffer> <silent> p     :<C-U>exe <SID>GF("pedit")<CR>
+      call s:Map('n', '<CR>', ':<C-U>exe <SID>GF("edit")<CR>', '<silent>')
+      call s:Map('n', 'o',    ':<C-U>exe <SID>GF("split")<CR>', '<silent>')
+      call s:Map('n', 'gO',   ':<C-U>exe <SID>GF("vsplit")<CR>', '<silent>')
+      call s:Map('n', 'O',    ':<C-U>exe <SID>GF("tabedit")<CR>', '<silent>')
+      call s:Map('n', 'p',    ':<C-U>exe <SID>GF("pedit")<CR>', '<silent>')
 
       if exists(':CtrlP') && get(g:, 'ctrl_p_map') =~? '^<c-p>$'
         nnoremap <buffer> <silent> <C-P> :<C-U>execute line('.') == 1 ? 'CtrlP ' . fnameescape(<SID>Tree()) : <SID>PreviousItem(v:count1)<CR>
@@ -5368,6 +5371,7 @@ function! fugitive#MapJumps(...) abort
       call s:MapEx('[]', 'exe <SID>PreviousSectionEnd(v:count1)')
       call s:MapEx('][', 'exe <SID>NextSectionEnd(v:count1)')
     endif
+    call s:Map('n', 'S',    ':<C-U>echoerr "Use gO"<CR>', '<silent>')
     exe "nnoremap <buffer> <silent>" s:nowait  "-     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40,\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>"
     nnoremap <buffer> <silent> P     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>
     nnoremap <buffer> <silent> ~     :<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>
