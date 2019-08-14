@@ -3901,6 +3901,20 @@ function! s:OpenParse(args) abort
   return [s:Expand(file), join(pre)]
 endfunction
 
+function! s:DiffClose() abort
+  let mywinnr = winnr()
+  for winnr in [winnr('#')] + range(winnr('$'),1,-1)
+    if winnr != mywinnr && getwinvar(winnr,'&diff')
+      execute winnr.'wincmd w'
+      close
+      if winnr('$') > 1
+        wincmd p
+      endif
+    endif
+  endfor
+  diffoff!
+endfunction
+
 function! s:BlurStatus() abort
   if (&previewwindow || exists('w:fugitive_status')) && get(b:,'fugitive_type', '') ==# 'index'
     let winnrs = filter([winnr('#')] + range(1, winnr('$')), 's:UsableWin(v:val)')
@@ -3910,17 +3924,7 @@ function! s:BlurStatus() abort
       belowright new
     endif
     if &diff
-      let mywinnr = winnr()
-      for winnr in range(winnr('$'),1,-1)
-        if winnr != mywinnr && getwinvar(winnr,'&diff')
-          execute winnr.'wincmd w'
-          close
-          if winnr('$') > 1
-            wincmd p
-          endif
-        endif
-      endfor
-      diffoff!
+      call s:DiffClose()
     endif
   endif
 endfunction
@@ -5366,6 +5370,15 @@ function! fugitive#MapJumps(...) abort
       call s:Map('n', 'p',    ':<C-U>0,3' . blame_map, '<silent>')
       call s:Map('n', 'gO',   ':<C-U>0,4' . blame_map, '<silent>')
       call s:Map('n', 'O',    ':<C-U>0,5' . blame_map, '<silent>')
+
+      call s:Map('n', 'D',  ":<C-U>call <SID>DiffClose()<Bar>Gdiffsplit!<Bar>redraw<Bar>echohl WarningMsg<Bar> echo ':Gstatus D is deprecated in favor of dd'<Bar>echohl NONE<CR>", '<silent>')
+      call s:Map('n', 'dd', ":<C-U>call <SID>DiffClose()<Bar>Gdiffsplit!<CR>", '<silent>')
+      call s:Map('n', 'dh', ":<C-U>call <SID>DiffClose()<Bar>Ghdiffsplit!<CR>", '<silent>')
+      call s:Map('n', 'ds', ":<C-U>call <SID>DiffClose()<Bar>Ghdiffsplit!<CR>", '<silent>')
+      call s:Map('n', 'dv', ":<C-U>call <SID>DiffClose()<Bar>Gvdiffsplit!<CR>", '<silent>')
+      call s:Map('n', 'dp', ":<C-U>Git diff !^..! -- %<CR>", '<silent>')
+      call s:Map('n', 'd?', ":<C-U>help fugitive_d<CR>", '<silent>')
+
     else
       call s:Map('n', '<CR>', ':<C-U>exe <SID>GF("edit")<CR>', '<silent>')
       call s:Map('n', 'o',    ':<C-U>exe <SID>GF("split")<CR>', '<silent>')
