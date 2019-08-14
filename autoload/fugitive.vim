@@ -4672,7 +4672,13 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         echohl NONE
         return ''
       endif
-    elseif arg !~# '^-'
+    elseif arg ==# '--'
+      if i + 1 < len(flags)
+        call extend(files, remove(flags, i + 1, -1))
+      endif
+      call remove(flags, i)
+      break
+    elseif arg !~# '^-' && (s:HasOpt(flags, '--not') || arg !~# '^\^')
       if index(flags, '--') >= 0
         call add(commits, remove(flags, i))
         continue
@@ -4691,12 +4697,6 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
       endtry
       call add(files, remove(flags, i))
       continue
-    elseif arg ==# '--'
-      if i + 1 < len(flags)
-        call extend(files, remove(flags, i + 1, -1))
-      endif
-      call remove(flags, i)
-      break
     endif
     let i += 1
   endwhile
