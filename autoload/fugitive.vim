@@ -4414,57 +4414,61 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
       call map(parents, 's:Relative(v:val . ":")')
     endif
   endif
-  if exists('parents') && len(parents) > 1
-    let mods = (a:autodir ? s:diff_modifier(len(parents) + 1) : '') . s:Mods(mods, 'leftabove')
-    let nr = bufnr('')
-    execute mods 'split' s:fnameescape(s:Generate(parents[0]))
-    call s:Map('n', 'dp', ':diffput '.nr.'<Bar>diffupdate<CR>', '<silent>')
-    let nr2 = bufnr('')
-    call s:diffthis()
-    exe back
-    call s:Map('n', 'd2o', ':diffget '.nr2.'<Bar>diffupdate<CR>', '<silent>')
-    let mods = substitute(mods, '\Cleftabove\|rightbelow\|aboveleft\|belowright', '\=submatch(0) =~# "f" ? "rightbelow" : "leftabove"', '')
-    for i in range(len(parents)-1, 1, -1)
-      execute mods 'split' s:fnameescape(s:Generate(parents[i]))
+  try
+    if &diffopt =~# 'vertical'
+      let diffopt = &diffopt
+      set diffopt-=vertical
+    endif
+    if exists('parents') && len(parents) > 1
+      let mods = (a:autodir ? s:diff_modifier(len(parents) + 1) : '') . s:Mods(mods, 'leftabove')
+      let nr = bufnr('')
+      execute mods 'split' s:fnameescape(s:Generate(parents[0]))
       call s:Map('n', 'dp', ':diffput '.nr.'<Bar>diffupdate<CR>', '<silent>')
-      let nrx = bufnr('')
+      let nr2 = bufnr('')
       call s:diffthis()
       exe back
-      call s:Map('n', 'd' . (i + 2) . 'o', ':diffget '.nrx.'<Bar>diffupdate<CR>', '<silent>')
-    endfor
-    call s:diffthis()
-    return post
-  elseif len(args)
-    let arg = join(args, ' ')
-    if arg ==# ''
+      call s:Map('n', 'd2o', ':diffget '.nr2.'<Bar>diffupdate<CR>', '<silent>')
+      let mods = substitute(mods, '\Cleftabove\|rightbelow\|aboveleft\|belowright', '\=submatch(0) =~# "f" ? "rightbelow" : "leftabove"', '')
+      for i in range(len(parents)-1, 1, -1)
+        execute mods 'split' s:fnameescape(s:Generate(parents[i]))
+        call s:Map('n', 'dp', ':diffput '.nr.'<Bar>diffupdate<CR>', '<silent>')
+        let nrx = bufnr('')
+        call s:diffthis()
+        exe back
+        call s:Map('n', 'd' . (i + 2) . 'o', ':diffget '.nrx.'<Bar>diffupdate<CR>', '<silent>')
+      endfor
+      call s:diffthis()
       return post
-    elseif arg ==# '/'
+    elseif len(args)
+      let arg = join(args, ' ')
+      if arg ==# ''
+        return post
+      elseif arg ==# '/'
+        let file = s:Relative()
+      elseif arg ==# ':'
+        let file = s:Relative(':0:')
+      elseif arg =~# '^:\d$'
+        let file = s:Relative(arg . ':')
+      else
+        try
+          let file = arg =~# '^:/.' ? fugitive#RevParse(arg) . s:Relative(':') : s:Expand(arg)
+        catch /^fugitive:/
+          return 'echoerr ' . string(v:exception)
+        endtry
+      endif
+      if file !~# ':' && file !~# '^/' && s:TreeChomp('cat-file','-t',file) =~# '^\%(tag\|commit\)$'
+        let file = file.s:Relative(':')
+      endif
+    elseif exists('parents') && len(parents)
+      let file = parents[-1]
+    elseif len(commit)
       let file = s:Relative()
-    elseif arg ==# ':'
-      let file = s:Relative(':0:')
-    elseif arg =~# '^:\d$'
-      let file = s:Relative(arg . ':')
+    elseif s:IsConflicted()
+      let file = s:Relative(':1:')
+      let post = 'echohl WarningMsg|echo "Use :Gdiffsplit! for 3 way diff"|echohl NONE|' . post
     else
-      try
-        let file = arg =~# '^:/.' ? fugitive#RevParse(arg) . s:Relative(':') : s:Expand(arg)
-      catch /^fugitive:/
-        return 'echoerr ' . string(v:exception)
-      endtry
+      let file = s:Relative(':0:')
     endif
-    if file !~# ':' && file !~# '^/' && s:TreeChomp('cat-file','-t',file) =~# '^\%(tag\|commit\)$'
-      let file = file.s:Relative(':')
-    endif
-  elseif exists('parents') && len(parents)
-    let file = parents[-1]
-  elseif len(commit)
-    let file = s:Relative()
-  elseif s:IsConflicted()
-    let file = s:Relative(':1:')
-    let post = 'echohl WarningMsg|echo "Use :Gdiffsplit! for 3 way diff"|echohl NONE|' . post
-  else
-    let file = s:Relative(':0:')
-  endif
-  try
     let spec = s:Generate(file)
     let restore = s:diff_restore()
     if exists('+cursorbind')
@@ -4491,6 +4495,10 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
     return post
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
+  finally
+    if exists('diffopt')
+      let &diffopt = diffopt
+    endif
   endtry
 endfunction
 
