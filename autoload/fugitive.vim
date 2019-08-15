@@ -944,15 +944,7 @@ function! fugitive#Find(object, ...) abort
 endfunction
 
 function! s:Generate(rev, ...) abort
-  let dir = a:0 ? a:1 : s:Dir()
-  let tree = s:Tree(dir)
-  let object = a:rev
-  if a:rev =~# '^/\.git\%(/\|$\)'
-    let object = a:rev[1:-1]
-  elseif a:rev =~# '^/' && len(tree) && getftime(tree . a:rev) >= 0 && getftime(a:rev) < 0
-    let object = ':(top)' . a:rev[1:-1]
-  endif
-  return fugitive#Find(object, dir)
+  return fugitive#Find(a:rev, a:0 ? a:1 : s:Dir())
 endfunction
 
 function! s:DotRelative(path, ...) abort
