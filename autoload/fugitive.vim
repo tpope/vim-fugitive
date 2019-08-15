@@ -5422,6 +5422,7 @@ function! fugitive#MapJumps(...) abort
       call s:MapMotion('][', 'exe <SID>NextSectionEnd(v:count1)')
     endif
     call s:Map('n', 'S',    ':<C-U>echoerr "Use gO"<CR>', '<silent>')
+    call s:Map('n', 'dq', ":<C-U>call <SID>DiffClose()<CR>", '<silent>')
     call s:Map('n', '-', ":<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40,\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>", '<silent>')
     call s:Map('n', 'P',     ":<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'^'.v:count1.<SID>Relative(':'))<CR>", '<silent>')
     call s:Map('n', '~',     ":<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>ContainingCommit().'~'.v:count1.<SID>Relative(':'))<CR>", '<silent>')
