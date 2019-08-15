@@ -1914,6 +1914,8 @@ function! fugitive#FileWriteCmd(...) abort
   endtry
 endfunction
 
+let s:nomodeline = (v:version >= 704 ? '<nomodeline>' : '')
+
 function! fugitive#BufReadCmd(...) abort
   let amatch = a:0 ? a:1 : expand('<amatch>')
   try
@@ -2022,7 +2024,7 @@ function! fugitive#BufReadCmd(...) abort
     endtry
 
     setlocal modifiable
-    return 'silent doautocmd' . (v:version >= 704 ? ' <nomodeline>' : '') .
+    return 'silent doautocmd' . s:nomodeline .
           \ ' BufReadPost' . (modifiable ? '' : '|setl nomodifiable')
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
@@ -4147,7 +4149,7 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
 
   unlet! restorewinnr
   let zero = s:Generate(':0:'.file)
-  silent execute 'doautocmd BufWritePost' s:fnameescape(zero)
+  silent execute 'doautocmd' s:nomodeline 'BufWritePost' s:fnameescape(zero)
   for tab in range(1,tabpagenr('$'))
     for winnr in range(1,tabpagewinnr(tab,'$'))
       let bufnr = tabpagebuflist(tab)[winnr-1]
