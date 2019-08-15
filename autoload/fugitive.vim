@@ -2206,7 +2206,7 @@ function! s:DirArg(path) abort
   if path =~# '^/\|^\a\+:\|^\.\.\=\%(/\|$\)'
     return path
   else
-    return (empty(s:Tree()) ? s:Dir() : s:Tree()) . '/' . path
+    return s:PlatformSlash((empty(s:Tree()) ? s:Dir() : s:Tree()) . '/' . path)
   endif
 endfunction
 
