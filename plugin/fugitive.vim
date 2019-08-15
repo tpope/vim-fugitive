@@ -184,10 +184,11 @@ function! FugitiveExtractGitDir(path) abort
       return resolve(dir)
     elseif type !=# '' && filereadable(dir)
       let line = get(readfile(dir, '', 1), 0, '')
-      if line =~# '^gitdir: \.' && FugitiveIsGitDir(root.'/'.line[8:-1])
-        return simplify(root.'/'.line[8:-1])
-      elseif line =~# '^gitdir: ' && FugitiveIsGitDir(line[8:-1])
-        return line[8:-1]
+      let file_dir = matchstr(line, '^gitdir: \zs.*')
+      if file_dir !~# '^/\|^\a:' && FugitiveIsGitDir(root . '/' . file_dir)
+        return simplify(root . '/' . file_dir)
+      elseif len(file_dir) && FugitiveIsGitDir(file_dir)
+        return file_dir
       endif
     elseif FugitiveIsGitDir(root)
       return root
