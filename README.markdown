@@ -56,6 +56,8 @@ with the current branch in your statusline.
 
 Last but not least, there's `:Git` for running any arbitrary command.
 
+For more information, see `:help fugitive`.
+
 ## Screencasts
 
 * [A complement to command line git](http://vimcasts.org/e/31)
