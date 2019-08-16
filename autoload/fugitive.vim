@@ -4439,6 +4439,9 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
         call s:Map('n', 'd' . (i + 2) . 'o', ':diffget '.nrx.'<Bar>diffupdate<CR>', '<silent>')
       endfor
       call s:diffthis()
+      if len(parents) > 1
+        wincmd =
+      endif
       return post
     elseif len(args)
       let arg = join(args, ' ')
