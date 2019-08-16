@@ -4416,10 +4416,6 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
     endif
   endif
   try
-    if &diffopt =~# 'vertical'
-      let diffopt = &diffopt
-      set diffopt-=vertical
-    endif
     if exists('parents') && len(parents) > 1
       let mods = (a:autodir ? s:diff_modifier(len(parents) + 1) : '') . s:Mods(mods, 'leftabove')
       let nr = bufnr('')
@@ -4482,6 +4478,10 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
       let mods = s:Mods(mods, 'leftabove')
     endif
     let mods = (a:autodir ? s:diff_modifier(2) : '') . mods
+    if &diffopt =~# 'vertical'
+      let diffopt = &diffopt
+      set diffopt-=vertical
+    endif
     execute mods 'diffsplit' s:fnameescape(spec)
     let &l:readonly = &l:readonly
     redraw
