@@ -3862,7 +3862,7 @@ function! s:Log(type, bang, line1, count, args, legacy) abort
   if empty(paths + extra) && a:legacy && len(s:Relative('/'))
     let after = '|echohl WarningMsg|echo ' . string('Use :0Glog or :0Gclog for old behavior of targeting current file') . '|echohl NONE' . after
   endif
-  return s:QuickfixStream(listnr, title, s:UserCommand(dir, cmd), !a:bang, s:function('s:LogParse'), state, path, dir) . after
+  return s:QuickfixStream(listnr, title, s:UserCommandList(dir) + cmd, !a:bang, s:function('s:LogParse'), state, path, dir) . after
 endfunction
 
 call s:command("-bang -nargs=? -range=-1 -addr=windows -complete=customlist,s:GrepComplete Ggrep", "grep")
