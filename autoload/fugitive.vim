@@ -5061,6 +5061,7 @@ function! s:BlameFileType() abort
     call s:Map('n', 'q',  ':exe <SID>BlameQuit()<Bar>echohl WarningMsg<Bar>echo ":Gblame q is deprecated in favor of gq"<Bar>echohl NONE<CR>', '<silent>')
   endif
   call s:Map('n', 'gq',   ':exe <SID>BlameQuit()<CR>', '<silent>')
+  call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
   call s:Map('n', '<CR>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
   call s:Map('n', '-',    ':<C-U>exe <SID>BlameJump("")<CR>', '<silent>')
   call s:Map('n', 'P',    ':<C-U>exe <SID>BlameJump("^".v:count1)<CR>', '<silent>')
@@ -5365,6 +5366,7 @@ function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
       let blame_map = 'Gblame<C-R>=v:count ? " --reverse" : ""<CR><CR>'
+      call s:Map('n', '<2-LeftMouse>', ':<C-U>0,1' . blame_map, '<silent>')
       call s:Map('n', '<CR>', ':<C-U>0,1' . blame_map, '<silent>')
       call s:Map('n', 'o',    ':<C-U>0,2' . blame_map, '<silent>')
       call s:Map('n', 'p',    ':<C-U>0,3' . blame_map, '<silent>')
@@ -5380,6 +5382,7 @@ function! fugitive#MapJumps(...) abort
       call s:Map('n', 'd?', ":<C-U>help fugitive_d<CR>", '<silent>')
 
     else
+      call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>GF("edit")<CR>', '<silent>')
       call s:Map('n', '<CR>', ':<C-U>exe <SID>GF("edit")<CR>', '<silent>')
       call s:Map('n', 'o',    ':<C-U>exe <SID>GF("split")<CR>', '<silent>')
       call s:Map('n', 'gO',   ':<C-U>exe <SID>GF("vsplit")<CR>', '<silent>')
