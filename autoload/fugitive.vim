@@ -324,6 +324,11 @@ function! s:PreparePathArgs(cmd, dir, literal) abort
     call insert(a:cmd, '--literal-pathspecs')
   endif
   let split = index(a:cmd, '--')
+  for i in range(split < 0 ? len(a:cmd) : split)
+    if type(a:cmd[i]) == type(0)
+      let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), './', a:dir)
+    endif
+  endfor
   if split < 0
     return a:cmd
   endif
