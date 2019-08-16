@@ -3850,7 +3850,7 @@ function! s:Log(type, bang, line1, count, args, legacy) abort
   endif
   let cmd = ['--no-pager']
   if fugitive#GitVersion(1, 9)
-    call extend(cmd, ['-c', 'diff.context=0', 'log'])
+    call extend(cmd, ['-c', 'diff.context=0', '-c', 'diff.noprefix=false', 'log'])
   else
     call extend(cmd, ['log', '-U0', '--no-patch'])
   endif
