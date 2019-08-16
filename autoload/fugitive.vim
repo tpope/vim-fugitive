@@ -4472,9 +4472,6 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
     endif
     let spec = s:Generate(file)
     let restore = s:diff_restore()
-    if exists('+cursorbind')
-      setlocal cursorbind
-    endif
     let w:fugitive_diff_restore = restore
     if s:CompareAge(commit, s:DirCommitFile(spec)[1]) < 0
       let mods = s:Mods(mods, 'rightbelow')
