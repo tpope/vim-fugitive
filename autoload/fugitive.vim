@@ -2438,8 +2438,8 @@ endfunction
 augroup fugitive_status
   autocmd!
   autocmd BufWritePost         * call fugitive#ReloadStatus(-1, 0)
-  autocmd ShellCmdPost         * call fugitive#ReloadStatus()
-  autocmd BufDelete     term://* call fugitive#ReloadStatus()
+  autocmd ShellCmdPost     * nested call fugitive#ReloadStatus()
+  autocmd BufDelete term://* nested call fugitive#ReloadStatus()
   if !has('win32')
     autocmd FocusGained        * call fugitive#ReloadStatus(-2, 0)
   endif
