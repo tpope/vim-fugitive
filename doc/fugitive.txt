@@ -394,6 +394,14 @@ i                       Jump to the next file or hunk, expanding inline diffs
                                                 *fugitive_][*
 ][                      Jump [count] section ends forward.
 
+                                                *fugitive_star*
+*                       One the first column of a + or - diff line, search for
+                        the corresponding - or + line.  Otherwise, defer to
+                        built-in |star|.
+
+                                                *fugitive_#*
+#                       Same as "*", but search backward.
+
                                                 *fugitive_gu*
 gu                      Jump to file [count] in the "Untracked" or "Unstaged"
                         section.

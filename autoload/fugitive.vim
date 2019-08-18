@@ -146,31 +146,33 @@ endfunction
 let s:nowait = v:version >= 704 ? '<nowait>' : ''
 
 function! s:Map(mode, lhs, rhs, ...) abort
-  let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
-  let head = a:lhs
-  let tail = ''
-  let keys = get(g:, a:mode.'remap', {})
-  if type(keys) == type([])
-    return
-  endif
-  while !empty(head)
-    if has_key(keys, head)
-      let head = keys[head]
-      if empty(head)
-        return
+  for mode in split(a:mode, '\zs')
+    let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
+    let head = a:lhs
+    let tail = ''
+    let keys = get(g:, mode.'remap', {})
+    if type(keys) == type([])
+      return
+    endif
+    while !empty(head)
+      if has_key(keys, head)
+        let head = keys[head]
+        if empty(head)
+          return
+        endif
+        break
       endif
-      break
+      let tail = matchstr(head, '<[^<>]*>$\|.$') . tail
+      let head = substitute(head, '<[^<>]*>$\|.$', '', '')
+    endwhile
+    if flags !~# '<unique>' || empty(mapcheck(head.tail, mode))
+      exe mode.'map <buffer>' s:nowait flags head.tail a:rhs
+      if a:0 > 1
+        let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .
+              \ '|sil! exe "' . mode . 'unmap <buffer> ' . head.tail . '"'
+      endif
     endif
-    let tail = matchstr(head, '<[^<>]*>$\|.$') . tail
-    let head = substitute(head, '<[^<>]*>$\|.$', '', '')
-  endwhile
-  if flags !~# '<unique>' || empty(mapcheck(head.tail, a:mode))
-    exe a:mode.'map <buffer>' s:nowait flags head.tail a:rhs
-    if a:0 > 1
-      let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .
-            \ '|sil! exe "' . a:mode . 'unmap <buffer> ' . head.tail . '"'
-    endif
-  endif
+  endfor
 endfunction
 
 " Section: Quickfix
@@ -2831,6 +2833,23 @@ function! s:PreviousSectionEnd(count) abort
   return search('^.', 'Wb')
 endfunction
 
+function! s:PatchSearchExpr(reverse) abort
+  let line = getline('.')
+  if col('.') ==# 1 && line =~# '^[+-]'
+    if line =~# '^[+-]\{3\} '
+      let pattern = '^[+-]\{3\} ' . substitute(escape(strpart(line, 4), '^$.*[]~\'), '^\w/', '\\w/', '') . '$'
+    else
+      let pattern = '^[+-]\s*' . escape(substitute(strpart(line, 1), '^\s*\|\s*$', '', ''), '^$.*[]~\') . '\s*$'
+    endif
+    if a:reverse
+      return '?' . escape(pattern, '/') . "\<CR>"
+    else
+      return '/' . escape(pattern, '/?') . "\<CR>"
+    endif
+  endif
+  return a:reverse ? '#' : '*'
+endfunction
+
 function! s:StageInline(mode, ...) abort
   if &filetype !=# 'fugitive'
     return ''
@@ -5446,6 +5465,8 @@ function! fugitive#MapJumps(...) abort
       call s:MapMotion(']]', 'exe <SID>NextSection(v:count1)')
       call s:MapMotion('[]', 'exe <SID>PreviousSectionEnd(v:count1)')
       call s:MapMotion('][', 'exe <SID>NextSectionEnd(v:count1)')
+      call s:Map('nxo', '*', '<SID>PatchSearchExpr(0)', '<expr>')
+      call s:Map('nxo', '#', '<SID>PatchSearchExpr(1)', '<expr>')
     endif
     call s:Map('n', 'S',    ':<C-U>echoerr "Use gO"<CR>', '<silent>')
     call s:Map('n', 'dq', ":<C-U>call <SID>DiffClose()<CR>", '<silent>')
