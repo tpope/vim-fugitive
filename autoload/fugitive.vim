@@ -4146,6 +4146,7 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
             endif
             execute 'tabnext '.mytab
           endtry
+          break
         endif
       endfor
     endfor
