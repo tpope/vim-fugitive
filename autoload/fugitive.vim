@@ -1810,12 +1810,12 @@ function! fugitive#BufReadStatus() abort
     call s:Map('n', 'u', ":<C-U>execute <SID>Do('Unstage',0)<CR>", '<silent>')
     call s:Map('x', 'u', ":<C-U>execute <SID>Do('Unstage',1)<CR>", '<silent>')
     call s:Map('n', 'U', ":exe <SID>EchoExec('reset', '-q')<CR>", '<silent>')
-    call s:MapEx('gu', "exe <SID>StageJump(v:count, 'Untracked', 'Unstaged')")
-    call s:MapEx('gU', "exe <SID>StageJump(v:count, 'Unstaged', 'Untracked')")
-    call s:MapEx('gs', "exe <SID>StageJump(v:count, 'Staged')")
-    call s:MapEx('gp', "exe <SID>StageJump(v:count, 'Unpushed')")
-    call s:MapEx('gP', "exe <SID>StageJump(v:count, 'Unpulled')")
-    call s:MapEx('gr', "exe <SID>StageJump(v:count, 'Rebasing')")
+    call s:MapMotion('gu', "exe <SID>StageJump(v:count, 'Untracked', 'Unstaged')")
+    call s:MapMotion('gU', "exe <SID>StageJump(v:count, 'Unstaged', 'Untracked')")
+    call s:MapMotion('gs', "exe <SID>StageJump(v:count, 'Staged')")
+    call s:MapMotion('gp', "exe <SID>StageJump(v:count, 'Unpushed')")
+    call s:MapMotion('gP', "exe <SID>StageJump(v:count, 'Unpulled')")
+    call s:MapMotion('gr', "exe <SID>StageJump(v:count, 'Rebasing')")
     call s:Map('n', 'C', ":<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>", '<silent>')
     call s:Map('n', 'a', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
     call s:Map('n', 'i', ":<C-U>execute <SID>NextExpandedHunk(v:count1)<CR>", '<silent>')
@@ -5365,7 +5365,7 @@ function! s:NavigateUp(count) abort
   return rev
 endfunction
 
-function! s:MapEx(lhs, rhs) abort
+function! s:MapMotion(lhs, rhs) abort
   call s:Map('n', a:lhs, ":<C-U>" . a:rhs . "<CR>", "<silent>")
   call s:Map('o', a:lhs, ":<C-U>" . a:rhs . "<CR>", "<silent>")
   call s:Map('x', a:lhs, ":<C-U>exe 'normal! gv'<Bar>" . a:rhs . "<CR>", "<silent>")
@@ -5406,20 +5406,20 @@ function! fugitive#MapJumps(...) abort
         endif
         nnoremap <buffer> <silent> <C-N> :<C-U>execute <SID>NextItem(v:count1)<CR>
       endif
-      call s:MapEx('(', 'exe <SID>PreviousItem(v:count1)')
-      call s:MapEx(')', 'exe <SID>NextItem(v:count1)')
-      call s:MapEx('K', 'exe <SID>PreviousHunk(v:count1)')
-      call s:MapEx('J', 'exe <SID>NextHunk(v:count1)')
-      call s:MapEx('[c', 'exe <SID>PreviousHunk(v:count1)')
-      call s:MapEx(']c', 'exe <SID>NextHunk(v:count1)')
-      call s:MapEx('[/', 'exe <SID>PreviousFile(v:count1)')
-      call s:MapEx(']/', 'exe <SID>NextFile(v:count1)')
-      call s:MapEx('[m', 'exe <SID>PreviousFile(v:count1)')
-      call s:MapEx(']m', 'exe <SID>NextFile(v:count1)')
-      call s:MapEx('[[', 'exe <SID>PreviousSection(v:count1)')
-      call s:MapEx(']]', 'exe <SID>NextSection(v:count1)')
-      call s:MapEx('[]', 'exe <SID>PreviousSectionEnd(v:count1)')
-      call s:MapEx('][', 'exe <SID>NextSectionEnd(v:count1)')
+      call s:MapMotion('(', 'exe <SID>PreviousItem(v:count1)')
+      call s:MapMotion(')', 'exe <SID>NextItem(v:count1)')
+      call s:MapMotion('K', 'exe <SID>PreviousHunk(v:count1)')
+      call s:MapMotion('J', 'exe <SID>NextHunk(v:count1)')
+      call s:MapMotion('[c', 'exe <SID>PreviousHunk(v:count1)')
+      call s:MapMotion(']c', 'exe <SID>NextHunk(v:count1)')
+      call s:MapMotion('[/', 'exe <SID>PreviousFile(v:count1)')
+      call s:MapMotion(']/', 'exe <SID>NextFile(v:count1)')
+      call s:MapMotion('[m', 'exe <SID>PreviousFile(v:count1)')
+      call s:MapMotion(']m', 'exe <SID>NextFile(v:count1)')
+      call s:MapMotion('[[', 'exe <SID>PreviousSection(v:count1)')
+      call s:MapMotion(']]', 'exe <SID>NextSection(v:count1)')
+      call s:MapMotion('[]', 'exe <SID>PreviousSectionEnd(v:count1)')
+      call s:MapMotion('][', 'exe <SID>NextSectionEnd(v:count1)')
     endif
     call s:Map('n', 'S',    ':<C-U>echoerr "Use gO"<CR>', '<silent>')
     call s:Map('n', '-', ":<C-U>exe 'Gedit ' . <SID>fnameescape(<SID>NavigateUp(v:count1))<Bar> if getline(1) =~# '^tree \x\{40,\}$' && empty(getline(2))<Bar>call search('^'.escape(expand('#:t'),'.*[]~\').'/\=$','wc')<Bar>endif<CR>", '<silent>')
