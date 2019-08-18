@@ -4139,6 +4139,7 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
             silent execute '1,'.last.'delete_'
             silent write!
             silent execute lnum
+            diffupdate
             let did = 1
           finally
             if exists('restorewinnr')
