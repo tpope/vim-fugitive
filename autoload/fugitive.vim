@@ -3763,7 +3763,7 @@ function! s:LogFlushQueue(state) abort
   return queue
 endfunction
 
-function! s:LogParse(state, target, dir, line) abort
+function! s:LogParse(state, dir, line) abort
   if a:state.context ==# 'hunk' && a:line =~# '^[-+ ]'
     return []
   endif
@@ -3779,8 +3779,8 @@ function! s:LogParse(state, target, dir, line) abort
     let queue = s:LogFlushQueue(a:state)
     let a:state.queue = [{
           \ 'valid': 1,
-          \ 'filename': a:state.base . a:target,
-          \ 'module': a:state.base_module . substitute(a:target, '^/', ':', ''),
+          \ 'filename': a:state.base . a:state.target,
+          \ 'module': a:state.base_module . substitute(a:state.target, '^/', ':', ''),
           \ 'text': a:state.message}]
     let a:state.child_found = 0
     return queue
@@ -3792,7 +3792,7 @@ function! s:LogParse(state, target, dir, line) abort
     let a:state.diffing = a:line[5:-1]
   elseif a:line =~# '^@@[^@]*+\d' && has_key(a:state, 'diffing') && has_key(a:state, 'base')
     let a:state.context = 'hunk'
-    if empty(a:target) || a:target ==# a:state.diffing
+    if empty(a:state.target) || a:state.target ==# a:state.diffing
       let a:state.child_found = 1
       call add(a:state.queue, {
             \ 'valid': 1,
@@ -3800,6 +3800,18 @@ function! s:LogParse(state, target, dir, line) abort
             \ 'module': a:state.base_module . substitute(a:state.diffing, '^/', ':', ''),
             \ 'lnum': +matchstr(a:line, '+\zs\d\+'),
             \ 'text': a:state.message . matchstr(a:line, ' @@\+ .\+')})
+    endif
+  elseif a:state.follow &&
+        \ a:line =~# '^ \%(mode change \d\|\%(create\|delete\) mode \d\|\%(rename\|copy\|rewrite\) .* (\d\+%)$\)'
+    let rename = matchstr(a:line, '^ rename \zs.* => .*\ze (\d\+%)$')
+    if len(rename)
+      let rename = rename =~# '{.* => .*}' ? rename : '{' . rename . '}'
+      if a:state.target ==# simplify('/' . substitute(rename, '{.* => \(.*\)}', '\1', ''))
+        let a:state.target = simplify('/' . substitute(rename, '{\(.*\) => .*}', '\1', ''))
+      endif
+    endif
+    if !get(a:state, 'ignore_summary')
+      call add(a:state.queue, {'text': a:line})
     endif
   elseif a:state.context ==# 'commit' || a:state.context ==# 'init'
     call add(a:state.queue, {'text': a:line})
@@ -3831,11 +3843,22 @@ function! s:Log(type, bang, line1, count, args, legacy) abort
   endif
   let range = ''
   let extra = []
+  let state = {'context': 'init', 'child_found': 0, 'queue': [], 'follow': 0}
   if path =~# '^/\.git\%(/\|$\)\|^$'
     let path = ''
   elseif a:line1 == 0
     let range = "0," . (a:count ? a:count : bufnr(''))
     let extra = ['.' . path]
+    if (empty(paths) || paths ==# ['--']) && !s:HasOpt(args, '--no-follow')
+      let state.follow = 1
+      if !s:HasOpt(args, '--follow')
+        call insert(args, '--follow')
+      endif
+      if !s:HasOpt(args, '--summary')
+        call insert(args, '--summary')
+        let state.ignore_summary = 1
+      endif
+    endif
   elseif a:count > 0
     if !s:HasOpt(args, '--merges', '--no-merges')
       call insert(args, '--no-merges')
@@ -3865,12 +3888,12 @@ function! s:Log(type, bang, line1, count, args, legacy) abort
   call extend(cmd,
         \ ['--no-color', '--no-ext-diff', '--pretty=format:fugitive ' . format] +
         \ args + paths + extra)
-  let state = {'context': 'init', 'child_found': 0, 'queue': []}
+  let state.target = path
   let title = (listnr < 0 ? ':Gclog ' : ':Gllog ') . s:fnameescape(args + paths)
   if empty(paths + extra) && a:legacy && len(s:Relative('/'))
     let after = '|echohl WarningMsg|echo ' . string('Use :0Glog or :0Gclog for old behavior of targeting current file') . '|echohl NONE' . after
   endif
-  return s:QuickfixStream(listnr, title, s:UserCommandList(dir) + cmd, !a:bang, s:function('s:LogParse'), state, path, dir) . after
+  return s:QuickfixStream(listnr, title, s:UserCommandList(dir) + cmd, !a:bang, s:function('s:LogParse'), state, dir) . after
 endfunction
 
 call s:command("-bang -nargs=? -range=-1 -addr=windows -complete=customlist,s:GrepComplete Ggrep", "grep")
