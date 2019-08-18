@@ -22,7 +22,7 @@ syn match FugitiveSymbolicRef /\.\@!\%(\.\.\@!\|[^[:space:][:cntrl:]\:.]\)\+\.\@
 syn match fugitiveHash /^\x\{4,\}\>/ contained containedin=fugitiveSection
 syn match fugitiveHash /\<\x\{4,\}\>/ contained
 
-syn region fugitiveHunk start=/^\%(@@ -\)\@=/ end=/^\%([A-Za-z?@]\|$\)\@=/ contains=@fugitiveDiff containedin=fugitiveSection fold
+syn region fugitiveHunk start=/^\%(@@\+ -\)\@=/ end=/^\%([A-Za-z?@]\|$\)\@=/ contains=@fugitiveDiff containedin=fugitiveSection fold
 
 hi def link fugitiveHeader Label
 hi def link fugitiveHeading PreProc
