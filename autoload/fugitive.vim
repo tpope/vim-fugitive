@@ -3004,42 +3004,48 @@ function! s:StageApply(info, reverse, extra) abort
 endfunction
 
 function! s:StageDelete(lnum1, lnum2, count) abort
-  let info = get(s:Selection(a:lnum1, a:lnum2), 0, {'filename': ''})
-  if empty(info.filename)
-    return ''
-  endif
-  let hash = s:TreeChomp('hash-object', '-w', '--', info.paths[0])
+  let restore = []
+  let err = ''
   try
-    if empty(hash)
-      return ''
-    elseif info.patch
-      call s:StageApply(info, 1, info.section ==# 'Staged' ? ['--index'] : [])
-    elseif info.status ==# '?'
-      call s:TreeChomp('clean', '-f', '--', info.paths[0])
-    elseif a:count == 2
-      call s:TreeChomp('checkout', '--ours', '--', info.paths[0])
-    elseif a:count == 3
-      call s:TreeChomp('checkout', '--theirs', '--', info.paths[0])
-    elseif info.status =~# '[ADU]' &&
-          \ get(b:fugitive_status[info.section ==# 'Staged' ? 'Unstaged' : 'Staged'], info.filename, '') =~# '[AU]'
-      call s:TreeChomp('checkout', info.section ==# 'Staged' ? '--ours' : '--theirs', '--', info.paths[0])
-    elseif info.status ==# 'U'
-      call s:TreeChomp('rm', '--', info.paths[0])
-    elseif info.status ==# 'A'
-      call s:TreeChomp('rm', '-f', '--', info.paths[0])
-    elseif info.section ==# 'Unstaged'
-      call s:TreeChomp('checkout', '--', info.paths[0])
-    else
-      call s:TreeChomp('checkout', 'HEAD^{}', '--', info.paths[0])
-    endif
+    for info in s:Selection(a:lnum1, a:lnum2)
+      if empty(info.paths)
+        continue
+      endif
+      let hash = s:TreeChomp('hash-object', '-w', '--', info.paths[0])
+      if empty(hash)
+        continue
+      endif
+      if info.patch
+        call s:StageApply(info, 1, info.section ==# 'Staged' ? ['--index'] : [])
+      elseif info.status ==# '?'
+        call s:TreeChomp('clean', '-f', '--', info.paths[0])
+      elseif a:count == 2
+        call s:TreeChomp('checkout', '--ours', '--', info.paths[0])
+      elseif a:count == 3
+        call s:TreeChomp('checkout', '--theirs', '--', info.paths[0])
+      elseif info.status =~# '[ADU]' &&
+            \ get(b:fugitive_status[info.section ==# 'Staged' ? 'Unstaged' : 'Staged'], info.filename, '') =~# '[AU]'
+        call s:TreeChomp('checkout', info.section ==# 'Staged' ? '--ours' : '--theirs', '--', info.paths[0])
+      elseif info.status ==# 'U'
+        call s:TreeChomp('rm', '--', info.paths[0])
+      elseif info.status ==# 'A'
+        call s:TreeChomp('rm', '-f', '--', info.paths[0])
+      elseif info.section ==# 'Unstaged'
+        call s:TreeChomp('checkout', '--', info.paths[0])
+      else
+        call s:TreeChomp('checkout', 'HEAD^{}', '--', info.paths[0])
+      endif
+      call add(restore, ':Gsplit ' . s:fnameescape(info.relative[0]) . '|Gread ' . hash[0:6])
+    endfor
   catch /^fugitive:/
-    return 'echoerr ' . string(v:exception)
+    let err = '|echoerr ' . string(v:exception)
   endtry
+  if empty(restore)
+    return err[1:-1]
+  endif
   exe s:ReloadStatus()
   call s:StageReveal()
-  let @@ = hash
-  return 'checktime|redraw|echomsg ' .
-        \ string('To restore, :Gedit ' . info.relative[0] . '|Gread ' . hash[0:6])
+  return 'checktime|redraw|echomsg ' . string('To restore, ' . join(restore, '|')) . err
 endfunction
 
 function! s:StageIgnore(lnum1, lnum2, count) abort
