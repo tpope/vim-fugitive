@@ -214,6 +214,14 @@ function! FugitiveDetect(path) abort
   endif
 endfunction
 
+function! FugitiveVimPath(path) abort
+  if exists('+shellslash') && !&shellslash
+    return tr(a:path, '/', '\')
+  else
+    return a:path
+  endif
+endfunction
+
 function! s:Slash(path) abort
   if exists('+shellslash')
     return tr(a:path, '\', '/')
