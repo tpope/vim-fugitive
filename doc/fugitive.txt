@@ -575,12 +575,12 @@ optional object, the default is the file in the index for work tree files and
 the work tree file for everything else.  Example objects follow.
 
 Object          Meaning ~
-HEAD            .git/HEAD
-refs/heads/x    .git/refs/heads/x (in "common dir" if present)
 @               The commit referenced by @ aka HEAD
+master          The commit referenced by master
 master^         The parent of the commit referenced by master
 master:         The tree referenced by master
 ./master        The file named master in the working directory
+:(top)master    The file named master in the the work tree
 Makefile        The file named Makefile in the work tree
 @^:Makefile     The file named Makefile in the parent of HEAD
 :Makefile       The file named Makefile in the index (writable)
