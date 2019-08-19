@@ -394,7 +394,6 @@ function! fugitive#PrepareDirEnvArgv(...) abort
   if !exists('dir')
     let dir = s:Dir()
   endif
-  let tree = s:Tree(dir)
   call s:PreparePathArgs(cmd, dir, !exists('explicit_pathspec_option'))
   return [dir, env, cmd]
 endfunction
