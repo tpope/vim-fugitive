@@ -228,10 +228,10 @@ function! s:UserCommandList(...) abort
   if len(dir)
     let tree = s:Tree(dir)
     if empty(tree)
-      call add(git, '--git-dir=' . dir)
+      call add(git, '--git-dir=' . FugitiveGitPath(dir))
     elseif len(tree) && s:cpath(tree) !=# s:cpath(getcwd())
       if fugitive#GitVersion(1, 8, 5)
-        call extend(git, ['-C', tree])
+        call extend(git, ['-C', FugitiveGitPath(tree)])
       else
         throw 'fugitive: Git 1.8.5 or higher required to change directory'
       endif
@@ -402,9 +402,9 @@ function! s:BuildShell(dir, env, args) abort
     endif
   endfor
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
-    call insert(cmd, '--git-dir=' . a:dir)
+    call insert(cmd, '--git-dir=' . FugitiveGitPath(a:dir))
   elseif fugitive#GitVersion(1, 8, 5)
-    call extend(cmd, ['-C', tree], 'keep')
+    call extend(cmd, ['-C', FugitiveGitPath(tree)], 'keep')
   else
     let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? '& ' : '; ') . pre
   endif
@@ -826,7 +826,7 @@ function! fugitive#Path(url, ...) abort
     let file = '/'
   endif
   if empty(file) && a:1 =~# '^$\|^[.:]/$'
-    return s:Slash(fugitive#Real(a:url))
+    return FugitiveGitPath(fugitive#Real(a:url))
   endif
   return substitute(file, '^/', a:1, '')
 endfunction

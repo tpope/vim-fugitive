@@ -222,6 +222,10 @@ function! FugitiveVimPath(path) abort
   endif
 endfunction
 
+function! FugitiveGitPath(path) abort
+  return s:Slash(a:path)
+endfunction
+
 function! s:Slash(path) abort
   if exists('+shellslash')
     return tr(a:path, '\', '/')
