@@ -20,18 +20,14 @@ function! FugitiveGitDir(...) abort
   endif
 endfunction
 
-function! FugitiveCommonDir(...) abort
-  let dir = FugitiveGitDir(a:0 ? a:1 : -1)
-  if empty(dir)
-    return ''
-  endif
-  return fugitive#CommonDir(dir)
-endfunction
-
-function! FugitiveWorkTree(...) abort
-  return s:Tree(FugitiveGitDir(a:0 ? a:1 : -1))
-endfunction
-
+" FugitiveReal() takes a fugitive:// URL and returns the corresponding path in
+" the work tree.  This may be useful to get a cleaner path for inclusion in
+" the statusline, for example.  Note that the file and its parent directories
+" are not guaranteed to exist.
+"
+" This is intended as an abstract API to be used on any "virtual" path.  For a
+" buffer named foo://bar, check for a function named FooReal(), and if it
+" exists, call FooReal("foo://bar").
 function! FugitiveReal(...) abort
   let file = a:0 ? a:1 : @%
   if file =~# '^\a\a\+:' || a:0 > 1
@@ -43,6 +39,13 @@ function! FugitiveReal(...) abort
   endif
 endfunction
 
+" FugitiveFind() takes a Fugitive object and returns the appropriate Vim
+" buffer name.  You can use this to generate Fugitive URLs ("HEAD:README") or
+" to get the absolute path to a file in the Git dir (".git/HEAD"), the common
+" dir (".git/config"), or the work tree (":(top)Makefile").
+"
+" An optional second argument provides the Git dir, or the buffer number of a
+" buffer with a Git dir.  The default is the current buffer.
 function! FugitiveFind(...) abort
   return fugitive#Find(a:0 ? a:1 : bufnr(''), FugitiveGitDir(a:0 > 1 ? a:2 : -1))
 endfunction
@@ -55,6 +58,9 @@ function! FugitivePath(...) abort
   endif
 endfunction
 
+" FugitiveParse() takes a fugitive:// URL and returns a 2 element list
+" containing the Git dir and an object name ("commit:file").  It's effectively
+" then inverse of FugitiveFind().
 function! FugitiveParse(...) abort
   let path = s:Slash(a:0 ? a:1 : @%)
   if path !~# '^fugitive:'
@@ -68,6 +74,14 @@ function! FugitiveParse(...) abort
   throw v:errmsg
 endfunction
 
+" FugitivePrepare() constructs a Git command string which can be executed with
+" functions like system() and commands like :!.  Integer arguments will be
+" treated as buffer numbers, and the appropriate relative path inserted in
+" their place.
+"
+" If the first argument is a string that looks like a path or an empty string,
+" it will be used as the Git dir.  If it's a buffer number, the Git dir for
+" that buffer will be used.  The default is the current buffer.
 function! FugitivePrepare(...) abort
   return call('fugitive#Prepare', a:000)
 endfunction
@@ -99,6 +113,18 @@ function! FugitiveStatusline(...) abort
     return ''
   endif
   return fugitive#Statusline()
+endfunction
+
+function! FugitiveCommonDir(...) abort
+  let dir = FugitiveGitDir(a:0 ? a:1 : -1)
+  if empty(dir)
+    return ''
+  endif
+  return fugitive#CommonDir(dir)
+endfunction
+
+function! FugitiveWorkTree(...) abort
+  return s:Tree(FugitiveGitDir(a:0 ? a:1 : -1))
 endfunction
 
 function! FugitiveIsGitDir(path) abort
