@@ -4537,9 +4537,8 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
     let w:fugitive_diff_restore = restore
     let winnr = winnr()
     if getwinvar('#', '&diff')
-      exe back
-      if !a:keepfocus
-        call feedkeys(winnr."\<C-W>w", 'n')
+      if a:keepfocus
+        exe back
       endif
     endif
     return post
