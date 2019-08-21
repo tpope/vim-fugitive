@@ -1838,7 +1838,7 @@ function! fugitive#BufReadStatus() abort
     call s:Map('n', 'I', ":<C-U>execute <SID>StagePatch(line('.'),line('.'))<CR>", '<silent>')
     call s:Map('x', 'I', ":<C-U>execute <SID>StagePatch(line(\"'<\"),line(\"'>\"))<CR>", '<silent>')
     if empty(mapcheck('q', 'n'))
-      nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<Bar>echohl WarningMsg<Bar>echo ':Gstatus q is deprecated in favor of gq or the built-in <C-W>q'<Bar>echohl NONE<CR>
+      nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<Bar>echohl WarningMsg<Bar>echo ':Gstatus q is deprecated in favor of gq or the built-in <Lt>C-W>q'<Bar>echohl NONE<CR>
     endif
     call s:Map('n', 'gq', ":<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>", '<silent>')
     call s:Map('n', 'R', ":echohl WarningMsg<Bar>echo 'Reloading is automatic.  Use :e to force'<Bar>echohl NONE<CR>", '<silent>')
