@@ -73,10 +73,13 @@ function! s:throw(string) abort
 endfunction
 
 function! s:DirCheck(...) abort
-  if empty(a:0 ? s:Dir(a:1) : s:Dir())
-    return 'return ' . string('echoerr "fugitive: not a Git repository"')
+  if !empty(a:0 ? s:Dir(a:1) : s:Dir())
+    return ''
+  elseif empty(bufname(''))
+    return 'return ' . string('echoerr "fugitive: blank buffer unsupported (edit a file from a repository)"')
+  else
+    return 'return ' . string('echoerr "fugitive: file does not belong to a Git repository"')
   endif
-  return ''
 endfunction
 
 function! s:Mods(mods, ...) abort
@@ -582,7 +585,7 @@ endfunction
 function! s:Command(command, line1, line2, range, bang, mods, arg, args) abort
   try
     if a:command =~# '^\l[[:alnum:]-]\+$'
-      return s:GitCommand(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', a:command . ' ' . a:arg, [a:command] + a:args)
+      return fugitive#Command(a:line1, a:line2, a:range, a:bang, s:Mods(a:mods), a:command . ' ' . a:arg)
     endif
     return s:{a:command}Command(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', a:arg, a:args)
   catch /^fugitive:/
@@ -2103,11 +2106,11 @@ augroup END
 
 " Section: :Git
 
-function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   let dir = s:Dir()
   let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
   if empty(args)
-    let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:count, a:bang, a:mods, a:reg, '', [])
+    let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [])
     return (empty(cmd) ? 'exe' : cmd) . after
   endif
   let alias = get(s:Aliases(dir), args[0], '!')
@@ -2120,7 +2123,7 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
   if exists('*s:' . name . 'Subcommand') && get(args, 1, '') !=# '--help'
     try
       exe s:DirCheck(dir)
-      return 'exe ' . string(s:{name}Subcommand(a:line1, a:count, a:range, a:bang, a:mods, args[1:-1])) . after
+      return 'exe ' . string(s:{name}Subcommand(a:line1, a:line2, a:range, a:bang, a:mods, args[1:-1])) . after
     catch /^fugitive:/
       return 'echoerr ' . string(v:exception)
     endtry
@@ -2128,7 +2131,7 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
   if a:bang || args[0] =~# '^-P$\|^--no-pager$\|diff\%(tool\)\@!\|log\|^show$' ||
         \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show') ||
         \ (args[0] ==# 'help' || get(args, 1, '') ==# '--help') && !s:HasOpt(args, '--web')
-    return s:OpenExec((a:count > 0 ? a:count : '') . (a:count ? 'split' : 'edit'), a:mods, args, dir) . after
+    return s:OpenExec((a:line2 > 0 ? a:line2 : '') . (a:line2 ? 'split' : 'edit'), a:mods, args, dir) . after
   endif
   if s:HasOpt(args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
         \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
@@ -2136,10 +2139,10 @@ function! s:GitCommand(line1, line2, range, count, bang, mods, reg, arg, args) a
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
     if has('nvim')
       if &autowrite || &autowriteall | silent! wall | endif
-      return mods . (a:count ? 'split' : 'edit') . ' term://' . s:fnameescape(s:UserCommand(dir, args)) . '|startinsert' . after
+      return mods . (a:line2 ? 'split' : 'edit') . ' term://' . s:fnameescape(s:UserCommand(dir, args)) . '|startinsert' . after
     elseif has('terminal')
       if &autowrite || &autowriteall | silent! wall | endif
-      return 'exe ' . string(mods . 'terminal ' . (a:count ? '' : '++curwin ') . join(map(s:UserCommandList(dir) + args, 's:fnameescape(v:val)'))) . after
+      return 'exe ' . string(mods . 'terminal ' . (a:line2 ? '' : '++curwin ') . join(map(s:UserCommandList(dir) + args, 's:fnameescape(v:val)'))) . after
     endif
   endif
   if has('gui_running') && !has('win32')
@@ -2177,7 +2180,7 @@ function! s:Aliases(dir) abort
   return s:aliases[a:dir]
 endfunction
 
-function! fugitive#CompleteGit(lead, ...) abort
+function! fugitive#Complete(lead, ...) abort
   let dir = a:0 == 1 ? a:1 : a:0 == 3 ? a:3 : s:Dir()
   let pre = a:0 > 1 ? strpart(a:1, 0, a:2) : ''
   let subcmd = matchstr(pre, '\u\w*[! ] *\zs[[:alnum:]-]\+\ze ')
@@ -2192,13 +2195,6 @@ function! fugitive#CompleteGit(lead, ...) abort
   endif
   return filter(results, 'strpart(v:val, 0, strlen(a:lead)) ==# a:lead')
 endfunction
-
-function! fugitive#Complete(...) abort
-  return call('fugitive#CompleteGit', a:000)
-endfunction
-
-call s:command("-bang -nargs=? -range=-1 -addr=other -complete=customlist,fugitive#CompleteGit Git", "Git")
-call s:command("-bang -nargs=? -range=-1 -addr=other -complete=customlist,fugitive#CompleteGit G", "Git")
 
 " Section: :Gcd, :Glcd
 
@@ -4063,7 +4059,7 @@ endfunction
 
 function! s:ReadComplete(A,L,P) abort
   if a:L =~# '^\w\+!'
-    return fugitive#CompleteGit(a:A, a:L, a:P)
+    return fugitive#Complete(a:A, a:L, a:P)
   else
     return fugitive#CompleteObject(a:A, a:L, a:P)
   endif
