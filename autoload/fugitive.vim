@@ -4775,13 +4775,11 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
     endif
     let i += 1
   endwhile
-  if empty(ranges + commits + files) && has_key(s:TempState(), 'blame_flags')
-    return substitute(s:BlameLeave(), '^$', 'bdelete', '')
-  endif
   let file = substitute(get(files, 0, get(s:TempState(), 'blame_file', s:Relative('./'))), '^\.\%(/\|$\)', '', '')
   if empty(commits) && len(files) > 1
     call add(commits, remove(files, 1))
   endif
+  exe s:BlameLeave()
   try
     let cmd = ['--no-pager', '-c', 'blame.coloring=none', '-c', 'blame.blankBoundary=false', 'blame', '--show-number']
     call extend(cmd, filter(copy(flags), 'v:val !~# "\\v^%(-b|--%(no-)=color-.*|--progress)$"'))
