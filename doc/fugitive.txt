@@ -455,7 +455,7 @@ cS                      Create a `squash!` commit for the commit under the
 cA                      Create a `squash!` commit for the commit under the
                         cursor and edit the message.
 
-c<Space>                Populate command line with ":Gcommit ".
+c<Space>                Populate command line with ":Git commit ".
 
                                                 *fugitive_cr*
 crc                     Revert the commit under the cursor.
@@ -463,10 +463,10 @@ crc                     Revert the commit under the cursor.
 crn                     Revert the commit under the cursor in the index and
                         work tree, but do not actually commit the changes.
 
-cr<Space>               Populate command line with ":Grevert ".
+cr<Space>               Populate command line with ":Git revert ".
 
                                                 *fugitive_cm*
-cm<Space>               Populate command line with ":Gmerge ".
+cm<Space>               Populate command line with ":Git merge ".
 
 c?                      Show this help.
 
@@ -476,9 +476,9 @@ Checkout/branch mappings ~
 
 coo                     Check out the commit under the cursor.
 
-cb<Space>               Populate command line with ":G branch ".
+cb<Space>               Populate command line with ":Git branch ".
 
-co<Space>               Populate command line with ":G checkout ".
+co<Space>               Populate command line with ":Git checkout ".
 
 cb?                     Show this help.
 co?
@@ -502,7 +502,7 @@ czP                     Pop topmost stash, or stash@{count}.
 czp                     Pop topmost stash, or stash@{count}, preserving the
                         index.
 
-cz<Space>               Populate command line with ":G stash ".
+cz<Space>               Populate command line with ":Git stash ".
 
 cz?                     Show this help.
 
@@ -538,7 +538,7 @@ rm                      Perform an interactive rebase with the commit under
 rd                      Perform an interactive rebase with the commit under
                         the cursor set to `drop`.
 
-r<Space>                Populate command line with ":Grebase ".
+r<Space>                Populate command line with ":Git rebase ".
 
 r?                      Show this help.
 

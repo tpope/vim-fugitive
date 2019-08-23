@@ -5474,10 +5474,10 @@ function! fugitive#MapJumps(...) abort
     call s:Map('n', 'gi',    ":<C-U>exe 'Gsplit' (v:count ? '.gitignore' : '.git/info/exclude')<CR>", '<silent>')
     call s:Map('x', 'gi',    ":<C-U>exe 'Gsplit' (v:count ? '.gitignore' : '.git/info/exclude')<CR>", '<silent>')
 
-    nnoremap <buffer>       c<Space> :Gcommit<Space>
-    nnoremap <buffer>          c<CR> :Gcommit<CR>
-    nnoremap <buffer>      cv<Space> :Gcommit -v<Space>
-    nnoremap <buffer>         cv<CR> :Gcommit -v<CR>
+    nnoremap <buffer>       c<Space> :Git commit<Space>
+    nnoremap <buffer>          c<CR> :Git commit<CR>
+    nnoremap <buffer>      cv<Space> :Git commit -v<Space>
+    nnoremap <buffer>         cv<CR> :Git commit -v<CR>
     nnoremap <buffer> <silent> ca    :<C-U>Gcommit --amend<CR>
     nnoremap <buffer> <silent> cc    :<C-U>Gcommit<CR>
     nnoremap <buffer> <silent> ce    :<C-U>Gcommit --amend --no-edit<CR>
@@ -5494,18 +5494,18 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer>          cA    :<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer> <silent> c?    :<C-U>help fugitive_c<CR>
 
-    nnoremap <buffer>      cr<Space> :Grevert<Space>
-    nnoremap <buffer>         cr<CR> :Grevert<CR>
+    nnoremap <buffer>      cr<Space> :Git revert<Space>
+    nnoremap <buffer>         cr<CR> :Git revert<CR>
     nnoremap <buffer> <silent> crc   :<C-U>Grevert <C-R>=<SID>SquashArgument()<CR><CR>
     nnoremap <buffer> <silent> crn   :<C-U>Grevert --no-commit <C-R>=<SID>SquashArgument()<CR><CR>
     nnoremap <buffer> <silent> cr?   :help fugitive_cr<CR>
 
-    nnoremap <buffer>      cm<Space> :Gmerge<Space>
-    nnoremap <buffer>         cm<CR> :Gmerge<CR>
+    nnoremap <buffer>      cm<Space> :Git merge<Space>
+    nnoremap <buffer>         cm<CR> :Git merge<CR>
     nnoremap <buffer> <silent> cm?   :help fugitive_cm<CR>
 
-    nnoremap <buffer>      cz<Space> :G stash<Space>
-    nnoremap <buffer>         cz<CR> :G stash<CR>
+    nnoremap <buffer>      cz<Space> :Git stash<Space>
+    nnoremap <buffer>         cz<CR> :Git stash<CR>
     nnoremap <buffer> <silent> cza   :<C-U>exe <SID>EchoExec(['stash', 'apply', '--quiet', '--index', 'stash@{' . v:count . '}'])<CR>
     nnoremap <buffer> <silent> czA   :<C-U>exe <SID>EchoExec(['stash', 'apply', '--quiet', 'stash@{' . v:count . '}'])<CR>
     nnoremap <buffer> <silent> czp   :<C-U>exe <SID>EchoExec(['stash', 'pop', '--quiet', '--index', 'stash@{' . v:count . '}'])<CR>
@@ -5515,17 +5515,17 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> czz   :<C-U>exe <SID>EchoExec(['stash'] + (v:count > 1 ? ['--all'] : v:count ? ['--include-untracked'] : []))<CR>
     nnoremap <buffer> <silent> cz?   :<C-U>help fugitive_cz<CR>
 
-    nnoremap <buffer>      co<Space> :G checkout<Space>
-    nnoremap <buffer>         co<CR> :G checkout<CR>
+    nnoremap <buffer>      co<Space> :Git checkout<Space>
+    nnoremap <buffer>         co<CR> :Git checkout<CR>
     nnoremap <buffer>          coo   :exe <SID>EchoExec(['checkout'] + split(<SID>SquashArgument()) + ['--'])<CR>
     nnoremap <buffer>          co?   :<C-U>help fugitive_co<CR>
 
-    nnoremap <buffer>      cb<Space> :G branch<Space>
-    nnoremap <buffer>         cb<CR> :G branch<CR>
+    nnoremap <buffer>      cb<Space> :Git branch<Space>
+    nnoremap <buffer>         cb<CR> :Git branch<CR>
     nnoremap <buffer>         cb?    :<C-U>help fugitive_cb<CR>
 
-    nnoremap <buffer>       r<Space> :Grebase<Space>
-    nnoremap <buffer>          r<CR> :Grebase<CR>
+    nnoremap <buffer>       r<Space> :Git rebase<Space>
+    nnoremap <buffer>          r<CR> :Git rebase<CR>
     nnoremap <buffer> <silent> ri    :<C-U>Grebase --interactive<C-R>=<SID>RebaseArgument()<CR><CR>
     nnoremap <buffer> <silent> rf    :<C-U>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><CR>
     nnoremap <buffer> <silent> ru    :<C-U>Grebase --interactive @{upstream}<CR>
