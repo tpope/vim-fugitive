@@ -581,7 +581,7 @@ master^         The parent of the commit referenced by master
 master...other  The merge base of master and other
 master:         The tree referenced by master
 ./master        The file named master in the working directory
-:(top)master    The file named master in the the work tree
+:(top)master    The file named master in the work tree
 Makefile        The file named Makefile in the work tree
 @^:Makefile     The file named Makefile in the parent of HEAD
 :Makefile       The file named Makefile in the index (writable)
