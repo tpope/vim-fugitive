@@ -3893,7 +3893,7 @@ function! s:UsableWin(nr) abort
         \ index(['nofile','help','quickfix'], getbufvar(winbufnr(a:nr), '&buftype')) < 0
 endfunction
 
-function! s:OpenParse(args) abort
+function! s:OpenParse(args, can_cmd) abort
   let pre = []
   let args = copy(a:args)
   while !empty(args) && args[0] =~# '^+'
@@ -3908,7 +3908,38 @@ function! s:OpenParse(args) abort
   else
     let file = '>'
   endif
-  return [s:Expand(file), join(pre)]
+
+  let efile = s:Expand(file)
+  if a:can_cmd && empty(filter(copy(pre), 'v:val !~# "^ ++"')) && file[0] ==# '>' && efile[0] !=# '>' && s:PathInfo(@%)[2] !=# 'tree'
+    let url = s:Generate(efile)
+    let from = s:DirCommitFile(@%)[1]
+    let to = s:DirCommitFile(url)[1]
+    let cases = {
+          \ '0,': [],
+          \ ',0': ['-R'],
+          \ '0,\x\{40,\}': ['--cached', to, '-R'],
+          \ '\x\{40,\},0': ['--cached', from],
+          \ ',\x\{40,\}': [to, '-R'],
+          \ '\x\{40,\},': [from],
+          \ '\x\{40,\},\x\{40,\}': [from, to],
+          \ }
+    let args = get(values(filter(cases, 'from.",".to =~# "^".v:key."$"')), 0, ['@', '@'])
+    let [res, exec_error] = s:LinesError(['diff', '-U0'] + args + ['--', fugitive#Real(url)])
+    if !exec_error
+      call filter(res, 'v:val =~# "^@@"')
+      call map(res, 'substitute(v:val, ''[-+]\d\+\zs '', ",1 ", "g")')
+      call map(res, 'matchlist(v:val, ''^@@ -\(\d\+\),\(\d\+\) +\(\d\+\),\(\d\+\) @@'')[1:4]')
+      call filter(res, 'v:val[0] < '.line('.'))
+      let hunk = get(res, -1, [0,0,0,0])
+      if hunk[0] + hunk[1] > line('.')
+        let pre += [' +'.(hunk[2] + max([1 - hunk[3], 0]))]
+      else
+        let pre += [' +'.(hunk[2] + max([hunk[3], 1]) + line('.') - hunk[0] - max([hunk[1], 1]))]
+      endif
+    endif
+  endif
+
+  return [efile, join(pre)]
 endfunction
 
 function! s:DiffClose() abort
@@ -3976,7 +4007,7 @@ function! fugitive#Open(cmd, bang, mods, arg, args) abort
 
   let mods = s:Mods(a:mods)
   try
-    let [file, pre] = s:OpenParse(a:args)
+    let [file, pre] = s:OpenParse(a:args, 1)
     let file = s:Generate(file)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
@@ -4010,7 +4041,7 @@ function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
     return 'redraw|echo '.string(':!'.s:UserCommand(dir, args))
   endif
   try
-    let [file, pre] = s:OpenParse(a:args)
+    let [file, pre] = s:OpenParse(a:args, 0)
     let file = s:Generate(file)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
