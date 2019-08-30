@@ -4971,21 +4971,17 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
           silent tabedit %
         endif
         let mods = substitute(a:mods, '\<tab\>', '', 'g')
+
+        let bufnr = bufnr('')
+        " Delete any existing blame buffer(s) for the current buffer.
         for winnr in range(winnr('$'),1,-1)
-          if getwinvar(winnr, '&scrollbind')
-            call setwinvar(winnr, '&scrollbind', 0)
-          endif
-          if exists('+cursorbind') && getwinvar(winnr, '&cursorbind')
-            call setwinvar(winnr, '&cursorbind', 0)
-          endif
-          if s:BlameBufnr(winbufnr(winnr)) > 0
+          if s:BlameBufnr(winbufnr(winnr)) == bufnr
             execute winbufnr(winnr).'bdelete'
           endif
         endfor
-        let bufnr = bufnr('')
         let temp_state.bufnr = bufnr
-        let restore = 'call setwinvar(bufwinnr('.bufnr.'),"&scrollbind",0)'
-        if exists('+cursorbind')
+        let restore = &scrollbind ? '' : 'call setwinvar(bufwinnr('.bufnr.'),"&scrollbind",0)'
+        if exists('+cursorbind') && !&cursorbind
           let restore .= '|call setwinvar(bufwinnr('.bufnr.'),"&cursorbind",0)'
         endif
         if &l:wrap
