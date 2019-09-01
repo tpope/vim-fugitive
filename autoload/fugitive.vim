@@ -6815,9 +6815,11 @@ function! fugitive#Foldtext() abort
     if exists('binary')
       return 'Binary: '.filename
     else
-      return (add<10&&remove<100?' ':'') . add . '+ ' . (remove<10&&add<100?' ':'') . remove . '- ' . filename
+      return '+-' . v:folddashes . ' ' . (add<10&&remove<100?' ':'') . add . '+ ' . (remove<10&&add<100?' ':'') . remove . '- ' . filename
     endif
-  elseif line_foldstart =~# '^# .*:$'
+  elseif line_foldstart =~# '^@@\+ .* @@'
+    return '+-' . v:folddashes . ' ' . line_foldstart
+  elseif &filetype ==# 'gitcommit' && line_foldstart =~# '^# .*:$'
     let lines = getline(v:foldstart, v:foldend)
     call filter(lines, 'v:val =~# "^#\t"')
     cal map(lines, "s:sub(v:val, '^#\t%(modified: +|renamed: +)=', '')")
