@@ -5182,10 +5182,10 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
       let path = '.git/' . full[strlen(dir)+1:-1]
       let type = ''
     else
-      let path = full[strlen(s:Tree(dir))+1:-1]
+      let path = fugitive#Path(full, '/')[1:-1]
       if path =~# '^\.git/'
         let type = ''
-      elseif isdirectory(full)
+      elseif isdirectory(full) || empty(path)
         let type = 'tree'
       else
         let type = 'blob'
