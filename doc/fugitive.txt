@@ -115,7 +115,7 @@ that are part of Git repositories).
                         :0Gsplit! to suppress the split and open it in the
                         current window.
 
-                                                *fugitive-:Gread*
+                                        *fugitive-:Gr* *fugitive-:Gread*
 :Gread [object]         Empty the buffer and |:read| a |fugitive-object|.
                         When the argument is omitted, this is similar to
                         git-checkout on a work tree file or git-add on a stage
@@ -123,7 +123,7 @@ that are part of Git repositories).
 
 :{range}Gread [object]  |:read| in a |fugitive-object| after {range}.
 
-                                                *fugitive-:Gread!*
+                                        *fugitive-:Gr!* *fugitive-:Gread!*
 :Gread! [args]          Empty the buffer and |:read| the output of a Git
                         command.  For example, :Gread! show HEAD:%.
 
