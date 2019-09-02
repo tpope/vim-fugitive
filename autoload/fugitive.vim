@@ -1038,8 +1038,10 @@ endfunction
 function! s:Expand(rev, ...) abort
   if a:rev =~# '^:[0-3]$'
     let file = a:rev . ':%'
-  elseif a:rev =~# '^>[~^]\|^>@{\|^>$'
-    let file = 'HEAD' . a:rev[1:-1] . ':%'
+  elseif a:rev ==# '>'
+    let file = '%'
+  elseif a:rev =~# '^>[~^]'
+    let file = '!' . a:rev[1:-1] . ':%'
   elseif a:rev =~# '^>[> ]\@!'
     let file = a:rev[1:-1] . ':%'
   else
