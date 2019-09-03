@@ -1037,13 +1037,13 @@ endfunction
 
 function! s:Expand(rev, ...) abort
   if a:rev =~# '^:[0-3]$'
-    let file = a:rev . ':%'
+    let file = len(expand('%')) ? a:rev . ':%' : '%'
   elseif a:rev ==# '>'
     let file = '%'
   elseif a:rev =~# '^>[~^]'
-    let file = '!' . a:rev[1:-1] . ':%'
+    let file = len(expand('%')) ? '!' . a:rev[1:-1] . ':%' : '%'
   elseif a:rev =~# '^>[> ]\@!'
-    let file = a:rev[1:-1] . ':%'
+    let file = len(expand('%')) ? a:rev[1:-1] . ':%' : '%'
   else
     let file = a:rev
   endif
@@ -3907,11 +3907,11 @@ function! s:OpenParse(args) abort
   if len(args)
     let file = join(args)
   elseif empty(expand('%'))
-    let file = ':'
+    let file = ''
   elseif empty(s:DirCommitFile(@%)[1]) && s:Relative('./') !~# '^\./\.git\>'
-    let file = ':0:%'
+    let file = '>:0'
   else
-    let file = '%'
+    let file = '>'
   endif
   return [s:Expand(file), join(pre)]
 endfunction
@@ -3978,7 +3978,6 @@ function! s:Open(cmd, bang, mods, arg, args) abort
   if a:bang
     return s:OpenExec(a:cmd, a:mods, s:SplitExpand(a:arg, s:Tree()))
   endif
-  exe s:DirCheck()
 
   let mods = s:Mods(a:mods)
   try
@@ -4015,7 +4014,6 @@ function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) 
     call fugitive#ReloadStatus()
     return 'redraw|echo '.string(':!'.s:UserCommand(dir, args))
   endif
-  exe s:DirCheck()
   try
     let [file, pre] = s:OpenParse(a:args)
     let file = s:Generate(file)
@@ -4055,7 +4053,6 @@ call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject
 call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gwq", "Wq")
 
 function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
-  exe s:DirCheck()
   if exists('b:fugitive_commit_arguments')
     return 'write|bdelete'
   elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
@@ -4096,6 +4093,7 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
   if file =~# '^fugitive:'
     return 'write' . (a:bang ? '! ' : ' ') . s:fnameescape(file)
   endif
+  exe s:DirCheck()
   let always_permitted = s:cpath(fugitive#Real(@%), file) && empty(s:DirCommitFile(@%)[1])
   if !always_permitted && !a:bang && (len(s:TreeChomp('diff', '--name-status', 'HEAD', '--', file)) || len(s:TreeChomp('ls-files', '--others', '--', file)))
     let v:errmsg = 'fugitive: file has uncommitted changes (use ! to override)'
@@ -4303,7 +4301,6 @@ augroup END
 
 function! s:can_diffoff(buf) abort
   return getwinvar(bufwinnr(a:buf), '&diff') &&
-        \ !empty(s:Dir(a:buf)) &&
         \ !empty(getwinvar(bufwinnr(a:buf), 'fugitive_diff_restore'))
 endfunction
 
@@ -4406,24 +4403,25 @@ function! s:IsConflicted() abort
 endfunction
 
 function! s:Diff(autodir, keepfocus, mods, ...) abort
-  if exists(':DiffGitCached') && !a:0
-    return s:Mods(a:mods) . 'DiffGitCached'
-  endif
-  exe s:DirCheck()
   let args = copy(a:000)
   let post = ''
   if get(args, 0) =~# '^+'
     let post = remove(args, 0)[1:-1]
   endif
+  if exists(':DiffGitCached') && empty(args)
+    return s:Mods(a:mods) . 'DiffGitCached' . (len(post) ? '|' . post : '')
+  endif
   let commit = s:DirCommitFile(@%)[1]
   if a:mods =~# '\<tab\>'
     let mods = substitute(a:mods, '\<tab\>', '', 'g')
-    tab split
+    let pre = 'tab split'
   else
     let mods = 'keepalt ' . a:mods
+    let pre = ''
   endif
   let back = exists('*win_getid') ? 'call win_gotoid(' . win_getid() . ')' : 'wincmd p'
   if (empty(args) || args[0] ==# ':') && a:keepfocus
+    exe s:DirCheck()
     if empty(commit) && s:IsConflicted()
       let parents = [s:Relative(':2:'), s:Relative(':3:')]
     elseif empty(commit)
@@ -4437,6 +4435,7 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
   endif
   try
     if exists('parents') && len(parents) > 1
+      exe pre
       let mods = (a:autodir ? s:diff_modifier(len(parents) + 1) : '') . s:Mods(mods, 'leftabove')
       let nr = bufnr('')
       execute mods 'split' s:fnameescape(s:Generate(parents[0]))
@@ -4463,11 +4462,14 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
       let arg = join(args, ' ')
       if arg ==# ''
         return post
-      elseif arg ==# '/'
+      elseif arg ==# ':/'
+        exe s:DirCheck()
         let file = s:Relative()
       elseif arg ==# ':'
+        exe s:DirCheck()
         let file = s:Relative(':0:')
       elseif arg =~# '^:\d$'
+        exe s:DirCheck()
         let file = s:Relative(arg . ':')
       else
         try
@@ -4484,12 +4486,14 @@ function! s:Diff(autodir, keepfocus, mods, ...) abort
       let file = s:Relative(':1:')
       let post = 'echohl WarningMsg|echo "Use :Gdiffsplit! for 3 way diff"|echohl NONE|' . post
     else
+      exe s:DirCheck()
       let file = s:Relative(':0:')
     endif
     let spec = s:Generate(file)
     if spec =~# '^fugitive:' && empty(s:DirCommitFile(spec)[2])
       let spec = FugitiveVimPath(spec . s:Relative('/'))
     endif
+    exe pre
     let restore = s:diff_restore()
     let w:fugitive_diff_restore = restore
     if s:CompareAge(commit, s:DirCommitFile(spec)[1]) < 0
