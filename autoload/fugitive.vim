@@ -3974,7 +3974,7 @@ function! s:OpenExec(cmd, mods, args, ...) abort
   return 'echo ' . string(':!' . s:UserCommand(dir, a:args))
 endfunction
 
-function! s:Open(cmd, bang, mods, arg, args) abort
+function! fugitive#Open(cmd, bang, mods, arg, args) abort
   if a:bang
     return s:OpenExec(a:cmd, a:mods, s:SplitExpand(a:arg, s:Tree()))
   endif
@@ -3995,7 +3995,7 @@ function! s:Open(cmd, bang, mods, arg, args) abort
   return mods . a:cmd . pre . ' ' . s:fnameescape(file)
 endfunction
 
-function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
   let mods = s:Mods(a:mods)
   let after = a:count
   if a:count < 0
@@ -4029,7 +4029,7 @@ function! s:ReadCommand(line1, line2, range, count, bang, mods, reg, arg, args) 
   return mods . after . 'read' . pre . ' ' . s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
 endfunction
 
-function! s:ReadComplete(A,L,P) abort
+function! fugitive#ReadComplete(A, L, P) abort
   if a:L =~# '^\w\+!'
     return fugitive#Complete(a:A, a:L, a:P)
   else
@@ -4037,22 +4037,9 @@ function! s:ReadComplete(A,L,P) abort
   endif
 endfunction
 
-call s:command("-bar -bang -nargs=*           -complete=customlist,fugitive#CompleteObject Ge       execute s:Open('edit<bang>', 0, '<mods>', <q-args>, [<f-args>])")
-call s:command("-bar -bang -nargs=*           -complete=customlist,fugitive#CompleteObject Gedit    execute s:Open('edit<bang>', 0, '<mods>', <q-args>, [<f-args>])")
-call s:command("-bar -bang -nargs=*           -complete=customlist,s:ReadComplete Gpedit   execute s:Open('pedit', <bang>0, '<mods>', <q-args>, [<f-args>])")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:ReadComplete Gsplit   execute s:Open((<count> > 0 ? <count> : '').(<count> ? 'split' : 'edit'), <bang>0, '<mods>', <q-args>, [<f-args>])")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:ReadComplete Gvsplit  execute s:Open((<count> > 0 ? <count> : '').(<count> ? 'vsplit' : 'edit!'), <bang>0, '<mods>', <q-args>, [<f-args>])")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:ReadComplete -addr=tabs Gtabedit execute s:Open((<count> >= 0 ? <count> : '').'tabedit', <bang>0, '<mods>', <q-args>, [<f-args>])")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:ReadComplete Gr", "Read")
-call s:command("-bar -bang -nargs=* -range=-1 -complete=customlist,s:ReadComplete Gread", "Read")
-
 " Section: :Gwrite, :Gwq
 
-call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gwrite", "Write")
-call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gw", "Write")
-call s:command("-bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gwq", "Wq")
-
-function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abort
   if exists('b:fugitive_commit_arguments')
     return 'write|bdelete'
   elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
@@ -4201,12 +4188,12 @@ function! s:WriteCommand(line1, line2, range, count, bang, mods, reg, arg, args)
   return 'checktime'
 endfunction
 
-function! s:WqCommand(...) abort
-  let bang = a:5 ? '!' : ''
+function! fugitive#WqCommand(...) abort
+  let bang = a:4 ? '!' : ''
   if exists('b:fugitive_commit_arguments')
     return 'wq'.bang
   endif
-  let result = call(s:function('s:WriteCommand'),a:000)
+  let result = call('fugitive#WriteCommand', a:000)
   if result =~# '^\%(write\|wq\|echoerr\)'
     return s:sub(result,'^write','wq')
   else
@@ -4282,10 +4269,6 @@ call s:command("-nargs=? -bang -complete=customlist,s:PushComplete Gpush", "push
 call s:command("-nargs=? -bang -complete=customlist,s:FetchComplete Gfetch", "fetch")
 
 " Section: :Gdiff
-
-call s:command("-bang -bar -nargs=* -complete=customlist,fugitive#CompleteObject Gdiffsplit  :execute s:Diff(1, <bang>0, '<mods>', <f-args>)")
-call s:command("-bang -bar -nargs=* -complete=customlist,fugitive#CompleteObject Gvdiffsplit :execute s:Diff(0, <bang>0, 'vertical <mods>', <f-args>)")
-call s:command("-bang -bar -nargs=* -complete=customlist,fugitive#CompleteObject Ghdiffsplit :execute s:Diff(0, <bang>0, '<mods>', <f-args>)")
 
 augroup fugitive_diff
   autocmd!
@@ -4402,8 +4385,8 @@ function! s:IsConflicted() abort
   return len(@%) && !empty(s:ChompDefault('', 'ls-files', '--unmerged', '--', expand('%:p')))
 endfunction
 
-function! s:Diff(autodir, keepfocus, mods, ...) abort
-  let args = copy(a:000)
+function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
+  let args = copy(a:args)
   let post = ''
   if get(args, 0) =~# '^+'
     let post = remove(args, 0)[1:-1]
@@ -4888,16 +4871,16 @@ function! s:BlameCommit(cmd, ...) abort
   let [commit, path, lnum] = s:BlameCommitFileLnum(line, state)
   if empty(commit) && len(path) && has_key(state, 'blame_reverse_end')
     let path = (len(state.blame_reverse_end) ? state.blame_reverse_end . ':' : ':(top)') . path
-    return s:Open(mods . a:cmd, 0, '', '+' . lnum . ' ' . s:fnameescape(path), ['+' . lnum, path])
+    return fugitive#Open(mods . a:cmd, 0, '', '+' . lnum . ' ' . s:fnameescape(path), ['+' . lnum, path])
   endif
   if commit =~# '^0*$'
     return 'echoerr ' . string('fugitive: no commit')
   endif
   if line =~# '^\^' && !has_key(state, 'blame_reverse_end')
     let path = commit . ':' . path
-    return s:Open(mods . a:cmd, 0, '', '+' . lnum . ' ' . s:fnameescape(path), ['+' . lnum, path])
+    return fugitive#Open(mods . a:cmd, 0, '', '+' . lnum . ' ' . s:fnameescape(path), ['+' . lnum, path])
   endif
-  let cmd = s:Open(mods . a:cmd, 0, '', commit, [commit])
+  let cmd = fugitive#Open(mods . a:cmd, 0, '', commit, [commit])
   if cmd =~# '^echoerr'
     return cmd
   endif

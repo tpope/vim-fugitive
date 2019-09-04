@@ -355,5 +355,24 @@ augroup fugitive
 augroup END
 
 let s:addr_other = has('patch-8.1.560') ? '-addr=other' : ''
+let s:addr_tabs  = has('patch-7.4.542') ? '-addr=tabs' : ''
 exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#Complete G   exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
 exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#Complete Git exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
+
+exe 'command! -bar -bang -nargs=*                          -complete=customlist,fugitive#CompleteObject Ge       exe fugitive#Open("edit<bang>", 0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=*                          -complete=customlist,fugitive#CompleteObject Gedit    exe fugitive#Open("edit<bang>", 0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=*                          -complete=customlist,fugitive#ReadComplete   Gpedit   exe fugitive#Open("pedit", <bang>0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=* -range=-1' s:addr_other '-complete=customlist,fugitive#ReadComplete   Gsplit   exe fugitive#Open((<count> > 0 ? <count> : "").(<count> ? "split" : "edit"), <bang>0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=* -range=-1' s:addr_other '-complete=customlist,fugitive#ReadComplete   Gvsplit  exe fugitive#Open((<count> > 0 ? <count> : "").(<count> ? "vsplit" : "edit!"), <bang>0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=* -range=-1' s:addr_tabs  '-complete=customlist,fugitive#ReadComplete   Gtabedit exe fugitive#Open((<count> >= 0 ? <count> : "")."tabedit", <bang>0, "<mods>", <q-args>, [<f-args>])'
+
+exe 'command! -bar -bang -nargs=* -range=-1                -complete=customlist,fugitive#ReadComplete   Gr       exe fugitive#ReadCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=* -range=-1                -complete=customlist,fugitive#ReadComplete   Gread    exe fugitive#ReadCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>, [<f-args>])'
+
+exe 'command! -bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gdiffsplit  exe fugitive#Diffsplit(1, <bang>0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Ghdiffsplit exe fugitive#Diffsplit(0, <bang>0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gvdiffsplit exe fugitive#Diffsplit(0, <bang>0, "vert <mods>", <q-args>, [<f-args>])'
+
+exe 'command! -bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gw     exe fugitive#WriteCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gwrite exe fugitive#WriteCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>, [<f-args>])'
+exe 'command! -bar -bang -nargs=* -complete=customlist,fugitive#CompleteObject Gwq    exe fugitive#WqCommand(   <line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>, [<f-args>])'
