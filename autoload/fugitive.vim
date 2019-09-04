@@ -5103,11 +5103,9 @@ call s:command('-buffer -bang -range=-1 -nargs=? -complete=customlist,s:BlameCom
 
 " Section: :Gbrowse
 
-call s:command("-bar -bang -range=-1 -nargs=* -complete=customlist,fugitive#CompleteObject Gbrowse", "Browse")
-
 let s:redirects = {}
 
-function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args) abort
+function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abort
   let dir = s:Dir()
   exe s:DirCheck(dir)
   try
@@ -5133,13 +5131,13 @@ function! s:BrowseCommand(line1, line2, range, count, bang, mods, reg, arg, args
     else
       let expanded = s:Expand(rev)
     endif
-    let cdir = FugitiveVimPath(fugitive#CommonDir(s:Dir()))
+    let cdir = FugitiveVimPath(fugitive#CommonDir(dir))
     for subdir in ['tags/', 'heads/', 'remotes/']
       if expanded !~# '^[./]' && filereadable(cdir . '/refs/' . subdir . expanded)
         let expanded = '.git/refs/' . subdir . expanded
       endif
     endfor
-    let full = s:Generate(expanded)
+    let full = fugitive#Find(expanded, dir)
     let commit = ''
     if full =~? '^fugitive:'
       let [pathdir, commit, path] = s:DirCommitFile(full)
