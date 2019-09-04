@@ -19,7 +19,6 @@ that are part of Git repositories).
 :Git {args}             Run an arbitrary git command. Similar to :!git [args]
 :G {args}               but chdir to the repository tree first.  For some
                         subcommands, a Fugitive command is called instead.
-                        Invoking :Git push will call :Gpush for example.
 
                                                 *:Git!*
 :Git! {args}            Like |:Git|, but capture the output into a temp file,
@@ -32,52 +31,77 @@ that are part of Git repositories).
 :G                      Press g? or see |fugitive-mappings| for usage.
 :Gstatus
 
-                                                *:Gcd*
-:Gcd [directory]        |:cd| relative to the repository.
-
-                                                *:Glcd*
-:Glcd [directory]       |:lcd| relative to the repository.
-
-                                                *:Gcommit*
-:Gcommit [args]         A wrapper around git-commit.  Unless the arguments
-                        given would skip the invocation of an editor (e.g.,
+                                                *:Git-commit* *:Gcommit*
+:Git commit [args]      A wrapper around git-commit.  Unless the arguments
+:Gcommit [args]         given would skip the invocation of an editor (e.g.,
                         -m), a split window will be used to obtain a commit
                         message, or a new tab if -v is given.  Write and close
                         the window (:wq) to finish the commit. To cancel, use
                         an empty message.
 
-                                                *:Grevert*
-:Grevert [args]         A wrapper around git-revert.  Similar to |:Gcommit|.
+                                                *:Git-revert* *:Grevert*
+:Git revert [args]      A wrapper around git-revert.  Similar to |:Gcommit|.
+:Grevert [args]
 
-                                                *:Gmerge*
-:Gmerge [args]          Calls git-merge and loads errors and conflicted files
-                        into the |quickfix| list.  Opens a |:Gcommit| style
+                                                *:Git-merge* *:Gmerge*
+:Git merge [args]       Calls git-merge and loads errors and conflicted files
+:Gmerge [args]          into the |quickfix| list.  Opens a |:Gcommit| style
                         split window for the commit message if the merge
                         succeeds.  If called during a merge conflict, the
                         conflicted files from the current index are loaded
                         into the |quickfix| list.
 
-                                                *:Gpull*
-:Gpull [args]           Like |:Gmerge|, but for git-pull.
+                                                *:Git-pull* *:Gpull*
+:Git pull [args]        Like |:Gmerge|, but for git-pull.
+:Gpull [args]
 
-                                                *:Grebase*
-:Grebase [args]         Like |:Gmerge|, but for git-rebase.  Interactive
-                        rebase is experimentally supported.
+                                                *:Git-rebase* *:Grebase*
+:Git rebase [args]      Like |:Gmerge|, but for git-rebase.  Interactive
+:Grebase [args]         rebase is experimentally supported.
 
-                                                *:Gpush*
-:Gpush [args]           Invoke git-push, load the results into the |quickfix|
-                        list, and invoke |:cwindow| to reveal any errors.
+                                                *:Git-push* *:Gpush*
+:Git push [args]        Invoke git-push, load the results into the |quickfix|
+:Gpush [args]           list, and invoke |:cwindow| to reveal any errors.
                         |:Dispatch| is used if available for asynchronous
                         invocation.
 
-                                                *:Gfetch*
-:Gfetch [args]          Like |:Gpush|, but for git-fetch.
+                                                *:Git-fetch* *:Gfetch*
+:Git fetch [args]       Like |:Gpush|, but for git-fetch.
+:Gfetch [args]
 
-                                                *:Ggrep* *:Gcgrep*
+                                                *:Git-blame* *:Gblame*
+:Git blame [flags]      Run git-blame [flags] on the current file and open the
+:Gblame [flags]         results in a scroll-bound vertical split.  The
+                        following maps, which work on the cursor line commit
+                        where sensible, are provided:
+
+                        g?    show this help
+                        A     resize to end of author column
+                        C     resize to end of commit column
+                        D     resize to end of date/time column
+                        gq    close blame, then |:Gedit| to return to work
+                              tree version
+                        <CR>  close blame, and jump to patch that added line
+                              (or directly to blob for boundary commit)
+                        o     jump to patch or blob in horizontal split
+                        O     jump to patch or blob in new tab
+                        p     jump to patch or blob in preview window
+                        -     reblame at commit
+                        ~     reblame at [count]th first grandparent
+                        P     reblame at [count]th parent (like HEAD^[count])
+
+:[range]Gblame [flags]  If a range is given, just that part of the file will
+:Gblame [flags] {file}  be blamed, and a horizontal split without
+:Git blame ...          scrollbinding is used.  You can also give an arbitrary
+                        filename.
+
+                                                *:Ggrep* *:Gcgrep* *:Git-grep*
 :Ggrep[!] [args]        |:grep|[!] with git-grep as 'grepprg'.
+:Git[!] grep [args]
 
                                                 *:Glgrep*
 :Glgrep[!] [args]       |:lgrep|[!] with git-grep as 'grepprg'.
+:0Git[!] grep [args]
 
                                                  *:Gclog* *:Glog*
 :Gclog[!] [args]        Use git-log [args] to load the commit history into the
@@ -93,6 +117,12 @@ that are part of Git repositories).
                                                 *:Gllog*
 :Gllog [args]           Like |:Gclog|, but use the location list instead of the
                         |quickfix| list.
+
+                                                *:Gcd*
+:Gcd [directory]        |:cd| relative to the repository.
+
+                                                *:Glcd*
+:Glcd [directory]       |:lcd| relative to the repository.
 
                                                 *:Gedit* *fugitive-:Ge*
 :Gedit [object]         |:edit| a |fugitive-object|.
@@ -192,32 +222,6 @@ that are part of Git repositories).
 
                                                 *:Gremove*
 :Gremove                Like :Gdelete, but keep the (now empty) buffer around.
-
-                                                *:Gblame*
-:Gblame [flags]         Run git-blame [flags] on the current file and open the
-                        results in a scroll-bound vertical split.  The
-                        following maps, which work on the cursor line commit
-                        where sensible, are provided:
-
-                        g?    show this help
-                        A     resize to end of author column
-                        C     resize to end of commit column
-                        D     resize to end of date/time column
-                        gq    close blame, then |:Gedit| to return to work
-                              tree version
-                        <CR>  close blame, and jump to patch that added line
-                              (or directly to blob for boundary commit)
-                        o     jump to patch or blob in horizontal split
-                        O     jump to patch or blob in new tab
-                        p     jump to patch or blob in preview window
-                        -     reblame at commit
-                        ~     reblame at [count]th first grandparent
-                        P     reblame at [count]th parent (like HEAD^[count])
-
-:[range]Gblame [flags]  If a range is given, just that part of the file will
-:Gblame [flags] {file}  be blamed, and a horizontal split without
-                        scrollbinding is used.  You can also give an arbitrary
-                        filename.
 
                                                 *:Gbrowse*
 :Gbrowse                Open the current file, blob, tree, commit, or tag
