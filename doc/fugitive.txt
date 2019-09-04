@@ -15,29 +15,30 @@ COMMANDS                                        *fugitive-commands*
 These commands are local to the buffers in which they work (generally, buffers
 that are part of Git repositories).
 
-                                        *fugitive-:G* *fugitive-:Gstatus*
-:G                      Bring up a summary window vaguely akin to git-status.
-:Gstatus                Press g? or see |fugitive-mappings| for usage.
-
-                                                *fugitive-:Git*
+                                                *:Git* *fugitive-:G*
 :Git {args}             Run an arbitrary git command. Similar to :!git [args]
 :G {args}               but chdir to the repository tree first.  For some
                         subcommands, a Fugitive command is called instead.
                         Invoking :Git push will call :Gpush for example.
 
-                                                *fugitive-:Git!*
+                                                *:Git!*
 :Git! {args}            Like |:Git|, but capture the output into a temp file,
 :Git --no-pager {args}  and |:split| that temp file.  Use :0Git to
 :Git -P {args}          |:edit| the temp file instead.  A temp file is always
                         used for diff and log commands.
 
-                                                *fugitive-:Gcd*
+                                                *:Gstatus*
+:Git                    Bring up a summary window vaguely akin to git-status.
+:G                      Press g? or see |fugitive-mappings| for usage.
+:Gstatus
+
+                                                *:Gcd*
 :Gcd [directory]        |:cd| relative to the repository.
 
-                                                *fugitive-:Glcd*
+                                                *:Glcd*
 :Glcd [directory]       |:lcd| relative to the repository.
 
-                                                *fugitive-:Gcommit*
+                                                *:Gcommit*
 :Gcommit [args]         A wrapper around git-commit.  Unless the arguments
                         given would skip the invocation of an editor (e.g.,
                         -m), a split window will be used to obtain a commit
@@ -45,10 +46,10 @@ that are part of Git repositories).
                         the window (:wq) to finish the commit. To cancel, use
                         an empty message.
 
-                                                *fugitive-:Grevert*
+                                                *:Grevert*
 :Grevert [args]         A wrapper around git-revert.  Similar to |:Gcommit|.
 
-                                                *fugitive-:Gmerge*
+                                                *:Gmerge*
 :Gmerge [args]          Calls git-merge and loads errors and conflicted files
                         into the |quickfix| list.  Opens a |:Gcommit| style
                         split window for the commit message if the merge
@@ -56,29 +57,29 @@ that are part of Git repositories).
                         conflicted files from the current index are loaded
                         into the |quickfix| list.
 
-                                                *fugitive-:Gpull*
+                                                *:Gpull*
 :Gpull [args]           Like |:Gmerge|, but for git-pull.
 
-                                                *fugitive-:Grebase*
+                                                *:Grebase*
 :Grebase [args]         Like |:Gmerge|, but for git-rebase.  Interactive
                         rebase is experimentally supported.
 
-                                                *fugitive-:Gpush*
+                                                *:Gpush*
 :Gpush [args]           Invoke git-push, load the results into the |quickfix|
                         list, and invoke |:cwindow| to reveal any errors.
                         |:Dispatch| is used if available for asynchronous
                         invocation.
 
-                                                *fugitive-:Gfetch*
+                                                *:Gfetch*
 :Gfetch [args]          Like |:Gpush|, but for git-fetch.
 
-                                        *fugitive-:Ggrep* *fugitive-:Gcgrep*
+                                                *:Ggrep* *:Gcgrep*
 :Ggrep[!] [args]        |:grep|[!] with git-grep as 'grepprg'.
 
-                                                *fugitive-:Glgrep*
+                                                *:Glgrep*
 :Glgrep[!] [args]       |:lgrep|[!] with git-grep as 'grepprg'.
 
-                                        *fugitive-:Gclog* *fugitive-:Glog*
+                                                 *:Gclog* *:Glog*
 :Gclog[!] [args]        Use git-log [args] to load the commit history into the
 :Glog[!] [args]         |quickfix| list.  Jump to the first commit unless [!]
                         is given.
@@ -89,33 +90,33 @@ that are part of Git repositories).
                         first diff hunk for each commit.  Use :0Gclog to
                         target the entire file.
 
-                                                *fugitive-:Gllog*
+                                                *:Gllog*
 :Gllog [args]           Like |:Gclog|, but use the location list instead of the
                         |quickfix| list.
 
-                                        *fugitive-:Gedit* *fugitive-:Ge*
+                                                *:Gedit* *fugitive-:Ge*
 :Gedit [object]         |:edit| a |fugitive-object|.
 
-                                                *fugitive-:Gsplit*
+                                                *:Gsplit*
 :Gsplit [object]        |:split| a |fugitive-object|.
 
-                                                *fugitive-:Gvsplit*
+                                                *:Gvsplit*
 :Gvsplit [object]       |:vsplit| a |fugitive-object|.
 
-                                                *fugitive-:Gtabedit*
+                                                *:Gtabedit*
 :Gtabedit [object]      |:tabedit| a |fugitive-object|.
 
-                                                *fugitive-:Gpedit*
+                                                *:Gpedit*
 :Gpedit [object]        |:pedit| a |fugitive-object|.
 
-:Gsplit! [args]                 *fugitive-:Gsplit!* *fugitive-:Gvsplit!*
-:Gvsplit! [args]                *fugitive-:Gtabedit!* *fugitive-:Gpedit!*
+:Gsplit! [args]                                 *:Gsplit!* *:Gvsplit!*
+:Gvsplit! [args]                                *:Gtabedit!* *:Gpedit!*
 :Gtabedit! [args]       Capture the output of `git [args]` to a temp file and
 :Gpedit! [args]         open it in a split, tab, or preview window.  Use
                         :0Gsplit! to suppress the split and open it in the
                         current window.
 
-                                        *fugitive-:Gr* *fugitive-:Gread*
+                                                *:Gread* *fugitive-:Gr*
 :Gread [object]         Empty the buffer and |:read| a |fugitive-object|.
                         When the argument is omitted, this is similar to
                         git-checkout on a work tree file or git-add on a stage
@@ -123,13 +124,13 @@ that are part of Git repositories).
 
 :{range}Gread [object]  |:read| in a |fugitive-object| after {range}.
 
-                                        *fugitive-:Gr!* *fugitive-:Gread!*
+                                                *:Gread!* *fugitive-:Gr!*
 :Gread! [args]          Empty the buffer and |:read| the output of a Git
                         command.  For example, :Gread! show HEAD:%.
 
-:{range}Gread! [args]  |:read| the output of a Git command after {range}.
+:{range}Gread! [args]   |:read| the output of a Git command after {range}.
 
-                                        *fugitive-:Gw* *fugitive-:Gwrite*
+                                                *:Gwrite* *fugitive-:Gw*
 :Gwrite                 Write to the current file's path and stage the results.
                         When run in a work tree file, it is effectively git
                         add.  Elsewhere, it is effectively git-checkout.  A
@@ -142,14 +143,14 @@ that are part of Git repositories).
                         :0:foo.txt or :0:% to write to just that stage in
                         the index.
 
-                                                *fugitive-:Gwq*
+                                                *:Gwq*
 :Gwq [path]             Like |:Gwrite| followed by |:quit| if the write
                         succeeded.
 
 :Gwq! [path]            Like |:Gwrite|! followed by |:quit|! if the write
                         succeeded.
 
-                                                *fugitive-:Gdiffsplit*
+                                                *:Gdiffsplit*
 :Gdiffsplit [object]    Perform a |vimdiff| against the given file, or if a
                         commit is given, the current file in that commit.
                         With no argument, the version in the index or work
@@ -158,7 +159,7 @@ that are part of Git repositories).
                         width of the window relative to 'textwidth'.  Use
                         Vim's |do| and |dp| to stage and unstage changes.
 
-                                                *fugitive-:Gdiffsplit!*
+                                                *:Gdiffsplit!*
 :Gdiffsplit!            Diff against any and all direct ancestors, retaining
                         focus on the current window.  During a merge conflict,
                         this is a three-way diff against the "ours" and
@@ -169,30 +170,30 @@ that are part of Git repositories).
 :Gdiffsplit! {object}   Like |:Gdiffsplit|, but retain focus on the current
                         window.
 
-                                                *fugitive-:Gvdiffsplit*
+                                                *:Gvdiffsplit*
 :Gvdiffsplit [object]   Like |:Gdiffsplit|, but always split vertically.
 
-                                *fugitive-:Ghdiffsplit* *fugitive-:Gsdiff*
+                                *:Ghdiffsplit* *:Gsdiff*
 :Ghdiffsplit [object]   Like |:Gdiffsplit|, but always split horizontally.
 
-                                                *fugitive-:Gmove*
+                                                *:Gmove*
 :Gmove {destination}    Wrapper around git-mv that renames the buffer
                         afterward.  Add a ! to pass -f.
 
-                                                *fugitive-:Grename*
+                                                *:Grename*
 :Grename {destination}  Like |:Gmove| but operates relative to the parent
                         directory of the current file.
 
-                                                *fugitive-:Gdelete*
+                                                *:Gdelete*
 :Gdelete                Wrapper around git-rm that deletes the buffer
                         afterward.  When invoked in an index file, --cached is
                         passed.  Add a ! to pass -f and forcefully discard the
                         buffer.
 
-                                                *fugitive-:Gremove*
+                                                *:Gremove*
 :Gremove                Like :Gdelete, but keep the (now empty) buffer around.
 
-                                                *fugitive-:Gblame*
+                                                *:Gblame*
 :Gblame [flags]         Run git-blame [flags] on the current file and open the
                         results in a scroll-bound vertical split.  The
                         following maps, which work on the cursor line commit
@@ -218,7 +219,7 @@ that are part of Git repositories).
                         scrollbinding is used.  You can also give an arbitrary
                         filename.
 
-                                                *fugitive-:Gbrowse*
+                                                *:Gbrowse*
 :Gbrowse                Open the current file, blob, tree, commit, or tag
                         in your browser at the upstream hosting provider.
                         If a range is given, it is appropriately appended to
