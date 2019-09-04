@@ -341,7 +341,10 @@ augroup fugitive
         \   silent doautocmd BufNewFile |
         \ endif
 
-  autocmd BufReadCmd    fugitive://*//*             exe fugitive#BufReadCmd()
+  autocmd BufReadCmd    fugitive://*//*             exe fugitive#BufReadCmd() |
+        \ if &path =~# '^\.\%(,\|$\)' |
+        \   let &l:path = substitute(&path, '^\.,\=', '', '') |
+        \ endif
   autocmd BufWriteCmd   fugitive://*//[0-3]/*       exe fugitive#BufWriteCmd()
   autocmd FileReadCmd   fugitive://*//*             exe fugitive#FileReadCmd()
   autocmd FileWriteCmd  fugitive://*//[0-3]/*       exe fugitive#FileWriteCmd()

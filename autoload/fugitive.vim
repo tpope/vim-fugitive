@@ -5847,9 +5847,6 @@ function! fugitive#Init() abort
     call s:Map('c', '<C-R><C-G>', '<SID>fnameescape(fugitive#Object(@%))', '<expr>')
     call s:Map('n', 'y<C-G>', ':<C-U>call setreg(v:register, fugitive#Object(@%))<CR>', '<silent>')
   endif
-  if expand('%:p') =~# ':[\/][\/]'
-    let &l:path = s:sub(&path, '^\.%(,|$)', '')
-  endif
   let dir = s:Dir()
   if stridx(&tags, escape(dir, ', ')) == -1 && &tags !~# '\.git' && !exists('s:tags_warning')
     let actualdir = fugitive#Find('.git/', dir)
