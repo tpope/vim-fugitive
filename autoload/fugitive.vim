@@ -970,17 +970,20 @@ function! fugitive#Object(...) abort
     let rev = ''
   endif
   let tree = s:Tree(dir)
+  let full = a:0 ? a:1 : @%
+  let full = fnamemodify(full, ':p' . (s:Slash(full) =~# '/$' ? '' : ':s?/$??'))
   if empty(rev) && empty(tree)
+    return FugitiveGitPath(full)
   elseif empty(rev)
-    let rev = fugitive#Path(a:0 ? a:1 : @%, './', dir)
+    let rev = fugitive#Path(full, './', dir)
     if rev =~# '^\./.git\%(/\|$\)'
-      return fnamemodify(a:0 ? a:1 : @%, ':p' . (rev =~# '/$' ? '' : ':s?/$??'))
+      return FugitiveGitPath(full)
     endif
   endif
   if rev !~# '^\.\%(/\|$\)' || s:cpath(getcwd(), tree)
     return rev
   else
-    return tree . rev[1:-1]
+    return FugitiveGitPath(tree . rev[1:-1])
   endif
 endfunction
 
