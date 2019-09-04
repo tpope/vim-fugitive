@@ -4513,26 +4513,31 @@ endfunction
 " Section: :Gmove, :Gremove
 
 function! s:Move(force, rename, destination) abort
+  let dir = s:Dir()
+  exe s:DirCheck(dir)
+  if s:DirCommitFile(@%)[1] !~# '^0\=$' || empty(@%)
+    return 'echoerr ' . string('fugitive: mv not supported for this buffer')
+  endif
   if a:destination =~# '^\.\.\=\%(/\|$\)'
     let destination = simplify(getcwd() . '/' . a:destination)
   elseif a:destination =~# '^\a\+:\|^/'
     let destination = a:destination
   elseif a:destination =~# '^:/:\='
-    let destination = s:Tree() . substitute(a:destination, '^:/:\=', '', '')
+    let destination = s:Tree(dir) . substitute(a:destination, '^:/:\=', '', '')
   elseif a:destination =~# '^:(\%(top\|top,literal\|literal,top\))'
-    let destination = s:Tree() . matchstr(a:destination, ')\zs.*')
+    let destination = s:Tree(dir) . matchstr(a:destination, ')\zs.*')
   elseif a:destination =~# '^:(literal)'
     let destination = simplify(getcwd() . '/' . matchstr(a:destination, ')\zs.*'))
   elseif a:rename
     let destination = expand('%:p:s?[\/]$??:h') . '/' . a:destination
   else
-    let destination = s:Tree() . '/' . a:destination
+    let destination = s:Tree(dir) . '/' . a:destination
   endif
   let destination = s:Slash(destination)
   if isdirectory(@%)
     setlocal noswapfile
   endif
-  let [message, exec_error] = s:ChompError(['mv'] + (a:force ? ['-f'] : []) + ['--', expand('%:p'), destination])
+  let [message, exec_error] = s:ChompError(['mv'] + (a:force ? ['-f'] : []) + ['--', expand('%:p'), destination], dir)
   if exec_error
     let v:errmsg = 'fugitive: '.message
     return 'echoerr v:errmsg'
@@ -4540,7 +4545,7 @@ function! s:Move(force, rename, destination) abort
   if isdirectory(destination)
     let destination = fnamemodify(s:sub(destination,'/$','').'/'.expand('%:t'),':.')
   endif
-  call fugitive#ReloadStatus()
+  call fugitive#ReloadStatus(dir)
   if empty(s:DirCommitFile(@%)[1])
     if isdirectory(destination)
       return 'keepalt edit '.s:fnameescape(destination)
@@ -4548,11 +4553,11 @@ function! s:Move(force, rename, destination) abort
       return 'keepalt saveas! '.s:fnameescape(destination)
     endif
   else
-    return 'file '.s:fnameescape(s:Generate(':0:'.destination))
+    return 'file '.s:fnameescape(fugitive#Find(':0:'.destination, dir))
   endif
 endfunction
 
-function! s:RenameComplete(A,L,P) abort
+function! fugitive#RenameComplete(A,L,P) abort
   if a:A =~# '^[.:]\=/'
     return fugitive#CompletePath(a:A)
   else
@@ -4561,37 +4566,44 @@ function! s:RenameComplete(A,L,P) abort
   endif
 endfunction
 
+function! fugitive#MoveCommand(line1, line2, range, bang, mods, arg, args) abort
+  return s:Move(a:bang, 0, a:arg)
+endfunction
+
+function! fugitive#RenameCommand(line1, line2, range, bang, mods, arg, args) abort
+  return s:Move(a:bang, 1, a:arg)
+endfunction
+
 function! s:Remove(after, force) abort
-  if s:DirCommitFile(@%)[1] ==# ''
+  let dir = s:Dir()
+  exe s:DirCheck(dir)
+  if len(@%) && s:DirCommitFile(@%)[1] ==# ''
     let cmd = ['rm']
   elseif s:DirCommitFile(@%)[1] ==# '0'
     let cmd = ['rm','--cached']
   else
-    let v:errmsg = 'fugitive: rm not supported here'
-    return 'echoerr v:errmsg'
+    return 'echoerr ' . string('fugitive: rm not supported for this buffer')
   endif
   if a:force
     let cmd += ['--force']
   endif
-  let [message, exec_error] = s:ChompError(cmd + ['--', expand('%:p')])
+  let [message, exec_error] = s:ChompError(cmd + ['--', expand('%:p')], dir)
   if exec_error
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
   else
-    call fugitive#ReloadStatus()
+    call fugitive#ReloadStatus(dir)
     return a:after . (a:force ? '!' : '')
   endif
 endfunction
 
-augroup fugitive_remove
-  autocmd!
-  autocmd User Fugitive if s:DirCommitFile(@%)[1] =~# '^0\=$' |
-        \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,fugitive#CompletePath Gmove :execute s:Move(<bang>0,0,<q-args>)" |
-        \ exe "command! -buffer -bar -bang -nargs=1 -complete=customlist,s:RenameComplete Grename :execute s:Move(<bang>0,1,<q-args>)" |
-        \ exe "command! -buffer -bar -bang Gremove :execute s:Remove('edit',<bang>0)" |
-        \ exe "command! -buffer -bar -bang Gdelete :execute s:Remove('bdelete',<bang>0)" |
-        \ endif
-augroup END
+function! fugitive#RemoveCommand(line1, line2, range, bang, mods, arg, args) abort
+  return s:Remove('edit', a:bang)
+endfunction
+
+function! fugitive#DeleteCommand(line1, line2, range, bang, mods, arg, args) abort
+  return s:Remove('bdelete', a:bang)
+endfunction
 
 " Section: :Gblame
 
