@@ -5847,10 +5847,6 @@ function! fugitive#Init() abort
       let &mls = save_mls
     endtry
   endif
-  if !exists('g:fugitive_no_maps')
-    call s:Map('c', '<C-R><C-G>', '<SID>fnameescape(fugitive#Object(@%))', '<expr>')
-    call s:Map('n', 'y<C-G>', ':<C-U>call setreg(v:register, fugitive#Object(@%))<CR>', '<silent>')
-  endif
   let dir = s:Dir()
   if stridx(&tags, escape(dir, ', ')) == -1 && &tags !~# '\.git' && !exists('s:tags_warning')
     let actualdir = fugitive#Find('.git/', dir)
