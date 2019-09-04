@@ -2114,12 +2114,13 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
         \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
         \ index(['--paginate', '-p'], args[0]) >= 0
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
+    let assign = len(dir) ? '|let b:git_dir = ' . string(dir) : ''
     if has('nvim')
       if &autowrite || &autowriteall | silent! wall | endif
-      return mods . (a:line2 ? 'split' : 'edit') . ' term://' . s:fnameescape(s:UserCommand(dir, args)) . '|startinsert' . after
+      return mods . (a:line2 ? 'split' : 'edit') . ' term://' . s:fnameescape(s:UserCommand(dir, args)) . assign . '|startinsert' . after
     elseif has('terminal')
       if &autowrite || &autowriteall | silent! wall | endif
-      return 'exe ' . string(mods . 'terminal ' . (a:line2 ? '' : '++curwin ') . join(map(s:UserCommandList(dir) + args, 's:fnameescape(v:val)'))) . after
+      return 'exe ' . string(mods . 'terminal ' . (a:line2 ? '' : '++curwin ') . join(map(s:UserCommandList(dir) + args, 's:fnameescape(v:val)'))) . assign . after
     endif
   endif
   if has('gui_running') && !has('win32')
