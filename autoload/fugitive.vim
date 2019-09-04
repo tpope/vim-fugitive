@@ -5851,13 +5851,13 @@ function! fugitive#Init() abort
     let &l:path = s:sub(&path, '^\.%(,|$)', '')
   endif
   let dir = s:Dir()
-  if stridx(&tags, escape(dir, ', ')) == -1
+  if stridx(&tags, escape(dir, ', ')) == -1 && &tags !~# '\.git' && !exists('s:tags_warning')
     let actualdir = fugitive#Find('.git/', dir)
     if filereadable(actualdir . 'tags')
-      let &l:tags = escape(actualdir . 'tags', ', ').','.&tags
-    endif
-    if &filetype !=# '' && filereadable(actualdir . &filetype . '.tags')
-      let &l:tags = escape(actualdir . &filetype . '.tags', ', ').','.&tags
+      let s:tags_warning = 1
+      echohl WarningMsg
+      echo "Fugitive has removed .git/tags support in favor of `:set tags^=./.git/tags;`"
+      echohl NONE
     endif
   endif
   try
