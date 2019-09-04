@@ -5856,7 +5856,7 @@ function! fugitive#Init() abort
     if filereadable(actualdir . 'tags')
       let s:tags_warning = 1
       echohl WarningMsg
-      echo "Fugitive has removed .git/tags support in favor of `:set tags^=./.git/tags;`"
+      echo "Fugitive .git/tags support removed in favor of `:set tags^=./.git/tags;`"
       echohl NONE
     endif
   endif
