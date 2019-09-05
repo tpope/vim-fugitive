@@ -571,6 +571,11 @@ Global maps ~
                                                 *fugitive_y_CTRL-G*
 ["x]y<C-G>              Yank the path to the current |fugitive-object|.
 
+                                                *g:fugitive_no_maps*
+Global maps can be disabled with the g:fugitive_no_maps option.
+>
+        let g:fugitive_no_maps = 1
+<
 SPECIFYING OBJECTS                      *fugitive-object* *fugitive-revision*
 
 Fugitive objects are either work tree files or Git revisions as defined in the
