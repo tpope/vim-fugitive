@@ -4,8 +4,8 @@ I'm not going to lie to you; fugitive.vim may very well be the best
 Git wrapper of all time.  Check out these features:
 
 Bring up an enhanced version of `git status` with `:G` (also known as
-`:Gstatus`).  Press `g?` to bring up a list of mappings for numerous
-operations including diffing, staging, committing, rebasing, and stashing.
+`:Gstatus`).  Press `g?` to bring up a list of maps for numerous operations
+including diffing, staging, committing, rebasing, and stashing.
 
 View any blob, tree, commit, or tag in the repository with `:Gedit` (and
 `:Gsplit`, `:Gvsplit`, `:Gtabedit`, ...).  Edit a file in the index and

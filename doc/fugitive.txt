@@ -28,7 +28,7 @@ that are part of Git repositories).
 
                                                 *:Gstatus*
 :Git                    Bring up a summary window vaguely akin to git-status.
-:G                      Press g? or see |fugitive-mappings| for usage.
+:G                      Press g? or see |fugitive-maps| for usage.
 :Gstatus
 
                                                 *:Git-commit* *:Gcommit*
@@ -249,15 +249,15 @@ that are part of Git repositories).
 :[range]Gbrowse! [args] Like :Gbrowse, but put the URL on the clipboard rather
                         than opening it.
 
-MAPPINGS                                        *fugitive-mappings*
+MAPS                                            *fugitive-maps*
 
-These mappings are available in both the |:Gstatus| buffer and Fugitive object
-buffers, although not all mappings make sense in all buffers.  Mappings that
+These maps are available in both the |:Gstatus| buffer and Fugitive object
+buffers, although not all maps make sense in all buffers.  Mappings that
 operate on the file or hunk under the cursor are generally available in visual
 mode to operate on multiple files or partial hunks.
 
-                                                *fugitive-staging-mappings*
-Staging/unstaging mappings ~
+                                                *fugitive-staging-maps*
+Staging/unstaging maps ~
 
                                                 *fugitive_s*
 s                       Stage (add) the file or hunk under the cursor.
@@ -299,7 +299,7 @@ P                       under the cursor. On untracked files, this instead
                         calls |:Git| add --intent-to-add.
 
                                                 *fugitive_d*
-Diff mappings ~
+Diff maps ~
                                                 *fugitive_dp*
 dp                      Invoke |:Git!| diff on the file under the cursor.
                         Deprecated in favor of inline diffs.
@@ -320,8 +320,8 @@ dq                      Close all but one diff buffer, and |:diffoff|! the
                                                 *fugitive_d?*
 d?                      Show this help.
 
-                                                *fugitive-navigation-mappings*
-Navigation mappings ~
+                                                *fugitive-navigation-maps*
+Navigation maps ~
 
                                                 *fugitive_<CR>*
 <CR>                    Open the file or |fugitive-object| under the cursor.
@@ -431,7 +431,7 @@ gi                      Open .git/info/exclude in a split.  Use a count to
                         open .gitignore.
 
                                                 *fugitive_c*
-Commit mappings ~
+Commit maps ~
 
 cc                      Create a commit.
 
@@ -477,7 +477,7 @@ c?                      Show this help.
 
                                                 *fugitive_cb*
                                                 *fugitive_co*
-Checkout/branch mappings ~
+Checkout/branch maps ~
 
 coo                     Check out the commit under the cursor.
 
@@ -489,7 +489,7 @@ cb?                     Show this help.
 co?
 
                                                 *fugitive_cz*
-Stash mappings ~
+Stash maps ~
 
 czz                     Push stash.  Pass a [count] of 1 to add
                         `--include-untracked` or 2 to add `--all`.
@@ -512,7 +512,7 @@ cz<Space>               Populate command line with ":Git stash ".
 cz?                     Show this help.
 
                                                 *fugitive_r*
-Rebase mappings ~
+Rebase maps ~
 
 ri                      Perform an interactive rebase.  Uses ancestor of
 u                       commit under cursor as upstream if available.
@@ -547,8 +547,8 @@ r<Space>                Populate command line with ":Git rebase ".
 
 r?                      Show this help.
 
-                                                *fugitive-misc-mappings*
-Miscellaneous mappings ~
+                                                *fugitive-misc-maps*
+Miscellaneous maps ~
 
                                                 *fugitive_gq* *fugitive_q*
 gq                      Close the status buffer.
@@ -558,10 +558,10 @@ gq                      Close the status buffer.
                         cursor prepopulated.
 
                                                 *fugitive_g?*
-g?                      Show help for |fugitive-mappings|.
+g?                      Show help for |fugitive-maps|.
 
-                                                *fugitive-global-mappings*
-Global mappings ~
+                                                *fugitive-global-maps*
+Global maps ~
 
                                                 *fugitive_c_CTRL-R_CTRL-G*
 <C-R><C-G>              On the command line, recall the path to the current
