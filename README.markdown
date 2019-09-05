@@ -78,12 +78,6 @@ and paste:
 
 ## FAQ
 
-> Why don't any of the commands exist?
-
-Fugitive cares about the current file, not the current working directory.
-Edit a file from the repository.  To avoid the blank window problem, favor
-commands like `:split` and `:tabedit` over commands like `:new` and `:tabnew`.
-
 > Why can't I enter my password when I `:Gpush`?
 
 It is highly recommended to use SSH keys or [credentials caching][] to avoid
