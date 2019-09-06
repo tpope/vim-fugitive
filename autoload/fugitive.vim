@@ -5756,7 +5756,8 @@ endfunction
 " Section: Statusline
 
 function! fugitive#Statusline(...) abort
-  if empty(s:Dir())
+  let dir = s:Dir(bufnr(''))
+  if empty(dir)
     return ''
   endif
   let status = ''
@@ -5764,7 +5765,7 @@ function! fugitive#Statusline(...) abort
   if len(commit)
     let status .= ':' . commit[0:6]
   endif
-  let status .= '('.FugitiveHead(7).')'
+  let status .= '('.FugitiveHead(7, dir).')'
   return '[Git'.status.']'
 endfunction
 
