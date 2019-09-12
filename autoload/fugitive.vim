@@ -2980,7 +2980,15 @@ function! s:StageDiff(diff) abort
   let lnum = line('.')
   let info = s:StageInfo(lnum)
   let prefix = info.offset > 0 ? '+' . info.offset : ''
-  if empty(info.paths) && info.section ==# 'Staged'
+  if info.sub =~# '^S'
+    if info.section ==# 'Staged'
+      return 'Git! diff --no-ext-diff --submodule=log --cached -- ' . info.paths[0]
+    elseif info.sub =~# '^SC'
+      return 'Git! diff --no-ext-diff --submodule=log -- ' . info.paths[0]
+    else
+      return 'Git! diff --no-ext-diff --submodule=diff -- ' . info.paths[0]
+    endif
+  elseif empty(info.paths) && info.section ==# 'Staged'
     return 'Git! diff --no-ext-diff --cached'
   elseif empty(info.paths)
     return 'Git! diff --no-ext-diff'
