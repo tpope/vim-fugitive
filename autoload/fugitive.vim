@@ -2410,7 +2410,10 @@ augroup fugitive_status
   autocmd!
   autocmd BufWritePost         * call fugitive#ReloadStatus(-1, 0)
   autocmd ShellCmdPost     * nested call fugitive#ReloadStatus()
-  autocmd BufDelete term://* nested call fugitive#ReloadStatus()
+  autocmd BufDelete * nested
+        \ if getbufvar(+expand('<abuf>'), 'buftype') == 'terminal' |
+        \   call fugitive#ReloadStatus() |
+        \ endif
   if !has('win32')
     autocmd FocusGained        * call fugitive#ReloadStatus(-2, 0)
   endif
