@@ -1654,12 +1654,12 @@ function! fugitive#BufReadStatus() abort
             let i += 1
             let file = output[i] . ' -> ' . matchstr(file, ' \zs.*')
           endif
+          let sub = matchstr(line, '^[12u] .. \zs....')
           if line[2] !=# '.'
-            call add(staged, {'type': 'File', 'status': line[2], 'filename': file})
+            call add(staged, {'type': 'File', 'status': line[2], 'filename': file, 'sub': sub})
           endif
           if line[3] !=# '.'
-            let sub = matchstr(line, '^[12u] .. \zs....')
-            call add(unstaged, {'type': 'File', 'status': get({'C':'M','M':'?','U':'?'}, matchstr(sub, 'S\.*\zs[CMU]'), line[3]), 'filename': file})
+            call add(unstaged, {'type': 'File', 'status': get({'C':'M','M':'?','U':'?'}, matchstr(sub, 'S\.*\zs[CMU]'), line[3]), 'filename': file, 'sub': sub})
           endif
         endif
         let i += 1
@@ -1697,12 +1697,12 @@ function! fugitive#BufReadStatus() abort
           let i += 1
         endif
         if line[0] !~# '[ ?!#]'
-          call add(staged, {'type': 'File', 'status': line[0], 'filename': files})
+          call add(staged, {'type': 'File', 'status': line[0], 'filename': files, 'sub': ''})
         endif
         if line[0:1] ==# '??'
           call add(untracked, {'type': 'File', 'status': line[1], 'filename': files})
         elseif line[1] !~# '[ !#]'
-          call add(unstaged, {'type': 'File', 'status': line[1], 'filename': files})
+          call add(unstaged, {'type': 'File', 'status': line[1], 'filename': files, 'sub': ''})
         endif
       endwhile
     endif
@@ -3072,6 +3072,20 @@ function! s:StageDelete(lnum1, lnum2, count) abort
   try
     for info in s:Selection(a:lnum1, a:lnum2)
       if empty(info.paths)
+        continue
+      endif
+      let sub = get(get(get(b:fugitive_files, info.section, {}), info.filename, {}), 'sub')
+      if sub =~# '^S'
+        if info.status ==# 'A'
+          continue
+        endif
+        if info.section ==# 'Staged'
+          call s:TreeChomp('reset', '--', info.paths[0])
+        endif
+        if info.status =~# '[MD]'
+          call s:TreeChomp('submodule', 'update', '--', info.paths[0])
+          call add(restore, ':Git -C ' . info.relative[0] . ' checkout -')
+        endif
         continue
       endif
       if info.status ==# 'D'
