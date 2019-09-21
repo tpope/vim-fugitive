@@ -43,13 +43,14 @@ making it like `git add` when called from a work tree file and like
 Use `:Gbrowse` to open the current file on the web front-end of your favorite
 hosting provider, with optional line range (try it in visual mode).  Plugins
 are available for popular providers such as [GitHub][rhubarb.vim],
-[GitLab][fugitive-gitlab.vim], [Bitbucket][fubitive.vim], and
-[Gitee][fugitive-gitee.vim].
+[GitLab][fugitive-gitlab.vim], [Bitbucket][fubitive.vim],
+[Gitee][fugitive-gitee.vim], and [Pagure][pagure].
 
 [rhubarb.vim]: https://github.com/tpope/vim-rhubarb
 [fugitive-gitlab.vim]: https://github.com/shumphrey/fugitive-gitlab.vim
 [fubitive.vim]: https://github.com/tommcdo/vim-fubitive
 [fugitive-gitee.vim]: https://github.com/linuxsuren/fugitive-gitee.vim
+[pagure]: https://github.com/FrostyX/vim-fugitive-pagure
 
 Add `%{FugitiveStatusline()}` to `'statusline'` to get an indicator
 with the current branch in your statusline.
