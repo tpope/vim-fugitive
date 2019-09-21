@@ -3341,7 +3341,7 @@ function! s:RevertSubcommand(line1, line2, range, bang, mods, args) abort
   let no_commit = s:HasOpt(a:args, '-n', '--no-commit', '--no-edit', '--abort', '--continue', '--quit')
   let cmd = s:UserCommand(dir, ['revert'] + (no_commit ? [] : ['-n']) + a:args)
   let [out, exec_error] = s:SystemError(cmd)
-  call fugitive#ReloadStatus(-1, 1)
+  call fugitive#ReloadStatus(dir, 1)
   if no_commit || exec_error
     return 'echo ' . string(substitute(out, "\n$", '', ''))
   endif
@@ -4020,7 +4020,7 @@ function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
     let args = s:SplitExpand(a:arg, s:Tree(dir))
     silent execute mods . after . 'read!' escape(s:UserCommand(dir, ['--no-pager'] + args), '!#%')
     execute delete . 'diffupdate'
-    call fugitive#ReloadStatus()
+    call fugitive#ReloadStatus(dir, 1)
     return 'redraw|echo '.string(':!'.s:UserCommand(dir, args))
   endif
   try
@@ -4193,7 +4193,7 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abor
       endif
     endfor
   endfor
-  call fugitive#ReloadStatus()
+  call fugitive#ReloadStatus(-1, 1)
   return 'checktime'
 endfunction
 
@@ -4553,15 +4553,15 @@ function! s:Move(force, rename, destination) abort
   if isdirectory(destination)
     let destination = fnamemodify(s:sub(destination,'/$','').'/'.expand('%:t'),':.')
   endif
-  call fugitive#ReloadStatus(dir)
+  let reload = '|call fugitive#ReloadStatus(' . string(dir) . ', 1)'
   if empty(s:DirCommitFile(@%)[1])
     if isdirectory(destination)
-      return 'keepalt edit '.s:fnameescape(destination)
+      return 'keepalt edit '.s:fnameescape(destination) . reload
     else
-      return 'keepalt saveas! '.s:fnameescape(destination)
+      return 'keepalt saveas! '.s:fnameescape(destination) . reload
     endif
   else
-    return 'file '.s:fnameescape(fugitive#Find(':0:'.destination, dir))
+    return 'file '.s:fnameescape(fugitive#Find(':0:'.destination, dir)) . reload
   endif
 endfunction
 
@@ -4600,8 +4600,7 @@ function! s:Remove(after, force) abort
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
   else
-    call fugitive#ReloadStatus(dir)
-    return a:after . (a:force ? '!' : '')
+    return a:after . (a:force ? '!' : ''). '|call fugitive#ReloadStatus(' . string(dir) . ', 1)'
   endif
 endfunction
 
