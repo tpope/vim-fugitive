@@ -2478,7 +2478,7 @@ function! s:Selection(arg1, ...) abort
   endif
   let first = arg1
   if arg2 < 0
-    let last = first - arg2 + 1
+    let last = first - arg2 - 1
   elseif arg2 > 0
     let last = arg2
   else
