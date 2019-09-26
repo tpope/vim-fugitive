@@ -138,6 +138,16 @@ function! s:executable(binary) abort
   return s:executables[a:binary]
 endfunction
 
+function! s:DoAutocmd(cmd) abort
+  if v:version >= 704 || (v:version == 703 && has('patch442'))
+    return 'doautocmd <nomodeline>' . a:cmd
+  elseif &modelines > 0
+    return 'try|set modelines=0|doautocmd ' . a:cmd . '|finally|set modelines=' . &modelines . '|endtry'
+  else
+    return 'doautocmd ' . a:cmd
+  endif
+endfunction
+
 let s:nowait = v:version >= 704 ? '<nowait>' : ''
 
 function! s:Map(mode, lhs, rhs, ...) abort
@@ -1869,7 +1879,7 @@ function! fugitive#FileWriteCmd(...) abort
   let amatch = a:0 ? a:1 : expand('<amatch>')
   let autype = a:0 > 1 ? 'Buf' : 'File'
   if exists('#' . autype . 'WritePre')
-    execute 'doautocmd ' . autype . 'WritePre ' . s:fnameescape(amatch)
+    execute s:DoAutocmd(autype . 'WritePre ' . s:fnameescape(amatch))
   endif
   try
     let [dir, commit, file] = s:DirCommitFile(amatch)
@@ -1887,7 +1897,7 @@ function! fugitive#FileWriteCmd(...) abort
     if !exec_error
       setlocal nomodified
       if exists('#' . autype . 'WritePost')
-        execute 'doautocmd ' . autype . 'WritePost ' . s:fnameescape(amatch)
+        execute s:DoAutocmd(autype . 'WritePost ' . s:fnameescape(amatch))
       endif
       return ''
     else
@@ -1897,8 +1907,6 @@ function! fugitive#FileWriteCmd(...) abort
     call delete(tmp)
   endtry
 endfunction
-
-let s:nomodeline = (v:version >= 704 ? '<nomodeline>' : '')
 
 function! fugitive#BufReadCmd(...) abort
   let amatch = a:0 ? a:1 : expand('<amatch>')
@@ -2008,8 +2016,8 @@ function! fugitive#BufReadCmd(...) abort
     endtry
 
     setlocal modifiable
-    return 'silent doautocmd' . s:nomodeline .
-          \ ' BufReadPost' . (modifiable ? '' : '|setl nomodifiable')
+    return 'silent ' . s:DoAutocmd('BufReadPost') .
+          \ (modifiable ? '' : '|setl nomodifiable')
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
@@ -3729,12 +3737,12 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, args) abort
   redraw
   call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)})
   let tempfile = tempname()
-  if v:version >= 704 | exe 'silent doautocmd <nomodeline> QuickFixCmdPre ' (listnr < 0 ? 'Ggrep' : 'Glgrep') | endif
+  silent exe s:DoAutocmd('QuickFixCmdPre ' . (listnr < 0 ? 'Ggrep' : 'Glgrep'))
   exe '!' . escape(s:UserCommand(dir, cmd + args), '%#!')
         \ printf(&shellpipe . (&shellpipe =~# '%s' ? '' : ' %s'), s:shellesc(tempfile))
   let list = map(readfile(tempfile), 's:GrepParseLine(prefix, name_only, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
-  if v:version >= 704 | exe 'silent doautocmd <nomodeline> QuickFixCmdPost ' (listnr < 0 ? 'Ggrep' : 'Glgrep') | endif
+  silent exe s:DoAutocmd('QuickFixCmdPost ' . (listnr < 0 ? 'Ggrep' : 'Glgrep'))
   if !has('gui_running')
     redraw
   endif
@@ -4155,7 +4163,7 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abor
 
   unlet! restorewinnr
   let zero = s:Generate(':0:'.file)
-  silent execute 'doautocmd' s:nomodeline 'BufWritePost' s:fnameescape(zero)
+  silent exe s:DoAutocmd('BufWritePost ' . s:fnameescape(zero))
   for tab in range(1,tabpagenr('$'))
     for winnr in range(1,tabpagewinnr(tab,'$'))
       let bufnr = tabpagebuflist(tab)[winnr-1]
@@ -4246,7 +4254,7 @@ function! s:Dispatch(bang, cmd, args) abort
       endif
       silent noautocmd make!
       redraw!
-      return 'call fugitive#Cwindow()|silent doautocmd ShellCmdPost'
+      return 'call fugitive#Cwindow()|silent ' . s:DoAutocmd('ShellCmdPost')
     endif
   finally
     let [&l:mp, &l:efm, b:current_compiler] = [mp, efm, cc]
@@ -5847,12 +5855,7 @@ augroup END
 
 function! fugitive#Init() abort
   if exists('#User#FugitiveBoot')
-    try
-      let [save_mls, &modelines] = [&mls, 0]
-      doautocmd User FugitiveBoot
-    finally
-      let &mls = save_mls
-    endtry
+    exe s:DoAutocmd('User FugitiveBoot')
   endif
   let dir = s:Dir()
   if stridx(&tags, escape(dir, ', ')) == -1 && &tags !~# '\.git' && !exists('s:tags_warning')
@@ -5864,13 +5867,7 @@ function! fugitive#Init() abort
       echohl NONE
     endif
   endif
-  try
-    let [save_mls, &modelines] = [&mls, 0]
-    call s:define_commands()
-    doautocmd User Fugitive
-  finally
-    let &mls = save_mls
-  endtry
+  exe s:DoAutocmd('User Fugitive')
 endfunction
 
 function! fugitive#is_git_dir(path) abort
