@@ -5074,8 +5074,8 @@ function! s:BlameFileType() abort
   if &modifiable
     return ''
   endif
-  call s:Map('n', '<F1>', ':help fugitive-:Gblame<CR>', '<silent>')
-  call s:Map('n', 'g?',   ':help fugitive-:Gblame<CR>', '<silent>')
+  call s:Map('n', '<F1>', ':help :Gblame<CR>', '<silent>')
+  call s:Map('n', 'g?',   ':help :Gblame<CR>', '<silent>')
   if mapcheck('q', 'n') =~# '^$\|bdelete'
     call s:Map('n', 'q',  ':exe <SID>BlameQuit()<Bar>echohl WarningMsg<Bar>echo ":Gblame q is deprecated in favor of gq"<Bar>echohl NONE<CR>', '<silent>')
   endif
