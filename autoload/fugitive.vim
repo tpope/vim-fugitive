@@ -3737,12 +3737,13 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, args) abort
   redraw
   call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)})
   let tempfile = tempname()
-  silent exe s:DoAutocmd('QuickFixCmdPre ' . (listnr < 0 ? 'Ggrep' : 'Glgrep'))
+  let event = listnr < 0 ? 'grep-fugtiive' : 'lgrep-fugitive'
+  silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
   exe '!' . escape(s:UserCommand(dir, cmd + args), '%#!')
         \ printf(&shellpipe . (&shellpipe =~# '%s' ? '' : ' %s'), s:shellesc(tempfile))
   let list = map(readfile(tempfile), 's:GrepParseLine(prefix, name_only, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
-  silent exe s:DoAutocmd('QuickFixCmdPost ' . (listnr < 0 ? 'Ggrep' : 'Glgrep'))
+  silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if !has('gui_running')
     redraw
   endif
