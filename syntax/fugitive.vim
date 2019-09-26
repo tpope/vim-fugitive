@@ -26,7 +26,7 @@ syn match fugitiveHash /\<\x\{4,\}\>/ contained
 syn region fugitiveHunk start=/^\%(@@\+ -\)\@=/ end=/^\%([A-Za-z?@]\|$\)\@=/ contains=@fugitiveDiff containedin=@fugitiveSection fold
 
 for s:section in ['Untracked', 'Unstaged', 'Staged']
-  exe 'syn region fugitive' . s:section . 'Section start=/^\%(' . s:section . ' .*(\d\+)$\)\@=/ contains=fugitive' . s:section . 'Heading end=/^$/'
+  exe 'syn region fugitive' . s:section . 'Section start=/^\%(' . s:section . ' .*(\d\+)$\)\@=/ contains=fugitive' . s:section . 'Heading end=/^$/ fold'
   exe 'syn match fugitive' . s:section . 'Modifier /^[MADRCU?] / contained containedin=fugitive' . s:section . 'Section'
   exe 'syn cluster fugitiveSection add=fugitive' . s:section . 'Section'
   exe 'syn match fugitive' . s:section . 'Heading /^[A-Z][a-z][^:]*\ze (\d\+)$/ contains=fugitivePreposition contained nextgroup=fugitiveCount skipwhite'
