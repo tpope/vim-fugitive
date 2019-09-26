@@ -5868,6 +5868,7 @@ function! fugitive#Init() abort
       echohl NONE
     endif
   endif
+  call s:define_commands()
   exe s:DoAutocmd('User Fugitive')
 endfunction
 
