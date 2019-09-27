@@ -2138,7 +2138,9 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   if has('nvim') && executable('env')
     let pre .= 'env GIT_TERMINAL_PROMPT=0 '
   endif
-  return 'exe ' . string('!' . escape(pre . s:UserCommand(dir, args), '!#%')) . after
+  return 'exe ' . string('noautocmd !' . escape(pre . s:UserCommand(dir, args), '!#%')) .
+        \ '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' .
+        \ after
 endfunction
 
 let s:exec_paths = {}
@@ -2414,14 +2416,27 @@ function! s:CanAutoReloadStatus() abort
   return get(g:, 'fugitive_autoreload_status', !has('win32'))
 endfunction
 
+function! fugitive#EfmDir(...) abort
+  let dir = matchstr(a:0 ? a:1 : &errorformat, '\c,%\\&\%(git\|fugitive\)_\=dir=\zs\%(\\.\|[^,]\)*')
+  let dir = substitute(dir, '%%', '%', 'g')
+  let dir = substitute(dir, '\\\ze[\,]', '', 'g')
+  return dir
+endfunction
+
 augroup fugitive_status
   autocmd!
   autocmd BufWritePost         * call fugitive#ReloadStatus(-1, 0)
-  autocmd ShellCmdPost     * nested call fugitive#ReloadStatus()
+  autocmd ShellCmdPost,ShellFilterPost * nested call fugitive#ReloadStatus(-2, 0)
   autocmd BufDelete * nested
-        \ if getbufvar(+expand('<abuf>'), 'buftype') == 'terminal' |
-        \   call fugitive#ReloadStatus() |
+        \ if getbufvar(+expand('<abuf>'), 'buftype') ==# 'terminal' |
+        \   if !empty(FugitiveGitDir(+expand('<abuf>'))) |
+        \     call fugitive#ReloadStatus(+expand('<abuf>'), 1) |
+        \   else |
+        \     call fugitive#ReloadStatus(-2, 0) |
+        \  endif |
         \ endif
+  autocmd QuickFixCmdPost make,lmake,[cl]file,[cl]getfile nested
+        \ call fugitive#ReloadStatus(fugitive#EfmDir(), 1)
   if !has('win32')
     autocmd FocusGained        * call fugitive#ReloadStatus(-2, 0)
   endif
@@ -4242,7 +4257,8 @@ function! s:Dispatch(bang, cmd, args) abort
   let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
   try
     let b:current_compiler = 'git'
-    let &l:errorformat = s:common_efm
+    let &l:errorformat = s:common_efm .
+          \ ',%\&git_dir=' . escape(substitute(dir, '%', '%%', 'g'), '\,')
     let &l:makeprg = s:UserCommand(dir, s:AskPassArgs(dir) + [a:cmd] + a:args)
     if exists(':Make') == 2
       Make
