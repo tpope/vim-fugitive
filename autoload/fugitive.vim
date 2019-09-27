@@ -2323,8 +2323,23 @@ function! s:StageSeek(info, fallback) abort
   return exists('backup') ? backup : line - 1
 endfunction
 
-function! s:ReloadStatus(...) abort
-  call s:ExpireStatus(-1)
+function! s:DoAutocmdChanged(dir) abort
+  let dir = a:dir is# -2 ? '' : FugitiveGitDir(a:dir)
+  if empty(dir) || !exists('#User#FugitiveChanged') || exists('g:fugitive_event')
+    return ''
+  endif
+  try
+    let g:fugitive_event = dir
+    exe s:DoAutocmd('User FugitiveChanged')
+  finally
+    unlet! g:fugitive_event
+    " Force statusline reload with the buffer's Git dir
+    let &ro = &ro
+  endtry
+  return ''
+endfunction
+
+function! s:ReloadStatusBuffer(...) abort
   if get(b:, 'fugitive_type', '') !=# 'index'
     return ''
   endif
@@ -2333,6 +2348,13 @@ function! s:ReloadStatus(...) abort
   call fugitive#BufReadStatus()
   exe s:StageSeek(info, original_lnum)
   normal! 0
+  return ''
+endfunction
+
+function! s:ReloadStatus(...) abort
+  call s:ExpireStatus(-1)
+  call s:ReloadStatusBuffer(a:0 ? a:1 : line('.'))
+  exe s:DoAutocmdChanged(-1)
   return ''
 endfunction
 
@@ -2364,13 +2386,13 @@ function! s:ReloadWinStatus(...) abort
     return
   endif
   if !exists('b:fugitive_reltime')
-    exe s:ReloadStatus()
+    exe s:ReloadStatusBuffer()
     return
   endif
   let t = b:fugitive_reltime
   if reltimestr(reltime(s:last_time, t)) =~# '-\|\d\{10\}\.' ||
         \ reltimestr(reltime(get(s:last_times, s:cpath(s:Dir()), t), t)) =~# '-\|\d\{10\}\.'
-    exe s:ReloadStatus()
+    exe s:ReloadStatusBuffer()
   endif
 endfunction
 
@@ -2399,21 +2421,19 @@ function! s:ReloadTabStatus(...) abort
 endfunction
 
 function! fugitive#ReloadStatus(...) abort
-  call s:ExpireStatus(a:0 ? a:1 : -2)
-  if a:0 > 1 ? a:2 : s:CanAutoReloadStatus()
+  call s:ExpireStatus(a:0 ? a:1 : -1)
+  if a:0 > 1 ? a:2 : 1
     let t = reltime()
     let t:fugitive_reload_status = t
     for tabnr in exists('*settabvar') ? range(1, tabpagenr('$')) : []
       call settabvar(tabnr, 'fugitive_reload_status', t)
     endfor
     call s:ReloadTabStatus()
+    exe s:DoAutocmdChanged(a:0 ? a:1 : -1)
   else
     call s:ReloadWinStatus()
   endif
-endfunction
-
-function! s:CanAutoReloadStatus() abort
-  return get(g:, 'fugitive_autoreload_status', !has('win32'))
+  return ''
 endfunction
 
 function! fugitive#EfmDir(...) abort

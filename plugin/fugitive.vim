@@ -10,6 +10,9 @@ let g:loaded_fugitive = 1
 
 function! FugitiveGitDir(...) abort
   if !a:0 || type(a:1) == type(0) && a:1 < 0
+    if exists('g:fugitive_event')
+      return g:fugitive_event
+    endif
     let dir = get(b:, 'git_dir', '')
     if empty(dir) && (empty(bufname('')) || &buftype =~# '^\%(nofile\|acwrite\|quickfix\|prompt\)$')
       return FugitiveExtractGitDir(getcwd())
