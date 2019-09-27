@@ -4782,9 +4782,10 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
     else
       silent! execute '%write !'.basecmd.' > '.temp.' 2> '.error
     endif
+    let l:shell_error = v:shell_error
     redraw
     try
-      if v:shell_error
+      if l:shell_error
         let lines = readfile(error)
         if empty(lines)
           let lines = readfile(temp)
