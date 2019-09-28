@@ -5895,7 +5895,7 @@ function! fugitive#Init() abort
     exe s:DoAutocmd('User FugitiveBoot')
   endif
   let dir = s:Dir()
-  if stridx(&tags, escape(dir, ', ')) == -1 && &tags !~# '\.git' && !exists('s:tags_warning')
+  if &tags !~# '\.git' && @% !~# '\.git' && !exists('s:tags_warning')
     let actualdir = fugitive#Find('.git/', dir)
     if filereadable(actualdir . 'tags')
       let s:tags_warning = 1
