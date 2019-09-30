@@ -4750,7 +4750,7 @@ function! s:BlameCommitFileLnum(...) abort
   let commit = matchstr(line, '^\^\=\zs\x\+')
   if commit =~# '^0\+$'
     let commit = ''
-  elseif line !~# '^\^' && has_key(state, 'blame_reverse_end')
+  elseif has_key(state, 'blame_reverse_end')
     let commit = get(s:LinesError('rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, '')
   endif
   let lnum = +matchstr(line, ' \zs\d\+\ze \%((\| *\d\+)\)')
