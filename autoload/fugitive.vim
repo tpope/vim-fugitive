@@ -740,6 +740,17 @@ function! s:DirRev(url) abort
   return [dir, (commit =~# '^.$' ? ':' : '') . commit . substitute(file, '^/', ':', '')]
 endfunction
 
+let s:merge_heads = ['MERGE_HEAD', 'REBASE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD']
+function! s:MergeHead(...) abort
+  let dir = fugitive#Find('.git/', a:0 ? a:1 : s:Dir())
+  for head in s:merge_heads
+    if filereadable(dir . head)
+      return head
+    endif
+  endfor
+  return ''
+endfunction
+
 function! s:Owner(path, ...) abort
   let dir = a:0 ? a:1 : s:Dir()
   if empty(dir)
@@ -752,12 +763,11 @@ function! s:Owner(path, ...) abort
       return commit
     elseif commit ==# '2'
       return 'HEAD^{}'
+    elseif commit ==# '0'
+      return ''
     endif
-    if filereadable(actualdir . 'MERGE_HEAD')
-      let merge_head = 'MERGE_HEAD'
-    elseif filereadable(actualdir . 'REBASE_HEAD')
-      let merge_head = 'REBASE_HEAD'
-    else
+    let merge_head = s:MergeHead()
+    if empty(merge_head)
       return ''
     endif
     if commit ==# '3'
@@ -1464,6 +1474,12 @@ function! fugitive#PathComplete(...) abort
   return call('fugitive#CompletePath', a:000)
 endfunction
 
+function! s:CompleteHeads(dir) abort
+  let dir = fugitive#Find('.git/', a:dir)
+  return sort(filter(['HEAD', 'FETCH_HEAD', 'ORIG_HEAD'] + s:merge_heads, 'filereadable(dir . v:val)')) +
+        \ sort(s:LinesError('rev-parse', '--symbolic', '--branches', '--tags', '--remotes')[0])
+endfunction
+
 function! fugitive#CompleteObject(base, ...) abort
   let dir = a:0 == 1 ? a:1 : a:0 == 3 ? a:3 : s:Dir()
   let cwd = getcwd()
@@ -1478,8 +1494,7 @@ function! fugitive#CompleteObject(base, ...) abort
     if a:base =~# '^refs/'
       let results += map(s:GlobComplete(fugitive#CommonDir(dir) . '/', a:base . '*'), 's:Slash(v:val)')
     elseif a:base !~# '^\.\=/\|^:('
-      let heads = ['HEAD', 'ORIG_HEAD', 'FETCH_HEAD', 'MERGE_HEAD', 'refs/']
-      let heads += sort(s:LinesError(["rev-parse","--symbolic","--branches","--tags","--remotes"], dir)[0])
+      let heads = s:CompleteHeads(dir)
       if filereadable(fugitive#Find('.git/refs/stash', dir))
         let heads += ["stash"]
         let heads += sort(s:LinesError(["stash","list","--pretty=format:%gd"], dir)[0])
@@ -1529,9 +1544,8 @@ function! s:CompleteSub(subcommand, A, L, P, ...) abort
   endif
 endfunction
 
-function! s:CompleteRevision(A, L, P) abort
-  return s:FilterEscape(['HEAD', 'FETCH_HEAD', 'MERGE_HEAD', 'ORIG_HEAD'] +
-        \ s:LinesError('rev-parse', '--symbolic', '--branches', '--tags', '--remotes')[0], a:A)
+function! s:CompleteRevision(A, L, P, ...) abort
+  return s:FilterEscape(s:CompleteHeads(s:Dir()), a:A)
 endfunction
 
 function! s:CompleteRemote(A, L, P) abort
