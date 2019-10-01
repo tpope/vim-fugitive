@@ -3978,13 +3978,54 @@ function! s:OpenParse(args, wants_cmd) abort
   else
     let file = '>'
   endif
+  let dir = s:Dir()
+  let efile = s:Expand(file)
+  let url = fugitive#Find(efile, dir)
+
+  if a:wants_cmd && file[0] ==# '>' && efile[0] !=# '>' && get(b:, 'fugitive_type', '') isnot# 'tree' && &filetype !=# 'netrw'
+    let line = line('.')
+    if expand('%:p') !=# url
+      let diffcmd = 'diff'
+      let from = s:DirRev(@%)[1]
+      let to = s:DirRev(url)[1]
+      if empty(from) && empty(to)
+        let diffcmd = 'diff-files'
+        let args = ['--', expand('%:p'), url]
+      elseif empty(to)
+        let args = [from, '--', url]
+      elseif empty(from)
+        let args = [to, '--', expand('%:p')]
+        let reverse = 1
+      else
+        let args = [from, to]
+      endif
+      let [res, exec_error] = s:LinesError([dir, diffcmd, '-U0'] + args)
+      if !exec_error
+        call filter(res, 'v:val =~# "^@@ "')
+        call map(res, 'substitute(v:val, ''[-+]\d\+\zs '', ",1 ", "g")')
+        call map(res, 'matchlist(v:val, ''^@@ -\(\d\+\),\(\d\+\) +\(\d\+\),\(\d\+\) @@'')[1:4]')
+        if exists('reverse')
+          call map(res, 'v:val[2:3] + v:val[0:1]')
+        endif
+        call filter(res, 'v:val[0] < '.line('.'))
+        let hunk = get(res, -1, [0,0,0,0])
+        if hunk[0] + hunk[1] > line('.')
+          let line = hunk[2] + max([1 - hunk[3], 0])
+        else
+          let line = hunk[2] + max([hunk[3], 1]) + line('.') - hunk[0] - max([hunk[1], 1])
+        endif
+      endif
+    endif
+    call insert(cmds, line)
+  endif
+
   let pre = join(opts, '')
   if len(cmds) > 1
     let pre .= ' +' . escape(join(map(cmds, '"exe ".string(v:val)'), '|'), ' |"')
   elseif len(cmds)
     let pre .= ' +' . escape(cmds[0], ' |"')
   endif
-  return [s:Generate(s:Expand(file)), pre]
+  return [url, pre]
 endfunction
 
 function! s:DiffClose() abort
