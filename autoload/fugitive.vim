@@ -3956,11 +3956,18 @@ function! s:UsableWin(nr) abort
         \ index(['nofile','help','quickfix'], getbufvar(winbufnr(a:nr), '&buftype')) < 0
 endfunction
 
-function! s:OpenParse(args) abort
-  let pre = []
+function! s:OpenParse(args, wants_cmd) abort
+  let opts = []
+  let cmds = []
   let args = copy(a:args)
-  while !empty(args) && args[0] =~# '^+'
-    call add(pre, ' ' . escape(remove(args, 0), ' |"'))
+  while !empty(args)
+    if args[0] =~# '^++'
+      call add(opts, ' ' . escape(remove(args, 0), ' |"'))
+    elseif a:wants_cmd && args[0] =~# '^+'
+      call add(cmds, remove(args, 0)[1:-1])
+    else
+      break
+    endif
   endwhile
   if len(args)
     let file = join(args)
@@ -3971,7 +3978,13 @@ function! s:OpenParse(args) abort
   else
     let file = '>'
   endif
-  return [s:Expand(file), join(pre)]
+  let pre = join(opts, '')
+  if len(cmds) > 1
+    let pre .= ' +' . escape(join(map(cmds, '"exe ".string(v:val)'), '|'), ' |"')
+  elseif len(cmds)
+    let pre .= ' +' . escape(cmds[0], ' |"')
+  endif
+  return [s:Generate(s:Expand(file)), pre]
 endfunction
 
 function! s:DiffClose() abort
@@ -4039,8 +4052,7 @@ function! fugitive#Open(cmd, bang, mods, arg, args) abort
 
   let mods = s:Mods(a:mods)
   try
-    let [file, pre] = s:OpenParse(a:args)
-    let file = s:Generate(file)
+    let [file, pre] = s:OpenParse(a:args, 1)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
@@ -4073,8 +4085,7 @@ function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
     return 'redraw|echo '.string(':!'.s:UserCommand(dir, args))
   endif
   try
-    let [file, pre] = s:OpenParse(a:args)
-    let file = s:Generate(file)
+    let [file, pre] = s:OpenParse(a:args, 0)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
