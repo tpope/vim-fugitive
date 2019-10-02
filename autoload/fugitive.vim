@@ -592,39 +592,6 @@ function! s:add_methods(namespace, method_names) abort
   endfor
 endfunction
 
-function! s:Command(command, line1, line2, range, bang, mods, arg, args) abort
-  try
-    if a:command =~# '^\l[[:alnum:]-]\+$'
-      return fugitive#Command(a:line1, a:line2, a:range, a:bang, s:Mods(a:mods), a:command . ' ' . a:arg)
-    endif
-    return s:{a:command}Command(a:line1, a:line2, a:range, a:line2, a:bang, s:Mods(a:mods), '', a:arg, a:args)
-  catch /^fugitive:/
-    return 'echoerr ' . string(v:exception)
-  endtry
-endfunction
-
-let s:commands = []
-function! s:command(definition, ...) abort
-  let def = a:definition
-  if !has('patch-7.4.542')
-    let def = substitute(def, '-addr=\S\+ ', '', '')
-  endif
-  if !has('patch-8.1.560')
-    let def = substitute(def, '-addr=other ', '', '')
-  endif
-  if a:0
-    call add(s:commands, def . ' execute s:Command(' . string(a:1) . ", <line1>, <count>, +'<range>', <bang>0, '<mods>', <q-args>, [<f-args>])")
-  else
-    call add(s:commands, def)
-  endif
-endfunction
-
-function! s:define_commands() abort
-  for command in s:commands
-    exe 'command! -buffer '.command
-  endfor
-endfunction
-
 let s:repo_prototype = {}
 let s:repos = {}
 
@@ -2216,8 +2183,6 @@ endfunction
 
 " Section: :Gstatus
 
-call s:command("-bar -bang -range=-1 -addr=other Gstatus", "Status")
-
 function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
   let dir = a:0 ? a:1 : s:Dir()
   exe s:DirCheck(dir)
@@ -3439,9 +3404,6 @@ function! s:FinishCommit() abort
   return ''
 endfunction
 
-call s:command("-nargs=? -range=-1 -complete=customlist,fugitive#CommitComplete Gcommit", "commit")
-call s:command("-nargs=? -range=-1 -complete=customlist,fugitive#RevertComplete Grevert", "revert")
-
 " Section: :Gmerge, :Grebase, :Gpull
 
 function! fugitive#MergeComplete(A, L, P) abort
@@ -3718,10 +3680,6 @@ augroup fugitive_merge
         \   exe s:MergeRebase('rebase', 0, '', [getfsize(fugitive#Find('.git/rebase-merge/git-rebase-todo', s:rebase_continue)) > 0 ? '--continue' : '--abort'], remove(s:, 'rebase_continue')) |
         \ endif
 augroup END
-
-call s:command("-nargs=? -bang -complete=customlist,fugitive#MergeComplete Gmerge", "merge")
-call s:command("-nargs=? -bang -complete=customlist,fugitive#RebaseComplete Grebase", "rebase")
-call s:command("-nargs=? -bang -complete=customlist,fugitive#PullComplete Gpull", "pull")
 
 " Section: :Ggrep, :Glog
 
@@ -4382,9 +4340,6 @@ endfunction
 function! s:FetchSubcommand(line1, line2, range, bang, mods, args) abort
   return s:Dispatch(a:bang ? '!' : '', 'fetch', a:args)
 endfunction
-
-call s:command("-nargs=? -bang -complete=customlist,fugitive#PushComplete Gpush", "push")
-call s:command("-nargs=? -bang -complete=customlist,fugitive#FetchComplete Gfetch", "fetch")
 
 " Section: :Gdiff
 
@@ -5216,8 +5171,6 @@ augroup fugitive_blame
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
 
-call s:command('-buffer -bang -range=-1 -nargs=? -complete=customlist,fugitive#BlameComplete Gblame', 'blame')
-
 " Section: :Gbrowse
 
 let s:redirects = {}
@@ -5977,7 +5930,6 @@ function! fugitive#Init() abort
       echohl NONE
     endif
   endif
-  call s:define_commands()
   exe s:DoAutocmd('User Fugitive')
 endfunction
 

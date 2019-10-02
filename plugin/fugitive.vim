@@ -361,8 +361,20 @@ augroup END
 let s:addr_other = has('patch-8.1.560') ? '-addr=other' : ''
 let s:addr_tabs  = has('patch-7.4.542') ? '-addr=tabs' : ''
 let s:addr_wins  = has('patch-7.4.542') ? '-addr=windows' : ''
+
 exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#Complete G   exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
 exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#Complete Git exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
+
+exe 'command! -bang -bar     -range=-1' s:addr_other 'Gstatus exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
+
+exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#CommitComplete Gcommit exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "commit " . <q-args>)'
+exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#RevertComplete Grevert exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "revert " . <q-args>)'
+exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#MergeComplete  Gmerge  exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "merge " . <q-args>)'
+exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#RebaseComplete Grebase exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "rebase " . <q-args>)'
+exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#PullComplete   Gpull   exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "pull " . <q-args>)'
+exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#PushComplete   Gpush   exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "push " . <q-args>)'
+exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#FetchComplete  Gfetch  exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "fetch " . <q-args>)'
+exe 'command! -bang -nargs=? -range=-1                -complete=customlist,fugitive#BlameComplete  Gblame  exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "blame " . <q-args>)'
 
 exe "command! -bar -bang -nargs=? -complete=customlist,fugitive#CdComplete Gcd  exe fugitive#Cd(<q-args>, 0)"
 exe "command! -bar -bang -nargs=? -complete=customlist,fugitive#CdComplete Glcd exe fugitive#Cd(<q-args>, 1)"
