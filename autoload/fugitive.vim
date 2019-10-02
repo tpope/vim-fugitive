@@ -3064,6 +3064,9 @@ function! s:StageDelete(lnum1, lnum2, count) abort
       endif
       if info.status ==# 'D'
         let undo = 'Gremove'
+      elseif info.paths[0] =~# '/$'
+        let err .= '|echoerr ' . string('fugitive: will not delete directory ' . string(info.relative[0]))
+        break
       else
         let undo = 'Gread ' . s:TreeChomp('hash-object', '-w', '--', info.paths[0])[0:10]
       endif
@@ -3090,14 +3093,18 @@ function! s:StageDelete(lnum1, lnum2, count) abort
       call add(restore, ':Gsplit ' . s:fnameescape(info.relative[0]) . '|' . undo)
     endfor
   catch /^fugitive:/
-    let err = '|echoerr ' . string(v:exception)
+    let err .= '|echoerr ' . string(v:exception)
   endtry
   if empty(restore)
     return err[1:-1]
   endif
   exe s:ReloadStatus()
   call s:StageReveal()
-  return 'checktime|redraw|echomsg ' . string('To restore, ' . join(restore, '|')) . err
+  if len(restore)
+    return 'checktime|redraw|echomsg ' . string('To restore, ' . join(restore, '|')) . err
+  else
+    return 'checktime|redraw' . err
+  endif
 endfunction
 
 function! s:StageIgnore(lnum1, lnum2, count) abort
