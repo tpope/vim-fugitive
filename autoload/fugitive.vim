@@ -42,7 +42,7 @@ function! s:Uniq(list) abort
 endfunction
 
 function! s:winshell() abort
-  return has('win32') && &shellcmdflag !~# '^-'
+  return has('win32') && &shellcmdflag =~# '^/\|^-Command$'
 endfunction
 
 function! s:shellesc(arg) abort
