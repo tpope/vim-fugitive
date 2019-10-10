@@ -4174,11 +4174,19 @@ function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
   return mods . after . 'read' . pre . ' ' . s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
 endfunction
 
+function! fugitive#EditComplete(A, L, P) abort
+  if a:A =~# '^>'
+    return map(s:FilterEscape(s:CompleteHeads(s:Dir()), a:A[1:-1]), "'>' . v:val")
+  else
+    return fugitive#CompleteObject(a:A, a:L, a:P)
+  endif
+endfunction
+
 function! fugitive#ReadComplete(A, L, P) abort
   if a:L =~# '^\w\+!'
     return fugitive#Complete(a:A, a:L, a:P)
   else
-    return fugitive#CompleteObject(a:A, a:L, a:P)
+    return fugitive#EditComplete(a:A, a:L, a:P)
   endif
 endfunction
 
