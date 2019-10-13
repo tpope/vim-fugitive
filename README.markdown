@@ -69,13 +69,12 @@ For more information, see `:help fugitive`.
 
 ## Installation
 
-If you don't have a preferred installation method, one option is to install
-[pathogen.vim](https://github.com/tpope/vim-pathogen), and then copy
-and paste:
-
-    cd ~/.vim/bundle
-    git clone https://github.com/tpope/vim-fugitive.git
-    vim -u NONE -c "helptags vim-fugitive/doc" -c q
+Install using your favorite package manager, or use Vim's built-in package support:
+	
+    mkdir -p ~/.vim/pack/tpope/start
+    cd ~/.vim/pack/tpope/start
+    git clone https://tpope.io/vim/fugitive.git
+    vim -u NONE -c "helptags fugitive/doc" -c q
 
 ## FAQ
 
