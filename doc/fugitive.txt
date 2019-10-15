@@ -89,6 +89,12 @@ that are part of Git repositories).
                         -     reblame at commit
                         ~     reblame at [count]th first grandparent
                         P     reblame at [count]th parent (like HEAD^[count])
+                        cf    create a `fixup!` commit for the commit under
+                              the cursor
+                        cs    create a `squash!` commit for the commit under
+                              the cursor
+                        cA    create a `squash!` commit for the commit under
+                              the cursor and edit the message.
 
 :[range]Gblame [flags]  If a range is given, just that part of the file will
 :Gblame [flags] {file}  be blamed, and a horizontal split without
