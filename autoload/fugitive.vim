@@ -5008,9 +5008,12 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         if exists('+cursorbind')
           setlocal cursorbind
         endif
-        setlocal nonumber scrollbind nowrap foldcolumn=0 nofoldenable winfixwidth signcolumn=no
+        setlocal nonumber scrollbind nowrap foldcolumn=0 nofoldenable winfixwidth
         if exists('+relativenumber')
           setlocal norelativenumber
+        endif
+        if exists('+signcolumn')
+          setlocal signcolumn=no
         endif
         execute "vertical resize ".(s:linechars('.\{-\}\ze\s\+\d\+)')+1)
         call s:Map('n', 'A', ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze [0-9:/+-][0-9:/+ -]* \\d\\+)')+1+v:count)<CR>", '<silent>')
