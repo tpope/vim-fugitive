@@ -5012,6 +5012,9 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         if exists('+relativenumber')
           setlocal norelativenumber
         endif
+        if exists('+signcolumn')
+          setlocal signcolumn=no
+        endif
         execute "vertical resize ".(s:linechars('.\{-\}\ze\s\+\d\+)')+1)
         call s:Map('n', 'A', ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze [0-9:/+-][0-9:/+ -]* \\d\\+)')+1+v:count)<CR>", '<silent>')
         call s:Map('n', 'C', ":<C-u>exe 'vertical resize '.(<SID>linechars('^\\S\\+')+1+v:count)<CR>", '<silent>')
