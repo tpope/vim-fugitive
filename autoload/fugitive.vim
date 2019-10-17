@@ -5008,7 +5008,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         if exists('+cursorbind')
           setlocal cursorbind
         endif
-        setlocal nonumber scrollbind nowrap foldcolumn=0 nofoldenable winfixwidth
+        setlocal nonumber scrollbind nowrap foldcolumn=0 nofoldenable winfixwidth signcolumn=no
         if exists('+relativenumber')
           setlocal norelativenumber
         endif
