@@ -5130,12 +5130,10 @@ function! s:BlameJump(suffix, ...) abort
     let winnr = bufwinnr(blame_bufnr)
     if winnr > 0
       exe winnr.'wincmd w'
+      exe bufnr.'bdelete'
     endif
     execute 'Gedit' s:fnameescape(commit . suffix . ':' . path)
     execute lnum
-    if winnr > 0
-      exe bufnr.'bdelete'
-    endif
   endif
   if exists(':Gblame')
     let my_bufnr = bufnr('')
