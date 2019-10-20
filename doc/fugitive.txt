@@ -91,10 +91,15 @@ that are part of Git repositories).
                         P     reblame at [count]th parent (like HEAD^[count])
                         cf    create a `fixup!` commit for the commit under
                               the cursor
+                        cF    Create a `fixup!` commit for the commit under the
+                              cursor and immediately rebase it.
                         cs    create a `squash!` commit for the commit under
                               the cursor
+                        cS    Create a `squash!` commit for the commit under
+                              the cursor and immediately rebase it.
                         cA    create a `squash!` commit for the commit under
                               the cursor and edit the message.
+
 
 :[range]Gblame [flags]  If a range is given, just that part of the file will
 :Gblame [flags] {file}  be blamed, and a horizontal split without

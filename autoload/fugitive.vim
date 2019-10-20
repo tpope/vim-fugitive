@@ -5244,7 +5244,9 @@ function! s:BlameFileType() abort
   call s:Map('n', 'O',    ':<C-U>exe <SID>BlameCommit("tabedit")<CR>', '<silent>')
   call s:Map('n', 'p',    ':<C-U>exe <SID>BlameCommit("pedit")<CR>', '<silent>')
   call s:Map('n', 'cf',   ':<C-U>Gcommit --fixup=<C-R>=<SID>SquashArgument()<CR>', '')
+  call s:Map('n', 'cF',   ':<C-U><Bar>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Gcommit --fixup=<C-R>=<SID>SquashArgument()<CR>', '')
   call s:Map('n', 'cs',   ':<C-U>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>', '')
+  call s:Map('n', 'cS',   ':<C-U><Bar>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>', '')
   call s:Map('n', 'cA',   ':<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>', '')
 endfunction
 
