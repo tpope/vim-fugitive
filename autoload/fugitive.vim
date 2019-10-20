@@ -5258,6 +5258,8 @@ function! s:BlameFileType() abort
   call s:Map('n', 'cr<Space>', ':Git revert<Space>', '')
   call s:Map('n', 'crc',  ':<C-U>topleft Grevert <C-R>=<SID>SquashArgument()<CR><CR>', '<silent>')
   call s:Map('n', 'crn',  ':<C-U>Grevert --no-commit <C-R>=<SID>SquashArgument()<CR><CR>', '<silent>')
+  call s:Map('n', 'cm<Space>', ':Git merge<Space>', '')
+  call s:Map('n', 'cm<CR>', ':Git merge<CR>', '')
 endfunction
 
 augroup fugitive_blame
