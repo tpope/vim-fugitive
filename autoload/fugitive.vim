@@ -5255,6 +5255,9 @@ function! s:BlameFileType() abort
   call s:Map('n', 'cS',   ':<C-U><Bar>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Gcommit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>', '')
   call s:Map('n', 'cA',   ':<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>', '')
   call s:Map('n', 'c<Space>', ':Git commit<Space>', '')
+  call s:Map('n', 'cr<Space>', ':Git revert<Space>', '')
+  call s:Map('n', 'crc',  ':<C-U>topleft Grevert <C-R>=<SID>SquashArgument()<CR><CR>', '<silent>')
+  call s:Map('n', 'crn',  ':<C-U>Grevert --no-commit <C-R>=<SID>SquashArgument()<CR><CR>', '<silent>')
 endfunction
 
 augroup fugitive_blame
