@@ -157,16 +157,16 @@ function! s:Tree(path) abort
       let config = readfile(config_file,'',10)
       call filter(config,'v:val =~# "^\\s*worktree *="')
       if len(config) == 1
-        let worktree = s:Slash(FugitiveVimPath(matchstr(config[0], '= *\zs.*')))
+        let worktree = FugitiveVimPath(matchstr(config[0], '= *\zs.*'))
       endif
     elseif filereadable(dir . '/gitdir')
-      let worktree = s:Slash(fnamemodify(FugitiveVimPath(readfile(dir . '/gitdir')[0]), ':h'))
+      let worktree = fnamemodify(FugitiveVimPath(readfile(dir . '/gitdir')[0]), ':h')
       if worktree ==# '.'
         unlet! worktree
       endif
     endif
     if exists('worktree')
-      let s:worktree_for_dir[dir] = worktree
+      let s:worktree_for_dir[dir] = s:Slash(resolve(worktree))
       let s:dir_for_worktree[s:worktree_for_dir[dir]] = dir
     endif
   endif
