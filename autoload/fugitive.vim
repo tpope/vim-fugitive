@@ -5913,17 +5913,21 @@ endfunction
 " Section: Statusline
 
 function! fugitive#Statusline(...) abort
+  if exists("w:update") && reltimefloat(reltime(w:update))<10
+      return w:status
+  endif
   let dir = s:Dir(bufnr(''))
   if empty(dir)
     return ''
   endif
-  let status = ''
+  let w:status = ''
   let commit = s:DirCommitFile(@%)[1]
   if len(commit)
-    let status .= ':' . commit[0:6]
+    let w:status .= ':' . commit[0:6]
   endif
-  let status .= '('.FugitiveHead(7, dir).')'
-  return '[Git'.status.']'
+  let w:status .= '('.FugitiveHead(7, dir).')'
+  let w:update = reltime()
+  return '[Git'.w:status.']'
 endfunction
 
 function! fugitive#statusline(...) abort
