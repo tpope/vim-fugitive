@@ -1620,6 +1620,7 @@ function! fugitive#BufReadStatus() abort
 
     let b:fugitive_files = {'Staged': {}, 'Unstaged': {}}
     let [staged, unstaged, untracked] = [[], [], []]
+    let props = {}
 
     if fugitive#GitVersion(2, 11)
       let cmd += ['status', '--porcelain=v2', '-bz']
@@ -1628,7 +1629,6 @@ function! fugitive#BufReadStatus() abort
         throw 'fugitive: ' . message
       endif
 
-      let props = {}
       let i = 0
       while i < len(output)
         let line = output[i]
@@ -1740,12 +1740,12 @@ function! fugitive#BufReadStatus() abort
       let push = pull
     endif
 
-    if len(pull)
+    if len(pull) && get(props, 'branch.ab') !~# ' -0$'
       let unpulled = s:QueryLog(head . '..' . pull)
     else
       let unpulled = []
     endif
-    if len(push)
+    if len(push) && !(push ==# pull && get(props, 'branch.ab') =~# '^+0 ')
       let unpushed = s:QueryLog(push . '..' . head)
     else
       let unpushed = []
