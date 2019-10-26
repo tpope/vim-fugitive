@@ -1628,21 +1628,14 @@ function! fugitive#BufReadStatus() abort
         throw 'fugitive: ' . message
       endif
 
-      let i = match(output, '^[^#]')
-      let head = matchlist(output[:i], '^# branch\.head \zs.*$')[0]
-      let pull = get(matchlist(output[:i], '^# branch\.upstream \zs.*$'), 0, '')
-      if len(pull)
-        let branch = head
-      elseif head ==# '(detached)'
-        let head = matchlist(output[:i], '^# branch\.oid \zs.*$')[0][:10]
-        let branch = ''
-      else
-        let branch = head
-      endif
-
+      let props = {}
+      let i = 0
       while i < len(output)
         let line = output[i]
-        if line[0] ==# '?'
+        let prop = matchlist(line, '# \(\S\+\) \(.*\)')
+        if len(prop)
+          let props[prop[1]] = prop[2]
+        elseif line[0] ==# '?'
           call add(untracked, {'type': 'File', 'status': line[0], 'filename': line[2:-1]})
         elseif line[0] !=# '#'
           if line[0] ==# 'u'
@@ -1664,6 +1657,15 @@ function! fugitive#BufReadStatus() abort
         endif
         let i += 1
       endwhile
+      let branch = substitute(get(props, 'branch.head', '(unknown)'), '\C^(\%(detached\|unknown\))$', '', '')
+      if len(branch)
+        let head = branch
+      elseif has_key(props, 'branch.oid')
+        let head = props['branch.oid'][0:10]
+      else
+        let head = FugitiveHead(11)
+      endif
+      let pull = get(props, 'branch.upstream', '')
     else " git < 2.11
       let cmd += ['status', '--porcelain', '-bz']
       let [output, message, exec_error] = s:NullError(cmd)
