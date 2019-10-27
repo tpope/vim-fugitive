@@ -1673,6 +1673,9 @@ function! fugitive#BufReadStatus() abort
         throw 'fugitive: ' . message
       endif
 
+      while get(output, 0, '') =~# '^\l\+:'
+        call remove(output, 0)
+      endwhile
       let head = matchstr(output[0], '^## \zs\S\+\ze\%($\| \[\)')
       let pull = ''
       if head =~# '\.\.\.'
