@@ -3974,7 +3974,7 @@ function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
   if fugitive#GitVersion(1, 9)
     call extend(cmd, ['-c', 'diff.context=0', '-c', 'diff.noprefix=false', 'log'])
   else
-    call extend(cmd, ['log', '-U0', '--no-patch'])
+    call extend(cmd, ['log', '-U0', '-s'])
   endif
   call extend(cmd,
         \ ['--no-color', '--no-ext-diff', '--pretty=format:fugitive ' . format] +
