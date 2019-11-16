@@ -489,12 +489,21 @@ function! s:EchoExec(...) abort
   return 'checktime'
 endfunction
 
+let s:head_cache = {}
+
 function! fugitive#Head(...) abort
   let dir = a:0 > 1 ? a:2 : s:Dir()
-  if empty(dir) || !filereadable(fugitive#Find('.git/HEAD', dir))
+  if empty(dir)
     return ''
   endif
-  let head = readfile(fugitive#Find('.git/HEAD', dir))[0]
+  let file = fugitive#Find('.git/HEAD', dir)
+  let ftime = getftime(file)
+  if ftime == -1
+    return ''
+  elseif ftime != get(s:head_cache, dir, [-1])[0]
+    let s:head_cache[dir] = [ftime, readfile(file)[0]]
+  endif
+  let head = s:head_cache[dir][1]
   if head =~# '^ref: '
     return substitute(head, '\C^ref: \%(refs/\%(heads/\|remotes/\|tags/\)\=\)\=', '', '')
   elseif head =~# '^\x\{40,\}$'
@@ -2396,12 +2405,16 @@ endif
 
 function! s:ExpireStatus(bufnr) abort
   if a:bufnr == -2
+    let s:head_cache = {}
     let s:last_time = reltime()
     return ''
   endif
   let dir = s:Dir(a:bufnr)
   if len(dir)
     let s:last_times[s:cpath(dir)] = reltime()
+    if has_key(s:head_cache, dir)
+      call remove(s:head_cache, dir)
+    endif
   endif
   return ''
 endfunction
