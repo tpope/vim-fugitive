@@ -1654,11 +1654,14 @@ function! fugitive#BufReadStatus() abort
           endif
           if line[0] ==# '2'
             let i += 1
-            let file = output[i] . ' -> ' . matchstr(file, ' \zs.*')
+            let file = matchstr(file, ' \zs.*')
+            let files = output[i] . ' -> ' . file
+          else
+            let files = file
           endif
           let sub = matchstr(line, '^[12u] .. \zs....')
           if line[2] !=# '.'
-            call add(staged, {'type': 'File', 'status': line[2], 'filename': file, 'sub': sub})
+            call add(staged, {'type': 'File', 'status': line[2], 'filename': files, 'sub': sub})
           endif
           if line[3] !=# '.'
             call add(unstaged, {'type': 'File', 'status': get({'C':'M','M':'?','U':'?'}, matchstr(sub, 'S\.*\zs[CMU]'), line[3]), 'filename': file, 'sub': sub})
@@ -1716,7 +1719,7 @@ function! fugitive#BufReadStatus() abort
         if line[0:1] ==# '??'
           call add(untracked, {'type': 'File', 'status': line[1], 'filename': files})
         elseif line[1] !~# '[ !#]'
-          call add(unstaged, {'type': 'File', 'status': line[1], 'filename': files, 'sub': ''})
+          call add(unstaged, {'type': 'File', 'status': line[1], 'filename': file, 'sub': ''})
         endif
       endwhile
     endif
