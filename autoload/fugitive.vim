@@ -1400,10 +1400,11 @@ call s:add_methods('buffer', ['repo', 'type'])
 
 function! s:FilterEscape(items, ...) abort
   let items = copy(a:items)
+  call map(items, 's:fnameescape(v:val)')
   if a:0 && type(a:1) == type('')
     call filter(items, 'strpart(v:val, 0, strlen(a:1)) ==# a:1')
   endif
-  return map(items, 's:fnameescape(v:val)')
+  return items
 endfunction
 
 function! s:GlobComplete(lead, pattern) abort
@@ -1469,16 +1470,15 @@ function! fugitive#CompleteObject(base, ...) abort
     let results = []
     if a:base =~# '^refs/'
       let results += map(s:GlobComplete(fugitive#CommonDir(dir) . '/', a:base . '*'), 's:Slash(v:val)')
+      call map(results, 's:fnameescape(v:val)')
     elseif a:base !~# '^\.\=/\|^:('
       let heads = s:CompleteHeads(dir)
       if filereadable(fugitive#Find('.git/refs/stash', dir))
         let heads += ["stash"]
         let heads += sort(s:LinesError(["stash","list","--pretty=format:%gd"], dir)[0])
       endif
-      call filter(heads,'v:val[ 0 : strlen(a:base)-1 ] ==# a:base')
-      let results += heads
+      let results += s:FilterEscape(heads, a:base)
     endif
-    call map(results, 's:fnameescape(v:val)')
     if !empty(tree)
       let results += a:0 == 1 ? fugitive#CompletePath(a:base, dir) : fugitive#CompletePath(a:base)
     endif
