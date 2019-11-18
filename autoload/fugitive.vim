@@ -1724,6 +1724,10 @@ function! fugitive#BufReadStatus() abort
       endwhile
     endif
 
+    if empty(s:Tree())
+      let [unstaged, untracked] = [[], []]
+    endif
+
     for dict in staged
       let b:fugitive_files['Staged'][dict.filename] = dict
     endfor
@@ -1819,6 +1823,9 @@ function! fugitive#BufReadStatus() abort
     call s:AddHeader(pull_type, pull)
     if push !=# pull
       call s:AddHeader('Push', push)
+    endif
+    if empty(s:Tree())
+      call s:AddHeader('Bare', 'yes')
     endif
     call s:AddSection('Rebasing ' . rebasing_head, rebasing)
     call s:AddSection('Untracked', untracked)
