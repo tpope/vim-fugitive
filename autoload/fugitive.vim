@@ -2031,7 +2031,11 @@ function! fugitive#BufReadCmd(...) abort
         if b:fugitive_display_format
           call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
         else
-          call s:ReplaceCmd([dir, 'show', '--no-color', '-m', '--first-parent', '--pretty=format:tree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%s%n%n%b', rev])
+          call s:ReplaceCmd([dir, 'show', '--no-color', '-m', '--first-parent', '--pretty=format:tree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%s%n%n%b%nFuGiTiVeBeGiNmArKeRNotes:%n%NFuGiTiVeEnDmArKeR', rev])
+	  silent! keepjumps g/FuGiTiVeEnDmArKeR/norm! kgJ
+	  silent! keepjumps g/^FuGiTiVeBeGiNmArKeRNotes:\(%N\)\?FuGiTiVeEnDmArKeR$/d
+	  silent! keepjumps %s/^FuGiTiVeBeGiNmArKeR//
+	  silent! keepjumps %s/FuGiTiVeEnDmArKeR$//
           keepjumps call search('^parent ')
           if getline('.') ==# 'parent '
             silent keepjumps delete_
