@@ -2429,12 +2429,6 @@ function! s:ExpireStatus(bufnr) abort
   return ''
 endfunction
 
-function! FugitiveReloadCheck() abort
-  let t = b:fugitive_reltime
-  return [t, reltimestr(reltime(s:last_time, t)),
-        \ reltimestr(reltime(get(s:last_times, s:cpath(s:Dir()), t), t))]
-endfunction
-
 function! s:ReloadWinStatus(...) abort
   if get(b:, 'fugitive_type', '') !=# 'index' || &modified
     return
