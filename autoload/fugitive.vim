@@ -2907,9 +2907,9 @@ function! s:PatchSearchExpr(reverse) abort
       let pattern = '^[+-]\s*' . escape(substitute(strpart(line, 1), '^\s*\|\s*$', '', ''), '^$.*[]~\') . '\s*$'
     endif
     if a:reverse
-      return '?' . escape(pattern, '/') . "\<CR>"
+      return '?' . escape(pattern, '/?') . "\<CR>"
     else
-      return '/' . escape(pattern, '/?') . "\<CR>"
+      return '/' . escape(pattern, '/') . "\<CR>"
     endif
   endif
   return a:reverse ? '#' : '*'
