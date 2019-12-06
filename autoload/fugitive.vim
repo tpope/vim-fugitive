@@ -3769,7 +3769,7 @@ augroup fugitive_merge
         \ endif
   autocmd BufEnter * nested
         \ if exists('s:rebase_continue') |
-        \   exe s:MergeRebase('rebase', 0, '', [getfsize(fugitive#Find('.git/rebase-merge/git-rebase-todo', s:rebase_continue)) > 0 ? '--continue' : '--abort'], remove(s:, 'rebase_continue')) |
+        \   exe s:MergeRebase('rebase', 0, '', [getfsize(fugitive#Find('.git/rebase-merge/git-rebase-todo', s:rebase_continue)) >= 0 + (expand('<afile>:t') ==# 'git-rebase-todo') ? '--continue' : '--abort'], remove(s:, 'rebase_continue')) |
         \ endif
 augroup END
 
