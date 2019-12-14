@@ -4095,6 +4095,12 @@ function! s:OpenParse(args, wants_cmd) abort
 endfunction
 
 function! s:DiffClose() abort
+  for bufnr in tabpagebuflist()
+    if bufname(bufnr) =~# '^fugitive://'
+      execute bufwinnr(bufnr) .'windo quit'
+    endif
+  endfor
+
   let mywinnr = winnr()
   for winnr in [winnr('#')] + range(winnr('$'),1,-1)
     if winnr != mywinnr && getwinvar(winnr,'&diff')
