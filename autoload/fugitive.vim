@@ -1559,7 +1559,7 @@ function! s:ReplaceCmd(cmd) abort
     endtry
     call delete(temp)
     if s:cpath(fnamemodify(bufname('$'), ':p'), temp)
-      silent execute 'bwipeout '.bufnr('$')
+      silent! execute 'bwipeout '.bufnr('$')
     endif
   endtry
 endfunction
