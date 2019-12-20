@@ -18,7 +18,7 @@ Commit, merge, and rebase with `:Gcommit`, `:Gmerge`, and `:Grebase`, using
 the current Vim instance to edit commit messages and the rebase todo list.
 Use `:Gpush`, `:Gfetch`, and `:Gpull` to send and retrieve upstream changes.
 
-`:Gblame` brings up an interactive vertical split with `git blame`
+`:Gannotate` brings up an interactive vertical split with `git annotate`
 output.  Press enter on a line to edit the commit where the line
 changed, or `o` to open it in a split.  When you're done, use `:Gedit`
 in the historic buffer to go back to the work tree version.

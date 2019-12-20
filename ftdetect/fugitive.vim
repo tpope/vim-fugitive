@@ -1,1 +1,1 @@
-autocmd BufReadPost *.fugitiveblame setfiletype fugitiveblame
+autocmd BufReadPost *.fugitiveannotate setfiletype fugitiveannotate

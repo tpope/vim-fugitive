@@ -2,6 +2,6 @@ if exists("b:current_syntax")
   finish
 endif
 
-call fugitive#BlameSyntax()
+call fugitive#AnnotateSyntax()
 
-let b:current_syntax = "fugitiveblame"
+let b:current_syntax = "fugitiveannotate"

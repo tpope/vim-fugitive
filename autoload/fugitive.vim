@@ -4784,7 +4784,7 @@ function! fugitive#DeleteCommand(line1, line2, range, bang, mods, arg, args) abo
   return s:Remove('bdelete', a:bang)
 endfunction
 
-" Section: :Gblame
+" Section: :Gannotate
 
 function! s:Keywordprg() abort
   let args = ' --git-dir='.escape(s:Dir(),"\\\"' ")
@@ -4805,34 +4805,34 @@ function! s:linechars(pattern) abort
   return chars
 endfunction
 
-function! s:BlameBufnr(...) abort
+function! s:AnnotateBufnr(...) abort
   let state = s:TempState(bufname(a:0 ? a:1 : ''))
-  if get(state, 'filetype', '') ==# 'fugitiveblame'
+  if get(state, 'filetype', '') ==# 'fugitiveannotate'
     return get(state, 'bufnr', -1)
   else
     return -1
   endif
 endfunction
 
-function! s:BlameCommitFileLnum(...) abort
+function! s:AnnotateCommitFileLnum(...) abort
   let line = a:0 ? a:1 : getline('.')
   let state = a:0 ? a:2 : s:TempState()
   let commit = matchstr(line, '^\^\=\zs\x\+')
   if commit =~# '^0\+$'
     let commit = ''
-  elseif has_key(state, 'blame_reverse_end')
-    let commit = get(s:LinesError('rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, '')
+  elseif has_key(state, 'annotate_reverse_end')
+    let commit = get(s:LinesError('rev-list', '--ancestry-path', '--reverse', commit . '..' . state.annotate_reverse_end)[0], 0, '')
   endif
   let lnum = +matchstr(line, ' \zs\d\+\ze \%((\| *\d\+)\)')
   let path = matchstr(line, '^\^\=[?*]*\x* \+\%(\d\+ \+\d\+ \+\)\=\zs.\{-\}\ze\s*\d\+ \%((\| *\d\+)\)')
   if empty(path) && lnum
-    let path = get(state, 'blame_file', '')
+    let path = get(state, 'annotate_file', '')
   endif
   return [commit, path, lnum]
 endfunction
 
-function! s:BlameLeave() abort
-  let bufwinnr = bufwinnr(s:BlameBufnr())
+function! s:AnnotateLeave() abort
+  let bufwinnr = bufwinnr(s:AnnotateBufnr())
   if bufwinnr > 0
     let bufnr = bufnr('')
     exe bufwinnr . 'wincmd w'
@@ -4841,8 +4841,8 @@ function! s:BlameLeave() abort
   return ''
 endfunction
 
-function! s:BlameQuit() abort
-  let cmd = s:BlameLeave()
+function! s:AnnotateQuit() abort
+  let cmd = s:AnnotateLeave()
   if empty(cmd)
     return 'bdelete'
   elseif len(s:DirCommitFile(@%)[1])
@@ -4852,11 +4852,11 @@ function! s:BlameQuit() abort
   endif
 endfunction
 
-function! fugitive#BlameComplete(A, L, P) abort
-  return s:CompleteSub('blame', a:A, a:L, a:P)
+function! fugitive#AnnotateComplete(A, L, P) abort
+  return s:CompleteSub('annotate', a:A, a:L, a:P)
 endfunction
 
-function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
+function! s:AnnotateSubcommand(line1, count, range, bang, mods, args) abort
   exe s:DirCheck()
   let flags = copy(a:args)
   let i = 0
@@ -4893,7 +4893,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
       let i += 1
       if i == len(flags)
         echohl ErrorMsg
-        echo s:ChompError(['blame', arg])[0]
+        echo s:ChompError(['annotate', arg])[0]
         echohl NONE
         return ''
       endif
@@ -4925,13 +4925,13 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
     endif
     let i += 1
   endwhile
-  let file = substitute(get(files, 0, get(s:TempState(), 'blame_file', s:Relative('./'))), '^\.\%(/\|$\)', '', '')
+  let file = substitute(get(files, 0, get(s:TempState(), 'annotate_file', s:Relative('./'))), '^\.\%(/\|$\)', '', '')
   if empty(commits) && len(files) > 1
     call add(commits, remove(files, 1))
   endif
-  exe s:BlameLeave()
+  exe s:AnnotateLeave()
   try
-    let cmd = ['--no-pager', '-c', 'blame.coloring=none', '-c', 'blame.blankBoundary=false', 'blame', '--show-number']
+    let cmd = ['--no-pager', '-c', 'annotate.coloring=none', '-c', 'annotate.blankBoundary=false', 'annotate', '--show-number']
     call extend(cmd, filter(copy(flags), 'v:val !~# "\\v^%(-b|--%(no-)=color-.*|--progress)$"'))
     if a:count > 0 && empty(ranges)
       let cmd += ['-L', (a:line1 ? a:line1 : line('.')) . ',' . (a:line1 ? a:line1 : line('.'))]
@@ -4947,7 +4947,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
     let basecmd = escape(fugitive#Prepare(cmd) . ' -- ' . s:shellesc(len(files) ? files : file), '!#%')
     let tempname = tempname()
     let error = tempname . '.err'
-    let temp = tempname . (raw ? '' : '.fugitiveblame')
+    let temp = tempname . (raw ? '' : '.fugitiveannotate')
     if &shell =~# 'csh'
       silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
     else
@@ -4976,13 +4976,13 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         endfor
         return ''
       endif
-      let temp_state = {'dir': s:Dir(), 'filetype': (raw ? '' : 'fugitiveblame'), 'blame_flags': flags, 'blame_file': file, 'modifiable': 0}
+      let temp_state = {'dir': s:Dir(), 'filetype': (raw ? '' : 'fugitiveannotate'), 'annotate_flags': flags, 'annotate_file': file, 'modifiable': 0}
       if s:HasOpt(flags, '--reverse')
-        let temp_state.blame_reverse_end = matchstr(get(commits, 0, ''), '\.\.\zs.*')
+        let temp_state.annotate_reverse_end = matchstr(get(commits, 0, ''), '\.\.\zs.*')
       endif
       if (a:line1 == 0 || a:range == 1) && a:count > 0
         let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit', 'vsplit', 'tabedit'], a:count - (a:line1 ? a:line1 : 1), 'split')
-        return s:BlameCommit(edit, get(readfile(temp), 0, ''), temp_state)
+        return s:AnnotateCommit(edit, get(readfile(temp), 0, ''), temp_state)
       else
         let temp = s:Resolve(temp)
         let s:temp_files[s:cpath(temp)] = temp_state
@@ -5008,7 +5008,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
           if exists('+cursorbind') && getwinvar(winnr, '&cursorbind')
             call setwinvar(winnr, '&cursorbind', 0)
           endif
-          if s:BlameBufnr(winbufnr(winnr)) > 0
+          if s:AnnotateBufnr(winbufnr(winnr)) > 0
             execute winbufnr(winnr).'bdelete'
           endif
         endfor
@@ -5059,20 +5059,20 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
   endtry
 endfunction
 
-function! s:BlameCommit(cmd, ...) abort
+function! s:AnnotateCommit(cmd, ...) abort
   let line = a:0 ? a:1 : getline('.')
   let state = a:0 ? a:2 : s:TempState()
-  let sigil = has_key(state, 'blame_reverse_end') ? '-' : '+'
-  let mods = (s:BlameBufnr() < 0 ? '' : &splitbelow ? "botright " : "topleft ")
-  let [commit, path, lnum] = s:BlameCommitFileLnum(line, state)
-  if empty(commit) && len(path) && has_key(state, 'blame_reverse_end')
-    let path = (len(state.blame_reverse_end) ? state.blame_reverse_end . ':' : ':(top)') . path
+  let sigil = has_key(state, 'annotate_reverse_end') ? '-' : '+'
+  let mods = (s:AnnotateBufnr() < 0 ? '' : &splitbelow ? "botright " : "topleft ")
+  let [commit, path, lnum] = s:AnnotateCommitFileLnum(line, state)
+  if empty(commit) && len(path) && has_key(state, 'annotate_reverse_end')
+    let path = (len(state.annotate_reverse_end) ? state.annotate_reverse_end . ':' : ':(top)') . path
     return fugitive#Open(mods . a:cmd, 0, '', '+' . lnum . ' ' . s:fnameescape(path), ['+' . lnum, path])
   endif
   if commit =~# '^0*$'
     return 'echoerr ' . string('fugitive: no commit')
   endif
-  if line =~# '^\^' && !has_key(state, 'blame_reverse_end')
+  if line =~# '^\^' && !has_key(state, 'annotate_reverse_end')
     let path = commit . ':' . path
     return fugitive#Open(mods . a:cmd, 0, '', '+' . lnum . ' ' . s:fnameescape(path), ['+' . lnum, path])
   endif
@@ -5114,18 +5114,18 @@ function! s:BlameCommit(cmd, ...) abort
   return ''
 endfunction
 
-function! s:BlameJump(suffix, ...) abort
+function! s:AnnotateJump(suffix, ...) abort
   let suffix = a:suffix
-  let [commit, path, lnum] = s:BlameCommitFileLnum()
+  let [commit, path, lnum] = s:AnnotateCommitFileLnum()
   if empty(path)
-    return 'echoerr ' . string('fugitive: could not determine filename for blame')
+    return 'echoerr ' . string('fugitive: could not determine filename for annotate')
   endif
   if commit =~# '^0*$'
     let commit = 'HEAD'
     let suffix = ''
   endif
   let offset = line('.') - line('w0')
-  let flags = get(s:TempState(), 'blame_flags', [])
+  let flags = get(s:TempState(), 'annotate_flags', [])
   if a:0 && a:1
     if s:HasOpt(flags, '--reverse')
       call remove(flags, '--reverse')
@@ -5133,10 +5133,10 @@ function! s:BlameJump(suffix, ...) abort
       call add(flags, '--reverse')
     endif
   endif
-  let blame_bufnr = s:BlameBufnr()
-  if blame_bufnr > 0
+  let annotate_bufnr = s:AnnotateBufnr()
+  if annotate_bufnr > 0
     let bufnr = bufnr('')
-    let winnr = bufwinnr(blame_bufnr)
+    let winnr = bufwinnr(annotate_bufnr)
     if winnr > 0
       exe winnr.'wincmd w'
       exe bufnr.'bdelete'
@@ -5144,14 +5144,14 @@ function! s:BlameJump(suffix, ...) abort
     execute 'Gedit' s:fnameescape(commit . suffix . ':' . path)
     execute lnum
   endif
-  if exists(':Gblame')
+  if exists(':Gannotate')
     let my_bufnr = bufnr('')
-    if blame_bufnr < 0
-      let blame_args = flags + [commit . suffix, '--', path]
-      let result = s:BlameSubcommand(0, 0, 0, 0, '', blame_args)
+    if annotate_bufnr < 0
+      let annotate_args = flags + [commit . suffix, '--', path]
+      let result = s:AnnotateSubcommand(0, 0, 0, 0, '', annotate_args)
     else
-      let blame_args = flags
-      let result = s:BlameSubcommand(-1, -1, 0, 0, '', blame_args)
+      let annotate_args = flags
+      let result = s:AnnotateSubcommand(-1, -1, 0, 0, '', annotate_args)
     endif
     if bufnr('') == my_bufnr
       return result
@@ -5166,46 +5166,46 @@ function! s:BlameJump(suffix, ...) abort
     endif
     keepjumps syncbind
     redraw
-    echo ':Gblame' s:fnameescape(blame_args)
+    echo ':Gannotate' s:fnameescape(annotate_args)
   endif
   return ''
 endfunction
 
 let s:hash_colors = {}
 
-function! fugitive#BlameSyntax() abort
+function! fugitive#AnnotateSyntax() abort
   let conceal = has('conceal') ? ' conceal' : ''
   let config = fugitive#Config()
-  let flags = get(s:TempState(), 'blame_flags', [])
-  syn match FugitiveblameBlank                      "^\s\+\s\@=" nextgroup=FugitiveblameAnnotation,FugitiveblameScoreDebug,FugitiveblameOriginalFile,FugitiveblameOriginalLineNumber skipwhite
-  syn match FugitiveblameHash       "\%(^\^\=[?*]*\)\@<=\<\x\{7,\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameScoreDebug,FugitiveblameOriginalLineNumber,FugitiveblameOriginalFile skipwhite
-  syn match FugitiveblameUncommitted "\%(^\^\=\)\@<=\<0\{7,\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameScoreDebug,FugitiveblameOriginalLineNumber,FugitiveblameOriginalFile skipwhite
-  if get(get(config, 'blame.blankboundary', ['x']), 0, 'x') =~# '^$\|^true$' || s:HasOpt(flags, '-b')
-    syn match FugitiveblameBoundaryIgnore "^\^[*?]*\x\{7,\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameScoreDebug,FugitiveblameOriginalLineNumber,FugitiveblameOriginalFile skipwhite
+  let flags = get(s:TempState(), 'annotate_flags', [])
+  syn match FugitiveannotateBlank                      "^\s\+\s\@=" nextgroup=FugitiveannotateAnnotation,FugitiveannotateScoreDebug,FugitiveannotateOriginalFile,FugitiveannotateOriginalLineNumber skipwhite
+  syn match FugitiveannotateHash       "\%(^\^\=[?*]*\)\@<=\<\x\{7,\}\>" nextgroup=FugitiveannotateAnnotation,FugitiveannotateScoreDebug,FugitiveannotateOriginalLineNumber,FugitiveannotateOriginalFile skipwhite
+  syn match FugitiveannotateUncommitted "\%(^\^\=\)\@<=\<0\{7,\}\>" nextgroup=FugitiveannotateAnnotation,FugitiveannotateScoreDebug,FugitiveannotateOriginalLineNumber,FugitiveannotateOriginalFile skipwhite
+  if get(get(config, 'annotate.blankboundary', ['x']), 0, 'x') =~# '^$\|^true$' || s:HasOpt(flags, '-b')
+    syn match FugitiveannotateBoundaryIgnore "^\^[*?]*\x\{7,\}\>" nextgroup=FugitiveannotateAnnotation,FugitiveannotateScoreDebug,FugitiveannotateOriginalLineNumber,FugitiveannotateOriginalFile skipwhite
   else
-    syn match FugitiveblameBoundary "^\^"
+    syn match FugitiveannotateBoundary "^\^"
   endif
-  syn match FugitiveblameScoreDebug        " *\d\+\s\+\d\+\s\@=" nextgroup=FugitiveblameAnnotation,FugitiveblameOriginalLineNumber,fugitiveblameOriginalFile contained skipwhite
-  syn region FugitiveblameAnnotation matchgroup=FugitiveblameDelimiter start="(" end="\%(\s\d\+\)\@<=)" contained keepend oneline
-  syn match FugitiveblameTime "[0-9:/+-][0-9:/+ -]*[0-9:/+-]\%(\s\+\d\+)\)\@=" contained containedin=FugitiveblameAnnotation
-  exec 'syn match FugitiveblameLineNumber         "\s*\d\+)\@=" contained containedin=FugitiveblameAnnotation' conceal
-  exec 'syn match FugitiveblameOriginalFile       "\s\%(\f\+\D\@<=\|\D\@=\f\+\)\%(\%(\s\+\d\+\)\=\s\%((\|\s*\d\+)\)\)\@=" contained nextgroup=FugitiveblameOriginalLineNumber,FugitiveblameAnnotation skipwhite' (s:HasOpt(flags, '--show-name', '-f') ? '' : conceal)
-  exec 'syn match FugitiveblameOriginalLineNumber "\s*\d\+\%(\s(\)\@=" contained nextgroup=FugitiveblameAnnotation skipwhite' (s:HasOpt(flags, '--show-number', '-n') ? '' : conceal)
-  exec 'syn match FugitiveblameOriginalLineNumber "\s*\d\+\%(\s\+\d\+)\)\@=" contained nextgroup=FugitiveblameShort skipwhite' (s:HasOpt(flags, '--show-number', '-n') ? '' : conceal)
-  syn match FugitiveblameShort              " \d\+)" contained contains=FugitiveblameLineNumber
-  syn match FugitiveblameNotCommittedYet "(\@<=Not Committed Yet\>" contained containedin=FugitiveblameAnnotation
-  hi def link FugitiveblameBoundary           Keyword
-  hi def link FugitiveblameHash               Identifier
-  hi def link FugitiveblameBoundaryIgnore     Ignore
-  hi def link FugitiveblameUncommitted        Ignore
-  hi def link FugitiveblameScoreDebug         Debug
-  hi def link FugitiveblameTime               PreProc
-  hi def link FugitiveblameLineNumber         Number
-  hi def link FugitiveblameOriginalFile       String
-  hi def link FugitiveblameOriginalLineNumber Float
-  hi def link FugitiveblameShort              FugitiveblameDelimiter
-  hi def link FugitiveblameDelimiter          Delimiter
-  hi def link FugitiveblameNotCommittedYet    Comment
+  syn match FugitiveannotateScoreDebug        " *\d\+\s\+\d\+\s\@=" nextgroup=FugitiveannotateAnnotation,FugitiveannotateOriginalLineNumber,fugitiveannotateOriginalFile contained skipwhite
+  syn region FugitiveannotateAnnotation matchgroup=FugitiveannotateDelimiter start="(" end="\%(\s\d\+\)\@<=)" contained keepend oneline
+  syn match FugitiveannotateTime "[0-9:/+-][0-9:/+ -]*[0-9:/+-]\%(\s\+\d\+)\)\@=" contained containedin=FugitiveannotateAnnotation
+  exec 'syn match FugitiveannotateLineNumber         "\s*\d\+)\@=" contained containedin=FugitiveannotateAnnotation' conceal
+  exec 'syn match FugitiveannotateOriginalFile       "\s\%(\f\+\D\@<=\|\D\@=\f\+\)\%(\%(\s\+\d\+\)\=\s\%((\|\s*\d\+)\)\)\@=" contained nextgroup=FugitiveannotateOriginalLineNumber,FugitiveannotateAnnotation skipwhite' (s:HasOpt(flags, '--show-name', '-f') ? '' : conceal)
+  exec 'syn match FugitiveannotateOriginalLineNumber "\s*\d\+\%(\s(\)\@=" contained nextgroup=FugitiveannotateAnnotation skipwhite' (s:HasOpt(flags, '--show-number', '-n') ? '' : conceal)
+  exec 'syn match FugitiveannotateOriginalLineNumber "\s*\d\+\%(\s\+\d\+)\)\@=" contained nextgroup=FugitiveannotateShort skipwhite' (s:HasOpt(flags, '--show-number', '-n') ? '' : conceal)
+  syn match FugitiveannotateShort              " \d\+)" contained contains=FugitiveannotateLineNumber
+  syn match FugitiveannotateNotCommittedYet "(\@<=Not Committed Yet\>" contained containedin=FugitiveannotateAnnotation
+  hi def link FugitiveannotateBoundary           Keyword
+  hi def link FugitiveannotateHash               Identifier
+  hi def link FugitiveannotateBoundaryIgnore     Ignore
+  hi def link FugitiveannotateUncommitted        Ignore
+  hi def link FugitiveannotateScoreDebug         Debug
+  hi def link FugitiveannotateTime               PreProc
+  hi def link FugitiveannotateLineNumber         Number
+  hi def link FugitiveannotateOriginalFile       String
+  hi def link FugitiveannotateOriginalLineNumber Float
+  hi def link FugitiveannotateShort              FugitiveannotateDelimiter
+  hi def link FugitiveannotateDelimiter          Delimiter
+  hi def link FugitiveannotateNotCommittedYet    Comment
   if !get(g:, 'fugitive_dynamic_colors', 1) && !s:HasOpt(flags, '--color-lines') || s:HasOpt(flags, '--no-color-lines')
     return
   endif
@@ -5227,22 +5227,22 @@ function! fugitive#BlameSyntax() abort
     else
       let s:hash_colors[hash] = ''
     endif
-    exe 'syn match FugitiveblameHash'.hash.'       "\%(^\^\=\)\@<='.hash.'\x\{1,34\}\>" nextgroup=FugitiveblameAnnotation,FugitiveblameOriginalLineNumber,fugitiveblameOriginalFile skipwhite'
+    exe 'syn match FugitiveannotateHash'.hash.'       "\%(^\^\=\)\@<='.hash.'\x\{1,34\}\>" nextgroup=FugitiveannotateAnnotation,FugitiveannotateOriginalLineNumber,fugitiveannotateOriginalFile skipwhite'
   endfor
-  call s:BlameRehighlight()
+  call s:AnnotateRehighlight()
 endfunction
 
-function! s:BlameRehighlight() abort
+function! s:AnnotateRehighlight() abort
   for [hash, cterm] in items(s:hash_colors)
     if !empty(cterm) || has('gui_running') || has('termguicolors') && &termguicolors
-      exe 'hi FugitiveblameHash'.hash.' guifg=#'.hash.get(s:hash_colors, hash, '')
+      exe 'hi FugitiveannotateHash'.hash.' guifg=#'.hash.get(s:hash_colors, hash, '')
     else
-      exe 'hi link FugitiveblameHash'.hash.' Identifier'
+      exe 'hi link FugitiveannotateHash'.hash.' Identifier'
     endif
   endfor
 endfunction
 
-function! s:BlameFileType() abort
+function! s:AnnotateFileType() abort
   setlocal nomodeline
   setlocal foldmethod=manual
   if len(s:Dir())
@@ -5256,27 +5256,27 @@ function! s:BlameFileType() abort
   if &modifiable
     return ''
   endif
-  call s:Map('n', '<F1>', ':help :Gblame<CR>', '<silent>')
-  call s:Map('n', 'g?',   ':help :Gblame<CR>', '<silent>')
+  call s:Map('n', '<F1>', ':help :Gannotate<CR>', '<silent>')
+  call s:Map('n', 'g?',   ':help :Gannotate<CR>', '<silent>')
   if mapcheck('q', 'n') =~# '^$\|bdelete'
-    call s:Map('n', 'q',  ':exe <SID>BlameQuit()<Bar>echohl WarningMsg<Bar>echo ":Gblame q is deprecated in favor of gq"<Bar>echohl NONE<CR>', '<silent>')
+    call s:Map('n', 'q',  ':exe <SID>AnnotateQuit()<Bar>echohl WarningMsg<Bar>echo ":Gannotate q is deprecated in favor of gq"<Bar>echohl NONE<CR>', '<silent>')
   endif
-  call s:Map('n', 'gq',   ':exe <SID>BlameQuit()<CR>', '<silent>')
-  call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
-  call s:Map('n', '<CR>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
-  call s:Map('n', '-',    ':<C-U>exe <SID>BlameJump("")<CR>', '<silent>')
-  call s:Map('n', 'P',    ':<C-U>exe <SID>BlameJump("^".v:count1)<CR>', '<silent>')
-  call s:Map('n', '~',    ':<C-U>exe <SID>BlameJump("~".v:count1)<CR>', '<silent>')
-  call s:Map('n', 'i',    ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
-  call s:Map('n', 'o',    ':<C-U>exe <SID>BlameCommit("split")<CR>', '<silent>')
-  call s:Map('n', 'O',    ':<C-U>exe <SID>BlameCommit("tabedit")<CR>', '<silent>')
-  call s:Map('n', 'p',    ':<C-U>exe <SID>BlameCommit("pedit")<CR>', '<silent>')
+  call s:Map('n', 'gq',   ':exe <SID>AnnotateQuit()<CR>', '<silent>')
+  call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>AnnotateCommit("exe <SID>AnnotateLeave()<Bar>edit")<CR>', '<silent>')
+  call s:Map('n', '<CR>', ':<C-U>exe <SID>AnnotateCommit("exe <SID>AnnotateLeave()<Bar>edit")<CR>', '<silent>')
+  call s:Map('n', '-',    ':<C-U>exe <SID>AnnotateJump("")<CR>', '<silent>')
+  call s:Map('n', 'P',    ':<C-U>exe <SID>AnnotateJump("^".v:count1)<CR>', '<silent>')
+  call s:Map('n', '~',    ':<C-U>exe <SID>AnnotateJump("~".v:count1)<CR>', '<silent>')
+  call s:Map('n', 'i',    ':<C-U>exe <SID>AnnotateCommit("exe <SID>AnnotateLeave()<Bar>edit")<CR>', '<silent>')
+  call s:Map('n', 'o',    ':<C-U>exe <SID>AnnotateCommit("split")<CR>', '<silent>')
+  call s:Map('n', 'O',    ':<C-U>exe <SID>AnnotateCommit("tabedit")<CR>', '<silent>')
+  call s:Map('n', 'p',    ':<C-U>exe <SID>AnnotateCommit("pedit")<CR>', '<silent>')
 endfunction
 
-augroup fugitive_blame
+augroup fugitive_annotate
   autocmd!
-  autocmd FileType fugitiveblame call s:BlameFileType()
-  autocmd ColorScheme,GUIEnter * call s:BlameRehighlight()
+  autocmd FileType fugitiveannotate call s:AnnotateFileType()
+  autocmd ColorScheme,GUIEnter * call s:AnnotateRehighlight()
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
 
@@ -5406,16 +5406,16 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
             let commit = ''
           endif
           if a:count > 0 && empty(a:args) && commit =~# '^\x\{40,\}$'
-            let blame_list = tempname()
-            call writefile([commit, ''], blame_list, 'b')
-            let blame_in = tempname()
-            silent exe '%write' blame_in
-            let [blame, exec_error] = s:LinesError(['-c', 'blame.coloring=none', 'blame', '--contents', blame_in, '-L', a:line1.','.a:count, '-S', blame_list, '-s', '--show-number', './' . path])
+            let annotate_list = tempname()
+            call writefile([commit, ''], annotate_list, 'b')
+            let annotate_in = tempname()
+            silent exe '%write' annotate_in
+            let [annotate, exec_error] = s:LinesError(['-c', 'annotate.coloring=none', 'annotate', '--contents', annotate_in, '-L', a:line1.','.a:count, '-S', annotate_list, '-s', '--show-number', './' . path])
             if !exec_error
-              let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
-              if get(blame, 0) =~# blame_regex && get(blame, -1) =~# blame_regex
-                let line1 = +matchstr(blame[0], blame_regex)
-                let line2 = +matchstr(blame[-1], blame_regex)
+              let annotate_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
+              if get(annotate, 0) =~# annotate_regex && get(annotate, -1) =~# annotate_regex
+                let line1 = +matchstr(annotate[0], annotate_regex)
+                let line2 = +matchstr(annotate[-1], annotate_regex)
               else
                 call s:throw("Can't browse to uncommitted change")
               endif
@@ -5562,13 +5562,13 @@ endfunction
 function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
-      let blame_map = 'Gblame<C-R>=v:count ? " --reverse" : ""<CR><CR>'
-      call s:Map('n', '<2-LeftMouse>', ':<C-U>0,1' . blame_map, '<silent>')
-      call s:Map('n', '<CR>', ':<C-U>0,1' . blame_map, '<silent>')
-      call s:Map('n', 'o',    ':<C-U>0,2' . blame_map, '<silent>')
-      call s:Map('n', 'p',    ':<C-U>0,3' . blame_map, '<silent>')
-      call s:Map('n', 'gO',   ':<C-U>0,4' . blame_map, '<silent>')
-      call s:Map('n', 'O',    ':<C-U>0,5' . blame_map, '<silent>')
+      let annotate_map = 'Gannotate<C-R>=v:count ? " --reverse" : ""<CR><CR>'
+      call s:Map('n', '<2-LeftMouse>', ':<C-U>0,1' . annotate_map, '<silent>')
+      call s:Map('n', '<CR>', ':<C-U>0,1' . annotate_map, '<silent>')
+      call s:Map('n', 'o',    ':<C-U>0,2' . annotate_map, '<silent>')
+      call s:Map('n', 'p',    ':<C-U>0,3' . annotate_map, '<silent>')
+      call s:Map('n', 'gO',   ':<C-U>0,4' . annotate_map, '<silent>')
+      call s:Map('n', 'O',    ':<C-U>0,5' . annotate_map, '<silent>')
 
       call s:Map('n', 'D',  ":<C-U>call <SID>DiffClose()<Bar>Gdiffsplit!<Bar>redraw<Bar>echohl WarningMsg<Bar> echo ':Gstatus D is deprecated in favor of dd'<Bar>echohl NONE<CR>", '<silent>')
       call s:Map('n', 'dd', ":<C-U>call <SID>DiffClose()<Bar>Gdiffsplit!<CR>", '<silent>')

@@ -69,9 +69,9 @@ that are part of Git repositories).
 :Git fetch [args]       Like |:Gpush|, but for git-fetch.
 :Gfetch [args]
 
-                                                *:Git-blame* *:Gblame*
-:Git blame [flags]      Run git-blame [flags] on the current file and open the
-:Gblame [flags]         results in a scroll-bound vertical split.  The
+                                                *:Git-annotate* *:Gannotate*
+:Git annotate [flags]      Run git-annotate [flags] on the current file and open the
+:Gannotate [flags]         results in a scroll-bound vertical split.  The
                         following maps, which work on the cursor line commit
                         where sensible, are provided:
 
@@ -79,20 +79,20 @@ that are part of Git repositories).
                         A     resize to end of author column
                         C     resize to end of commit column
                         D     resize to end of date/time column
-                        gq    close blame, then |:Gedit| to return to work
+                        gq    close annotate, then |:Gedit| to return to work
                               tree version
-                        <CR>  close blame, and jump to patch that added line
+                        <CR>  close annotate, and jump to patch that added line
                               (or directly to blob for boundary commit)
                         o     jump to patch or blob in horizontal split
                         O     jump to patch or blob in new tab
                         p     jump to patch or blob in preview window
-                        -     reblame at commit
-                        ~     reblame at [count]th first grandparent
-                        P     reblame at [count]th parent (like HEAD^[count])
+                        -     reannotate at commit
+                        ~     reannotate at [count]th first grandparent
+                        P     reannotate at [count]th parent (like HEAD^[count])
 
-:[range]Gblame [flags]  If a range is given, just that part of the file will
-:Gblame [flags] {file}  be blamed, and a horizontal split without
-:Git blame ...          scrollbinding is used.  You can also give an arbitrary
+:[range]Gannotate [flags]  If a range is given, just that part of the file will
+:Gannotate [flags] {file}  be annotated, and a horizontal split without
+:Git annotate ...          scrollbinding is used.  You can also give an arbitrary
                         filename.
 
                                                 *:Ggrep* *:Gcgrep* *:Git-grep*

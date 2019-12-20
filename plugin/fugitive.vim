@@ -393,7 +393,7 @@ exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugit
 exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#PullComplete   Gpull   exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "pull " . <q-args>)'
 exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#PushComplete   Gpush   exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "push " . <q-args>)'
 exe 'command! -bang -nargs=? -range=-1' s:addr_other '-complete=customlist,fugitive#FetchComplete  Gfetch  exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "fetch " . <q-args>)'
-exe 'command! -bang -nargs=? -range=-1                -complete=customlist,fugitive#BlameComplete  Gblame  exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "blame " . <q-args>)'
+exe 'command! -bang -nargs=? -range=-1                -complete=customlist,fugitive#AnnotateComplete  Gannotate  exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "annotate " . <q-args>)'
 
 exe "command! -bar -bang -nargs=? -complete=customlist,fugitive#CdComplete Gcd  exe fugitive#Cd(<q-args>, 0)"
 exe "command! -bar -bang -nargs=? -complete=customlist,fugitive#CdComplete Glcd exe fugitive#Cd(<q-args>, 1)"
