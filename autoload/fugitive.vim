@@ -914,8 +914,8 @@ function! fugitive#Find(object, ...) abort
     let f = 'fugitive://' . dir . '//0/' . rev[1:-1]
   else
     if !exists('f')
-      let commit = substitute(matchstr(rev, '^[^:.-][^:]*\|^:.*'), '^@\%($\|[~^]\|@{\)\@=', 'HEAD', '')
-      let file = substitute(matchstr(rev, '^[^:.-][^:]*\zs:.*'), '^:', '/', '')
+      let commit = substitute(matchstr(rev, '^\%([^:.-]\|\.\.[^/:]\)[^:]*\|^:.*'), '^@\%($\|[~^]\|@{\)\@=', 'HEAD', '')
+      let file = substitute(matchstr(rev, '^\%([^:.-]\|\.\.[^/:]\)[^:]*\zs:.*'), '^:', '/', '')
       if file =~# '^/\.\.\=\%(/\|$\)\|^//\|^/\a\+:'
         let file = file =~# '^/\.' ? simplify(getcwd() . file) : file[1:-1]
         if s:cpath(base . '/', (file . '/')[0 : len(base)])
