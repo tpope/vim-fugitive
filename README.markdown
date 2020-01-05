@@ -33,6 +33,9 @@ Use `:Ggrep` to search the work tree (or any arbitrary commit) with
 list.  Give them a range (e.g., using visual mode and `:'<,'>Gclog`) to
 iterate over every change to that portion of the current file.
 
+`:Git mergetool` loads conflicts into the quickfix list.  `:Git difftool` does
+the same for any arbitrary set of changes.
+
 `:Gread` is a variant of `git checkout -- filename` that operates on the
 buffer rather than the filename.  This means you can use `u` to undo it
 and you never get any warnings about the file changing outside Vim.
