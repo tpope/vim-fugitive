@@ -72,7 +72,7 @@ For more information, see `:help fugitive`.
 ## Installation
 
 Install using your favorite package manager, or use Vim's built-in package support:
-	
+
     mkdir -p ~/.vim/pack/tpope/start
     cd ~/.vim/pack/tpope/start
     git clone https://tpope.io/vim/fugitive.git
