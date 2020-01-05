@@ -2166,6 +2166,128 @@ augroup END
 
 " Section: :Git
 
+function! s:RunJobs() abort
+  return exists('*job_start') || exists('*jobstart')
+endfunction
+
+function! s:RunReceive(state, job, data, ...) abort
+  call add(a:state.log, a:data)
+  let data = type(a:data) == type([]) ? join(a:data, "\n") : a:data
+  if has_key(a:state, 'buffer')
+    let data = remove(a:state, 'buffer') . data
+  endif
+  let escape = "\033]51;[^\007]*"
+  let a:state.buffer = matchstr(data, escape . "$\\|[\r\n]\\+$")
+  if len(a:state.buffer)
+    let data = strpart(data, 0, len(data) - len(a:state.buffer))
+  endif
+  let cmd = matchstr(data, escape . "\007")[5:-2]
+  let data = substitute(data, escape . "\007", '', 'g')
+  if a:state.pty
+    echon data
+  else
+    echon substitute(data, "\r\\ze\n", '', 'g')
+  endif
+  if cmd =~# '^fugitive:'
+    let a:state.request = strpart(cmd, 9)
+  endif
+endfunction
+
+function! s:RunSend(job, str) abort
+  try
+    if type(a:job) == type(0)
+      call chansend(a:job, a:str)
+    else
+      call ch_sendraw(a:job, a:str)
+    endif
+    return len(a:str)
+  catch /^Vim\%((\a\+)\)\=:E90[06]:/
+    return 0
+  endtry
+endfunction
+
+if !exists('s:edit_jobs')
+  let s:edit_jobs = {}
+endif
+function! s:RunWait(state, job) abort
+  let finished = 0
+  try
+    while get(a:state, 'request', '') !=# 'edit' && (type(a:job) == type(0) ? jobwait([a:job], 1)[0] == -1 : ch_status(a:job) !=# 'closed')
+      if !exists('*jobwait')
+        sleep 1m
+      endif
+      let peek = getchar(1)
+      if peek != 0 && !(has('win32') && peek == 128)
+        let c = getchar()
+        let c = type(c) == type(0) ? nr2char(c) : c
+        call s:RunSend(a:job, c)
+        if !a:state.pty
+          echon c
+        endif
+      endif
+    endwhile
+    sleep 1m
+    echo
+    if get(a:state, 'request', '') == 'edit'
+      call remove(a:state, 'request')
+      let file = readfile(a:state.temp . '.edit')[0]
+      exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
+      set bufhidden=wipe
+      let s:edit_jobs[bufnr('')] = [a:state, a:job]
+    endif
+    let finished = 1
+  finally
+    if !finished
+      try
+        if a:state.pty
+          call s:RunSend(a:job, "\<C-C>")
+        elseif type(a:job) == type(0)
+          call jobstop(a:job)
+        else
+          call job_stop(a:job)
+        endif
+      catch /.*/
+      endtry
+    endif
+  endtry
+  call fugitive#ReloadStatus(a:state.dir, 1)
+  return ''
+endfunction
+
+if !exists('s:resume_queue')
+  let s:resume_queue = []
+endif
+function! fugitive#Resume() abort
+  while len(s:resume_queue)
+    let [state, job] = remove(s:resume_queue, 0)
+    call s:RunWait(state, job)
+  endwhile
+endfunction
+
+function! s:RunBufDelete(bufnr) abort
+  if has_key(s:edit_jobs, a:bufnr) |
+    if filereadable(s:edit_jobs[a:bufnr][0].temp . '.edit')
+      call delete(s:edit_jobs[a:bufnr][0].temp . '.edit')
+    endif
+    call add(s:resume_queue, remove(s:edit_jobs, a:bufnr))
+    call feedkeys(":redraw!|call fugitive#Resume()|silent checktime\r", 'n')
+  endif
+endfunction
+
+augroup fugitive_job
+  autocmd!
+  autocmd BufDelete * call s:RunBufDelete(expand('<abuf>'))
+  autocmd VimLeave *
+        \ for s:jobbuf in keys(s:edit_jobs) |
+        \   call writefile([], remove(s:edit_jobs, s:jobbuf)[0].temp . '.exit') |
+        \ endfor
+augroup END
+
+let s:disable_colors = []
+for s:colortype in ['advice', 'branch', 'diff', 'grep', 'interactive', 'pager', 'push', 'remote', 'showBranch', 'status', 'transport', 'ui']
+  call extend(s:disable_colors, ['-c', 'color.' . s:colortype . '=false'])
+endfor
+unlet s:colortype
 function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   let dir = s:Dir()
   let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
@@ -2193,6 +2315,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   else
     let opts = {}
   endif
+  let args = get(opts, 'args', args)
   if a:bang || args[0] =~# '^-p$\|^--paginate$\|diff\%(tool\)\@!\|log\|^show$' ||
         \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show') ||
         \ (args[0] ==# 'help' || get(args, 1, '') ==# '--help') && !s:HasOpt(args, '--web')
@@ -2214,16 +2337,78 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     endif
   endif
   let env = get(opts, 'env', {})
-  if has('gui_running') && !has('win32')
-    call insert(args, '--no-pager')
+  if s:RunJobs()
+    let state = {'dir': dir, 'mods': s:Mods(a:mods), 'temp': tempname(), 'log': []}
+    let state.pty = get(g:, 'fugitive_pty', has('unix'))
+    if !state.pty
+      let args = s:AskPassArgs(dir) + args
+    endif
+    let env.FUGITIVE_TEMP = state.temp
+    let editor = 'sh ' . s:TempScript(
+          \ '[ -f "$FUGITIVE_TEMP.exit" ] && exit 1',
+          \ 'echo "$1" > "$FUGITIVE_TEMP.edit"',
+          \ 'printf "\033]51;fugitive:edit\007"',
+          \ 'while [ -f "$FUGITIVE_TEMP.edit" -a ! -f "$FUGITIVE_TEMP.exit" ]; do sleep 0.05 2>/dev/null || sleep 1; done',
+          \ 'exit 0')
+    call extend(env, {
+          \ 'NO_COLOR': '1',
+          \ 'GIT_EDITOR': editor,
+          \ 'GIT_SEQUENCE_EDITOR': editor,
+          \ 'GIT_MERGE_AUTOEDIT': '1',
+          \ 'GIT_PAGER': 'cat',
+          \ 'PAGER': 'cat'}, 'keep')
+    let args = ['-c', 'advice.waitingForEditor=false'] + s:disable_colors + args
+    let argv = s:UserCommandList(dir) + args
+    if !has('patch-8.0.0902')
+      let envlist = map(items(env), 'join(v:val, "=")')
+      if s:executable('env')
+        let argv = ['env'] + envlist + argv
+      elseif has('win32')
+        let argv = ['cmd.exe', '/c',
+              \ join(map(envlist, { _, v -> 'set ' . substitute(v, '[&|<>^]', '^^^&', 'g') }) +
+              \ [s:shellesc(argv)], '& ')]
+      else
+        return 'echoerr ' . string('fugitive: "env" command missing')
+      endif
+      let env = {}
+    endif
+    let state.cmd = argv
+    let g:_fugitive_last_job = state
+    if &autowrite || &autowriteall | silent! wall | endif
+    if exists('*job_start')
+      let jobopts = {
+            \ 'mode': 'raw',
+            \ 'pty': state.pty,
+            \ 'callback': function('s:RunReceive', [state]),
+            \ }
+      if len(env)
+        let jobopts.env = env
+      endif
+      let job = job_start(argv, jobopts)
+    else
+      let job = jobstart(argv, {
+            \ 'pty': state.pty,
+            \ 'env': env,
+            \ 'TERM': 'dumb',
+            \ 'on_stdout': function('s:RunReceive', [state]),
+            \ 'on_stderr': function('s:RunReceive', [state]),
+            \ })
+    endif
+    let state.job = job
+    call s:RunWait(state, job)
+    return 'silent checktime' . after
+  else
+    if has('gui_running') && !has('win32')
+      call insert(args, '--no-pager')
+    endif
+    if has('nvim')
+      let env.GIT_TERMINAL_PROMPT = '0'
+    endif
+    let pre = s:BuildEnvPrefix(env)
+    return 'exe ' . string('noautocmd !' . escape(pre . s:UserCommand(dir, args), '!#%')) .
+          \ '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' .
+          \ after
   endif
-  if has('nvim')
-    let env.GIT_TERMINAL_PROMPT = '0'
-  endif
-  let pre = s:BuildEnvPrefix(env)
-  return 'exe ' . string('noautocmd !' . escape(pre . s:UserCommand(dir, args), '!#%')) .
-        \ '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' .
-        \ after
 endfunction
 
 let s:exec_paths = {}
@@ -3790,6 +3975,9 @@ augroup fugitive_merge
   autocmd!
   autocmd VimLeavePre,BufDelete git-rebase-todo
         \ if type(getbufvar(+expand('<abuf>'), 'fugitive_rebase_shas')) == type({}) && getbufvar(+expand('<abuf>'), '&bufhidden') ==# 'wipe' |
+        \   if exists('*job_start') |
+        \     throw 'this should never be called' |
+        \   endif |
         \   call s:RebaseClean(expand('<afile>')) |
         \   if getfsize(FugitiveFind('.git/rebase-merge/done', +expand('<abuf>'))) == 0 |
         \     let s:rebase_continue = [FugitiveGitDir(+expand('<abuf>')), 1] |

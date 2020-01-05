@@ -16,12 +16,15 @@ These commands are local to the buffers in which they work (generally, buffers
 that are part of Git repositories).
 
                                                 *:Git* *fugitive-:G*
-:Git {args}             Run an arbitrary git command. Similar to :!git [args]
-:G {args}               but chdir to the repository tree first.  For some
-                        subcommands, a Fugitive command is called instead.
+:Git {args}             Run an arbitrary git command and display any output.
+:G {args}               Any file the command edits (for example, a commit
+                        message) will be loaded into a split window.  Closing
+                        that window will resume running the command.  A few
+                        commands have different behavior; these are documented
+                        below.
 
-:Git! {args}            Like |:Git|, but capture the output into a temp file,
-:Git --paginate {args}  and |:split| that temp file.  Use :0Git to
+:Git! {args}            Run an arbitrary git command, capture output to a temp
+:Git --paginate {args}  file, and |:split| that temp file.  Use :0Git to
 :Git -p {args}          |:edit| the temp file instead.  A temp file is always
                         used for diff and log commands.
 
