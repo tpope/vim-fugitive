@@ -207,7 +207,8 @@ function! s:QuickfixCreate(nr, opts) abort
 endfunction
 
 function! s:QuickfixStream(nr, title, cmd, first, callback, ...) abort
-  call s:QuickfixCreate(a:nr, {'title': a:title})
+  let opts = {'title': a:title, 'context': {'items': []}}
+  call s:QuickfixCreate(a:nr, opts)
   let winnr = winnr()
   exe a:nr < 0 ? 'copen' : 'lopen'
   if winnr != winnr()
@@ -219,11 +220,17 @@ function! s:QuickfixStream(nr, title, cmd, first, callback, ...) abort
   for line in lines
     call extend(buffer, call(a:callback, a:000 + [line]))
     if len(buffer) >= 20
+      let contexts = map(copy(buffer), 'get(v:val, "context", {})')
+      lockvar contexts
+      call extend(opts.context.items, contexts)
       call s:QuickfixSet(a:nr, remove(buffer, 0, -1), 'a')
       redraw
     endif
   endfor
-  call s:QuickfixSet(a:nr, extend(buffer, call(a:callback, a:000 + [0])), 'a')
+  call extend(buffer, call(a:callback, a:000 + [0]))
+  call extend(opts.context.items, map(copy(buffer), 'get(v:val, "context", {})'))
+  lockvar opts.context.items
+  call s:QuickfixSet(a:nr, buffer, 'a')
 
   if a:first && len(s:QuickfixGet(a:nr))
     call s:BlurStatus()
@@ -3869,10 +3876,16 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, args) abort
   endif
 endfunction
 
-function! s:LogFlushQueue(state) abort
+let s:log_diff_context = '{"filename": fugitive#Find(v:val . from, a:dir), "lnum": get(offsets, v:key), "module": strpart(v:val, 0, len(a:state.base_module)) . from}'
+
+function! s:LogFlushQueue(state, dir) abort
   let queue = remove(a:state, 'queue')
   if a:state.child_found && get(a:state, 'ignore_summary')
     call remove(queue, 0)
+  elseif len(queue) && len(a:state.target) && len(get(a:state, 'parents', []))
+    let from = substitute(a:state.target, '^/', ':', '')
+    let offsets = []
+    let queue[0].context.diff = map(copy(a:state.parents), s:log_diff_context)
   endif
   if len(queue) && queue[-1] ==# {'text': ''}
     call remove(queue, -1)
@@ -3881,44 +3894,65 @@ function! s:LogFlushQueue(state) abort
 endfunction
 
 function! s:LogParse(state, dir, line) abort
-  if a:state.context ==# 'hunk' && a:line =~# '^[-+ ]'
+  if a:state.mode ==# 'hunk' && a:line =~# '^[-+ ]'
     return []
   endif
   let list = matchlist(a:line, '^\%(fugitive \(.\{-\}\)\t\|commit \|From \)\=\(\x\{40,\}\)\%( \(.*\)\)\=$')
   if len(list)
-    let a:state.context = 'commit'
+    let queue = s:LogFlushQueue(a:state, a:dir)
+    let a:state.mode = 'commit'
     let a:state.base = 'fugitive://' . a:dir . '//' . list[2]
-    let a:state.base_module = len(list[1]) ? list[1] : list[2]
-    let a:state.message = list[3]
-    if has_key(a:state, 'diffing')
-      call remove(a:state, 'diffing')
+    if len(list[1])
+      let [a:state.base_module; a:state.parents] = split(list[1], ' ')
+    else
+      let a:state.base_module = list[2]
+      let a:state.parents = []
     endif
-    let queue = s:LogFlushQueue(a:state)
+    let a:state.message = list[3]
+    let a:state.from = ''
+    let a:state.to = ''
+    let context = {}
     let a:state.queue = [{
           \ 'valid': 1,
+          \ 'context': context,
           \ 'filename': a:state.base . a:state.target,
           \ 'module': a:state.base_module . substitute(a:state.target, '^/', ':', ''),
           \ 'text': a:state.message}]
     let a:state.child_found = 0
     return queue
   elseif type(a:line) == type(0)
-    return s:LogFlushQueue(a:state)
+    return s:LogFlushQueue(a:state, a:dir)
   elseif a:line =~# '^diff'
-    let a:state.context = 'diffhead'
-  elseif a:line =~# '^[+-]\{3\} \w/' && a:state.context ==# 'diffhead'
-    let a:state.diffing = a:line[5:-1]
-  elseif a:line =~# '^@@[^@]*+\d' && has_key(a:state, 'diffing') && has_key(a:state, 'base')
-    let a:state.context = 'hunk'
-    if empty(a:state.target) || a:state.target ==# a:state.diffing
+    let a:state.mode = 'diffhead'
+    let a:state.from = ''
+    let a:state.to = ''
+  elseif a:state.mode ==# 'diffhead' && a:line =~# '^--- \w/'
+    let a:state.from = a:line[6:-1]
+    let a:state.to = a:state.from
+  elseif a:state.mode ==# 'diffhead' && a:line =~# '^+++ \w/'
+    let a:state.to = a:line[6:-1]
+    if empty(get(a:state, 'from', ''))
+      let a:state.from = a:state.to
+    endif
+  elseif a:line =~# '^@@[^@]*+\d' && len(get(a:state, 'to', '')) && has_key(a:state, 'base')
+    let a:state.mode = 'hunk'
+    if empty(a:state.target) || a:state.target ==# '/' . a:state.to
       if !a:state.child_found && len(a:state.queue) && a:state.queue[-1] ==# {'text': ''}
         call remove(a:state.queue, -1)
       endif
       let a:state.child_found = 1
+      let offsets = map(split(matchstr(a:line, '^@\+ \zs[-+0-9, ]\+\ze @'), ' '), '+matchstr(v:val, "\\d\\+")')
+      let context = {}
+      if len(a:state.parents)
+        let from = ":" . a:state.from
+        let context.diff = map(copy(a:state.parents), s:log_diff_context)
+      endif
       call add(a:state.queue, {
             \ 'valid': 1,
-            \ 'filename': a:state.base . a:state.diffing,
-            \ 'module': a:state.base_module . substitute(a:state.diffing, '^/', ':', ''),
-            \ 'lnum': +matchstr(a:line, '+\zs\d\+'),
+            \ 'context': context,
+            \ 'filename': FugitiveVimPath(a:state.base . '/' . a:state.to),
+            \ 'module': a:state.base_module . ':' . a:state.to,
+            \ 'lnum': offsets[-1],
             \ 'text': a:state.message . matchstr(a:line, ' @@\+ .\+')})
     endif
   elseif a:state.follow &&
@@ -3933,7 +3967,7 @@ function! s:LogParse(state, dir, line) abort
     if !get(a:state, 'ignore_summary')
       call add(a:state.queue, {'text': a:line})
     endif
-  elseif a:state.context ==# 'commit' || a:state.context ==# 'init'
+  elseif a:state.mode ==# 'commit' || a:state.mode ==# 'init'
     call add(a:state.queue, {'text': a:line})
   endif
   return []
@@ -3967,7 +4001,7 @@ function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
   let range = ''
   let extra_args = []
   let extra_paths = []
-  let state = {'context': 'init', 'child_found': 0, 'queue': [], 'follow': 0}
+  let state = {'mode': 'init', 'child_found': 0, 'queue': [], 'follow': 0}
   if path =~# '^/\.git\%(/\|$\)\|^$'
     let path = ''
   elseif a:line1 == 0
@@ -3999,9 +4033,9 @@ function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
     let path = ''
   endif
   if s:HasOpt(args, '-g', '--walk-reflogs')
-    let format = "%gd\t%H %gs"
+    let format = "%gd %P\t%H %gs"
   else
-    let format = "%h\t%H " . g:fugitive_summary_format
+    let format = "%h %P\t%H " . g:fugitive_summary_format
   endif
   let cmd = ['--no-pager']
   if fugitive#GitVersion(1, 9)
