@@ -225,6 +225,7 @@ function! s:QuickfixStream(nr, event, title, cmd, first, callback, ...) abort
       let contexts = map(copy(buffer), 'get(v:val, "context", {})')
       lockvar contexts
       call extend(opts.context.items, contexts)
+      unlet contexts
       call s:QuickfixSet(a:nr, remove(buffer, 0, -1), 'a')
       redraw
     endif
@@ -2170,7 +2171,10 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   if exists('*s:' . name . 'Subcommand') && get(args, 1, '') !=# '--help'
     try
       exe s:DirCheck(dir)
-      return 'exe ' . string(s:{name}Subcommand(a:line1, a:line2, a:range, a:bang, a:mods, args[1:-1])) . after
+      let result = s:{name}Subcommand(a:line1, a:line2, a:range, a:bang, a:mods, args[1:-1])
+      if type(result) == type('')
+        return 'exe ' . string(result) . after
+      endif
     catch /^fugitive:/
       return 'echoerr ' . string(v:exception)
     endtry
@@ -3791,6 +3795,240 @@ augroup fugitive_merge
         \   endif |
         \ endif
 augroup END
+
+" Section: :Git difftool, :Git mergetool
+
+function! s:ToolItems(state, from, to, offsets, text, ...) abort
+  let items = []
+  for i in range(len(a:state.diff))
+    let diff = a:state.diff[i]
+    let path = (i == len(a:state.diff) - 1) ? a:to : a:from
+    if empty(path)
+      return []
+    endif
+    let item = {
+          \ 'valid': a:0 ? a:1 : 1,
+          \ 'filename': diff.filename . FugitiveVimPath(path),
+          \ 'lnum': matchstr(get(a:offsets, i), '\d\+'),
+          \ 'text': a:text}
+    if len(get(diff, 'module', ''))
+      let item.module = diff.module . path
+    endif
+    call add(items, item)
+  endfor
+  let diff = items[0:-2]
+  let items[-1].context = {'diff': items[0:-2]}
+  return [items[-1]]
+endfunction
+
+function! s:ToolToFrom(str) abort
+  if a:str =~# ' => '
+    let str = a:str =~# '{.* => .*}' ? a:str : '{' . a:str . '}'
+    return [substitute(str, '{.* => \(.*\)}', '\1', ''),
+          \ substitute(str, '{\(.*\) => .*}', '\1', '')]
+  else
+    return [a:str, a:str]
+  endif
+endfunction
+
+function! s:ToolParse(state, line) abort
+  if type(a:line) !=# type('') || a:state.mode ==# 'hunk' && a:line =~# '^[ +-]'
+    return []
+  elseif a:line =~# '^diff '
+    let a:state.mode = 'diffhead'
+    let a:state.from = ''
+    let a:state.to = ''
+  elseif a:state.mode ==# 'diffhead' && a:line =~# '^--- [^/]'
+    let a:state.from = a:line[4:-1]
+    let a:state.to = a:state.from
+  elseif a:state.mode ==# 'diffhead' && a:line =~# '^+++ [^/]'
+    let a:state.to = a:line[4:-1]
+    if empty(get(a:state, 'from', ''))
+      let a:state.from = a:state.to
+    endif
+  elseif a:line[0] ==# '@'
+    let a:state.mode = 'hunk'
+    if has_key(a:state, 'from')
+      let offsets = split(matchstr(a:line, '^@\+ \zs[-+0-9, ]\+\ze @'), ' ')
+      return s:ToolItems(a:state, a:state.from, a:state.to, offsets, matchstr(a:line, ' @@\+ \zs.*'))
+    endif
+  elseif a:line =~# '^[A-Z]\d*\t.\|^:.*\t.'
+    " --raw, --name-status
+    let [status; files] = split(a:line, "\t")
+    return s:ToolItems(a:state, files[0], files[-1], [], a:state.name_only ? '' : status)
+  elseif a:line =~# '^ \S.* |'
+    " --stat
+    let [_, to, changes; __] = matchlist(a:line, '^ \(.\{-\}\) \+|\zs \(.*\)$')
+    let [to, from] = s:ToolToFrom(to)
+    return s:ToolItems(a:state, from, to, [], changes)
+  elseif a:line =~# '^ *\([0-9.]\+%\) .'
+    " --dirstat
+    let [_, changes, to; __] = matchlist(a:line, '^ *\([0-9.]\+%\) \(.*\)')
+    return s:ToolItems(a:state, to, to, [], changes)
+  elseif a:line =~# '^\(\d\+\|-\)\t\(\d\+\|-\)\t.'
+    " --numstat
+    let [_, add, remove, to; __] = matchlist(a:line, '^\(\d\+\|-\)\t\(\d\+\|-\)\t\(.*\)')
+    let [to, from] = s:ToolToFrom(to)
+    return s:ToolItems(a:state, from, to, [], add ==# '-' ? 'Binary file' : '+' . add . ' -' . remove, add !=# '-')
+  elseif a:state.mode !=# 'diffhead' && a:state.mode !=# 'hunk' && len(a:line) || a:line =~# '^git: \|^usage: \|^error: \|^fatal: '
+    return [{'text': a:line}]
+  endif
+  return []
+endfunction
+
+function! s:ToolStream(dir, line1, line2, range, bang, mods, args, state, title) abort
+  let i = 0
+  let argv = copy(a:args)
+  let prompt = 1
+  let state = a:state
+  while i < len(argv)
+    let match = matchlist(argv[i], '^\(-[a-zABDFH-KN-RT-Z]\)\ze\(.*\)')
+    if len(match) && len(match[2])
+      call insert(argv, match[1])
+      let argv[i+1] = '-' . match[2]
+      continue
+    endif
+    let arg = argv[i]
+    if arg =~# '^-t$\|^--tool=\|^--tool-help$\|^--help$'
+      return -1
+    elseif arg =~# '^-y$\|^--no-prompt$'
+      let prompt = 0
+      call remove(argv, i)
+      continue
+    elseif arg ==# '--prompt'
+      let prompt = 1
+      call remove(argv, i)
+      continue
+    elseif arg =~# '^--\%(no-\)\=\(symlinks\|trust-exit-code\|gui\)$'
+      call remove(argv, i)
+      continue
+    elseif arg ==# '--'
+      break
+    endif
+    let i += 1
+  endwhile
+  let a:state.mode = 'init'
+  let a:state.from = ''
+  let a:state.to = ''
+  let exec = s:UserCommandList(a:dir) + ['--no-pager', '-c', 'diff.context=0', 'diff', '--no-ext-diff', '--no-color', '--no-prefix'] + argv
+  if prompt
+    return s:QuickfixStream(a:line2, 'difftool', a:title, exec, !a:bang, s:function('s:ToolParse'), a:state)
+  else
+    let filename = ''
+    let cmd = []
+    let tabnr = tabpagenr() + 1
+    for line in split(s:SystemError(s:shellesc(exec))[0], "\n")
+      for item in s:ToolParse(a:state, line)
+        if len(get(item, 'filename', '')) && item.filename != filename
+          call add(cmd, 'tabedit ' . s:fnameescape(item.filename))
+          for i in reverse(range(len(get(item.context, 'diff', []))))
+            call add(cmd, (i ? 'rightbelow' : 'leftabove') . ' vert Gdiffsplit! ' . s:fnameescape(item.context.diff[i].filename))
+          endfor
+          call add(cmd, 'wincmd =')
+          let filename = item.filename
+        endif
+      endfor
+    endfor
+    return join(cmd, '|') . (empty(cmd) ? '' : '|' . tabnr . 'tabnext')
+  endif
+endfunction
+
+function! s:MergetoolSubcommand(line1, line2, range, bang, mods, args) abort
+  let dir = s:Dir()
+  let i = 0
+  let argv = copy(a:args)
+  let prompt = 1
+  let title = ':Git mergetool' . (len(a:args) ? ' ' . s:fnameescape(a:args) : '')
+  let cmd = ['diff', '--diff-filter=U']
+  let state = {'name_only': 0}
+  let state.diff = [{'prefix': ':2:', 'module': ':2:'}, {'prefix': ':3:', 'module': ':3:'}, {'prefix': ':(top)'}]
+  call map(state.diff, 'extend(v:val, {"filename": fugitive#Find(v:val.prefix, dir)})')
+  return s:ToolStream(dir, a:line1, a:line2, a:range, a:bang, a:mods, ['--diff-filter=U'] + a:args, state, title)
+endfunction
+
+function! s:DifftoolSubcommand(line1, line2, range, bang, mods, args) abort
+  let dir = s:Dir()
+  let i = 0
+  let argv = copy(a:args)
+  let commits = []
+  let cached = 0
+  let reverse = 1
+  let prompt = 1
+  let state = {'name_only': 0}
+  let merge_base_against = {}
+  let dash = (index(argv, '--') > i ? ['--'] : [])
+  while i < len(argv)
+    let match = matchlist(argv[i], '^\(-[a-zABDFH-KN-RT-Z]\)\ze\(.*\)')
+    if len(match) && len(match[2])
+      call insert(argv, match[1])
+      let argv[i+1] = '-' . match[2]
+      continue
+    endif
+    let arg = argv[i]
+    if arg ==# '--cached'
+      let cached = 1
+    elseif arg ==# '-R'
+      let reverse = 1
+    elseif arg ==# '--name-only'
+      let state.name_only = 1
+      let argv[0] = '--name-status'
+    elseif arg ==# '--'
+      break
+    elseif arg !~# '^-\|^\.\.\=\%(/\|$\)'
+      let parsed = s:LinesError(['rev-parse', '--revs-only', substitute(arg, ':.*', '', '')] + dash)[0]
+      call map(parsed, '{"uninteresting": v:val =~# "^\\^", "prefix": substitute(v:val, "^\\^", "", "") . ":"}')
+      let merge_base_against = {}
+      if arg =~# '\.\.\.' && len(parsed) > 2
+        let display = map(split(arg, '\.\.\.', 1), 'empty(v:val) ? "@" : v:val')
+        if len(display) == 2
+          let parsed[0].module = display[1] . ':'
+          let parsed[1].module = display[0] . ':'
+        endif
+        let parsed[2].module = arg . ':'
+        if empty(commits)
+          let merge_base_against = parsed[0]
+          let parsed = [parsed[2]]
+        endif
+      elseif arg =~# '\.\.' && len(parsed) == 2
+        let display = map(split(arg, '\.\.', 1), 'empty(v:val) ? "@" : v:val')
+        if len(display) == 2
+          let parsed[0].module = display[0] . ':'
+          let parsed[1].module = display[1] . ':'
+        endif
+      elseif len(parsed) == 1
+        let parsed[0].module = arg . ':'
+      endif
+      call extend(commits, parsed)
+    endif
+    let i += 1
+  endwhile
+  let title = ':Git difftool' . (len(a:args) ? ' ' . s:fnameescape(a:args) : '')
+  if len(merge_base_against)
+    call add(commits, merge_base_against)
+  endif
+  let commits = filter(copy(commits), 'v:val.uninteresting') + filter(commits, '!v:val.uninteresting')
+  if cached
+    if empty(commits)
+      call add(commits, {'prefix': '@:', 'module': '@:'})
+    endif
+    call add(commits, {'prefix': ':0:', 'module': ':0:'})
+  elseif len(commits) < 2
+    call add(commits, {'prefix': ':(top)'})
+    if len(commits) < 2
+      call insert(commits, {'prefix': ':0:', 'module': ':0:'})
+    endif
+  endif
+  if reverse
+    let commits = [commits[-1]] + repeat([commits[0]], len(commits) - 1)
+    call reverse(commits)
+  endif
+  if len(commits) > 2
+    call add(commits, remove(commits, 0))
+  endif
+  call map(commits, 'extend(v:val, {"filename": fugitive#Find(v:val.prefix, dir)})')
+  let state.diff = commits
+  return s:ToolStream(dir, a:line1, a:line2, a:range, a:bang, a:mods, argv, state, title)
+endfunction
 
 " Section: :Ggrep, :Glog
 
