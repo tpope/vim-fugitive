@@ -206,9 +206,11 @@ function! s:QuickfixCreate(nr, opts) abort
   endif
 endfunction
 
-function! s:QuickfixStream(nr, title, cmd, first, callback, ...) abort
+function! s:QuickfixStream(nr, event, title, cmd, first, callback, ...) abort
   let opts = {'title': a:title, 'context': {'items': []}}
   call s:QuickfixCreate(a:nr, opts)
+  let event = (a:nr < 0 ? 'c' : 'l') . 'fugitive-' . a:event
+  silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
   let winnr = winnr()
   exe a:nr < 0 ? 'copen' : 'lopen'
   if winnr != winnr()
@@ -232,6 +234,7 @@ function! s:QuickfixStream(nr, title, cmd, first, callback, ...) abort
   lockvar opts.context.items
   call s:QuickfixSet(a:nr, buffer, 'a')
 
+  silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if a:first && len(s:QuickfixGet(a:nr))
     call s:BlurStatus()
     return a:nr < 0 ? 'cfirst' : 'lfirst'
@@ -4051,7 +4054,7 @@ function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
   if empty(paths + extra_paths) && empty(a:type) && len(s:Relative('/'))
     let after = '|echohl WarningMsg|echo ' . string('Use :0Glog or :0Gclog for old behavior of targeting current file') . '|echohl NONE' . after
   endif
-  return s:QuickfixStream(listnr, title, s:UserCommandList(dir) + cmd, !a:bang, s:function('s:LogParse'), state, dir) . after
+  return s:QuickfixStream(listnr, 'log', title, s:UserCommandList(dir) + cmd, !a:bang, s:function('s:LogParse'), state, dir) . after
 endfunction
 
 " Section: :Gedit, :Gpedit, :Gsplit, :Gvsplit, :Gtabedit, :Gread
