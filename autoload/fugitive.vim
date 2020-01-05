@@ -3871,7 +3871,7 @@ endfunction
 
 function! s:LogFlushQueue(state) abort
   let queue = remove(a:state, 'queue')
-  if a:state.child_found
+  if a:state.child_found && get(a:state, 'ignore_summary')
     call remove(queue, 0)
   endif
   if len(queue) && queue[-1] ==# {'text': ''}
@@ -3910,6 +3910,9 @@ function! s:LogParse(state, dir, line) abort
   elseif a:line =~# '^@@[^@]*+\d' && has_key(a:state, 'diffing') && has_key(a:state, 'base')
     let a:state.context = 'hunk'
     if empty(a:state.target) || a:state.target ==# a:state.diffing
+      if !a:state.child_found && len(a:state.queue) && a:state.queue[-1] ==# {'text': ''}
+        call remove(a:state.queue, -1)
+      endif
       let a:state.child_found = 1
       call add(a:state.queue, {
             \ 'valid': 1,
