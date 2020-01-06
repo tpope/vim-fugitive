@@ -5710,7 +5710,12 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       endif
       let i = 0
       while commit =~# '^ref: ' && i < 10
-        let commit = readfile(cdir . '/' . commit[5:-1], '', 1)[0]
+        let ref_file = cdir . '/' . commit[5:-1]
+        if getfsize(ref_file) > 0
+          let commit = readfile(ref_file, '', 1)[0]
+        else
+          let commit = fugitive#RevParse(ref_file, dir)
+        endif
         let i -= 1
       endwhile
     endif
