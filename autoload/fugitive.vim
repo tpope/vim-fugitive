@@ -5714,7 +5714,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
         if getfsize(ref_file) > 0
           let commit = readfile(ref_file, '', 1)[0]
         else
-          let commit = fugitive#RevParse(ref_file, dir)
+          let commit = fugitive#RevParse(commit[5:-1], dir)
         endif
         let i -= 1
       endwhile
