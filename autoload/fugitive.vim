@@ -3793,7 +3793,7 @@ endfunction
 augroup fugitive_merge
   autocmd!
   autocmd VimLeavePre,BufDelete git-rebase-todo
-        \ if getbufvar(+expand('<abuf>'), '&bufhidden') ==# 'wipe' |
+        \ if type(getbufvar(+expand('<abuf>'), 'fugitive_rebase_shas')) == type({}) && getbufvar(+expand('<abuf>'), '&bufhidden') ==# 'wipe' |
         \   call s:RebaseClean(expand('<afile>')) |
         \   if getfsize(FugitiveFind('.git/rebase-merge/done', +expand('<abuf>'))) == 0 |
         \     let s:rebase_continue = [FugitiveGitDir(+expand('<abuf>')), 1] |
