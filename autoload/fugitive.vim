@@ -5946,6 +5946,7 @@ function! fugitive#MapJumps(...) abort
 
     nnoremap <buffer>      cm<Space> :Git merge<Space>
     nnoremap <buffer>         cm<CR> :Git merge<CR>
+    nnoremap <buffer>          cmt   :Git mergetool
     nnoremap <buffer> <silent> cm?   :help fugitive_cm<CR>
 
     nnoremap <buffer>      cz<Space> :Git stash<Space>

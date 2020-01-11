@@ -111,7 +111,7 @@ that are part of Git repositories).
                         change unless [!] is given.
 
 :Git difftool -y [args] Invoke `git diff [args]`, open each changed file in a
-                        new tab, and invoke `:Gdiffsplit` against the
+                        new tab, and invoke `:Gdiffsplit!` against the
                         appropriate commit.
 
                                                 *:Git-mergetool*
