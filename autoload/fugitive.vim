@@ -2177,13 +2177,15 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   if exists('*s:' . name . 'Subcommand') && get(args, 1, '') !=# '--help'
     try
       exe s:DirCheck(dir)
-      let result = s:{name}Subcommand(a:line1, a:line2, a:range, a:bang, a:mods, args[1:-1])
-      if type(result) == type('')
-        return 'exe ' . string(result) . after
+      let opts = s:{name}Subcommand(a:line1, a:line2, a:range, a:bang, a:mods, args[1:-1])
+      if type(opts) == type('')
+        return 'exe ' . string(opts) . after
       endif
     catch /^fugitive:/
       return 'echoerr ' . string(v:exception)
     endtry
+  else
+    let opts = {}
   endif
   if a:bang || args[0] =~# '^-P$\|^--no-pager$\|diff\%(tool\)\@!\|log\|^show$' ||
         \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show') ||
@@ -3896,7 +3898,7 @@ function! s:ToolStream(dir, line1, line2, range, bang, mods, args, state, title)
     endif
     let arg = argv[i]
     if arg =~# '^-t$\|^--tool=\|^--tool-help$\|^--help$'
-      return -1
+      return {}
     elseif arg =~# '^-y$\|^--no-prompt$'
       let prompt = 0
       call remove(argv, i)
