@@ -3861,6 +3861,9 @@ function! s:ToolParse(state, line) abort
       let offsets = split(matchstr(a:line, '^@\+ \zs[-+0-9, ]\+\ze @'), ' ')
       return s:ToolItems(a:state, a:state.from, a:state.to, offsets, matchstr(a:line, ' @@\+ \zs.*'))
     endif
+  elseif a:line =~# '^\* Unmerged path .'
+    let file = a:line[16:-1]
+    return s:ToolItems(a:state, file, file, [], '')
   elseif a:line =~# '^[A-Z]\d*\t.\|^:.*\t.'
     " --raw, --name-status
     let [status; files] = split(a:line, "\t")
