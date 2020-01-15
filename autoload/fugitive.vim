@@ -2071,8 +2071,9 @@ function! fugitive#BufReadCmd(...) abort
     setlocal modifiable
 
     let browsex = maparg('<Plug>NetrwBrowseX', 'n')
-    if browsex =~# 'netrw#CheckIfRemote()'
-      exe 'nnoremap <buffer> <Plug>NetrwBrowseX' substitute(browsex, '\Cnetrw#CheckIfRemote()', '0', 'g')
+    let remote_check = '\Cnetrw#CheckIfRemote(\%(netrw#GX()\)\=)'
+    if browsex =~# remote_check
+      exe 'nnoremap <silent> <buffer> <Plug>NetrwBrowseX' substitute(browsex, remote_check, '0', 'g')
     endif
 
     return 'silent ' . s:DoAutocmd('BufReadPost') .
