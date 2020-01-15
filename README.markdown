@@ -92,9 +92,8 @@ request the password via a GUI.  Fugitive will configure this for you
 automatically if you have `ssh-askpass` or `git-gui` installed; otherwise it's
 your responsibility to set this up.
 
-As an absolute last resort, you can invoke `:Git --paginate push`.  Fugitive
-recognizes the pagination request and fires up a `:terminal`, which allows for
-interactive password entry.
+If you absolutely must type in your password by hand, sidestep Fugitive and
+use `:terminal git push`.
 
 [credentials caching]: https://help.github.com/en/articles/caching-your-github-password-in-git
 
