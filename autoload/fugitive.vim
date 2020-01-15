@@ -414,9 +414,7 @@ function! fugitive#PrepareDirEnvArgv(...) abort
   return [dir, env, cmd]
 endfunction
 
-function! s:BuildShell(dir, env, args) abort
-  let cmd = copy(a:args)
-  let tree = s:Tree(a:dir)
+function! s:BuildEnvPrefix(env) abort
   let pre = ''
   for [var, val] in items(a:env)
     if s:winshell()
@@ -425,6 +423,13 @@ function! s:BuildShell(dir, env, args) abort
       let pre = (len(pre) ? pre : 'env ') . var . '=' . s:shellesc(val) . ' '
     endif
   endfor
+  return pre
+endfunction
+
+function! s:BuildShell(dir, env, args) abort
+  let cmd = copy(a:args)
+  let tree = s:Tree(a:dir)
+  let pre = s:BuildEnvPrefix(a:env)
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
     call insert(cmd, '--git-dir=' . FugitiveGitPath(a:dir))
   elseif fugitive#GitVersion(1, 8, 5)
@@ -2209,13 +2214,14 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       return 'exe ' . string(mods . 'terminal ' . (a:line2 ? '' : '++curwin ') . join(map(s:UserCommandList(dir) + args, 's:fnameescape(v:val)'))) . assign . after
     endif
   endif
+  let env = get(opts, 'env', {})
   if has('gui_running') && !has('win32')
     call insert(args, '--no-pager')
   endif
-  let pre = ''
-  if has('nvim') && executable('env')
-    let pre .= 'env GIT_TERMINAL_PROMPT=0 '
+  if has('nvim')
+    let env.GIT_TERMINAL_PROMPT = '0'
   endif
+  let pre = s:BuildEnvPrefix(env)
   return 'exe ' . string('noautocmd !' . escape(pre . s:UserCommand(dir, args), '!#%')) .
         \ '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' .
         \ after
