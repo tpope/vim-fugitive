@@ -1560,24 +1560,9 @@ function! s:ReplaceCmd(cmd) abort
   if exec_error
     call s:throw((len(err) ? err : filereadable(temp) ? join(readfile(temp), ' ') : 'unknown error running ' . a:cmd))
   endif
-  let temp = s:Resolve(temp)
-  let fn = expand('%:p')
-  silent exe 'keepalt file '.temp
-  let modelines = &modelines
-  try
-    set modelines=0
-    silent keepjumps noautocmd edit!
-  finally
-    let &modelines = modelines
-    try
-      silent exe 'keepalt file '.s:fnameescape(fn)
-    catch /^Vim\%((\a\+)\)\=:E302:/
-    endtry
-    call delete(temp)
-    if s:cpath(fnamemodify(bufname('$'), ':p'), temp)
-      silent! execute 'bwipeout '.bufnr('$')
-    endif
-  endtry
+  silent exe '$read ++edit' s:fnameescape(temp)
+  silent keepjumps 1delete _
+  call delete(temp)
 endfunction
 
 function! s:QueryLog(refspec) abort
