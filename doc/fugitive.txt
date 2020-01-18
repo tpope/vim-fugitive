@@ -17,11 +17,13 @@ that are part of Git repositories).
 
                                                 *:Git* *fugitive-:G*
 :Git {args}             Run an arbitrary git command and display any output.
-:G {args}               Any file the command edits (for example, a commit
-                        message) will be loaded into a split window.  Closing
-                        that window will resume running the command.  A few
-                        commands have different behavior; these are documented
-                        below.
+:G {args}               On UNIX this uses a pty and on other platforms it uses
+                        a pipe, which will cause some behavior differences
+                        such as the absence of progress bars.  Any file the
+                        command edits (for example, a commit message) will be
+                        loaded into a split window.  Closing that window will
+                        resume running the command.  A few Git subcommands
+                        have different behavior; these are documented below.
 
 :Git! {args}            Run an arbitrary git command, capture output to a temp
 :Git --paginate {args}  file, and |:split| that temp file.  Use :0Git to
@@ -32,28 +34,6 @@ that are part of Git repositories).
 :Git                    Bring up a summary window vaguely akin to git-status.
 :G                      Press g? or see |fugitive-maps| for usage.
 :Gstatus
-
-                                                *:Git-commit* *:Gcommit*
-:Git commit [args]      A wrapper around git-commit.  Unless the arguments
-:Gcommit [args]         given would skip the invocation of an editor (e.g.,
-                        -m), a split window will be used to obtain a commit
-                        message, or a new tab if -v is given.  Write and close
-                        the window (:wq) to finish the commit. To cancel, use
-                        an empty message.
-
-                                                *:Git-revert* *:Grevert*
-:Git revert [args]      A wrapper around git-revert.  Similar to |:Gcommit|.
-:Grevert [args]
-
-                                                *:Git-push* *:Gpush*
-:Git push [args]        Invoke git-push, load the results into the |quickfix|
-:Gpush [args]           list, and invoke |:cwindow| to reveal any errors.
-                        |:Dispatch| is used if available for asynchronous
-                        invocation.
-
-                                                *:Git-fetch* *:Gfetch*
-:Git fetch [args]       Like |:Gpush|, but for git-fetch.
-:Gfetch [args]
 
                                                 *:Git-blame* *:Gblame*
 :Git blame [flags]      Run git-blame [flags] on the current file and open the
@@ -103,6 +83,16 @@ that are part of Git repositories).
                                                 *:Git-mergetool*
 :Git mergetool [args]   Like |:Git-difftool|, but target merge conflicts.
 
+                                                *:Git-push* *:Gpush*
+:Git push [args]        Invoke git-push, load the results into the |quickfix|
+:Gpush [args]           list, and invoke |:cwindow| to reveal any errors.
+                        |:Dispatch| is used if available for asynchronous
+                        invocation.
+
+                                                *:Git-fetch* *:Gfetch*
+:Git fetch [args]       Like |:Gpush|, but for git-fetch.
+:Gfetch [args]
+
                                                 *:Git-merge* *:Gmerge*
 :Gmerge [args]          Deprecated alias for |:Git| merge. Use |:Git-mergetool|
                         to get the old behavior of loading merge conflicts
@@ -113,6 +103,12 @@ that are part of Git repositories).
 
                                                 *:Git-rebase* *:Grebase*
 :Grebase [args]         Deprecated alias for |:Git| rebase.
+
+                                                *:Git-commit* *:Gcommit*
+:Gcommit [args]         Deprecated alias for |:Git| commit.
+
+                                                *:Git-revert* *:Grevert*
+:Grevert [args]         Deprecated alias for |:Git| revert.
 
                                                  *:Gclog* *:Glog*
 :Gclog[!] [args]        Use git-log [args] to load the commit history into the
