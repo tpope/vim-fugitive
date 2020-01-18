@@ -138,6 +138,19 @@ function! s:executable(binary) abort
   return s:executables[a:binary]
 endfunction
 
+if !exists('s:temp_scripts')
+  let s:temp_scripts = {}
+endif
+function! s:TempScript(...) abort
+  let body = join(a:000, "\n")
+  if !has_key(s:temp_scripts, body)
+    let temp = tempname() . '.sh'
+    call writefile(['#!/bin/sh'] + a:000, temp)
+    let s:temp_scripts[body] = temp
+  endif
+  return FugitiveGitPath(s:temp_scripts[body])
+endfunction
+
 function! s:DoAutocmd(cmd) abort
   if v:version >= 704 || (v:version == 703 && has('patch442'))
     return 'doautocmd <nomodeline>' . a:cmd
@@ -3529,16 +3542,7 @@ function! fugitive#PullComplete(A, L, P) abort
 endfunction
 
 function! s:RebaseSequenceAborter() abort
-  if !exists('s:rebase_sequence_aborter')
-    let temp = tempname() . '.sh'
-    call writefile(
-          \ ['#!/bin/sh',
-          \ 'echo exec false | cat - "$1" > "$1.fugitive"',
-          \ 'mv "$1.fugitive" "$1"'],
-          \ temp)
-    let s:rebase_sequence_aborter = FugitiveGitPath(temp)
-  endif
-  return s:rebase_sequence_aborter
+  return s:TempScript('echo exec false | cat - "$1" > "$1.fugitive"', 'mv "$1.fugitive" "$1"')
 endfunction
 
 function! fugitive#Cwindow() abort
