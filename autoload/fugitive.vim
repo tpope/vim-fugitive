@@ -1560,7 +1560,7 @@ function! s:ReplaceCmd(cmd) abort
   if exec_error
     call s:throw((len(err) ? err : filereadable(temp) ? join(readfile(temp), ' ') : 'unknown error running ' . a:cmd))
   endif
-  silent exe '$read ++edit' s:fnameescape(temp)
+  silent exe 'keepalt $read ++edit' s:fnameescape(temp)
   silent keepjumps 1delete _
   call delete(temp)
 endfunction
