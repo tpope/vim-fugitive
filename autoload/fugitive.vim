@@ -42,7 +42,7 @@ function! s:Uniq(list) abort
 endfunction
 
 function! s:winshell() abort
-  return has('win32') && &shellcmdflag =~# '^/\|^-Command$'
+  return has('win32') && &shellcmdflag !~# '^-'
 endfunction
 
 function! s:shellesc(arg) abort
@@ -416,14 +416,16 @@ endfunction
 
 function! s:BuildEnvPrefix(env) abort
   let pre = ''
-  for [var, val] in items(a:env)
-    if s:winshell()
-      let pre .= 'set ' . var . '=' . s:shellesc(val) . '& '
-    else
-      let pre = (len(pre) ? pre : 'env ') . var . '=' . s:shellesc(val) . ' '
-    endif
-  endfor
-  return pre
+  let env = items(a:env)
+  if empty(env)
+    return ''
+  elseif &shellcmdflag =~# '-Command'
+    return join(map(env, '"$Env:" . v:val[0] . " = ''" . substitute(v:val[1], "''", "''''", "g") . "''; "'), '')
+  elseif s:winshell()
+    return join(map(env, '"set " . substitute(join(v:val, "="), "[&|<>^]", "^^^&", "g") . "& "'), '')
+  else
+    return 'env ' . s:shellesc(map(env, 'join(v:val, "=")')) . ' '
+  endif
 endfunction
 
 function! s:BuildShell(dir, env, args) abort
@@ -1265,17 +1267,16 @@ function! fugitive#setfperm(url, perm) abort
 endfunction
 
 function! s:TempCmd(out, cmd) abort
-  let prefix = ''
   try
     let cmd = (type(a:cmd) == type([]) ? fugitive#Prepare(a:cmd) : a:cmd)
     let redir = ' > ' . a:out
-    if s:winshell()
+    if (s:winshell() || &shellcmdflag ==# '-Command') && !has('nvim')
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      return s:SystemError('cmd /c "' . prefix . s:gsub(cmd, '[<>]', cmd_escape_char . '&') . redir . '"')
+      return s:SystemError('cmd /c "' . s:gsub(cmd, '[<>%]', cmd_escape_char . '&') . redir . '"')
     elseif &shell =~# 'fish'
-      return s:SystemError(' begin;' . prefix . cmd . redir . ';end ')
+      return s:SystemError(' begin;' . cmd . redir . ';end ')
     else
-      return s:SystemError(' (' . prefix . cmd . redir . ') ')
+      return s:SystemError(' (' . cmd . redir . ') ')
     endif
   endtry
 endfunction
@@ -3381,7 +3382,7 @@ function! s:CommitSubcommand(line1, line2, range, bang, mods, args, ...) abort
   let msgfile = fugitive#Find('.git/COMMIT_EDITMSG', dir)
   let outfile = tempname()
   try
-    if s:winshell()
+    if s:winshell() || &shellcmdflag ==# '-Command'
       let command = 'set GIT_EDITOR=false& '
     else
       let command = 'env GIT_EDITOR=false '
@@ -3536,7 +3537,7 @@ function! s:RebaseSequenceAborter() abort
           \ 'echo exec false | cat - "$1" > "$1.fugitive"',
           \ 'mv "$1.fugitive" "$1"'],
           \ temp)
-    let s:rebase_sequence_aborter = temp
+    let s:rebase_sequence_aborter = FugitiveGitPath(temp)
   endif
   return s:rebase_sequence_aborter
 endfunction
@@ -4416,13 +4417,7 @@ function! s:OpenExec(cmd, mods, args, ...) abort
   let dir = a:0 ? s:Dir(a:1) : s:Dir()
   let temp = tempname()
   let columns = get(g:, 'fugitive_columns', 80)
-  if columns <= 0
-    let env = ''
-  elseif s:winshell()
-    let env = 'set COLUMNS=' . columns . '& '
-  else
-    let env = 'env COLUMNS=' . columns . ' '
-  endif
+  let env = s:BuildEnvPrefix({'COLUMNS': columns})
   silent! execute '!' . escape(env . s:UserCommand(dir, ['--no-pager'] + a:args), '!#%') .
         \ (&shell =~# 'csh' ? ' >& ' . temp : ' > ' . temp . ' 2>&1')
   redraw!
