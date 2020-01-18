@@ -3603,109 +3603,28 @@ function! s:CommitInteractive(line1, line2, range, bang, mods, args, patch) abor
   endif
 endfunction
 
-function! s:CommitSubcommand(line1, line2, range, bang, mods, args, ...) abort
-  let mods = substitute(s:Mods(a:mods), '\C\<tab\>', '-tab', 'g')
-  let dir = a:0 ? a:1 : s:Dir()
-  let tree = s:Tree(dir)
-  let msgfile = fugitive#Find('.git/COMMIT_EDITMSG', dir)
-  let outfile = tempname()
-  try
-    if s:winshell() || &shellcmdflag ==# '-Command'
-      let command = 'set GIT_EDITOR=false& '
+function! s:CommitSubcommand(line1, line2, range, bang, mods, args) abort
+  let argv = copy(a:args)
+  let i = 0
+  while get(argv, i, '--') !=# '--'
+    if argv[i] =~# '^-[apzsneiovq].'
+      call insert(argv, argv[i][0:1])
+      let argv[i+1] = '-' . argv[i+1][2:-1]
     else
-      let command = 'env GIT_EDITOR=false '
+      let i += 1
     endif
-    let argv = a:args
-    let i = 0
-    while get(argv, i, '--') !=# '--'
-      if argv[i] =~# '^-[apzsneiovq].'
-        call insert(argv, argv[i][0:1])
-        let argv[i+1] = '-' . argv[i+1][2:-1]
-      else
-        let i += 1
-      endif
-    endwhile
-    let command .= s:UserCommand(dir, ['commit'] + argv)
-    if (&autowrite || &autowriteall) && !a:0
-      silent! wall
-    endif
-    if s:HasOpt(argv, '-i', '--interactive')
-      return s:CommitInteractive(a:line1, a:line2, a:range, a:bang, a:mods, argv, 0)
-    elseif s:HasOpt(argv, '-p', '--patch')
-      return s:CommitInteractive(a:line1, a:line2, a:range, a:bang, a:mods, argv, 1)
-    else
-      let [error_string, exec_error] = s:TempCmd(outfile, command)
-      let errors = split(error_string, "\n")
-    endif
-    if !has('gui_running')
-      redraw!
-    endif
-    if !exec_error
-      echo join(errors, "\n")
-      if filereadable(outfile)
-        echo join(readfile(outfile), "\n")
-      endif
-      call fugitive#ReloadStatus(dir, 1)
-      return ''
-    else
-      let error = get(errors,-2,get(errors,-1,'!'))
-      if error =~# 'false''\=\.$'
-        let i = 0
-        while get(argv, i, '--') !=# '--'
-          if argv[i] =~# '^\%(-[eips]\|-[CcFm].\+\|--edit\|--interactive\|--patch\|--signoff\|--reedit-message=.*\|--reuse-message=.*\|--file=.*\|--message=.*\)$'
-            call remove(argv, i)
-          elseif argv[i] =~# '^\%(-[CcFm]\|--reedit-message\|--reuse-message\|--file\|--message\)$'
-            call remove(argv, i, i + 1)
-          else
-            if argv[i] =~# '^--cleanup\>'
-              let cleanup = 1
-            endif
-            let i += 1
-          endif
-        endwhile
-        call insert(argv, '--no-signoff', i)
-        call insert(argv, '--no-interactive', i)
-        call insert(argv, '--no-edit', i)
-        if !exists('cleanup')
-          call insert(argv, '--cleanup=strip')
-        endif
-        call extend(argv, ['-F', msgfile], 'keep')
-        if (bufname('%') == '' && line('$') == 1 && getline(1) == '' && !&modified) || a:line2 == 0
-          execute mods . 'keepalt edit' s:fnameescape(msgfile)
-        elseif s:HasOpt(argv, '-v') || mods =~# '\<tab\>'
-          execute mods . 'keepalt -tabedit' s:fnameescape(msgfile)
-        else
-          execute mods . 'keepalt split' s:fnameescape(msgfile)
-        endif
-        let b:fugitive_commit_arguments = argv
-        setlocal bufhidden=wipe filetype=gitcommit
-        return '1'
-      elseif empty(errors)
-        let out = readfile(outfile)
-        echo get(out, -1, '') =~# 'stash\|\d' ? get(out, -2, '') : get(out, -1, '')
-        return ''
-      else
-        echo join(errors, "\n")
-        return ''
-      endif
-    endif
-  catch /^fugitive:/
-    return 'echoerr ' . string(v:exception)
-  finally
-    call delete(outfile)
-  endtry
+  endwhile
+  if s:HasOpt(argv, '-i', '--interactive')
+    return s:CommitInteractive(a:line1, a:line2, a:range, a:bang, a:mods, argv, 0)
+  elseif s:HasOpt(argv, '-p', '--patch')
+    return s:CommitInteractive(a:line1, a:line2, a:range, a:bang, a:mods, argv, 1)
+  else
+    return {}
+  endif
 endfunction
 
 function! s:RevertSubcommand(line1, line2, range, bang, mods, args) abort
-  let dir = s:Dir()
-  let no_commit = s:HasOpt(a:args, '-n', '--no-commit', '--no-edit', '--abort', '--continue', '--quit')
-  let cmd = s:UserCommand(dir, ['revert'] + (no_commit ? [] : ['-n']) + a:args)
-  let [out, exec_error] = s:SystemError(cmd)
-  call fugitive#ReloadStatus(dir, 1)
-  if no_commit || exec_error
-    return 'echo ' . string(substitute(out, "\n$", '', ''))
-  endif
-  return s:CommitSubcommand(a:line1, a:line2, a:range, a:bang, a:mods, [], dir)
+  return {'args': ['revert', '--edit'] + a:args}
 endfunction
 
 function! fugitive#CommitComplete(A, L, P) abort
@@ -3727,16 +3646,6 @@ endfunction
 
 function! fugitive#RevertComplete(A, L, P) abort
   return s:CompleteSub('revert', a:A, a:L, a:P, function('s:CompleteRevision'))
-endfunction
-
-function! s:FinishCommit() abort
-  let buf = +expand('<abuf>')
-  let args = getbufvar(buf, 'fugitive_commit_arguments')
-  if !empty(args)
-    call setbufvar(buf, 'fugitive_commit_arguments', [])
-    return s:CommitSubcommand(-1, -1, 0, 0, '', args, s:Dir(buf))
-  endif
-  return ''
 endfunction
 
 " Section: :Gmerge, :Grebase, :Gpull
@@ -4618,11 +4527,6 @@ function! fugitive#WqCommand(...) abort
     return result.'|quit'.bang
   endif
 endfunction
-
-augroup fugitive_commit
-  autocmd!
-  autocmd VimLeavePre,BufDelete COMMIT_EDITMSG execute substitute(s:FinishCommit(), '\C^echoerr \(''[^'']*''\)*', 'redraw|echohl ErrorMsg|echo \1|echohl NONE', '')
-augroup END
 
 " Section: :Gpush, :Gfetch
 
@@ -5863,14 +5767,14 @@ function! fugitive#MapJumps(...) abort
 
     nnoremap <buffer>       c<Space> :Git commit<Space>
     nnoremap <buffer>          c<CR> :Git commit<CR>
-    nnoremap <buffer>      cv<Space> :Git commit -v<Space>
-    nnoremap <buffer>         cv<CR> :Git commit -v<CR>
+    nnoremap <buffer>      cv<Space> :tab Git commit -v<Space>
+    nnoremap <buffer>         cv<CR> :tab Git commit -v<CR>
     nnoremap <buffer> <silent> ca    :<C-U>Gcommit --amend<CR>
     nnoremap <buffer> <silent> cc    :<C-U>Gcommit<CR>
     nnoremap <buffer> <silent> ce    :<C-U>Gcommit --amend --no-edit<CR>
     nnoremap <buffer> <silent> cw    :<C-U>Gcommit --amend --only<CR>
-    nnoremap <buffer> <silent> cva   :<C-U>Gcommit -v --amend<CR>
-    nnoremap <buffer> <silent> cvc   :<C-U>Gcommit -v<CR>
+    nnoremap <buffer> <silent> cva   :<C-U>tab Gcommit -v --amend<CR>
+    nnoremap <buffer> <silent> cvc   :<C-U>tab Gcommit -v<CR>
     nnoremap <buffer> <silent> cRa   :<C-U>Gcommit --reset-author --amend<CR>
     nnoremap <buffer> <silent> cRe   :<C-U>Gcommit --reset-author --amend --no-edit<CR>
     nnoremap <buffer> <silent> cRw   :<C-U>Gcommit --reset-author --amend --only<CR>
