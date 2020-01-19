@@ -317,7 +317,7 @@ P                       under the cursor. On untracked files, this instead
                                                 *fugitive_d*
 Diff maps ~
                                                 *fugitive_dp*
-dp                      Invoke |:Git!| diff on the file under the cursor.
+dp                      Invoke |:Git| diff on the file under the cursor.
                         Deprecated in favor of inline diffs.
 
                                                 *fugitive_dd*
