@@ -2131,9 +2131,7 @@ function! s:TempReadPre(file) abort
     setlocal nomodeline
     setlocal bufhidden=delete nobuflisted
     setlocal buftype=nowrite
-    if has_key(dict, 'modifiable')
-      let &l:modifiable = dict.modifiable
-    endif
+    setlocal nomodifiable
     if len(dict.dir)
       let b:git_dir = dict.dir
       call extend(b:, {'fugitive_type': 'temp'}, 'keep')
@@ -4617,7 +4615,7 @@ function! s:OpenExec(cmd, mods, args, ...) abort
   else
     let filetype = 'git'
   endif
-  let s:temp_files[s:cpath(temp)] = { 'dir': dir, 'filetype': filetype, 'modifiable': first =~# '^diff ' }
+  let s:temp_files[s:cpath(temp)] = { 'dir': dir, 'filetype': filetype }
   if a:cmd ==# 'edit'
     call s:BlurStatus()
   endif
@@ -4704,26 +4702,8 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abor
     return 'wq'
   elseif get(b:, 'fugitive_type', '') ==# 'index'
     return 'Gcommit'
-  elseif &buftype ==# 'nowrite' && getline(4) =~# '^+++ '
-    let filename = getline(4)[6:-1]
-    setlocal buftype=
-    silent write
-    setlocal buftype=nowrite
-    if matchstr(getline(2),'index [[:xdigit:]]\+\.\.\zs[[:xdigit:]]\{7\}') ==# fugitive#RevParse(':0:'.filename)[0:6]
-      let [message, exec_error] = s:ChompError(['apply', '--cached', '--reverse', '--', expand('%:p')])
-    else
-      let [message, exec_error] = s:ChompError(['apply', '--cached', '--', expand('%:p')])
-    endif
-    if exec_error
-      echohl ErrorMsg
-      echo message
-      echohl NONE
-      return ''
-    elseif a:bang
-      return 'bdelete'
-    else
-      return 'Gedit '.fnameescape(filename)
-    endif
+  elseif &buftype ==# 'nowrite' && getline(4) =~# '^[+-]\{3\} '
+    return 'echoerr ' . string('fugitive: :Gwrite from :Git diff has been removed in favor of :Git add --edit')
   endif
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
@@ -5450,7 +5430,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, args) abort
         endfor
         return ''
       endif
-      let temp_state = {'dir': s:Dir(), 'filetype': (raw ? '' : 'fugitiveblame'), 'blame_flags': flags, 'blame_file': file, 'modifiable': 0}
+      let temp_state = {'dir': s:Dir(), 'filetype': (raw ? '' : 'fugitiveblame'), 'blame_flags': flags, 'blame_file': file}
       if s:HasOpt(flags, '--reverse')
         let temp_state.blame_reverse_end = matchstr(get(commits, 0, ''), '\.\.\zs.*')
       endif
