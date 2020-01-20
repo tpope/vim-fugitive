@@ -45,22 +45,6 @@ that are part of Git repositories).
 :Git revert [args]      A wrapper around git-revert.  Similar to |:Gcommit|.
 :Grevert [args]
 
-                                                *:Git-merge* *:Gmerge*
-:Git merge [args]       Calls git-merge and loads errors and conflicted files
-:Gmerge [args]          into the |quickfix| list.  Opens a |:Gcommit| style
-                        split window for the commit message if the merge
-                        succeeds.  If called during a merge conflict, the
-                        conflicted files from the current index are loaded
-                        into the |quickfix| list.
-
-                                                *:Git-pull* *:Gpull*
-:Git pull [args]        Like |:Gmerge|, but for git-pull.
-:Gpull [args]
-
-                                                *:Git-rebase* *:Grebase*
-:Git rebase [args]      Like |:Gmerge|, but for git-rebase.  Interactive
-:Grebase [args]         rebase is experimentally supported.
-
                                                 *:Git-push* *:Gpush*
 :Git push [args]        Invoke git-push, load the results into the |quickfix|
 :Gpush [args]           list, and invoke |:cwindow| to reveal any errors.
@@ -118,6 +102,17 @@ that are part of Git repositories).
 
                                                 *:Git-mergetool*
 :Git mergetool [args]   Like |:Git-difftool|, but target merge conflicts.
+
+                                                *:Git-merge* *:Gmerge*
+:Gmerge [args]          Deprecated alias for |:Git| merge. Use |:Git-mergetool|
+                        to get the old behavior of loading merge conflicts
+                        into the quickfix list.
+
+                                                *:Git-pull* *:Gpull*
+:Gpull [args]           Deprecated alias for |:Git| pull.
+
+                                                *:Git-rebase* *:Grebase*
+:Grebase [args]         Deprecated alias for |:Git| rebase.
 
                                                  *:Gclog* *:Glog*
 :Gclog[!] [args]        Use git-log [args] to load the commit history into the
