@@ -1567,7 +1567,7 @@ function! s:ReplaceCmd(cmd) abort
 endfunction
 
 function! s:QueryLog(refspec) abort
-  let lines = s:LinesError(['log', '-n', '256', '--format=%h%x09%s', a:refspec, '--'])[0]
+  let lines = s:LinesError(['log', '-n', '256', '--pretty=format:%h%x09%s', a:refspec, '--'])[0]
   call map(lines, 'split(v:val, "\t")')
   call map(lines, '{"type": "Log", "commit": v:val[0], "subject": v:val[-1]}')
   return lines
