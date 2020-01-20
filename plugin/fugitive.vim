@@ -66,7 +66,7 @@ function! FugitivePath(...) abort
 endfunction
 
 " FugitiveParse() takes a fugitive:// URL and returns a 2 element list
-" containing the Git dir and an object name ("commit:file").  It's effectively
+" containing an object name ("commit:file") and the Git dir.  It's effectively
 " then inverse of FugitiveFind().
 function! FugitiveParse(...) abort
   let path = s:Slash(a:0 ? a:1 : @%)
