@@ -3761,7 +3761,7 @@ endfunction
 
 function! s:MergeSubcommand(line1, line2, range, bang, mods, args) abort
   let dir = s:Dir()
-  if empty(args) && (
+  if empty(a:args) && (
         \ filereadable(fugitive#Find('.git/MERGE_MSG', dir)) ||
         \ isdirectory(fugitive#Find('.git/rebase-apply', dir)) ||
         \  !empty(s:TreeChomp(dir, 'diff-files', '--diff-filter=U')))
