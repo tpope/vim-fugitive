@@ -207,7 +207,7 @@ that are part of Git repositories).
                         focus on the current window.  During a merge conflict,
                         this is a three-way diff against the "ours" and
                         "theirs" ancestors.  Additional d2o and d3o maps are
-                        provided to to obtain the hunk from the "ours" or
+                        provided to obtain the hunk from the "ours" or
                         "theirs" ancestor, respectively.
 
 :Gdiffsplit! {object}   Like |:Gdiffsplit|, but retain focus on the current
