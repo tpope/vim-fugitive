@@ -103,6 +103,24 @@ function! FugitiveConfig(...) abort
   endif
 endfunction
 
+" Retrieve a Git configuration value.  An optional second argument provides
+" the Git dir as with FugitiveFind().  Pass a blank string to limit to the
+" global config.
+function! FugitiveConfigGet(name, ...) abort
+  return call('FugitiveConfig', [a:name] + a:000)
+endfunction
+
+" Like FugitiveConfigGet(), but return a list of all values.
+function! FugitiveConfigGetAll(name, ...) abort
+  if a:0 && type(a:1) ==# type({})
+    let config = a:1
+  else
+    let config = fugitive#Config(FugitiveGitDir(a:0 ? a:1 : -1))
+  endif
+  let name = substitute(a:name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
+  return copy(get(config, name, []))
+endfunction
+
 function! FugitiveRemoteUrl(...) abort
   return fugitive#RemoteUrl(a:0 ? a:1 : '', FugitiveGitDir(a:0 > 1 ? a:2 : -1))
 endfunction
