@@ -4096,11 +4096,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, args) abort
     call add(cmd, '--column')
   endif
   let tree = s:Tree(dir)
-  if type(a:args) == type([])
-    let [args, after] = [a:args, '']
-  else
-    let [args, after] = s:SplitExpandChain(a:args, tree)
-  endif
+  let args = a:args
   let prefix = FugitiveVimPath(s:HasOpt(args, '--cached') || empty(tree) ? 'fugitive://' . dir . '//0/' : tree . '/')
   let name_only = s:HasOpt(args, '-l', '--files-with-matches', '--name-only', '-L', '--files-without-match')
   let title = [listnr < 0 ? ':Ggrep' : ':Glgrep'] + args
@@ -4123,9 +4119,9 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, args) abort
     redraw
   endif
   if !a:bang && !empty(list)
-    return (listnr < 0 ? 'c' : 'l').'first' . after
+    return (listnr < 0 ? 'c' : 'l').'first'
   else
-    return after[1:-1]
+    return ''
   endif
 endfunction
 
