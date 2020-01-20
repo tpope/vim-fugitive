@@ -1845,7 +1845,7 @@ function! fugitive#BufReadStatus() abort
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
-    let b:dispatch = '-compiler=git -dir=' . s:fnameescape(len(tree) ? tree : s:Dir()) .
+    let b:dispatch = '-compiler=git -dir=' . s:fnameescape(FugitiveVimPath(len(tree) ? tree : s:Dir())) .
           \ ' ' . s:UserCommand() . ' ' . s:shellesc(s:AskPassArgs(s:Dir())) . ' fetch --all'
     call fugitive#MapJumps()
     call s:Map('n', '-', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
