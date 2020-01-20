@@ -20,10 +20,9 @@ that are part of Git repositories).
 :G {args}               but chdir to the repository tree first.  For some
                         subcommands, a Fugitive command is called instead.
 
-                                                *:Git!*
 :Git! {args}            Like |:Git|, but capture the output into a temp file,
-:Git --no-pager {args}  and |:split| that temp file.  Use :0Git to
-:Git -P {args}          |:edit| the temp file instead.  A temp file is always
+:Git --paginate {args}  and |:split| that temp file.  Use :0Git to
+:Git -p {args}          |:edit| the temp file instead.  A temp file is always
                         used for diff and log commands.
 
                                                 *:Gstatus*

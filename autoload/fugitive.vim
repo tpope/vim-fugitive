@@ -2182,18 +2182,16 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   else
     let opts = {}
   endif
-  if a:bang || args[0] =~# '^-P$\|^--no-pager$\|diff\%(tool\)\@!\|log\|^show$' ||
+  if a:bang || args[0] =~# '^-p$\|^--paginate$\|diff\%(tool\)\@!\|log\|^show$' ||
         \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show') ||
         \ (args[0] ==# 'help' || get(args, 1, '') ==# '--help') && !s:HasOpt(args, '--web')
+    if args[0] =~# '^-p$\|^--paginate$'
+      call remove(args, 0)
+    endif
     return s:OpenExec((a:line2 > 0 ? a:line2 : '') . (a:line2 ? 'split' : 'edit'), a:mods, args, dir) . after
   endif
-  if index(['--paginate', '-p'], args[0]) >= 0
-    let paginate_warning = 'fugitive: --paginate support is deprecated. Use :terminal directly'
-    let after = '|echohl WarningMsg|echo ' . string(paginate_warning) . '|echohl NONE' . after
-  endif
   if s:HasOpt(args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
-        \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
-        \ index(['--paginate', '-p'], args[0]) >= 0
+        \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive')
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
     let assign = len(dir) ? '|let b:git_dir = ' . string(dir) : ''
     if has('nvim')
