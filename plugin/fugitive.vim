@@ -357,6 +357,10 @@ augroup fugitive
         \ if len(FugitiveGitDir()) |
         \   call fugitive#MapCfile('fugitive#MessageCfile()') |
         \ endif
+  autocmd FileType git,gitcommit
+        \ if len(FugitiveGitDir()) && &foldtext ==# 'foldtext()' |
+        \    setlocal foldtext=fugitive#Foldtext() |
+        \ endif
   autocmd FileType fugitive
         \ if len(FugitiveGitDir()) |
         \   call fugitive#MapCfile('fugitive#StatusCfile()') |
