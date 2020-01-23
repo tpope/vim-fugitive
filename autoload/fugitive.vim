@@ -1826,8 +1826,7 @@ function! fugitive#BufReadStatus() abort
     if push !=# pull
       call s:AddHeader('Push', push)
     endif
-    let tree = s:Tree()
-    if empty(tree)
+    if empty(s:Tree())
       call s:AddHeader('Bare', 'yes')
     endif
     call s:AddSection('Rebasing ' . rebasing_head, rebasing)
@@ -1845,8 +1844,7 @@ function! fugitive#BufReadStatus() abort
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
-    let b:dispatch = '-compiler=git -dir=' . s:fnameescape(FugitiveVimPath(len(tree) ? tree : s:Dir())) .
-          \ ' ' . s:UserCommand() . ' ' . s:shellesc(s:AskPassArgs(s:Dir())) . ' fetch --all'
+    let b:dispatch = ':Gfetch --all'
     call fugitive#MapJumps()
     call s:Map('n', '-', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
     call s:Map('x', '-', ":<C-U>execute <SID>Do('Toggle',1)<CR>", '<silent>')
