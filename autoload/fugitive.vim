@@ -2390,7 +2390,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
           \ 'PAGER': 'cat'}, 'keep')
     let args = ['-c', 'advice.waitingForEditor=false'] + s:disable_colors + args
     let argv = s:UserCommandList(dir) + args
-    if !has('patch-8.0.0902')
+    if !has('patch-8.0.0902') || has('nvim')
       let envlist = map(items(env), 'join(v:val, "=")')
       if s:executable('env')
         let argv = ['env'] + envlist + argv
