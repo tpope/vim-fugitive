@@ -279,9 +279,6 @@ function! FugitiveDetect(path) abort
       let b:git_dir = dir
     endif
   endif
-  if exists('b:git_dir')
-    return fugitive#Init()
-  endif
 endfunction
 
 function! FugitiveVimPath(path) abort
