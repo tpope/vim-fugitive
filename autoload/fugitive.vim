@@ -2052,7 +2052,7 @@ function! fugitive#BufReadStatus() abort
     endfor
 
     let b:fugitive_reltime = reltime()
-    return 'silent ' . s:DoAutocmd('User Fugitive') . '|silent ' . s:DoAutocmd('User FugitiveIndex')
+    return 'silent ' . s:DoAutocmd('User FugitiveIndex')
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
