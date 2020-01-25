@@ -1890,7 +1890,7 @@ function! fugitive#BufReadStatus() abort
       if empty(rebase)
         let rebase = fugitive#Config('pull.rebase', config)
       endif
-      if rebase =~# '^\%(true\|yes\|on\|1\|interactive\)$'
+      if rebase =~# '^\%(true\|yes\|on\|1\|interactive\|merges\|preserve\)$'
         let pull_type = 'Rebase'
       elseif rebase =~# '^\%(false\|no|off\|0\|\)$'
         let pull_type = 'Merge'
