@@ -2383,7 +2383,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   let env = get(opts, 'env', {})
   if s:RunJobs()
     let state = {'dir': dir, 'mods': s:Mods(a:mods), 'temp': tempname(), 'log': []}
-    let state.pty = get(g:, 'fugitive_pty', has('unix'))
+    let state.pty = get(g:, 'fugitive_pty', has('unix') && (has('patch-8.0.0744') || has('nvim')))
     if !state.pty
       let args = s:AskPassArgs(dir) + args
     endif
@@ -2422,9 +2422,11 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     if exists('*job_start')
       let jobopts = {
             \ 'mode': 'raw',
-            \ 'pty': state.pty,
             \ 'callback': function('s:RunReceive', [state]),
             \ }
+      if state.pty
+        let jobopts.pty = 1
+      endif
       if len(env)
         let jobopts.env = env
       endif
