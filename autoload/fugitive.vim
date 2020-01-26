@@ -3530,7 +3530,7 @@ function! s:DoStageUnpushedHeading(heading) abort
     let remote = '.'
   endif
   let branch = matchstr(a:heading, 'to \%([^/]\+/\)\=\zs\S\+')
-  call feedkeys(':Gpush ' . remote . ' ' . 'HEAD:' . branch)
+  call feedkeys(':Git push ' . remote . ' ' . 'HEAD:' . 'refs/heads/' . branch)
 endfunction
 
 function! s:DoToggleUnpushedHeading(heading) abort
@@ -3543,7 +3543,7 @@ function! s:DoStageUnpushed(record) abort
     let remote = '.'
   endif
   let branch = matchstr(a:record.heading, 'to \%([^/]\+/\)\=\zs\S\+')
-  call feedkeys(':Gpush ' . remote . ' ' . a:record.commit . ':' . branch)
+  call feedkeys(':Git push ' . remote . ' ' . a:record.commit . ':' . 'refs/heads/' . branch)
 endfunction
 
 function! s:DoToggleUnpushed(record) abort
@@ -3551,7 +3551,7 @@ function! s:DoToggleUnpushed(record) abort
 endfunction
 
 function! s:DoUnstageUnpulledHeading(heading) abort
-  call feedkeys(':Grebase')
+  call feedkeys(':Git rebase')
 endfunction
 
 function! s:DoToggleUnpulledHeading(heading) abort
@@ -3559,7 +3559,7 @@ function! s:DoToggleUnpulledHeading(heading) abort
 endfunction
 
 function! s:DoUnstageUnpulled(record) abort
-  call feedkeys(':Grebase ' . a:record.commit)
+  call feedkeys(':Git rebase ' . a:record.commit)
 endfunction
 
 function! s:DoToggleUnpulled(record) abort
@@ -3567,7 +3567,7 @@ function! s:DoToggleUnpulled(record) abort
 endfunction
 
 function! s:DoUnstageUnpushed(record) abort
-  call feedkeys(':Grebase --autosquash ' . a:record.commit . '^')
+  call feedkeys(':Git rebase --autosquash ' . a:record.commit . '^')
 endfunction
 
 function! s:DoToggleStagedHeading(...) abort
