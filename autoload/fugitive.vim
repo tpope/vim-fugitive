@@ -1768,6 +1768,8 @@ function! fugitive#BufReadStatus() abort
   unlet! b:fugitive_reltime
   try
     silent doautocmd BufReadPre
+    let config = fugitive#Config()
+
     let cmd = [fnamemodify(amatch, ':h')]
     setlocal noro ma nomodeline buftype=nowrite
     if s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : fugitive#Find('.git/index'), ':p')) !=# s:cpath(amatch)
@@ -1882,8 +1884,6 @@ function! fugitive#BufReadStatus() abort
       let b:fugitive_files['Unstaged'][dict.filename] = dict
     endfor
 
-    let config = fugitive#Config()
-
     let pull_type = 'Pull'
     if len(pull)
       let rebase = fugitive#Config('branch.' . branch . '.rebase', config)
@@ -1901,20 +1901,22 @@ function! fugitive#BufReadStatus() abort
     if empty(push_remote)
       let push_remote = fugitive#Config('remote.pushDefault', config)
     endif
-    let push = len(push_remote) && len(branch) ? push_remote . '/' . branch : ''
-    if empty(push)
-      let push = pull
+    let fetch_remote = fugitive#Config('branch.' . branch . '.remote', config)
+    if empty(fetch_remote)
+      let fetch_remote = 'origin'
+    endif
+    if empty(push_remote)
+      let push_remote = fetch_remote
     endif
 
-    if len(pull) && get(props, 'branch.ab') !~# ' -0$'
-      let unpulled = s:QueryLog(head . '..' . pull)
-    else
-      let unpulled = []
+    let push_default = fugitive#Config('push.default')
+    if empty(push_default)
+      let push_default = fugitive#GitVersion(2) ? 'simple' : 'matching'
     endif
-    if len(push) && !(push ==# pull && get(props, 'branch.ab') =~# '^+0 ')
-      let unpushed = s:QueryLog(push . '..' . head)
+    if push_default ==# 'upstream'
+      let push = pull
     else
-      let unpushed = []
+      let push = len(branch) ? (push_remote ==# '.' ? '' : push_remote . '/') . branch : ''
     endif
 
     if isdirectory(fugitive#Find('.git/rebase-merge/'))
@@ -1980,8 +1982,19 @@ function! fugitive#BufReadStatus() abort
     let unstaged_end = len(unstaged) ? line('$') : 0
     call s:AddSection('Staged', staged)
     let staged_end = len(staged) ? line('$') : 0
-    call s:AddSection('Unpushed to ' . push, unpushed)
-    call s:AddSection('Unpulled from ' . pull, unpulled)
+
+    if len(push) && !(push ==# pull && get(props, 'branch.ab') =~# '^+0 ')
+      call s:AddSection('Unpushed to ' . push, s:QueryLog(push . '..' . head))
+    endif
+    if len(pull) && push !=# pull
+      call s:AddSection('Unpushed to ' . pull, s:QueryLog(pull . '..' . head))
+    endif
+    if len(push) && push !=# pull
+      call s:AddSection('Unpulled from ' . push, s:QueryLog(head . '..' . push))
+    endif
+    if len(pull) && get(props, 'branch.ab') !~# ' -0$'
+      call s:AddSection('Unpulled from ' . pull, s:QueryLog(head . '..' . pull))
+    endif
 
     setlocal nomodified readonly noswapfile
     silent doautocmd BufReadPost
