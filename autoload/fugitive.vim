@@ -2230,11 +2230,7 @@ function! s:RunReceive(state, job, data, ...) abort
   endif
   let cmd = matchstr(data, escape . "\007")[5:-2]
   let data = substitute(data, escape . "\007", '', 'g')
-  if a:state.pty
-    echon data
-  else
-    echon substitute(data, "\r\\ze\n", '', 'g')
-  endif
+  echon substitute(data, "\r\\ze\n", '', 'g')
   if cmd =~# '^fugitive:'
     let a:state.request = strpart(cmd, 9)
   endif
