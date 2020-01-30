@@ -2323,7 +2323,9 @@ augroup fugitive_job
   autocmd BufDelete * call s:RunBufDelete(expand('<abuf>'))
   autocmd VimLeave *
         \ for s:jobbuf in keys(s:edit_jobs) |
-        \   call writefile([], remove(s:edit_jobs, s:jobbuf)[0].temp . '.exit') |
+        \   call writefile([], s:edit_jobs[s:jobbuf][0].temp . '.exit') |
+        \   redraw! |
+        \   call call('s:RunWait', remove(s:edit_jobs, s:jobbuf)) |
         \ endfor
 augroup END
 
