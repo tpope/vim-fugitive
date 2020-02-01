@@ -1680,6 +1680,10 @@ function! fugitive#BufReadStatus() abort
       let cmd += ['-c', 'GIT_INDEX_FILE=' . amatch]
     endif
 
+    if fugitive#GitVersion(2, 15)
+      call add(cmd, '--no-optional-locks')
+    endif
+
     let b:fugitive_files = {'Staged': {}, 'Unstaged': {}}
     let [staged, unstaged, untracked] = [[], [], []]
     let props = {}
