@@ -116,19 +116,6 @@ function! s:cpath(path, ...) abort
   return a:0 ? path ==# s:cpath(a:1) : path
 endfunction
 
-function! s:Cd(...) abort
-  let cd = exists('*haslocaldir') && haslocaldir() ? 'lcd' : exists(':tcd') && haslocaldir(-1) ? 'tcd' : 'cd'
-  if !a:0
-    return cd
-  endif
-  let cwd = getcwd()
-  if s:cpath(cwd, a:1)
-    return ''
-  endif
-  exe cd s:fnameescape(a:1)
-  return cd . ' ' . s:fnameescape(cwd)
-endfunction
-
 let s:executables = {}
 
 function! s:executable(binary) abort
@@ -713,18 +700,11 @@ function! s:repo_git_command(...) dict abort
 endfunction
 
 function! s:repo_git_chomp(...) dict abort
-  let git = g:fugitive_git_executable . ' --git-dir='.s:shellesc(self.git_dir)
-  let output = git . join(map(copy(a:000),'" ".s:shellesc(v:val)'),'')
-  return s:sub(system(output), '\n$', '')
+  return s:sub(system(FugitivePrepare(a:000, self.git_dir)), '\n$', '')
 endfunction
 
 function! s:repo_git_chomp_in_tree(...) dict abort
-  let cdback = s:Cd(self.tree())
-  try
-    return call(self.git_chomp, a:000, self)
-  finally
-    execute cdback
-  endtry
+  return call(self.git_chomp, a:000, self)
 endfunction
 
 function! s:repo_rev_parse(rev) dict abort
