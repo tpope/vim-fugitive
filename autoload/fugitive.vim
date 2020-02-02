@@ -45,13 +45,23 @@ function! s:winshell() abort
   return has('win32') && &shellcmdflag !~# '^-'
 endfunction
 
+function! s:WinShellEsc(arg) abort
+  if type(a:arg) == type([])
+    return join(map(copy(a:arg), 's:shellesc(v:val)'))
+  elseif a:arg =~# '^[A-Za-z0-9_/:.-]\+$'
+    return a:arg
+  else
+    return '"' . s:gsub(s:gsub(a:arg, '"', '""'), '\%', '"%"') . '"'
+  endif
+endfunction
+
 function! s:shellesc(arg) abort
   if type(a:arg) == type([])
     return join(map(copy(a:arg), 's:shellesc(v:val)'))
-  elseif a:arg =~ '^[A-Za-z0-9_/:.-]\+$'
+  elseif a:arg =~# '^[A-Za-z0-9_/:.-]\+$'
     return a:arg
   elseif s:winshell()
-    return '"'.s:gsub(s:gsub(a:arg, '"', '""'), '\%', '"%"').'"'
+    return '"' . s:gsub(s:gsub(a:arg, '"', '""'), '\%', '"%"') . '"'
   else
     return shellescape(a:arg)
   endif
@@ -444,6 +454,25 @@ function! s:BuildEnvPrefix(env) abort
     return join(map(env, '"set " . substitute(join(v:val, "="), "[&|<>^]", "^^^&", "g") . "& "'), '')
   else
     return 'env ' . s:shellesc(map(env, 'join(v:val, "=")')) . ' '
+  endif
+endfunction
+
+function! s:JobOpts(cmd, env) abort
+  if empty(a:env)
+    return [a:cmd, {}]
+  elseif has('patch-8.1.0902') && !has('nvim') && (!has('win32') || empty(filter(keys(a:env), 'exists("$" . v:val)')))
+    return [a:cmd, {'env': a:env}]
+  endif
+  let envlist = map(items(a:env), 'join(v:val, "=")')
+  if !has('win32')
+    return [['env'] + envlist + a:cmd, {}]
+  else
+    let pre = join(map(envlist, '"set " . substitute(v:val, "[&|<>^]", "^^^&", "g") . "& "'), '')
+    if len(a:cmd) == 3 && a:cmd[0] ==# 'cmd.exe' && a:cmd[1] ==# '/c'
+      return [a:cmd[0:1] + [pre . a:cmd[2]], {}]
+    else
+      return [['cmd.exe', '/c', pre . s:WinShellEsc(a:cmd)], {}]
+    endif
   endif
 endfunction
 
@@ -2408,42 +2437,26 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
           \ 'PAGER': 'cat'}, 'keep')
     let args = s:disable_colors + flags + ['-c', 'advice.waitingForEditor=false'] + args
     let argv = s:UserCommandList(dir) + args
-    if !has('patch-8.0.0902') || has('nvim')
-      let envlist = map(items(env), 'join(v:val, "=")')
-      if s:executable('env')
-        let argv = ['env'] + envlist + argv
-      elseif has('win32')
-        let argv = ['cmd.exe', '/c',
-              \ join(map(envlist, { _, v -> 'set ' . substitute(v, '[&|<>^]', '^^^&', 'g') }) +
-              \ [s:shellesc(argv)], '& ')]
-      else
-        return 'echoerr ' . string('fugitive: "env" command missing')
-      endif
-      let env = {}
-    endif
+    let [argv, jobopts] = s:JobOpts(argv, env)
     let state.cmd = argv
     let g:_fugitive_last_job = state
     if &autowrite || &autowriteall | silent! wall | endif
     if exists('*job_start')
-      let jobopts = {
+      call extend(jobopts, {
             \ 'mode': 'raw',
             \ 'callback': function('s:RunReceive', [state]),
-            \ }
+            \ })
       if state.pty
         let jobopts.pty = 1
       endif
-      if len(env)
-        let jobopts.env = env
-      endif
       let job = job_start(argv, jobopts)
     else
-      let job = jobstart(argv, {
+      let job = jobstart(argv, extend(jobopts, {
             \ 'pty': state.pty,
-            \ 'env': env,
             \ 'TERM': 'dumb',
             \ 'on_stdout': function('s:RunReceive', [state]),
             \ 'on_stderr': function('s:RunReceive', [state]),
-            \ })
+            \ }))
     endif
     let state.job = job
     call s:RunWait(state, job)
