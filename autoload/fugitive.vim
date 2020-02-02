@@ -2371,7 +2371,6 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   let name = substitute(args[0], '\%(^\|-\)\(\l\)', '\u\1', 'g')
   if exists('*s:' . name . 'Subcommand') && get(args, 1, '') !=# '--help'
     try
-      exe s:DirCheck(dir)
       let options = s:{name}Subcommand(a:line1, a:line2, a:range, a:bang, a:mods, {'dir': dir, 'flags': flags, 'command': args[0], 'args': args[1:-1]})
       if type(options) == type('')
         return 'exe ' . string(options) . after
@@ -3857,6 +3856,7 @@ endfunction
 
 function! s:MergetoolSubcommand(line1, line2, range, bang, mods, options) abort
   let dir = a:options.dir
+  exe s:DirCheck(dir)
   let i = 0
   let prompt = 1
   let cmd = ['diff', '--diff-filter=U']
@@ -3868,6 +3868,7 @@ endfunction
 
 function! s:DifftoolSubcommand(line1, line2, range, bang, mods, options) abort
   let dir = a:options.dir
+  exe s:DirCheck(dir)
   let i = 0
   let argv = copy(a:options.args)
   let commits = []
@@ -4584,6 +4585,7 @@ endfunction
 
 function! s:Dispatch(bang, options) abort
   let dir = a:options.dir
+  exe s:DirCheck(dir)
   let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
   try
     let b:current_compiler = 'git'
@@ -4991,7 +4993,7 @@ function! s:BlameCommitFileLnum(...) abort
   if commit =~# '^0\+$'
     let commit = ''
   elseif has_key(state, 'blame_reverse_end')
-    let commit = get(s:LinesError('rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, '')
+    let commit = get(s:LinesError(state.dir, 'rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, '')
   endif
   let lnum = +matchstr(line, ' \zs\d\+\ze \%((\| *\d\+)\)')
   let path = matchstr(line, '^\^\=[?*]*\x* \+\%(\d\+ \+\d\+ \+\)\=\zs.\{-\}\ze\s*\d\+ \%((\| *\d\+)\)')
@@ -5027,7 +5029,8 @@ function! fugitive#BlameComplete(A, L, P) abort
 endfunction
 
 function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
-  exe s:DirCheck()
+  let dir = s:Dir()
+  exe s:DirCheck(dir)
   let flags = copy(a:options.args)
   let i = 0
   let raw = 0
@@ -5083,7 +5086,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         continue
       endif
       try
-        let dcf = s:DirCommitFile(fugitive#Find(arg))
+        let dcf = s:DirCommitFile(fugitive#Find(arg, dir))
         if len(dcf[1]) && empty(dcf[2])
           call add(commits, remove(flags, i))
           continue
@@ -5095,13 +5098,13 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
     endif
     let i += 1
   endwhile
-  let file = substitute(get(files, 0, get(s:TempState(), 'blame_file', s:Relative('./'))), '^\.\%(/\|$\)', '', '')
+  let file = substitute(get(files, 0, get(s:TempState(), 'blame_file', s:Relative('./', dir))), '^\.\%(/\|$\)', '', '')
   if empty(commits) && len(files) > 1
     call add(commits, remove(files, 1))
   endif
   exe s:BlameLeave()
   try
-    let cmd = a:options.flags + ['--no-pager', '-c', 'blame.coloring=none', '-c', 'blame.blankBoundary=false', 'blame', '--show-number']
+    let cmd = a:options.flags + ['--no-pager', '-c', 'blame.coloring=none', '-c', 'blame.blankBoundary=false', a:options.command, '--show-number']
     call extend(cmd, filter(copy(flags), 'v:val !~# "\\v^%(-b|--%(no-)=color-.*|--progress)$"'))
     if a:count > 0 && empty(ranges)
       let cmd += ['-L', (a:line1 ? a:line1 : line('.')) . ',' . (a:line1 ? a:line1 : line('.'))]
@@ -5114,7 +5117,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
     elseif empty(files) && !s:HasOpt(flags, '--reverse')
       let cmd += ['--contents', '-']
     endif
-    let basecmd = escape(fugitive#Prepare(cmd) . ' -- ' . s:shellesc(len(files) ? files : file), '!#%')
+    let basecmd = escape(fugitive#Prepare(cmd, dir) . ' -- ' . s:shellesc(len(files) ? files : file), '!#%')
     let tempname = tempname()
     let error = tempname . '.err'
     let temp = tempname . (raw ? '' : '.fugitiveblame')
@@ -5146,7 +5149,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         endfor
         return ''
       endif
-      let temp_state = {'dir': s:Dir(), 'filetype': (raw ? '' : 'fugitiveblame'), 'blame_flags': flags, 'blame_file': file}
+      let temp_state = {'dir': dir, 'filetype': (raw ? '' : 'fugitiveblame'), 'options': a:options, 'blame_flags': flags, 'blame_file': file}
       if s:HasOpt(flags, '--reverse')
         let temp_state.blame_reverse_end = matchstr(get(commits, 0, ''), '\.\.\zs.*')
       endif
@@ -5304,7 +5307,8 @@ function! s:BlameJump(suffix, ...) abort
     let suffix = ''
   endif
   let offset = line('.') - line('w0')
-  let flags = get(s:TempState(), 'blame_flags', [])
+  let state = s:TempState()
+  let flags = get(state, 'blame_flags', [])
   if a:0 && a:1
     if s:HasOpt(flags, '--reverse')
       call remove(flags, '--reverse')
@@ -5325,13 +5329,12 @@ function! s:BlameJump(suffix, ...) abort
   endif
   if exists(':Gblame')
     let my_bufnr = bufnr('')
-    let options = {'dir': s:Dir(), 'flags': [], 'command': 'blame', 'args': blame_args}
     if blame_bufnr < 0
       let blame_args = flags + [commit . suffix, '--', path]
-      let result = s:BlameSubcommand(0, 0, 0, 0, '', options)
+      let result = s:BlameSubcommand(0, 0, 0, 0, '', extend({'args': blame_args}, state.options, 'keep'))
     else
       let blame_args = flags
-      let result = s:BlameSubcommand(-1, -1, 0, 0, '', options)
+      let result = s:BlameSubcommand(-1, -1, 0, 0, '', extend({'args': blame_args}, state.options, 'keep'))
     endif
     if bufnr('') == my_bufnr
       return result
