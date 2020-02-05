@@ -1905,7 +1905,7 @@ function! fugitive#BufReadStatus() abort
     call s:MapMotion('gp', "exe <SID>StageJump(v:count, 'Unpushed')")
     call s:MapMotion('gP', "exe <SID>StageJump(v:count, 'Unpulled')")
     call s:MapMotion('gr', "exe <SID>StageJump(v:count, 'Rebasing')")
-    call s:Map('n', 'C', ":<C-U>Gcommit<CR>:echohl WarningMsg<Bar>echo ':Gstatus C is deprecated in favor of cc'<Bar>echohl NONE<CR>", '<silent>')
+    call s:Map('n', 'C', ":echoerr ':Gstatus C has been removed in favor of cc'<CR>", '<silent>')
     call s:Map('n', 'a', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
     call s:Map('n', 'i', ":<C-U>execute <SID>NextExpandedHunk(v:count1)<CR>", '<silent>')
     call s:Map('n', "=", ":<C-U>execute <SID>StageInline('toggle',line('.'),v:count)<CR>", '<silent>')
