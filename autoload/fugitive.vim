@@ -5497,6 +5497,9 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
         let type = 'blob'
       endif
       let path = path[1:-1]
+    elseif full =~? '^\a\a\+:[\/][\/]'
+      let path = s:Slash(full)
+      let type = 'url'
     elseif empty(s:Tree(dir))
       let path = '.git/' . full[strlen(dir)+1:-1]
       let type = ''
@@ -5635,13 +5638,17 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
           \ 'line1': line1,
           \ 'line2': line2}
 
-    let url = ''
-    for Handler in get(g:, 'fugitive_browse_handlers', [])
-      let url = call(Handler, [copy(opts)])
-      if !empty(url)
-        break
-      endif
-    endfor
+    if type ==# 'url'
+      let url = path
+    else
+      let url = ''
+      for Handler in get(g:, 'fugitive_browse_handlers', [])
+        let url = call(Handler, [copy(opts)])
+        if !empty(url)
+          break
+        endif
+      endfor
+    endif
 
     if empty(url)
       call s:throw("No Gbrowse handler installed for '".raw."'")
