@@ -548,7 +548,8 @@ rm                      Perform an interactive rebase with the commit under
                         the cursor set to `edit`.
 
 rd                      Perform an interactive rebase with the commit under
-                        the cursor set to `drop`.
+rk                      the cursor set to `drop`.
+rx
 
 r<Space>                Populate command line with ":Git rebase ".
 
