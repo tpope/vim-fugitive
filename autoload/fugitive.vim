@@ -639,7 +639,11 @@ function! fugitive#Config(...) abort
       if !has_key(dict, key)
         let dict[key] = []
       endif
-      call add(dict[key], strpart(line, len(key) + 1))
+      if len(key) ==# len(line)
+        call add(dict[key], 1)
+      else
+        call add(dict[key], strpart(line, len(key) + 1))
+      endif
     endfor
     let s:config[dir] = [s:ConfigTimestamps(dir, dict), dict]
     lockvar! dict
