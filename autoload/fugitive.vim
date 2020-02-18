@@ -117,8 +117,12 @@ function! s:Resolve(path) abort
   return path
 endfunction
 
+function! s:FileIgnoreCase() abort
+  return exists('+fileignorecase') && &fileignorecase
+endfunction
+
 function! s:cpath(path, ...) abort
-  if exists('+fileignorecase') && &fileignorecase
+  if s:FileIgnoreCase()
     let path = FugitiveVimPath(tolower(a:path))
   else
     let path = FugitiveVimPath(a:path)
