@@ -564,9 +564,13 @@ function! s:TreeChomp(...) abort
 endfunction
 
 function! s:EchoExec(...) abort
-  echo call('s:ChompError', a:000)[0]
-  call fugitive#ReloadStatus(-1, 1)
-  return 'checktime'
+  if s:RunJobs()
+    return 'Git ' . s:fnameescape(a:000)
+  else
+    echo call('s:ChompError', a:000)[0]
+    call fugitive#ReloadStatus(-1, 1)
+    return 'checktime'
+  endif
 endfunction
 
 let s:head_cache = {}
@@ -5952,18 +5956,18 @@ function! fugitive#MapJumps(...) abort
 
     nnoremap <buffer>      cz<Space> :Git stash<Space>
     nnoremap <buffer>         cz<CR> :Git stash<CR>
-    nnoremap <buffer> <silent> cza   :<C-U>exe <SID>EchoExec(['stash', 'apply', '--quiet', '--index', 'stash@{' . v:count . '}'])<CR>
-    nnoremap <buffer> <silent> czA   :<C-U>exe <SID>EchoExec(['stash', 'apply', '--quiet', 'stash@{' . v:count . '}'])<CR>
-    nnoremap <buffer> <silent> czp   :<C-U>exe <SID>EchoExec(['stash', 'pop', '--quiet', '--index', 'stash@{' . v:count . '}'])<CR>
-    nnoremap <buffer> <silent> czP   :<C-U>exe <SID>EchoExec(['stash', 'pop', '--quiet', 'stash@{' . v:count . '}'])<CR>
+    nnoremap <buffer>          cza   :<C-U>Git stash apply --quiet --index stash@{<C-R>=v:count<CR>}<CR>
+    nnoremap <buffer>          czA   :<C-U>Git stash apply --quiet stash@{<C-R>=v:count<CR>}<CR>
+    nnoremap <buffer>          czp   :<C-U>Git stash pop --quiet --index stash@{<C-R>=v:count<CR>}<CR>
+    nnoremap <buffer>          czP   :<C-U>Git stash pop --quiet stash@{<C-R>=v:count<CR>}<CR>
     nnoremap <buffer> <silent> czv   :<C-U>exe 'Gedit' fugitive#RevParse('stash@{' . v:count . '}')<CR>
-    nnoremap <buffer> <silent> czw   :<C-U>exe <SID>EchoExec(['stash', '--keep-index'] + (v:count > 1 ? ['--all'] : v:count ? ['--include-untracked'] : []))<CR>
-    nnoremap <buffer> <silent> czz   :<C-U>exe <SID>EchoExec(['stash'] + (v:count > 1 ? ['--all'] : v:count ? ['--include-untracked'] : []))<CR>
+    nnoremap <buffer>          czw   :<C-U>Git stash --keep-index<C-R>=v:count > 1 ? ' --all' : v:count ? ' --include-untracked' : ''<CR><CR>
+    nnoremap <buffer>          czz   :<C-U>Git stash <C-R>=v:count > 1 ? ' --all' : v:count ? ' --include-untracked' : ''<CR>
     nnoremap <buffer> <silent> cz?   :<C-U>help fugitive_cz<CR>
 
     nnoremap <buffer>      co<Space> :Git checkout<Space>
     nnoremap <buffer>         co<CR> :Git checkout<CR>
-    nnoremap <buffer>          coo   :exe <SID>EchoExec(['checkout'] + split(<SID>SquashArgument()) + ['--'])<CR>
+    nnoremap <buffer>          coo   :<C-U>Git checkout <C-R>=<SID>SquashArgument()<CR> --<CR>
     nnoremap <buffer>          co?   :<C-U>help fugitive_co<CR>
 
     nnoremap <buffer>      cb<Space> :Git branch<Space>
