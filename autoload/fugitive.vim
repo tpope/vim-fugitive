@@ -2201,7 +2201,7 @@ function! s:TempReadPre(file) abort
   if has_key(s:temp_files, s:cpath(a:file))
     let dict = s:temp_files[s:cpath(a:file)]
     setlocal nomodeline
-    setlocal bufhidden=delete nobuflisted
+    setlocal bufhidden=delete
     setlocal buftype=nowrite
     setlocal nomodifiable
     if len(dict.dir)
@@ -2214,6 +2214,7 @@ endfunction
 function! s:TempReadPost(file) abort
   if has_key(s:temp_files, s:cpath(a:file))
     let dict = s:temp_files[s:cpath(a:file)]
+    setlocal nobuflisted
     if has_key(dict, 'filetype') && dict.filetype !=# &l:filetype
       let &l:filetype = dict.filetype
     endif
