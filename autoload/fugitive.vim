@@ -5846,11 +5846,11 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> cRa   :<C-U>Gcommit --reset-author --amend<CR>
     nnoremap <buffer> <silent> cRe   :<C-U>Gcommit --reset-author --amend --no-edit<CR>
     nnoremap <buffer> <silent> cRw   :<C-U>Gcommit --reset-author --amend --only<CR>
-    nnoremap <buffer>          cf    :<C-U>Gcommit --fixup=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cF    :<C-U><Bar>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Gcommit --fixup=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cs    :<C-U>Gcommit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cS    :<C-U><Bar>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Gcommit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cA    :<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>
+    nnoremap <buffer>          cf    :<C-U>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>
+    nnoremap <buffer>          cF    :<C-U><Bar>Git rebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>
+    nnoremap <buffer>          cs    :<C-U>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
+    nnoremap <buffer>          cS    :<C-U><Bar>Git rebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
+    nnoremap <buffer>          cA    :<C-U>Git commit --edit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer> <silent> c?    :<C-U>help fugitive_c<CR>
 
     nnoremap <buffer>      cr<Space> :Git revert<Space>

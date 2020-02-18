@@ -28,16 +28,16 @@ that are part of Git repositories).
 :Git! {args}            Run an arbitrary git command, capture output to a temp
 :Git --paginate {args}  file, and |:split| that temp file.  Use :0Git to
 :Git -p {args}          |:edit| the temp file instead.  A temp file is always
-                        used for diff and log commands.
+:G ...                  used for diff and log commands.
 
-                                                *:Gstatus*
-:Git                    Bring up a summary window vaguely akin to git-status.
-:G                      Press g? or see |fugitive-maps| for usage.
-:Gstatus
+                                                *fugitive-summary*
+:Git                    With no arguments, bring up a summary window vaguely
+:G                      akin to git-status.  Press g? or see |fugitive-maps|
+                        for usage.
 
-                                                *:Git-blame* *:Gblame*
+                                                *:Git-blame*
 :Git blame [flags]      Run git-blame [flags] on the current file and open the
-:Gblame [flags]         results in a scroll-bound vertical split.  The
+                        results in a scroll-bound vertical split.  The
                         following maps, which work on the cursor line commit
                         where sensible, are provided:
 
@@ -56,9 +56,9 @@ that are part of Git repositories).
                         ~     reblame at [count]th first grandparent
                         P     reblame at [count]th parent (like HEAD^[count])
 
-:[range]Gblame [flags]  If a range is given, just that part of the file will
-:Gblame [flags] {file}  be blamed, and a horizontal split without
-:Git blame ...          scrollbinding is used.  You can also give an arbitrary
+:[range]Git blame [...] If a range is given, just that part of the file will
+:Git blame [...] {file} be blamed, and a horizontal split without
+                        scrollbinding is used.  You can also give an arbitrary
                         filename.
 
                                                 *:Ggrep* *:Gcgrep* *:Git-grep*
@@ -83,36 +83,18 @@ that are part of Git repositories).
                                                 *:Git-mergetool*
 :Git mergetool [args]   Like |:Git-difftool|, but target merge conflicts.
 
-                                                *:Git-push* *:Gpush*
+                                                *:Git-push*
 :Git push [args]        Invoke git-push, load the results into the |quickfix|
-:Gpush [args]           list, and invoke |:cwindow| to reveal any errors.
+                        list, and invoke |:cwindow| to reveal any errors.
                         |:Dispatch| is used if available for asynchronous
                         invocation.
 
-                                                *:Git-fetch* *:Gfetch*
-:Git fetch [args]       Like |:Gpush|, but for git-fetch.
-:Gfetch [args]
+                                                *:Git-fetch*
+:Git fetch [args]       Like |:Git-push|, but for git-fetch.
 
-                                                *:Git-merge* *:Gmerge*
-:Gmerge [args]          Deprecated alias for |:Git| merge. Use |:Git-mergetool|
-                        to get the old behavior of loading merge conflicts
-                        into the quickfix list.
-
-                                                *:Git-pull* *:Gpull*
-:Gpull [args]           Deprecated alias for |:Git| pull.
-
-                                                *:Git-rebase* *:Grebase*
-:Grebase [args]         Deprecated alias for |:Git| rebase.
-
-                                                *:Git-commit* *:Gcommit*
-:Gcommit [args]         Deprecated alias for |:Git| commit.
-
-                                                *:Git-revert* *:Grevert*
-:Grevert [args]         Deprecated alias for |:Git| revert.
-
-                                                 *:Gclog* *:Glog*
+                                                 *:Gclog*
 :Gclog[!] [args]        Use git-log [args] to load the commit history into the
-:Glog[!] [args]         |quickfix| list.  Jumps to the first commit unless [!]
+                        |quickfix| list.  Jumps to the first commit unless [!]
                         is given.
 
 :{range}Gclog[!] [args] Use git-log -L to load previous revisions of the given
@@ -210,28 +192,28 @@ that are part of Git repositories).
                                                 *:Gvdiffsplit*
 :Gvdiffsplit [object]   Like |:Gdiffsplit|, but always split vertically.
 
-                                *:Ghdiffsplit* *:Gsdiff*
+                                                *:Ghdiffsplit*
 :Ghdiffsplit [object]   Like |:Gdiffsplit|, but always split horizontally.
 
-                                                *:Gmove*
-:Gmove {destination}    Wrapper around git-mv that renames the buffer
+                                                *:GMove*
+:GMove {destination}    Wrapper around git-mv that renames the buffer
                         afterward.  Add a ! to pass -f.
 
-                                                *:Grename*
-:Grename {destination}  Like |:Gmove| but operates relative to the parent
+                                                *:GRename*
+:GRename {destination}  Like |:Gmove| but operates relative to the parent
                         directory of the current file.
 
-                                                *:Gdelete*
-:Gdelete                Wrapper around git-rm that deletes the buffer
+                                                *:GDelete*
+:GDelete                Wrapper around git-rm that deletes the buffer
                         afterward.  When invoked in an index file, --cached is
                         passed.  Add a ! to pass -f and forcefully discard the
                         buffer.
 
-                                                *:Gremove*
-:Gremove                Like :Gdelete, but keep the (now empty) buffer around.
+                                                *:GRemove*
+:GRemove                Like :Gdelete, but keep the (now empty) buffer around.
 
-                                                *:Gbrowse*
-:Gbrowse                Open the current file, blob, tree, commit, or tag
+                                                *:GBrowse*
+:GBrowse                Open the current file, blob, tree, commit, or tag
                         in your browser at the upstream hosting provider.
                         If a range is given, it is appropriately appended to
                         the URL as an anchor.
@@ -241,27 +223,27 @@ that are part of Git repositories).
                         supported by installing rhubarb.vim, available at
                         <https://github.com/tpope/vim-rhubarb>.
 
-:Gbrowse {object}       Like :Gbrowse, but for a given |fugitive-object|.
+:GBrowse {object}       Like :Gbrowse, but for a given |fugitive-object|.
 
-:Gbrowse [...]@{remote} Force using the given remote rather than the remote
+:GBrowse [...]@{remote} Force using the given remote rather than the remote
                         for the current branch.  The remote is used to
                         determine which upstream repository to link to.
 
-:{range}Gbrowse [args]  Appends an anchor to the URL that emphasizes the
+:{range}GBrowse [args]  Appends an anchor to the URL that emphasizes the
                         selected lines. This also forces the URL to include a
                         commit rather than a branch name so it remains valid
                         if the file changes.  You can give a range of "0" to
                         force this behavior without including an anchor.
 
-:[range]Gbrowse! [args] Like :Gbrowse, but put the URL on the clipboard rather
+:[range]GBrowse! [args] Like :Gbrowse, but put the URL on the clipboard rather
                         than opening it.
 
 MAPS                                            *fugitive-maps*
 
-These maps are available in both the |:Gstatus| buffer and Fugitive object
-buffers, although not all maps make sense in all buffers.  Mappings that
-operate on the file or hunk under the cursor are generally available in visual
-mode to operate on multiple files or partial hunks.
+These maps are available in both the |fugitive-summary| buffer and Fugitive
+object buffers, although not all maps make sense in all buffers.  Mappings
+that operate on the file or hunk under the cursor are generally available in
+visual mode to operate on multiple files or partial hunks.
 
                                                 *fugitive-staging-maps*
 Staging/unstaging maps ~
@@ -611,7 +593,7 @@ Makefile        The file named Makefile in the work tree
 !:Makefile      The file named Makefile in the commit owning the current file
 !3^2            The second parent of the commit owning buffer #3
 .git/config     The repo config file
-:               Same as |:Gstatus|
+:               The |fugitive-summary| buffer.
 
 STATUSLINE                                      *fugitive-statusline*
 
@@ -627,6 +609,34 @@ Use FugitiveHead() to return the name of the current branch. If the current
 HEAD is detached, FugitiveHead() will return the empty string, unless the
 optional argument is given, in which case the hash of the current commit will
 be truncated to the given number of characters.
+
+DEPRECATIONS                                    *fugitive-deprecated*
+
+The following commands are softly deprecated in favor of replacements that
+adhere to a new naming scheme.  They will eventually be removed, but probably
+not in the near future.
+
+Remember that |:Git| can be shortened to |:G|, so replacements using it are
+just one space character longer than the legacy version.
+
+*:Gremove*      Superseded by |:GRemove|.
+*:Gdelete*      Superseded by |:GDelete|.
+*:Gmove*        Superseded by |:GMove|.
+*:Grename*      Superseded by |:GRename|.
+*:Gbrowse*      Superseded by |:GBrowse|.
+*:Gcommit*      Superseded by |:Git| commit.
+*:Gdiff*        Superseded by |:Gdiffsplit|
+*:Gsdiff*       Superseded by |:Ghdiffsplit|
+*:Gvdiff*       Superseded by |:Gvdiffsplit| or |:vert| |:Gdiffsplit|.
+*:Gblame*       Superseded by |:Git-blame|.
+*:Gmerge*       Superseded by |:Git| merge and |:Git-mergetool|.
+*:Gpull*        Superseded by |:Git| pull.
+*:Grebase*      Superseded by |:Git| rebase.
+*:Grevert*      Superseded by |:Git| revert.
+*:Gpush*        Superseded by |:Git-push|.
+*:Gfetch*       Superseded by |:Git-fetch|.
+*:Glog*         Superseded by |:Gclog|.
+*:Gstatus*      Superseded by |:Git| (with no arguments).
 
 ABOUT                                           *fugitive-about*
 
