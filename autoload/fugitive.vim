@@ -2570,7 +2570,7 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
     elseif a:bang
       return mods . 'pedit' . arg . '|wincmd P'
     else
-      return mods . (a:count > 0 ? a:count : '') . 'keepalt split' . arg
+      return mods . 'keepalt ' . (a:count > 0 ? a:count : '') . 'split' . arg
     endif
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
