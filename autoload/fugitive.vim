@@ -117,12 +117,13 @@ function! s:Resolve(path) abort
   return path
 endfunction
 
-function! s:FileIgnoreCase() abort
-  return exists('+fileignorecase') && &fileignorecase
+function! s:FileIgnoreCase(for_completion) abort
+  return (exists('+fileignorecase') && &fileignorecase)
+        \ || (a:for_completion && exists('+wildignorecase') && &wildignorecase)
 endfunction
 
 function! s:cpath(path, ...) abort
-  if s:FileIgnoreCase()
+  if s:FileIgnoreCase(0)
     let path = FugitiveVimPath(tolower(a:path))
   else
     let path = FugitiveVimPath(a:path)
@@ -1477,7 +1478,8 @@ function! s:FilterEscape(items, ...) abort
   let items = copy(a:items)
   call map(items, 's:fnameescape(v:val)')
   if a:0 && type(a:1) == type('')
-    call filter(items, 'strpart(v:val, 0, strlen(a:1)) ==# a:1')
+    let cmp = s:FileIgnoreCase(1) ? '==?' : '==#'
+    call filter(items, 'strpart(v:val, 0, strlen(a:1)) ' . cmp . ' a:1')
   endif
   return items
 endfunction
