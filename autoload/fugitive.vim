@@ -2356,6 +2356,37 @@ augroup fugitive_job
         \ endfor
 augroup END
 
+function! fugitive#PagerFor(argv, ...) abort
+  let args = a:argv
+  if empty(args)
+    return 0
+  elseif (args[0] ==# 'help' || get(args, 1, '') ==# '--help') && !s:HasOpt(args, '--web')
+    return 1
+  endif
+  if args[0] ==# 'config' && (s:HasOpt(args, '-e', '--edit') ||
+        \   !s:HasOpt(args, '--list', '--get-all', '--get-regexp', '--get-urlmatch')) ||
+        \ args[0] =~# '^\%(tag\|branch\)$' && (s:HasOpt(args, '--edit-description', '--unset-upstream') ||
+        \   len(filter(args[1:-1], 'v:val =~# "^[^-]\|^--set-upstream-to="')) &&
+        \   !s:HasOpt(args, '--contains', '--no-contains', '--merged', '--no-merged', '--points-at'))
+    return 0
+  endif
+  let config = a:0 ? a:1 : fugitive#Config()
+  let value = get(FugitiveConfigGetAll('pager.' . args[0], config), 0, -1)
+  if value =~# '^\%(true\|yes\|on\|1\)$'
+    return 1
+  elseif value =~# '^\%(false\|no|off\|0\|\)$'
+    return 0
+  elseif type(value) == type('')
+    return value
+  elseif args[0] =~# 'diff\%(tool\)\@!\|log\|^show$\|^config$\|^branch$\|^tag$' ||
+        \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show') ||
+        \ (args[0] ==# 'am' && s:HasOpt(args, '--show-current-patch'))
+    return 1
+  else
+    return 0
+  endif
+endfunction
+
 let s:disable_colors = []
 for s:colortype in ['advice', 'branch', 'diff', 'grep', 'interactive', 'pager', 'push', 'remote', 'showBranch', 'status', 'transport', 'ui']
   call extend(s:disable_colors, ['-c', 'color.' . s:colortype . '=false'])
@@ -2363,6 +2394,7 @@ endfor
 unlet s:colortype
 function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   let dir = s:Dir()
+  let config = copy(fugitive#Config(dir))
   let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
   let flags = []
   while len(args) > 1
@@ -2403,23 +2435,33 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   while i < len(flags) - 1
     if flags[i] ==# '-c'
       let i += 1
-      let config_name = matchstr(flags[i], '^[^=]\+\ze=')
-      if has_key(s:prepare_env, config_name)
+      let config_name = tolower(matchstr(flags[i], '^[^=]\+'))
+      if has_key(s:prepare_env, config_name) && flags[i] =~# '=.'
         let env[s:prepare_env[config_name]] = matchstr(flags[i], '=\zs.*')
+      endif
+      if !has_key(config, config_name)
+        let config[config_name] = []
+      endif
+      if flags[i] =~# '='
+        let config[config_name] = [matchstr(flags[i], '=\zs.*')] + config[config_name]
+      else
+        let config[config_name] = [1] + config[config_name]
       endif
     endif
     let i += 1
   endwhile
-  if a:bang || args[0] =~# '^-p$\|^--paginate$\|diff\%(tool\)\@!\|log\|^show$' ||
-        \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show') ||
-        \ (args[0] ==# 'help' || get(args, 1, '') ==# '--help') && !s:HasOpt(args, '--web')
-    if args[0] =~# '^-p$\|^--paginate$'
-      call remove(args, 0)
-    endif
+  if args[0] =~# '^-p$\|^--paginate$'
+    call remove(args, 0)
+    let pager = 1
+  else
+    let pager = fugitive#PagerFor(args, config)
+  endif
+  if a:bang || pager is# 1
     return s:OpenExec((a:line2 > 0 ? a:line2 : '') . (a:line2 ? 'split' : 'edit'), a:mods, env, flags + args, dir) . after
   endif
   if s:HasOpt(args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
-        \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive')
+        \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
+        \ type(pager) == type('')
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
     let assign = len(dir) ? '|let b:git_dir = ' . string(dir) : ''
     if has('nvim')

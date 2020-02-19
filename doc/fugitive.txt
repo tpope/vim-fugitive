@@ -25,10 +25,12 @@ that are part of Git repositories).
                         resume running the command.  A few Git subcommands
                         have different behavior; these are documented below.
 
-:Git! {args}            Run an arbitrary git command, capture output to a temp
-:Git --paginate {args}  file, and |:split| that temp file.  Use :0Git to
-:Git -p {args}          |:edit| the temp file instead.  A temp file is always
-:G ...                  used for diff and log commands.
+:Git --paginate {args}  Run an arbitrary git command, capture output to a temp
+:Git -p {args}          file, and |:split| that temp file.  Use :0Git to
+:G --paginate {args}    |:edit| the temp file instead.  A temp file is always
+:G -p {args}            used for commands like diff and log that typically
+                        user a pager, and for any command that has the
+                        pager.<cmd> Git configuration option set.
 
                                                 *fugitive-summary*
 :Git                    With no arguments, bring up a summary window vaguely
@@ -630,6 +632,7 @@ just one space character longer than the legacy version.
 *:Gfetch*       Superseded by |:Git-fetch|.
 *:Glog*         Superseded by |:Gclog|.
 *:Gstatus*      Superseded by |:Git| (with no arguments).
+*:Git!*         Superseded by |:Git| --paginate.
 *:Gsplit!*      Superseded by |:Git| --paginate.
 *:Gvsplit!*     Superseded by |:vert| |:Git| --paginate.
 *:Gtabsplit!*   Superseded by |:tab| |:Git| --paginate.
