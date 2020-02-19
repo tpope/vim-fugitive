@@ -3354,16 +3354,16 @@ function! s:StageDiff(diff) abort
   let prefix = info.offset > 0 ? '+' . info.offset : ''
   if info.sub =~# '^S'
     if info.section ==# 'Staged'
-      return 'Git! diff --no-ext-diff --submodule=log --cached -- ' . info.paths[0]
+      return 'Git --paginate diff --no-ext-diff --submodule=log --cached -- ' . info.paths[0]
     elseif info.sub =~# '^SC'
-      return 'Git! diff --no-ext-diff --submodule=log -- ' . info.paths[0]
+      return 'Git --paginate diff --no-ext-diff --submodule=log -- ' . info.paths[0]
     else
-      return 'Git! diff --no-ext-diff --submodule=diff -- ' . info.paths[0]
+      return 'Git --paginate diff --no-ext-diff --submodule=diff -- ' . info.paths[0]
     endif
   elseif empty(info.paths) && info.section ==# 'Staged'
-    return 'Git! diff --no-ext-diff --cached'
+    return 'Git --paginate diff --no-ext-diff --cached'
   elseif empty(info.paths)
-    return 'Git! diff --no-ext-diff'
+    return 'Git --paginate diff --no-ext-diff'
   elseif len(info.paths) > 1
     execute 'Gedit' . prefix s:fnameescape(':0:' . info.paths[0])
     return a:diff . '! HEAD:'.s:fnameescape(info.paths[1])
@@ -3386,12 +3386,12 @@ function! s:StageDiffEdit() abort
   let info = s:StageInfo(line('.'))
   let arg = (empty(info.paths) ? s:Tree() : info.paths[0])
   if info.section ==# 'Staged'
-    return 'Git! diff --no-ext-diff --cached '.s:fnameescape(arg)
+    return 'Git --paginate diff --no-ext-diff --cached '.s:fnameescape(arg)
   elseif info.status ==# '?'
     call s:TreeChomp('add', '--intent-to-add', '--', arg)
     return s:ReloadStatus()
   else
-    return 'Git! diff --no-ext-diff '.s:fnameescape(arg)
+    return 'Git --paginate diff --no-ext-diff '.s:fnameescape(arg)
   endif
 endfunction
 
