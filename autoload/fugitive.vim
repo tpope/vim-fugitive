@@ -2531,13 +2531,11 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let state.job = job
     call s:RunWait(state, job)
     return 'silent checktime' . after
+  elseif has('win32')
+    return 'echoerr ' . string('fugitive: Vim 8 with job support required to use :Git on Windows')
+  elseif has('gui_running')
+    return 'echoerr ' . string('fugitive: Vim 8 with job support required to use :Git in GVim')
   else
-    if has('gui_running') && !has('win32')
-      call insert(args, '--no-pager')
-    endif
-    if has('nvim')
-      let env.GIT_TERMINAL_PROMPT = '0'
-    endif
     let pre = s:BuildEnvPrefix(env)
     return 'exe ' . string('noautocmd !' . escape(pre . s:UserCommand(options, args), '!#%')) .
           \ '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' .
