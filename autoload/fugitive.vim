@@ -2445,13 +2445,10 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       if has_key(s:prepare_env, config_name) && flags[i] =~# '=.'
         let env[s:prepare_env[config_name]] = matchstr(flags[i], '=\zs.*')
       endif
-      if !has_key(config, config_name)
-        let config[config_name] = []
-      endif
       if flags[i] =~# '='
-        let config[config_name] = [matchstr(flags[i], '=\zs.*')] + config[config_name]
+        let config[config_name] = [matchstr(flags[i], '=\zs.*')]
       else
-        let config[config_name] = [1] + config[config_name]
+        let config[config_name] = [1]
       endif
     endif
     let i += 1
