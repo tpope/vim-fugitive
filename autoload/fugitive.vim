@@ -2460,8 +2460,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   if args[0] =~# '^-p$\|^--paginate$'
     call remove(args, 0)
     let pager = 1
-    if a:bang && a:line2 == 0
-      let editcmd .= '!'
+    if a:bang && a:line2 >= 0
+      let editcmd = 'read'
     elseif a:bang
       let editcmd = 'pedit'
     endif
@@ -2469,7 +2469,11 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let pager = fugitive#PagerFor(args, config)
   endif
   if a:bang || pager is# 1
-    return s:OpenExec(editcmd, a:mods, env, args, options) . after
+    if editcmd ==# 'read'
+      return s:ReadExec(a:line1, a:line2, a:range, a:mods, env, args, options) . after
+    else
+      return s:OpenExec(editcmd, a:mods, env, args, options) . after
+    endif
   endif
   if s:HasOpt(args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
         \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
