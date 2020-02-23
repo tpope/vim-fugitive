@@ -4453,7 +4453,7 @@ function! fugitive#Open(cmd, bang, mods, arg, args) abort
   return mods . a:cmd . pre . ' ' . s:fnameescape(file)
 endfunction
 
-function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
+function! s:ReadPrepare(line1, count, range, mods) abort
   let mods = s:Mods(a:mods)
   let after = a:count
   if a:count < 0
@@ -4464,26 +4464,39 @@ function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
   else
     let delete = ''
   endif
+  if foldlevel(after)
+    let pre = after . 'foldopen!|'
+  else
+    let pre = ''
+  endif
+  return [pre . mods . after . 'read', delete . '|diffupdate' . (a:count < 0 ? '|' . line('.') : '')]
+endfunction
+
+function! s:ReadExec(line1, count, range, mods, env, args, options) abort
+  let [read, post] = s:ReadPrepare(a:line1, a:count, a:range, a:mods)
+  let env = s:BuildEnvPrefix(extend({'COLUMNS': &tw ? &tw : 80}, a:env))
+  silent execute read . '!' escape(env . s:UserCommand(a:options, ['--no-pager'] + a:args), '!#%')
+  execute post
+  call fugitive#ReloadStatus(a:options.dir, 1)
+  return 'redraw|echo '.string(':!'.s:UserCommand(a:options, a:args))
+endfunction
+
+function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
   if a:bang
     let dir = s:Dir()
     let args = s:SplitExpand(a:arg, s:Tree(dir))
-    silent execute mods . after . 'read!' escape(s:UserCommand(dir, ['--no-pager'] + args), '!#%')
-    execute delete . 'diffupdate'
-    call fugitive#ReloadStatus(dir, 1)
-    return 'redraw|echo '.string(':!'.s:UserCommand(dir, args))
+    return s:ReadExec(a:line1, a:count, a:range, a:mods, {}, args, {'dir': dir})
   endif
+  let [read, post] = s:ReadPrepare(a:line1, a:count, a:range, a:mods)
   try
     let [file, pre] = s:OpenParse(a:args, 0)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
-  if file =~# '^fugitive:' && after is# 0
-    return 'exe ' .string(mods . fugitive#FileReadCmd(file, 0, pre)) . '|diffupdate'
+  if file =~# '^fugitive:' && a:count is# 0
+    return 'exe ' .string(s:Mods(a:mods) . fugitive#FileReadCmd(file, 0, pre)) . '|diffupdate'
   endif
-  if foldlevel(after)
-    exe after . 'foldopen!'
-  endif
-  return mods . after . 'read' . pre . ' ' . s:fnameescape(file) . '|' . delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')
+  return read . ' ' . pre . ' ' . s:fnameescape(file) . '|' . post
 endfunction
 
 function! fugitive#EditComplete(A, L, P) abort
