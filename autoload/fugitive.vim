@@ -3529,6 +3529,19 @@ function! s:DoToggleHeadHeader(value) abort
   call search('\C^index$', 'wc')
 endfunction
 
+function! s:DoStagePushHeader(value) abort
+  let remote = matchstr(a:value, '\zs[^/]\+\ze/')
+  if empty(remote)
+    let remote = '.'
+  endif
+  let branch = matchstr(a:value, '\%([^/]\+/\)\=\zs\S\+')
+  call feedkeys(':Git push ' . remote . ' ' . branch)
+endfunction
+
+function! s:DoTogglePushHeader(value) abort
+  return s:DoStagePushHeader(a:value)
+endfunction
+
 function! s:DoStageUnpushedHeading(heading) abort
   let remote = matchstr(a:heading, 'to \zs[^/]\+\ze/')
   if empty(remote)
