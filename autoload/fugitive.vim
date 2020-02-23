@@ -2464,8 +2464,11 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     endif
   else
     let pager = fugitive#PagerFor(args, config)
+    if a:bang && pager isnot# 1
+      return 'echoerr ' .  string('fugitive: :Git! for temp buffer output has been replaced by :Git --paginate')
+    endif
   endif
-  if a:bang || pager is# 1
+  if pager is# 1
     if editcmd ==# 'read'
       return s:ReadExec(a:line1, a:line2, a:range, a:mods, env, args, options) . after
     else
