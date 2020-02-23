@@ -636,7 +636,6 @@ just one space character longer than the legacy version.
 *:Gsplit!*      Superseded by |:Git| --paginate.
 *:Gvsplit!*     Superseded by |:vert| |:Git| --paginate.
 *:Gtabsplit!*   Superseded by |:tab| |:Git| --paginate.
-*:Gedit!*       Superseded by :0Git --paginate.
 *:Gpedit!*      Superseded by :Git! --paginate.
 
 ABOUT                                           *fugitive-about*
