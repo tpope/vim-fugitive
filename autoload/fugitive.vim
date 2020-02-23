@@ -2469,7 +2469,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let pager = fugitive#PagerFor(args, config)
   endif
   if a:bang || pager is# 1
-    return s:OpenExec(editcmd, a:mods, env, flags + args, dir) . after
+    return s:OpenExec(editcmd, a:mods, env, args, options) . after
   endif
   if s:HasOpt(args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
         \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive') ||
@@ -4410,11 +4410,11 @@ function! s:BlurStatus() abort
 endfunction
 
 function! s:OpenExec(cmd, mods, env, args, ...) abort
-  let dir = a:0 ? s:Dir(a:1) : s:Dir()
+  let options = a:0 ? a:1 : {'dir': s:Dir()}
   let temp = tempname()
   let columns = get(g:, 'fugitive_columns', 80)
   let env = s:BuildEnvPrefix(extend({'COLUMNS': columns}, a:env))
-  silent! execute '!' . escape(env . s:UserCommand(dir, ['--no-pager'] + a:args), '!#%') .
+  silent! execute '!' . escape(env . s:UserCommand(options, ['--no-pager'] + a:args), '!#%') .
         \ (&shell =~# 'csh' ? ' >& ' . temp : ' > ' . temp . ' 2>&1')
   redraw!
   let temp = s:Resolve(temp)
@@ -4424,13 +4424,13 @@ function! s:OpenExec(cmd, mods, env, args, ...) abort
   else
     let filetype = 'git'
   endif
-  let s:temp_files[s:cpath(temp)] = { 'dir': dir, 'filetype': filetype }
+  let s:temp_files[s:cpath(temp)] = { 'dir': options.dir, 'filetype': filetype }
   if a:cmd ==# 'edit'
     call s:BlurStatus()
   endif
   silent execute s:Mods(a:mods) . a:cmd temp
-  call fugitive#ReloadStatus(dir, 1)
-  return 'echo ' . string(':!' . s:UserCommand(dir, a:args))
+  call fugitive#ReloadStatus(options.dir, 1)
+  return 'echo ' . string(':!' . s:UserCommand(options, a:args))
 endfunction
 
 function! fugitive#Open(cmd, bang, mods, arg, args) abort
