@@ -2581,6 +2581,10 @@ function! fugitive#Complete(lead, ...) abort
   let subcmd = matchstr(pre, '\u\w*[! ] *\zs[[:alnum:]-]\+\ze ')
   if empty(subcmd)
     let results = sort(s:Subcommands() + keys(s:Aliases(dir)))
+  elseif a:0 ==# 2 && subcmd =~# '^\%(commit\|revert\|push\|fetch\|pull\|merge\|rebase\)$'
+    let cmdline = substitute(a:1, '\u\w*\([! ] *\)' . subcmd, 'G' . subcmd, '')
+    let caps_subcmd = substitute(subcmd, '\%(^\|-\)\l', '\u&', 'g')
+    return fugitive#{caps_subcmd}Complete(a:lead, cmdline, a:2 + len(cmdline) - len(a:1))
   elseif pre =~# ' -- '
     return fugitive#CompletePath(a:lead, dir)
   elseif a:lead =~# '^-'
