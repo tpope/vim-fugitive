@@ -5443,30 +5443,28 @@ function! s:BlameJump(suffix, ...) abort
     execute 'Gedit' s:fnameescape(commit . suffix . ':' . path)
     execute lnum
   endif
-  if exists(':Gblame')
-    let my_bufnr = bufnr('')
-    if blame_bufnr < 0
-      let blame_args = flags + [commit . suffix, '--', path]
-      let result = s:BlameSubcommand(0, 0, 0, 0, '', extend({'args': blame_args}, state.options, 'keep'))
-    else
-      let blame_args = flags
-      let result = s:BlameSubcommand(-1, -1, 0, 0, '', extend({'args': blame_args}, state.options, 'keep'))
-    endif
-    if bufnr('') == my_bufnr
-      return result
-    endif
-    execute result
-    execute lnum
-    let delta = line('.') - line('w0') - offset
-    if delta > 0
-      execute 'normal! '.delta."\<C-E>"
-    elseif delta < 0
-      execute 'normal! '.(-delta)."\<C-Y>"
-    endif
-    keepjumps syncbind
-    redraw
-    echo ':Gblame' s:fnameescape(blame_args)
+  let my_bufnr = bufnr('')
+  if blame_bufnr < 0
+    let blame_args = flags + [commit . suffix, '--', path]
+    let result = s:BlameSubcommand(0, 0, 0, 0, '', extend({'args': blame_args}, state.options, 'keep'))
+  else
+    let blame_args = flags
+    let result = s:BlameSubcommand(-1, -1, 0, 0, '', extend({'args': blame_args}, state.options, 'keep'))
   endif
+  if bufnr('') == my_bufnr
+    return result
+  endif
+  execute result
+  execute lnum
+  let delta = line('.') - line('w0') - offset
+  if delta > 0
+    execute 'normal! '.delta."\<C-E>"
+  elseif delta < 0
+    execute 'normal! '.(-delta)."\<C-Y>"
+  endif
+  keepjumps syncbind
+  redraw
+  echo ':Git blame' s:fnameescape(blame_args)
   return ''
 endfunction
 
