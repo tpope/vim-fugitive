@@ -72,7 +72,7 @@ that are part of Git repositories).
                         change unless [!] is given.
 
 :Git difftool -y [args] Invoke `git diff [args]`, open each changed file in a
-                        new tab, and invoke `:Gdiffsplit!` against the
+                        new tab, and invoke |:Gdiffsplit!| against the
                         appropriate commit.
 
                                                 *:Git_mergetool*
@@ -196,7 +196,7 @@ that are part of Git repositories).
                         afterward.  Add a ! to pass -f.
 
                                                 *:GRename*
-:GRename {destination}  Like |:Gmove| but operates relative to the parent
+:GRename {destination}  Like |:GMove| but operates relative to the parent
                         directory of the current file.
 
                                                 *:GDelete*
@@ -206,7 +206,7 @@ that are part of Git repositories).
                         buffer.
 
                                                 *:GRemove*
-:GRemove                Like :Gdelete, but keep the (now empty) buffer around.
+:GRemove                Like |:GDelete|, but keep the (now empty) buffer around.
 
                                                 *:GBrowse*
 :GBrowse                Open the current file, blob, tree, commit, or tag
@@ -219,7 +219,7 @@ that are part of Git repositories).
                         supported by installing rhubarb.vim, available at
                         <https://github.com/tpope/vim-rhubarb>.
 
-:GBrowse {object}       Like :Gbrowse, but for a given |fugitive-object|.
+:GBrowse {object}       Like :GBrowse, but for a given |fugitive-object|.
 
 :GBrowse [...]@{remote} Force using the given remote rather than the remote
                         for the current branch.  The remote is used to
@@ -231,7 +231,7 @@ that are part of Git repositories).
                         if the file changes.  You can give a range of "0" to
                         force this behavior without including an anchor.
 
-:[range]GBrowse! [args] Like :Gbrowse, but put the URL on the clipboard rather
+:[range]GBrowse! [args] Like :GBrowse, but put the URL on the clipboard rather
                         than opening it.
 
 MAPS                                            *fugitive-maps*
