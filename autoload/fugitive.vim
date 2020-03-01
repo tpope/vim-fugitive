@@ -1948,7 +1948,7 @@ function! fugitive#BufReadStatus() abort
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
-    let b:dispatch = ':Gfetch --all'
+    let b:dispatch = ':Git fetch --all'
     call fugitive#MapJumps()
     call s:Map('n', '-', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
     call s:Map('x', '-', ":<C-U>execute <SID>Do('Toggle',1)<CR>", '<silent>')
@@ -3722,7 +3722,7 @@ function! s:StagePatch(lnum1,lnum2) abort
   return s:ReloadStatus()
 endfunction
 
-" Section: :Gcommit, :Grevert
+" Section: :Git commit, :Git revert
 
 function! s:CommitInteractive(line1, line2, range, bang, mods, options, patch) abort
   let status = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [], a:options.dir)
@@ -3779,7 +3779,7 @@ function! fugitive#RevertComplete(A, L, P) abort
   return s:CompleteSub('revert', a:A, a:L, a:P, function('s:CompleteRevision'))
 endfunction
 
-" Section: :Gmerge, :Grebase, :Gpull
+" Section: :Git merge, :Git rebase, :Git pull
 
 function! fugitive#MergeComplete(A, L, P) abort
   return s:CompleteSub('merge', a:A, a:L, a:P, function('s:CompleteRevision'))
@@ -4539,7 +4539,7 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abor
   elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
     return 'wq'
   elseif get(b:, 'fugitive_type', '') ==# 'index'
-    return 'Gcommit'
+    return 'Git commit'
   elseif &buftype ==# 'nowrite' && getline(4) =~# '^[+-]\{3\} '
     return 'echoerr ' . string('fugitive: :Gwrite from :Git diff has been removed in favor of :Git add --edit')
   endif
@@ -4677,7 +4677,7 @@ function! fugitive#WqCommand(...) abort
   endif
 endfunction
 
-" Section: :Gpush, :Gfetch
+" Section: :Git push, :Git fetch
 
 function! fugitive#PushComplete(A, L, P) abort
   return s:CompleteSub('push', a:A, a:L, a:P, function('s:CompleteRemote'))
@@ -5072,7 +5072,7 @@ function! fugitive#DeleteCommand(line1, line2, range, bang, mods, arg, args) abo
   return s:Remove('bdelete', a:bang)
 endfunction
 
-" Section: :Gblame
+" Section: :Git blame
 
 function! s:Keywordprg() abort
   let args = ' --git-dir='.escape(s:Dir(),"\\\"' ")
@@ -5556,7 +5556,7 @@ function! s:BlameFileType() abort
   call s:Map('n', '<F1>', ':help :Git_blame<CR>', '<silent>')
   call s:Map('n', 'g?',   ':help :Git_blame<CR>', '<silent>')
   if mapcheck('q', 'n') =~# '^$\|bdelete'
-    call s:Map('n', 'q',  ':exe <SID>BlameQuit()<Bar>echohl WarningMsg<Bar>echo ":Gblame q is deprecated in favor of gq"<Bar>echohl NONE<CR>', '<silent>')
+    call s:Map('n', 'q',  ':exe <SID>BlameQuit()<Bar>echohl WarningMsg<Bar>echo ":Git blame q is deprecated in favor of gq"<Bar>echohl NONE<CR>', '<silent>')
   endif
   call s:Map('n', 'gq',   ':exe <SID>BlameQuit()<CR>', '<silent>')
   call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
@@ -5871,7 +5871,7 @@ endfunction
 function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
-      let blame_map = 'Gblame<C-R>=v:count ? " --reverse" : ""<CR><CR>'
+      let blame_map = 'Git blame<C-R>=v:count ? " --reverse" : ""<CR><CR>'
       call s:Map('n', '<2-LeftMouse>', ':<C-U>0,1' . blame_map, '<silent>')
       call s:Map('n', '<CR>', ':<C-U>0,1' . blame_map, '<silent>')
       call s:Map('n', 'o',    ':<C-U>0,2' . blame_map, '<silent>')
@@ -5935,15 +5935,15 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer>          c<CR> :Git commit<CR>
     nnoremap <buffer>      cv<Space> :tab Git commit -v<Space>
     nnoremap <buffer>         cv<CR> :tab Git commit -v<CR>
-    nnoremap <buffer> <silent> ca    :<C-U>Gcommit --amend<CR>
-    nnoremap <buffer> <silent> cc    :<C-U>Gcommit<CR>
-    nnoremap <buffer> <silent> ce    :<C-U>Gcommit --amend --no-edit<CR>
-    nnoremap <buffer> <silent> cw    :<C-U>Gcommit --amend --only<CR>
-    nnoremap <buffer> <silent> cva   :<C-U>tab Gcommit -v --amend<CR>
-    nnoremap <buffer> <silent> cvc   :<C-U>tab Gcommit -v<CR>
-    nnoremap <buffer> <silent> cRa   :<C-U>Gcommit --reset-author --amend<CR>
-    nnoremap <buffer> <silent> cRe   :<C-U>Gcommit --reset-author --amend --no-edit<CR>
-    nnoremap <buffer> <silent> cRw   :<C-U>Gcommit --reset-author --amend --only<CR>
+    nnoremap <buffer> <silent> ca    :<C-U>Git commit --amend<CR>
+    nnoremap <buffer> <silent> cc    :<C-U>Git commit<CR>
+    nnoremap <buffer> <silent> ce    :<C-U>Git commit --amend --no-edit<CR>
+    nnoremap <buffer> <silent> cw    :<C-U>Git commit --amend --only<CR>
+    nnoremap <buffer> <silent> cva   :<C-U>tab Git commit -v --amend<CR>
+    nnoremap <buffer> <silent> cvc   :<C-U>tab Git commit -v<CR>
+    nnoremap <buffer> <silent> cRa   :<C-U>Git commit --reset-author --amend<CR>
+    nnoremap <buffer> <silent> cRe   :<C-U>Git commit --reset-author --amend --no-edit<CR>
+    nnoremap <buffer> <silent> cRw   :<C-U>Git commit --reset-author --amend --only<CR>
     nnoremap <buffer>          cf    :<C-U>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cF    :<C-U><Bar>Git rebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cs    :<C-U>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
@@ -5953,8 +5953,8 @@ function! fugitive#MapJumps(...) abort
 
     nnoremap <buffer>      cr<Space> :Git revert<Space>
     nnoremap <buffer>         cr<CR> :Git revert<CR>
-    nnoremap <buffer> <silent> crc   :<C-U>Grevert <C-R>=<SID>SquashArgument()<CR><CR>
-    nnoremap <buffer> <silent> crn   :<C-U>Grevert --no-commit <C-R>=<SID>SquashArgument()<CR><CR>
+    nnoremap <buffer> <silent> crc   :<C-U>Git revert <C-R>=<SID>SquashArgument()<CR><CR>
+    nnoremap <buffer> <silent> crn   :<C-U>Git revert --no-commit <C-R>=<SID>SquashArgument()<CR><CR>
     nnoremap <buffer> <silent> cr?   :help fugitive_cr<CR>
 
     nnoremap <buffer>      cm<Space> :Git merge<Space>
@@ -5984,19 +5984,19 @@ function! fugitive#MapJumps(...) abort
 
     nnoremap <buffer>       r<Space> :Git rebase<Space>
     nnoremap <buffer>          r<CR> :Git rebase<CR>
-    nnoremap <buffer> <silent> ri    :<C-U>Grebase --interactive<C-R>=<SID>RebaseArgument()<CR><CR>
-    nnoremap <buffer> <silent> rf    :<C-U>Grebase --autosquash<C-R>=<SID>RebaseArgument()<CR><CR>
-    nnoremap <buffer> <silent> ru    :<C-U>Grebase --interactive @{upstream}<CR>
-    nnoremap <buffer> <silent> rp    :<C-U>Grebase --interactive @{push}<CR>
-    nnoremap <buffer> <silent> rw    :<C-U>Grebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/reword/e<CR>
-    nnoremap <buffer> <silent> rm    :<C-U>Grebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/edit/e<CR>
-    nnoremap <buffer> <silent> rd    :<C-U>Grebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>
-    nnoremap <buffer> <silent> rk    :<C-U>Grebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>
-    nnoremap <buffer> <silent> rx    :<C-U>Grebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>
-    nnoremap <buffer> <silent> rr    :<C-U>Grebase --continue<CR>
-    nnoremap <buffer> <silent> rs    :<C-U>Grebase --skip<CR>
-    nnoremap <buffer> <silent> re    :<C-U>Grebase --edit-todo<CR>
-    nnoremap <buffer> <silent> ra    :<C-U>Grebase --abort<CR>
+    nnoremap <buffer> <silent> ri    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><CR>
+    nnoremap <buffer> <silent> rf    :<C-U>Git rebase --autosquash<C-R>=<SID>RebaseArgument()<CR><CR>
+    nnoremap <buffer> <silent> ru    :<C-U>Git rebase --interactive @{upstream}<CR>
+    nnoremap <buffer> <silent> rp    :<C-U>Git rebase --interactive @{push}<CR>
+    nnoremap <buffer> <silent> rw    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/reword/e<CR>
+    nnoremap <buffer> <silent> rm    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/edit/e<CR>
+    nnoremap <buffer> <silent> rd    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>
+    nnoremap <buffer> <silent> rk    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>
+    nnoremap <buffer> <silent> rx    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>
+    nnoremap <buffer> <silent> rr    :<C-U>Git rebase --continue<CR>
+    nnoremap <buffer> <silent> rs    :<C-U>Git rebase --skip<CR>
+    nnoremap <buffer> <silent> re    :<C-U>Git rebase --edit-todo<CR>
+    nnoremap <buffer> <silent> ra    :<C-U>Git rebase --abort<CR>
     nnoremap <buffer> <silent> r?    :<C-U>help fugitive_r<CR>
 
     call s:Map('n', '.',     ":<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>")
