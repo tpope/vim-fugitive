@@ -3607,7 +3607,7 @@ function! s:DoToggleUnpulled(record) abort
 endfunction
 
 function! s:DoUnstageUnpushed(record) abort
-  call feedkeys(':Git rebase --autosquash ' . a:record.commit . '^')
+  call feedkeys(':Git -c sequence.editor=true rebase --interactive --autosquash ' . a:record.commit . '^')
 endfunction
 
 function! s:DoToggleStagedHeading(...) abort
@@ -5945,9 +5945,9 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer> <silent> cRe   :<C-U>Git commit --reset-author --amend --no-edit<CR>
     nnoremap <buffer> <silent> cRw   :<C-U>Git commit --reset-author --amend --only<CR>
     nnoremap <buffer>          cf    :<C-U>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cF    :<C-U><Bar>Git rebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>
+    nnoremap <buffer>          cF    :<C-U><Bar>Git -c sequence.editor=true rebase --interactive --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cs    :<C-U>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cS    :<C-U><Bar>Git rebase --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
+    nnoremap <buffer>          cS    :<C-U><Bar>Git -c sequence.editor=true rebase --interactive --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer>          cA    :<C-U>Git commit --edit --squash=<C-R>=<SID>SquashArgument()<CR>
     nnoremap <buffer> <silent> c?    :<C-U>help fugitive_c<CR>
 
@@ -5985,7 +5985,7 @@ function! fugitive#MapJumps(...) abort
     nnoremap <buffer>       r<Space> :Git rebase<Space>
     nnoremap <buffer>          r<CR> :Git rebase<CR>
     nnoremap <buffer> <silent> ri    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><CR>
-    nnoremap <buffer> <silent> rf    :<C-U>Git rebase --autosquash<C-R>=<SID>RebaseArgument()<CR><CR>
+    nnoremap <buffer> <silent> rf    :<C-U>Git -c sequence.editor=true rebase --interactive --autosquash<C-R>=<SID>RebaseArgument()<CR><CR>
     nnoremap <buffer> <silent> ru    :<C-U>Git rebase --interactive @{upstream}<CR>
     nnoremap <buffer> <silent> rp    :<C-U>Git rebase --interactive @{push}<CR>
     nnoremap <buffer> <silent> rw    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/reword/e<CR>
