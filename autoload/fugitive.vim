@@ -1626,7 +1626,13 @@ function! s:ReplaceCmd(cmd) abort
     call s:throw((len(err) ? err : filereadable(temp) ? join(readfile(temp), ' ') : 'unknown error running ' . a:cmd))
   endif
   silent exe 'lockmarks keepalt 0read ++edit' s:fnameescape(temp)
-  silent keepjumps $delete _
+  if &foldenable && foldlevel('$') > 0
+    set nofoldenable
+    silent keepjumps $delete _
+    set foldenable
+  else
+    silent keepjumps $delete _
+  endif
   call delete(temp)
   if s:cpath(fnamemodify(bufname('$'), ':p'), temp)
     silent! execute bufnr('$') . 'bwipeout'
