@@ -4986,9 +4986,7 @@ function! s:Move(force, rename, destination) abort
   if s:DirCommitFile(@%)[1] !~# '^0\=$' || empty(@%)
     return 'echoerr ' . string('fugitive: mv not supported for this buffer')
   endif
-  if a:destination =~# '^\.\.\=\%(/\|$\)'
-    let destination = simplify(getcwd() . '/' . a:destination)
-  elseif a:destination =~# '^\a\+:\|^/'
+  if a:destination =~# '^\a\+:\|^/'
     let destination = a:destination
   elseif a:destination =~# '^:/:\='
     let destination = s:Tree(dir) . substitute(a:destination, '^:/:\=', '', '')
@@ -4997,7 +4995,9 @@ function! s:Move(force, rename, destination) abort
   elseif a:destination =~# '^:(literal)'
     let destination = simplify(getcwd() . '/' . matchstr(a:destination, ')\zs.*'))
   elseif a:rename
-    let destination = expand('%:p:s?[\/]$??:h') . '/' . a:destination
+    let destination = simplify(expand('%:p:s?[\/]$??:h') . '/' . a:destination)
+  elseif a:destination =~# '^\.\.\=\%(/\|$\)'
+    let destination = simplify(getcwd() . '/' . a:destination)
   else
     let destination = s:Tree(dir) . '/' . a:destination
   endif
