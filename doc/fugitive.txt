@@ -385,7 +385,7 @@ i                       Jump to the next file or hunk, expanding inline diffs
 ][                      Jump [count] section ends forward.
 
                                                 *fugitive_star*
-*                       One the first column of a + or - diff line, search for
+*                       On the first column of a + or - diff line, search for
                         the corresponding - or + line.  Otherwise, defer to
                         built-in |star|.
 
