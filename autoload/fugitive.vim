@@ -2381,8 +2381,9 @@ function! fugitive#PagerFor(argv, ...) abort
   endif
   if args[0] ==# 'config' && (s:HasOpt(args, '-e', '--edit') ||
         \   !s:HasOpt(args, '--list', '--get-all', '--get-regexp', '--get-urlmatch')) ||
-        \ args[0] =~# '^\%(tag\|branch\)$' && (s:HasOpt(args, '--edit-description', '--unset-upstream') ||
-        \   len(filter(args[1:-1], 'v:val =~# "^[^-]\|^--set-upstream-to="')) &&
+        \ args[0] =~# '^\%(tag\|branch\)$' && (
+        \    s:HasOpt(args, '--edit-description', '--unset-upstream', '-m', '-M', '--move', '-c', '-C', '--copy', '-d', '-D', '--delete') ||
+        \   len(filter(args[1:-1], 'v:val =~# "^[^-]\\|^--set-upstream-to="')) &&
         \   !s:HasOpt(args, '--contains', '--no-contains', '--merged', '--no-merged', '--points-at'))
     return 0
   endif
