@@ -5822,6 +5822,8 @@ endfunction
 
 " Section: Go to file
 
+let s:ref_header = '\%(Head\|Merge\|Rebase\|Upstream\|Pull\|Push\)'
+
 nnoremap <SID>: :<C-U><C-R>=v:count ? v:count : ''<CR>
 function! fugitive#MapCfile(...) abort
   exe 'cnoremap <buffer> <expr> <Plug><cfile>' (a:0 ? a:1 : 'fugitive#Cfile()')
@@ -5842,7 +5844,7 @@ endfunction
 
 function! s:SquashArgument(...) abort
   if &filetype == 'fugitive'
-    let commit = matchstr(getline('.'), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze ')
+    let commit = matchstr(getline('.'), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze \|^' . s:ref_header . ': \zs\S\+')
   elseif has_key(s:temp_files, s:cpath(expand('%:p')))
     let commit = matchstr(getline('.'), '\<\x\{4,\}\>')
   else
@@ -6036,7 +6038,7 @@ function! s:StatusCfile(...) abort
     return [lead . info.relative[0]]
   elseif len(info.commit)
     return [info.commit]
-  elseif line =~# '^\%(Head\|Merge\|Rebase\|Upstream\|Pull\|Push\): '
+  elseif line =~# '^' . s:ref_header . ': '
     return [matchstr(line, ' \zs.*')]
   else
     return ['']
