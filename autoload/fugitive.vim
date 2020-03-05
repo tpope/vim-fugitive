@@ -420,9 +420,9 @@ function! fugitive#PrepareDirEnvArgv(...) abort
   let i = 0
   while i < len(cmd)
     if cmd[i] =~# '^$\|[\/.]' && cmd[i] !~# '^-'
-      let dir = remove(cmd, 0)
+      let dir = remove(cmd, i)
     elseif cmd[i] =~# '^--git-dir='
-      let dir = remove(cmd, 0)[10:-1]
+      let dir = remove(cmd, i)[10:-1]
     elseif type(cmd[i]) ==# type(0)
       let dir = s:Dir(remove(cmd, i))
     elseif cmd[i] ==# '-c' && len(cmd) > i + 1
