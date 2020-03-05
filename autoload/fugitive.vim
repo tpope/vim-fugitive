@@ -521,6 +521,19 @@ function! s:JobOpts(cmd, env) abort
   endif
 endfunction
 
+function! s:PrepareJob(...) abort
+  let [dir, env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
+  let dict = {'git': git, 'git_dir': dir, 'flags': flags, 'args': args}
+  let cmd = flags + args
+  let tree = s:Tree(dir)
+  if empty(tree) || index(cmd, '--') == len(cmd) - 1
+    call extend(cmd, git + ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
+  else
+    call extend(cmd, git + ['-C', FugitiveGitPath(tree)], 'keep')
+  endif
+  return s:JobOpts(cmd, env) + [dict]
+endfunction
+
 function! s:BuildShell(dir, env, git, args) abort
   let cmd = copy(a:args)
   let tree = s:Tree(a:dir)
@@ -617,21 +630,44 @@ function! s:TreeChomp(...) abort
 endfunction
 
 function! s:StdoutToFile(out, cmd) abort
-  try
-    let cmd = (type(a:cmd) == type([]) ? fugitive#Prepare(a:cmd) : a:cmd)
-    let redir = ' > ' . a:out
-    let pwsh = &shell =~# '\%(powershell\|pwsh\)\%(\.exe\)\=$'
-    if pwsh && has('patch-8.2.3079')
-      return s:SystemError(&shell . ' ' . &shellcmdflag . ' ' . s:shellesc(cmd . redir))
-    elseif (s:winshell() || pwsh) && !has('nvim')
-      let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      return s:SystemError('cmd /c "' . s:gsub(cmd, '[<>%]', cmd_escape_char . '&') . redir . '"')
-    elseif &shell =~# 'fish'
-      return s:SystemError(' begin;' . cmd . redir . ';end ')
-    else
-      return s:SystemError(' (' . cmd . redir . ') ')
+  let [argv, jopts, _] = s:PrepareJob(a:cmd)
+  let exit = []
+  if exists('*jobstart')
+    call extend(jopts, {
+          \ 'stdout_buffered': v:true,
+          \ 'stderr_buffered': v:true,
+          \ 'on_exit': { j, code, _ -> add(exit, code) }})
+    let job = jobstart(argv, jopts)
+    call chanclose(job, 'stdin')
+    call jobwait([job])
+    if len(a:out)
+      call writefile(jopts.stdout, a:out, 'b')
     endif
-  endtry
+    return [join(jopts.stderr, "\n"), exit[0]]
+  elseif exists('*job_start')
+    try
+      let err = tempname()
+      call extend(jopts, {
+            \ 'out_io': len(a:out) ? 'file' : 'null',
+            \ 'out_name': a:out,
+            \ 'err_io': 'file',
+            \ 'err_name': err,
+            \ 'exit_cb': { j, code -> add(exit, code) }})
+      let job = job_start(argv, jopts)
+      call ch_close_in(job)
+      while ch_status(job) !=# 'closed' || job_status(job) ==# 'run'
+        exe has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
+      endwhile
+      return [join(readfile(err, 'b'), "\n"), exit[0]]
+    finally
+      call delete(err)
+    endtry
+  elseif s:winshell() || &shell !~# 'sh' || &shell =~# 'fish\|\%(powershell\|pwsh\)\%(\.exe\)\=$'
+    throw 'fugitive: Vim 8 or higher required to use ' . &shell
+  else
+    let cmd = fugitive#ShellCommand(a:cmd)
+    return s:SystemError(' (' . cmd . ' >' . a:out . ') ')
+  endif
 endfunction
 
 function! s:EchoExec(...) abort
