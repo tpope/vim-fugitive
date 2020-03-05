@@ -3348,6 +3348,8 @@ function! s:StageInline(mode, ...) abort
         endif
         let start = index
         let mode = 'head'
+      elseif mode ==# 'head' && line =~# '^diff '
+        let start = index
       elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '--- ' . info.relative[-1]
         let mode = 'await'
       elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '+++ ' . info.relative[0]
