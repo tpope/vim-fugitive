@@ -2303,13 +2303,24 @@ function! s:RunWait(state, job) abort
       if !exists('*jobwait')
         sleep 1m
       endif
-      let peek = getchar(1)
-      if peek != 0 && !(has('win32') && peek == 128)
-        let c = getchar()
-        let c = type(c) == type(0) ? nr2char(c) : c
-        call s:RunSend(a:job, c)
-        if !a:state.pty
-          echon c
+      if !get(a:state, 'closed')
+        let peek = getchar(1)
+        if peek != 0 && !(has('win32') && peek == 128)
+          let c = getchar()
+          let c = type(c) == type(0) ? nr2char(c) : c
+          if c ==# "\<C-D>"
+            let a:state.closed = 1
+            if type(a:job) ==# type(0)
+              call chanclose(a:job, 'stdin')
+            else
+              call ch_close_in(a:job)
+            endif
+          else
+            call s:RunSend(a:job, c)
+            if !a:state.pty
+              echon c
+            endif
+          endif
         endif
       endif
     endwhile
