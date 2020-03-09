@@ -4500,7 +4500,7 @@ function! s:ReadPrepare(line1, count, range, mods) abort
   else
     let pre = ''
   endif
-  return [pre . mods . after . 'read', delete . '|diffupdate' . (a:count < 0 ? '|' . line('.') : '')]
+  return [pre . mods . after . 'read', delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')]
 endfunction
 
 function! s:ReadExec(line1, count, range, mods, env, args, options) abort
