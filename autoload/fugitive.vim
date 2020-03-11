@@ -5959,73 +5959,73 @@ function! fugitive#MapJumps(...) abort
     call s:Map('n', 'gi',    ":<C-U>exe 'Gsplit' (v:count ? '.gitignore' : '.git/info/exclude')<CR>", '<silent>')
     call s:Map('x', 'gi',    ":<C-U>exe 'Gsplit' (v:count ? '.gitignore' : '.git/info/exclude')<CR>", '<silent>')
 
-    nnoremap <buffer>       c<Space> :Git commit<Space>
-    nnoremap <buffer>          c<CR> :Git commit<CR>
-    nnoremap <buffer>      cv<Space> :tab Git commit -v<Space>
-    nnoremap <buffer>         cv<CR> :tab Git commit -v<CR>
-    nnoremap <buffer> <silent> ca    :<C-U>Git commit --amend<CR>
-    nnoremap <buffer> <silent> cc    :<C-U>Git commit<CR>
-    nnoremap <buffer> <silent> ce    :<C-U>Git commit --amend --no-edit<CR>
-    nnoremap <buffer> <silent> cw    :<C-U>Git commit --amend --only<CR>
-    nnoremap <buffer> <silent> cva   :<C-U>tab Git commit -v --amend<CR>
-    nnoremap <buffer> <silent> cvc   :<C-U>tab Git commit -v<CR>
-    nnoremap <buffer> <silent> cRa   :<C-U>Git commit --reset-author --amend<CR>
-    nnoremap <buffer> <silent> cRe   :<C-U>Git commit --reset-author --amend --no-edit<CR>
-    nnoremap <buffer> <silent> cRw   :<C-U>Git commit --reset-author --amend --only<CR>
-    nnoremap <buffer>          cf    :<C-U>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cF    :<C-U><Bar>Git -c sequence.editor=true rebase --interactive --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cs    :<C-U>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cS    :<C-U><Bar>Git -c sequence.editor=true rebase --interactive --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer>          cA    :<C-U>Git commit --edit --squash=<C-R>=<SID>SquashArgument()<CR>
-    nnoremap <buffer> <silent> c?    :<C-U>help fugitive_c<CR>
+    call s:Map('n', 'c<Space>', ':Git commit<Space>')
+    call s:Map('n', 'c<CR>', ':Git commit<CR>')
+    call s:Map('n', 'cv<Space>', ':tab Git commit -v<Space>')
+    call s:Map('n', 'cv<CR>', ':tab Git commit -v<CR>')
+    call s:Map('n', 'ca', ':<C-U>Git commit --amend<CR>', '<silent>')
+    call s:Map('n', 'cc', ':<C-U>Git commit<CR>', '<silent>')
+    call s:Map('n', 'ce', ':<C-U>Git commit --amend --no-edit<CR>', '<silent>')
+    call s:Map('n', 'cw', ':<C-U>Git commit --amend --only<CR>', '<silent>')
+    call s:Map('n', 'cva', ':<C-U>tab Git commit -v --amend<CR>', '<silent>')
+    call s:Map('n', 'cvc', ':<C-U>tab Git commit -v<CR>', '<silent>')
+    call s:Map('n', 'cRa', ':<C-U>Git commit --reset-author --amend<CR>', '<silent>')
+    call s:Map('n', 'cRe', ':<C-U>Git commit --reset-author --amend --no-edit<CR>', '<silent>')
+    call s:Map('n', 'cRw', ':<C-U>Git commit --reset-author --amend --only<CR>', '<silent>')
+    call s:Map('n', 'cf', ':<C-U>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>')
+    call s:Map('n', 'cF', ':<C-U><Bar>Git -c sequence.editor=true rebase --interactive --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>')
+    call s:Map('n', 'cs', ':<C-U>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>')
+    call s:Map('n', 'cS', ':<C-U><Bar>Git -c sequence.editor=true rebase --interactive --autosquash<C-R>=<SID>RebaseArgument()<CR><Home>Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>')
+    call s:Map('n', 'cA', ':<C-U>Git commit --edit --squash=<C-R>=<SID>SquashArgument()<CR>')
+    call s:Map('n', 'c?', ':<C-U>help fugitive_c<CR>', '<silent>')
 
-    nnoremap <buffer>      cr<Space> :Git revert<Space>
-    nnoremap <buffer>         cr<CR> :Git revert<CR>
-    nnoremap <buffer> <silent> crc   :<C-U>Git revert <C-R>=<SID>SquashArgument()<CR><CR>
-    nnoremap <buffer> <silent> crn   :<C-U>Git revert --no-commit <C-R>=<SID>SquashArgument()<CR><CR>
-    nnoremap <buffer> <silent> cr?   :help fugitive_cr<CR>
+    call s:Map('n', 'cr<Space>', ':Git revert<Space>')
+    call s:Map('n', 'cr<CR>', ':Git revert<CR>')
+    call s:Map('n', 'crc', ':<C-U>Git revert <C-R>=<SID>SquashArgument()<CR><CR>', '<silent>')
+    call s:Map('n', 'crn', ':<C-U>Git revert --no-commit <C-R>=<SID>SquashArgument()<CR><CR>', '<silent>')
+    call s:Map('n', 'cr?', ':help fugitive_cr<CR>', '<silent>')
 
-    nnoremap <buffer>      cm<Space> :Git merge<Space>
-    nnoremap <buffer>         cm<CR> :Git merge<CR>
-    nnoremap <buffer>          cmt   :Git mergetool
-    nnoremap <buffer> <silent> cm?   :help fugitive_cm<CR>
+    call s:Map('n', 'cm<Space>', ':Git merge<Space>')
+    call s:Map('n', 'cm<CR>', ':Git merge<CR>')
+    call s:Map('n', 'cmt', ':Git mergetool')
+    call s:Map('n', 'cm?', ':help fugitive_cm<CR>', '<silent>')
 
-    nnoremap <buffer>      cz<Space> :Git stash<Space>
-    nnoremap <buffer>         cz<CR> :Git stash<CR>
-    nnoremap <buffer>          cza   :<C-U>Git stash apply --quiet --index stash@{<C-R>=v:count<CR>}<CR>
-    nnoremap <buffer>          czA   :<C-U>Git stash apply --quiet stash@{<C-R>=v:count<CR>}<CR>
-    nnoremap <buffer>          czp   :<C-U>Git stash pop --quiet --index stash@{<C-R>=v:count<CR>}<CR>
-    nnoremap <buffer>          czP   :<C-U>Git stash pop --quiet stash@{<C-R>=v:count<CR>}<CR>
-    nnoremap <buffer> <silent> czv   :<C-U>exe 'Gedit' fugitive#RevParse('stash@{' . v:count . '}')<CR>
-    nnoremap <buffer>          czw   :<C-U>Git stash --keep-index<C-R>=v:count > 1 ? ' --all' : v:count ? ' --include-untracked' : ''<CR><CR>
-    nnoremap <buffer>          czz   :<C-U>Git stash <C-R>=v:count > 1 ? ' --all' : v:count ? ' --include-untracked' : ''<CR>
-    nnoremap <buffer> <silent> cz?   :<C-U>help fugitive_cz<CR>
+    call s:Map('n', 'cz<Space>', ':Git stash<Space>')
+    call s:Map('n', 'cz<CR>', ':Git stash<CR>')
+    call s:Map('n', 'cza', ':<C-U>Git stash apply --quiet --index stash@{<C-R>=v:count<CR>}<CR>')
+    call s:Map('n', 'czA', ':<C-U>Git stash apply --quiet stash@{<C-R>=v:count<CR>}<CR>')
+    call s:Map('n', 'czp', ':<C-U>Git stash pop --quiet --index stash@{<C-R>=v:count<CR>}<CR>')
+    call s:Map('n', 'czP', ':<C-U>Git stash pop --quiet stash@{<C-R>=v:count<CR>}<CR>')
+    call s:Map('n', 'czv', ':<C-U>exe "Gedit" fugitive#RevParse("stash@{" . v:count . "}")<CR>', '<silent>')
+    call s:Map('n', 'czw', ':<C-U>Git stash --keep-index<C-R>=v:count > 1 ? " --all" : v:count ? " --include-untracked" : ""<CR><CR>')
+    call s:Map('n', 'czz', ':<C-U>Git stash <C-R>=v:count > 1 ? " --all" : v:count ? " --include-untracked" : ""<CR>')
+    call s:Map('n', 'cz?', ':<C-U>help fugitive_cz<CR>', '<silent>')
 
-    nnoremap <buffer>      co<Space> :Git checkout<Space>
-    nnoremap <buffer>         co<CR> :Git checkout<CR>
-    nnoremap <buffer>          coo   :<C-U>Git checkout <C-R>=<SID>SquashArgument()<CR> --<CR>
-    nnoremap <buffer>          co?   :<C-U>help fugitive_co<CR>
+    call s:Map('n', 'co<Space>', ':Git checkout<Space>')
+    call s:Map('n', 'co<CR>', ':Git checkout<CR>')
+    call s:Map('n', 'coo', ':<C-U>Git checkout <C-R>=<SID>SquashArgument()<CR> --<CR>')
+    call s:Map('n', 'co?', ':<C-U>help fugitive_co<CR>')
 
-    nnoremap <buffer>      cb<Space> :Git branch<Space>
-    nnoremap <buffer>         cb<CR> :Git branch<CR>
-    nnoremap <buffer>         cb?    :<C-U>help fugitive_cb<CR>
+    call s:Map('n', 'cb<Space>', ':Git branch<Space>')
+    call s:Map('n', 'cb<CR>', ':Git branch<CR>')
+    call s:Map('n', 'cb?', ':<C-U>help fugitive_cb<CR>')
 
-    nnoremap <buffer>       r<Space> :Git rebase<Space>
-    nnoremap <buffer>          r<CR> :Git rebase<CR>
-    nnoremap <buffer> <silent> ri    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><CR>
-    nnoremap <buffer> <silent> rf    :<C-U>Git -c sequence.editor=true rebase --interactive --autosquash<C-R>=<SID>RebaseArgument()<CR><CR>
-    nnoremap <buffer> <silent> ru    :<C-U>Git rebase --interactive @{upstream}<CR>
-    nnoremap <buffer> <silent> rp    :<C-U>Git rebase --interactive @{push}<CR>
-    nnoremap <buffer> <silent> rw    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/reword/e<CR>
-    nnoremap <buffer> <silent> rm    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/edit/e<CR>
-    nnoremap <buffer> <silent> rd    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>
-    nnoremap <buffer> <silent> rk    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>
-    nnoremap <buffer> <silent> rx    :<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>
-    nnoremap <buffer> <silent> rr    :<C-U>Git rebase --continue<CR>
-    nnoremap <buffer> <silent> rs    :<C-U>Git rebase --skip<CR>
-    nnoremap <buffer> <silent> re    :<C-U>Git rebase --edit-todo<CR>
-    nnoremap <buffer> <silent> ra    :<C-U>Git rebase --abort<CR>
-    nnoremap <buffer> <silent> r?    :<C-U>help fugitive_r<CR>
+    call s:Map('n', 'r<Space>', ':Git rebase<Space>')
+    call s:Map('n', 'r<CR>', ':Git rebase<CR>')
+    call s:Map('n', 'ri', ':<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><CR>', '<silent>')
+    call s:Map('n', 'rf', ':<C-U>Git -c sequence.editor=true rebase --interactive --autosquash<C-R>=<SID>RebaseArgument()<CR><CR>', '<silent>')
+    call s:Map('n', 'ru', ':<C-U>Git rebase --interactive @{upstream}<CR>', '<silent>')
+    call s:Map('n', 'rp', ':<C-U>Git rebase --interactive @{push}<CR>', '<silent>')
+    call s:Map('n', 'rw', ':<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/reword/e<CR>', '<silent>')
+    call s:Map('n', 'rm', ':<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/edit/e<CR>', '<silent>')
+    call s:Map('n', 'rd', ':<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>', '<silent>')
+    call s:Map('n', 'rk', ':<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>', '<silent>')
+    call s:Map('n', 'rx', ':<C-U>Git rebase --interactive<C-R>=<SID>RebaseArgument()<CR><Bar>s/^pick/drop/e<CR>', '<silent>')
+    call s:Map('n', 'rr', ':<C-U>Git rebase --continue<CR>', '<silent>')
+    call s:Map('n', 'rs', ':<C-U>Git rebase --skip<CR>', '<silent>')
+    call s:Map('n', 're', ':<C-U>Git rebase --edit-todo<CR>', '<silent>')
+    call s:Map('n', 'ra', ':<C-U>Git rebase --abort<CR>', '<silent>')
+    call s:Map('n', 'r?', ':<C-U>help fugitive_r<CR>', '<silent>')
 
     call s:Map('n', '.',     ":<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>")
     call s:Map('x', '.',     ":<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>")
