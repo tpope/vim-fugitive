@@ -5983,12 +5983,12 @@ function! fugitive#MapJumps(...) abort
     call s:Map('n', 'cr<CR>', ':Git revert<CR>')
     call s:Map('n', 'crc', ':<C-U>Git revert <C-R>=<SID>SquashArgument()<CR><CR>', '<silent>')
     call s:Map('n', 'crn', ':<C-U>Git revert --no-commit <C-R>=<SID>SquashArgument()<CR><CR>', '<silent>')
-    call s:Map('n', 'cr?', ':help fugitive_cr<CR>', '<silent>')
+    call s:Map('n', 'cr?', ':<C-U>help fugitive_cr<CR>', '<silent>')
 
     call s:Map('n', 'cm<Space>', ':Git merge<Space>')
     call s:Map('n', 'cm<CR>', ':Git merge<CR>')
     call s:Map('n', 'cmt', ':Git mergetool')
-    call s:Map('n', 'cm?', ':help fugitive_cm<CR>', '<silent>')
+    call s:Map('n', 'cm?', ':<C-U>help fugitive_cm<CR>', '<silent>')
 
     call s:Map('n', 'cz<Space>', ':Git stash<Space>')
     call s:Map('n', 'cz<CR>', ':Git stash<CR>')
@@ -6004,11 +6004,11 @@ function! fugitive#MapJumps(...) abort
     call s:Map('n', 'co<Space>', ':Git checkout<Space>')
     call s:Map('n', 'co<CR>', ':Git checkout<CR>')
     call s:Map('n', 'coo', ':<C-U>Git checkout <C-R>=<SID>SquashArgument()<CR> --<CR>')
-    call s:Map('n', 'co?', ':<C-U>help fugitive_co<CR>')
+    call s:Map('n', 'co?', ':<C-U>help fugitive_co<CR>', '<silent>')
 
     call s:Map('n', 'cb<Space>', ':Git branch<Space>')
     call s:Map('n', 'cb<CR>', ':Git branch<CR>')
-    call s:Map('n', 'cb?', ':<C-U>help fugitive_cb<CR>')
+    call s:Map('n', 'cb?', ':<C-U>help fugitive_cb<CR>', '<silent>')
 
     call s:Map('n', 'r<Space>', ':Git rebase<Space>')
     call s:Map('n', 'r<CR>', ':Git rebase<CR>')
