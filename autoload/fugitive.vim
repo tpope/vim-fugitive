@@ -2489,7 +2489,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     endif
     let i += 1
   endwhile
-  let editcmd = (a:line2 > 0 ? a:line2 : '') . (a:line2 ? 'split' : 'edit')
+  let editcmd = a:line2 ? 'split' : 'edit'
   if pager is# 1
     if a:bang && a:line2 >= 0
       let editcmd = 'read'
@@ -2669,7 +2669,7 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
     elseif a:bang
       return mods . 'pedit' . arg . '|wincmd P'
     else
-      return mods . 'keepalt ' . (a:count > 0 ? a:count : '') . 'split' . arg
+      return mods . 'keepalt split' . arg
     endif
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
