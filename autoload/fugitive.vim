@@ -329,7 +329,8 @@ let s:prepare_env = {
       \ 'core.editor': 'GIT_EDITOR',
       \ 'core.askpass': 'GIT_ASKPASS',
       \ }
-function! fugitive#PrepareDirEnvArgv(...) abort
+function! fugitive#PrepareDirEnvGitArgv(...) abort
+  let git = split(g:fugitive_git_executable)
   if a:0 && type(a:1) ==# type([])
     let cmd = a:000[1:-1] + a:1
   else
@@ -338,7 +339,15 @@ function! fugitive#PrepareDirEnvArgv(...) abort
   let env = {}
   let i = 0
   while i < len(cmd)
-    if cmd[i] =~# '^$\|[\/.]' && cmd[i] !~# '^-'
+    if type(cmd[i]) == type({})
+      if has_key(cmd[i], 'dir')
+        let dir = cmd[i].dir
+      endif
+      if has_key(cmd[i], 'git')
+        let git = cmd[i].git
+      endif
+      call remove(cmd, i)
+    elseif cmd[i] =~# '^$\|[\/.]' && cmd[i] !~# '^-'
       let dir = remove(cmd, i)
     elseif cmd[i] =~# '^--git-dir='
       let dir = remove(cmd, i)[10:-1]
@@ -373,7 +382,7 @@ function! fugitive#PrepareDirEnvArgv(...) abort
     let dir = s:Dir()
   endif
   call s:PreparePathArgs(cmd, dir, !exists('explicit_pathspec_option'))
-  return [dir, env, cmd]
+  return [dir, env, git, cmd]
 endfunction
 
 function! s:BuildEnvPrefix(env) abort
@@ -409,7 +418,7 @@ function! s:JobOpts(cmd, env) abort
   endif
 endfunction
 
-function! s:BuildShell(dir, env, args) abort
+function! s:BuildShell(dir, env, git, args) abort
   let cmd = copy(a:args)
   let tree = s:Tree(a:dir)
   let pre = s:BuildEnvPrefix(a:env)
@@ -420,12 +429,12 @@ function! s:BuildShell(dir, env, args) abort
   else
     let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? '& ' : '; ') . pre
   endif
-  return pre . g:fugitive_git_executable . ' ' . join(map(cmd, 's:shellesc(v:val)'))
+  return pre . join(map(a:git + cmd, 's:shellesc(v:val)'))
 endfunction
 
 function! fugitive#Prepare(...) abort
-  let [dir, env, argv] = call('fugitive#PrepareDirEnvArgv', a:000)
-  return s:BuildShell(dir, env, argv)
+  let [dir, env, git, argv] = call('fugitive#PrepareDirEnvGitArgv', a:000)
+  return s:BuildShell(dir, env, git, argv)
 endfunction
 
 function! s:SystemError(cmd, ...) abort
@@ -5302,27 +5311,26 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
       let cmd += ['-L', (a:line1 ? a:line1 : line('.')) . ',' . (a:line1 ? a:line1 : line('.'))]
     endif
     call extend(cmd, ranges)
+    let tempname = tempname()
+    let temp = tempname . (raw ? '' : '.fugitiveblame')
     if len(commits)
       let cmd += commits
     elseif empty(files) && len(matchstr(s:DirCommitFile(@%)[1], '^\x\x\+$'))
       let cmd += [matchstr(s:DirCommitFile(@%)[1], '^\x\x\+$')]
     elseif empty(files) && !s:HasOpt(flags, '--reverse')
-      let cmd += ['--contents', '-']
+      let cmd += ['--contents', tempname . '.in']
+      silent execute 'keepalt %write ' . s:fnameescape(tempname . '.in')
+      let delete_in = 1
     endif
-    let basecmd = escape(s:UserCommand({'git': a:options.git, 'dir': dir}, cmd + ['--'] + (len(files) ? files : [file])), '!#%')
-    let tempname = tempname()
-    let error = tempname . '.err'
-    let temp = tempname . (raw ? '' : '.fugitiveblame')
-    if &shell =~# 'csh'
-      silent! execute '%write !('.basecmd.' > '.temp.') >& '.error
-    else
-      silent! execute '%write !'.basecmd.' > '.temp.' 2> '.error
+    let basecmd = [{'git': a:options.git, 'dir': dir}] + ['--literal-pathspecs'] + cmd + ['--'] + (len(files) ? files : [file])
+    let [err, exec_error] = s:TempCmd(temp, basecmd)
+    if exists('delete_in')
+      call delete(tempname . '.in')
     endif
-    let l:shell_error = v:shell_error
     redraw
     try
-      if l:shell_error
-        let lines = readfile(error)
+      if exec_error
+        let lines = split(err, "\n")
         if empty(lines)
           let lines = readfile(temp)
         endif
