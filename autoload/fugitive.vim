@@ -195,89 +195,6 @@ function! s:Map(mode, lhs, rhs, ...) abort
   endfor
 endfunction
 
-" Section: Quickfix
-
-function! s:QuickfixGet(nr, ...) abort
-  if a:nr < 0
-    return call('getqflist', a:000)
-  else
-    return call('getloclist', [a:nr] + a:000)
-  endif
-endfunction
-
-function! s:QuickfixSet(nr, ...) abort
-  if a:nr < 0
-    return call('setqflist', a:000)
-  else
-    return call('setloclist', [a:nr] + a:000)
-  endif
-endfunction
-
-function! s:QuickfixCreate(nr, opts) abort
-  if has('patch-7.4.2200')
-    call s:QuickfixSet(a:nr, [], ' ', a:opts)
-  else
-    call s:QuickfixSet(a:nr, [], ' ')
-  endif
-endfunction
-
-function! s:QuickfixStream(nr, event, title, cmd, first, callback, ...) abort
-  let opts = {'title': a:title, 'context': {'items': []}}
-  call s:QuickfixCreate(a:nr, opts)
-  let event = (a:nr < 0 ? 'c' : 'l') . 'fugitive-' . a:event
-  silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
-  let winnr = winnr()
-  exe a:nr < 0 ? 'copen' : 'lopen'
-  if winnr != winnr()
-    wincmd p
-  endif
-
-  let buffer = []
-  let lines = split(s:SystemError(s:shellesc(a:cmd))[0], "\n")
-  for line in lines
-    call extend(buffer, call(a:callback, a:000 + [line]))
-    if len(buffer) >= 20
-      let contexts = map(copy(buffer), 'get(v:val, "context", {})')
-      lockvar contexts
-      call extend(opts.context.items, contexts)
-      unlet contexts
-      call s:QuickfixSet(a:nr, remove(buffer, 0, -1), 'a')
-      redraw
-    endif
-  endfor
-  call extend(buffer, call(a:callback, a:000 + [0]))
-  call extend(opts.context.items, map(copy(buffer), 'get(v:val, "context", {})'))
-  lockvar opts.context.items
-  call s:QuickfixSet(a:nr, buffer, 'a')
-
-  silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
-  if a:first && len(s:QuickfixGet(a:nr))
-    call s:BlurStatus()
-    return a:nr < 0 ? 'cfirst' : 'lfirst'
-  else
-    return 'exe'
-  endif
-endfunction
-
-let s:common_efm = ''
-      \ . '%+Egit:%.%#,'
-      \ . '%+Eusage:%.%#,'
-      \ . '%+Eerror:%.%#,'
-      \ . '%+Efatal:%.%#,'
-      \ . '%-G%.%#%\e[K%.%#,'
-      \ . '%-G%.%#%\r%.%\+'
-
-function! fugitive#Cwindow() abort
-  if &buftype == 'quickfix'
-    cwindow
-  else
-    botright cwindow
-    if &buftype == 'quickfix'
-      wincmd p
-    endif
-  endif
-endfunction
-
 " Section: Git
 
 function! s:UserCommandList(...) abort
@@ -679,6 +596,89 @@ function! fugitive#RemoteUrl(...) abort
     return fugitive#Config('remote.' . remote . '.url')
   endif
   return s:ChompDefault('', [dir, 'remote', 'get-url', remote, '--'])
+endfunction
+
+" Section: Quickfix
+
+function! s:QuickfixGet(nr, ...) abort
+  if a:nr < 0
+    return call('getqflist', a:000)
+  else
+    return call('getloclist', [a:nr] + a:000)
+  endif
+endfunction
+
+function! s:QuickfixSet(nr, ...) abort
+  if a:nr < 0
+    return call('setqflist', a:000)
+  else
+    return call('setloclist', [a:nr] + a:000)
+  endif
+endfunction
+
+function! s:QuickfixCreate(nr, opts) abort
+  if has('patch-7.4.2200')
+    call s:QuickfixSet(a:nr, [], ' ', a:opts)
+  else
+    call s:QuickfixSet(a:nr, [], ' ')
+  endif
+endfunction
+
+function! s:QuickfixStream(nr, event, title, cmd, first, callback, ...) abort
+  let opts = {'title': a:title, 'context': {'items': []}}
+  call s:QuickfixCreate(a:nr, opts)
+  let event = (a:nr < 0 ? 'c' : 'l') . 'fugitive-' . a:event
+  silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
+  let winnr = winnr()
+  exe a:nr < 0 ? 'copen' : 'lopen'
+  if winnr != winnr()
+    wincmd p
+  endif
+
+  let buffer = []
+  let lines = split(s:SystemError(s:shellesc(a:cmd))[0], "\n")
+  for line in lines
+    call extend(buffer, call(a:callback, a:000 + [line]))
+    if len(buffer) >= 20
+      let contexts = map(copy(buffer), 'get(v:val, "context", {})')
+      lockvar contexts
+      call extend(opts.context.items, contexts)
+      unlet contexts
+      call s:QuickfixSet(a:nr, remove(buffer, 0, -1), 'a')
+      redraw
+    endif
+  endfor
+  call extend(buffer, call(a:callback, a:000 + [0]))
+  call extend(opts.context.items, map(copy(buffer), 'get(v:val, "context", {})'))
+  lockvar opts.context.items
+  call s:QuickfixSet(a:nr, buffer, 'a')
+
+  silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
+  if a:first && len(s:QuickfixGet(a:nr))
+    call s:BlurStatus()
+    return a:nr < 0 ? 'cfirst' : 'lfirst'
+  else
+    return 'exe'
+  endif
+endfunction
+
+let s:common_efm = ''
+      \ . '%+Egit:%.%#,'
+      \ . '%+Eusage:%.%#,'
+      \ . '%+Eerror:%.%#,'
+      \ . '%+Efatal:%.%#,'
+      \ . '%-G%.%#%\e[K%.%#,'
+      \ . '%-G%.%#%\r%.%\+'
+
+function! fugitive#Cwindow() abort
+  if &buftype == 'quickfix'
+    cwindow
+  else
+    botright cwindow
+    if &buftype == 'quickfix'
+      wincmd p
+    endif
+  endif
 endfunction
 
 " Section: Repository Object
