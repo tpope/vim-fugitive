@@ -4136,6 +4136,9 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   endif
   let tree = s:Tree(dir)
   let args = a:options.args
+  if get(args, 0, '') =~# '^-O\|--open-files-in-pager$'
+    let args = args[1:-1]
+  endif
   let name_only = s:HasOpt(args, '-l', '--files-with-matches', '--name-only', '-L', '--files-without-match')
   let title = [listnr < 0 ? ':Ggrep' : ':Glgrep'] + args
   if listnr > 0

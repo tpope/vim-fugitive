@@ -21,7 +21,6 @@ improvements:
   enter on a line to view the commit where the line changed, or `g?` to see
   other available maps.  Omit the filename argument and the currently edited
   file will be blamed in a vertical, scroll-bound split.
-* `:Git grep` loads matches into the quickfix list, just like `:grep`.
 * `:Git mergetool` and `:Git difftool` load their changesets into the quickfix
   list.
 * Called with no arguments, `:Git` opens a summary window with dirty files and
@@ -48,6 +47,7 @@ Additional commands are provided for higher level operations:
 * `:Gwrite` writes to both the work tree and index versions of a file, making
   it like `git add` when called from a work tree file and like `git checkout`
   when called from the index or a blob in history.
+* `:Ggrep` is `:grep` for `git grep`.  `:Glgrep` is `:lgrep` for the same.
 * `:GMove` does a `git mv` on the current file and changes the buffer name to
   match.  `:GRename` does the same with a destination filename relative to the
   current file's directory.
