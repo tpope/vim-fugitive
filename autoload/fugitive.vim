@@ -2360,15 +2360,15 @@ endif
 function! fugitive#Resume() abort
   while len(s:resume_queue)
     let [state, job] = remove(s:resume_queue, 0)
+    if filereadable(state.temp . '.edit')
+      call delete(state.temp . '.edit')
+    endif
     call s:RunWait(state, job)
   endwhile
 endfunction
 
 function! s:RunBufDelete(bufnr) abort
   if has_key(s:edit_jobs, a:bufnr) |
-    if filereadable(s:edit_jobs[a:bufnr][0].temp . '.edit')
-      call delete(s:edit_jobs[a:bufnr][0].temp . '.edit')
-    endif
     call add(s:resume_queue, remove(s:edit_jobs, a:bufnr))
     call feedkeys(":redraw!|call fugitive#Resume()|silent checktime\r", 'n')
   endif
