@@ -5641,10 +5641,13 @@ function! fugitive#BlameSyntax() abort
 endfunction
 
 function! s:BlameHighlightDates() abort
+  let shade256 = [235, 236, 237, 238, 239, 240, 242, 243, 102, 246, 248, 249, 251, 253, 255, 231]
   for i in range(0, 15)
     let shade = 0x11 * (&background == 'dark' ? 0xf - i : i)
     if &t_Co > 16 && exists('*csapprox#per_component#Approximate')
       let cterm = ' ctermfg='.csapprox#per_component#Approximate(shade, shade, shade)
+    elseif &t_Co >= 256
+      let cterm = ' cterm=bold ctermfg='.shade256[(&background == 'dark' ? 0xf - i : i)]
     else
       let cterm = ''
     endif
