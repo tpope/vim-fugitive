@@ -5636,6 +5636,10 @@ function! fugitive#BlameSyntax() abort
         let color = 8
       endif
       let s:hash_colors[hash] = ' ctermfg='.color
+    elseif &t_Co >= 256
+      " only use colors from the 6x6x6 cube without color 16 (black)
+      let color = (str2nr(strpart(hash,0,2),16) % 215) + 17
+      let s:hash_colors[hash] = ' ctermfg='.color
     else
       let s:hash_colors[hash] = ''
     endif
