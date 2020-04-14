@@ -12,6 +12,12 @@ elseif g:fugitive_git_executable =~# '^\w\+='
   let g:fugitive_git_executable = 'env ' . g:fugitive_git_executable
 endif
 
+if !exists('g:fugitive_status_buffer_help')
+  let g:fugitive_status_buffer_help = [
+    \'-: toggle stage/unstage    X: discard change       =: toggle inline diff',
+    \'o: open in split window    O: open in new tab     s?: more help']
+endif
+
 " Section: Utility
 
 function! s:function(name) abort
@@ -1668,6 +1674,21 @@ function! s:Format(val) abort
   endif
 endfunction
 
+function! s:AddHelp() abort
+  if empty(g:fugitive_status_buffer_help)
+    return
+  endif
+  let before = 1
+  while !empty(getline(before))
+    let before += 1
+  endwhile
+  for line in g:fugitive_status_buffer_help
+    call append(before - 1, '" ' . line)
+    let before += 1
+  endfor
+  call append(before - 1, ' ')
+endfunction
+
 function! s:AddHeader(key, value) abort
   if empty(a:value)
     return
@@ -1914,6 +1935,7 @@ function! fugitive#BufReadStatus() abort
 
     silent keepjumps %delete_
 
+    call s:AddHelp()
     call s:AddHeader('Head', head)
     call s:AddHeader(pull_type, pull)
     if push !=# pull
@@ -1978,6 +2000,7 @@ function! fugitive#BufReadStatus() abort
     call s:Map('n', 'ds', ":<C-U>execute <SID>StageDiff('Ghdiffsplit')<CR>", '<silent>')
     call s:Map('n', 'dp', ":<C-U>execute <SID>StageDiffEdit()<CR>", '<silent>')
     call s:Map('n', 'dv', ":<C-U>execute <SID>StageDiff('Gvdiffsplit')<CR>", '<silent>')
+    call s:Map('n', 's?', ":<C-U>help fugitive-staging-maps<CR>", '<silent>')
     call s:Map('n', 'd?', ":<C-U>help fugitive_d<CR>", '<silent>')
     call s:Map('n', 'P', ":<C-U>execute <SID>StagePatch(line('.'),line('.')+v:count1-1)<CR>", '<silent>')
     call s:Map('x', 'P', ":<C-U>execute <SID>StagePatch(line(\"'<\"),line(\"'>\"))<CR>", '<silent>')

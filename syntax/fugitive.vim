@@ -7,6 +7,7 @@ syn spell notoplevel
 
 syn include @fugitiveDiff syntax/diff.vim
 
+syn match fugitiveHelp /^.*$/
 syn match fugitiveHeader /^[A-Z][a-z][^:]*:/ nextgroup=fugitiveHash,fugitiveSymbolicRef skipwhite
 
 syn region fugitiveSection start=/^\%(.*(\d\+)$\)\@=/ contains=fugitiveHeading end=/^$/
@@ -47,5 +48,6 @@ hi def link fugitiveStop Function
 hi def link fugitiveHash Identifier
 hi def link fugitiveSymbolicRef Function
 hi def link fugitiveCount Number
+hi def link fugitiveHelp String
 
 let b:current_syntax = "fugitive"
