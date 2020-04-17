@@ -4151,9 +4151,6 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   exe s:DirCheck(dir)
   let listnr = a:line1 == 0 ? a:line1 : a:line2
   let cmd = ['--no-pager', 'grep', '-n', '--no-color', '--full-name']
-  if fugitive#GitVersion(2, 19)
-    call add(cmd, '--column')
-  endif
   let tree = s:Tree(dir)
   let args = a:options.args
   if get(args, 0, '') =~# '^-O\|--open-files-in-pager$'
@@ -4191,7 +4188,7 @@ endfunction
 
 function! fugitive#GrepCommand(line1, line2, range, bang, mods, arg) abort
   return fugitive#Command(a:line1, a:line2, a:range, a:bang, a:mods,
-        \ "grep -O " . a:arg)
+        \ "grep -O " . (fugitive#GitVersion(2, 19) ? "--column " : "") . a:arg)
 endfunction
 
 let s:log_diff_context = '{"filename": fugitive#Find(v:val . from, a:dir), "lnum": get(offsets, v:key), "module": strpart(v:val, 0, len(a:state.base_module)) . from}'
