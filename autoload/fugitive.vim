@@ -4173,7 +4173,7 @@ let s:log_diff_context = '{"filename": fugitive#Find(v:val . from, a:dir), "lnum
 
 function! s:LogFlushQueue(state, dir) abort
   let queue = remove(a:state, 'queue')
-  if a:state.child_found && get(a:state, 'ignore_summary')
+  if a:state.child_found && get(a:state, 'ignore_commit')
     call remove(queue, 0)
   elseif len(queue) && len(a:state.target) && len(get(a:state, 'parents', []))
     let from = substitute(a:state.target, '^/', ':', '')
@@ -4310,11 +4310,13 @@ function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
         let state.ignore_summary = 1
       endif
     endif
+    let state.ignore_commit = 1
   elseif a:count > 0
     if !s:HasOpt(args, '--merges', '--no-merges')
       call insert(extra_args, '--no-merges')
     endif
     call add(args, '-L' . a:line1 . ',' . a:count . ':' . path[1:-1])
+    let state.ignore_commit = 1
   endif
   if len(path) && empty(filter(copy(args), 'v:val =~# "^[^-]"'))
     let owner = s:Owner(@%, dir)
