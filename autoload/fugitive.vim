@@ -1536,9 +1536,12 @@ function! fugitive#PathComplete(...) abort
 endfunction
 
 function! s:CompleteHeads(dir) abort
+  if empty(a:dir)
+    return []
+  endif
   let dir = fugitive#Find('.git/', a:dir)
   return sort(filter(['HEAD', 'FETCH_HEAD', 'ORIG_HEAD'] + s:merge_heads, 'filereadable(dir . v:val)')) +
-        \ sort(s:LinesError('rev-parse', '--symbolic', '--branches', '--tags', '--remotes')[0])
+        \ sort(s:LinesError([a:dir, 'rev-parse', '--symbolic', '--branches', '--tags', '--remotes'])[0])
 endfunction
 
 function! fugitive#CompleteObject(base, ...) abort
