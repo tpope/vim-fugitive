@@ -4172,6 +4172,11 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   endif
 endfunction
 
+function! fugitive#GrepCommand(line1, line2, range, bang, mods, arg) abort
+  return fugitive#Command(a:line1, a:line2, a:range, a:bang, a:mods,
+        \ "grep -O " . a:arg)
+endfunction
+
 let s:log_diff_context = '{"filename": fugitive#Find(v:val . from, a:dir), "lnum": get(offsets, v:key), "module": strpart(v:val, 0, len(a:state.base_module)) . from}'
 
 function! s:LogFlushQueue(state, dir) abort
