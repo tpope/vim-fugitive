@@ -2276,6 +2276,17 @@ function! s:RunJobs() abort
   return exists('*job_start') || exists('*jobstart')
 endfunction
 
+function! s:RunEdit(state, job) abort
+  if get(a:state, 'request', '') == 'edit'
+    call remove(a:state, 'request')
+    let file = readfile(a:state.temp . '.edit')[0]
+    exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
+    set bufhidden=wipe
+    let s:edit_jobs[bufnr('')] = [a:state, a:job]
+    return 1
+  endif
+endfunction
+
 function! s:RunReceive(state, job, data, ...) abort
   call add(a:state.log, a:data)
   let data = type(a:data) == type([]) ? join(a:data, "\n") : a:data
@@ -2341,13 +2352,7 @@ function! s:RunWait(state, job) abort
     endwhile
     sleep 1m
     echo
-    if get(a:state, 'request', '') == 'edit'
-      call remove(a:state, 'request')
-      let file = readfile(a:state.temp . '.edit')[0]
-      exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
-      set bufhidden=wipe
-      let s:edit_jobs[bufnr('')] = [a:state, a:job]
-    endif
+    call s:RunEdit(a:state, a:job)
     let finished = 1
   finally
     if !finished
