@@ -2272,6 +2272,18 @@ augroup END
 
 " Section: :Git
 
+function! s:AskPassArgs(dir) abort
+  if (len($DISPLAY) || len($TERM_PROGRAM) || has('gui_running')) && fugitive#GitVersion(1, 8) &&
+        \ empty($GIT_ASKPASS) && empty($SSH_ASKPASS) && empty(FugitiveConfigGetAll('core.askpass', a:dir))
+    if s:executable(s:ExecPath() . '/git-gui--askpass')
+      return ['-c', 'core.askPass=' . s:ExecPath() . '/git-gui--askpass']
+    elseif s:executable('ssh-askpass')
+      return ['-c', 'core.askPass=ssh-askpass']
+    endif
+  endif
+  return []
+endfunction
+
 function! s:RunJobs() abort
   return exists('*job_start') || exists('*jobstart')
 endfunction
@@ -2294,16 +2306,21 @@ function! s:RunReceive(state, job, data, ...) abort
     let data = remove(a:state, 'buffer') . data
   endif
   let escape = "\033]51;[^\007]*"
-  let a:state.buffer = matchstr(data, escape . "$\\|[\r\n]\\+$")
-  if len(a:state.buffer)
-    let data = strpart(data, 0, len(data) - len(a:state.buffer))
+  let a:state.escape_buffer = matchstr(data, escape . '$')
+  if len(a:state.escape_buffer)
+    let data = strpart(data, 0, len(data) - len(a:state.escape_buffer))
   endif
   let cmd = matchstr(data, escape . "\007")[5:-2]
   let data = substitute(data, escape . "\007", '', 'g')
-  echon substitute(data, "\r\\ze\n", '', 'g')
   if cmd =~# '^fugitive:'
     let a:state.request = strpart(cmd, 9)
   endif
+  let data = a:state.echo_buffer . data
+  let a:state.echo_buffer = matchstr(data, "[\r\n]\\+$")
+  if len(a:state.echo_buffer)
+    let data = strpart(data, 0, len(data) - len(a:state.echo_buffer))
+  endif
+  echon substitute(data, "\r\\ze\n", '', 'g')
 endfunction
 
 function! s:RunSend(job, str) abort
@@ -2325,7 +2342,7 @@ endif
 function! s:RunWait(state, job) abort
   let finished = 0
   try
-    while get(a:state, 'request', '') !=# 'edit' && (type(a:job) == type(0) ? jobwait([a:job], 1)[0] == -1 : ch_status(a:job) !=# 'closed')
+    while get(a:state, 'request', '') !=# 'edit' && (type(a:job) == type(0) ? jobwait([a:job], 1)[0] == -1 : ch_status(a:job) !=# 'closed' || job_status(a:job) ==# 'run')
       if !exists('*jobwait')
         sleep 1m
       endif
@@ -2543,7 +2560,14 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     endif
   endif
   if s:RunJobs()
-    let state = {'dir': dir, 'mods': s:Mods(a:mods), 'temp': tempname(), 'log': []}
+    let state = {
+          \ 'dir': dir,
+          \ 'mods': s:Mods(a:mods),
+          \ 'title': ':Git ' . a:arg,
+          \ 'echo_buffer': '',
+          \ 'escape_buffer': '',
+          \ 'log': [],
+          \ 'temp': tempname()}
     let state.pty = get(g:, 'fugitive_pty', has('unix') && (has('patch-8.0.0744') || has('nvim')))
     if !state.pty
       let args = s:AskPassArgs(dir) + args
@@ -4745,18 +4769,6 @@ endfunction
 
 function! fugitive#FetchComplete(A, L, P, ...) abort
   return s:CompleteSub('fetch', a:A, a:L, a:P, function('s:CompleteRemote'), a:000)
-endfunction
-
-function! s:AskPassArgs(dir) abort
-  if (len($DISPLAY) || len($TERM_PROGRAM) || has('gui_running')) && fugitive#GitVersion(1, 8) &&
-        \ empty($GIT_ASKPASS) && empty($SSH_ASKPASS) && empty(FugitiveConfigGetAll('core.askpass', a:dir))
-    if s:executable(s:ExecPath() . '/git-gui--askpass')
-      return ['-c', 'core.askPass=' . s:ExecPath() . '/git-gui--askpass']
-    elseif s:executable('ssh-askpass')
-      return ['-c', 'core.askPass=ssh-askpass']
-    endif
-  endif
-  return []
 endfunction
 
 function! s:Dispatch(bang, options) abort
