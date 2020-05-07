@@ -8,6 +8,9 @@ syn spell notoplevel
 syn include @fugitiveDiff syntax/diff.vim
 
 syn match fugitiveHeader /^[A-Z][a-z][^:]*:/ nextgroup=fugitiveHash,fugitiveSymbolicRef skipwhite
+syn match fugitiveBareHeader /^Bare:/
+syn match fugitiveHelpHeader /^Help:/ nextgroup=fugitiveHelpTag skipwhite
+syn match fugitiveHelpTag    /\S\+/ contained
 
 syn region fugitiveSection start=/^\%(.*(\d\+)$\)\@=/ contains=fugitiveHeading end=/^$/
 syn cluster fugitiveSection contains=fugitiveSection
@@ -33,7 +36,10 @@ for s:section in ['Untracked', 'Unstaged', 'Staged']
 endfor
 unlet s:section
 
+hi def link fugitiveBareHeader fugitiveHeader
+hi def link fugitiveHelpHeader fugitiveHeader
 hi def link fugitiveHeader Label
+hi def link fugitiveHelpTag Tag
 hi def link fugitiveHeading PreProc
 hi def link fugitiveUntrackedHeading PreCondit
 hi def link fugitiveUnstagedHeading Macro

@@ -3627,6 +3627,10 @@ function! s:DoToggleHeadHeader(value) abort
   call search('\C^index$', 'wc')
 endfunction
 
+function! s:DoToggleHelpHeader(value) abort
+  exe 'help fugitive-map'
+endfunction
+
 function! s:DoStagePushHeader(value) abort
   let remote = matchstr(a:value, '\zs[^/]\+\ze/')
   if empty(remote)
