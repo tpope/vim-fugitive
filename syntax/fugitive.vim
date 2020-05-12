@@ -23,8 +23,8 @@ syn match fugitiveDone /^done\>/ contained containedin=@fugitiveSection nextgrou
 syn match fugitiveStop /^stop\>/ contained containedin=@fugitiveSection nextgroup=fugitiveHash skipwhite
 syn match fugitiveModifier /^[MADRCU?]\{1,2} / contained containedin=@fugitiveSection
 syn match fugitiveSymbolicRef /\.\@!\%(\.\.\@!\|[^[:space:][:cntrl:]\:.]\)\+\.\@<!/ contained
-syn match fugitiveHash /^\x\{4,\}\>/ contained containedin=@fugitiveSection
-syn match fugitiveHash /\<\x\{4,\}\>/ contained
+syn match fugitiveHash /^\x\{4,\}\S\@!/ contained containedin=@fugitiveSection
+syn match fugitiveHash /\S\@<!\x\{4,\}\S\@!/ contained
 
 syn region fugitiveHunk start=/^\%(@@\+ -\)\@=/ end=/^\%([A-Za-z?@]\|$\)\@=/ contains=@fugitiveDiff containedin=@fugitiveSection fold
 
