@@ -4190,14 +4190,13 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
     let args = args[1:-1]
   endif
   let name_only = s:HasOpt(args, '-l', '--files-with-matches', '--name-only', '-L', '--files-without-match')
-  let title = [listnr < 0 ? ':Ggrep' : ':Glgrep'] + args
   if listnr > 0
     exe listnr 'wincmd w'
   else
     call s:BlurStatus()
   endif
   redraw
-  call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)})
+  call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Git grep ' : ':0Git grep ') . s:fnameescape(args)})
   let tempfile = tempname()
   let event = listnr < 0 ? 'grep-fugitive' : 'lgrep-fugitive'
   silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
