@@ -4817,11 +4817,11 @@ endfunction
 
 augroup fugitive_diff
   autocmd!
-  autocmd BufWinLeave *
+  autocmd BufWinLeave * nested
         \ if s:can_diffoff(+expand('<abuf>')) && s:diff_window_count() == 2 |
         \   call s:diffoff_all(s:Dir(+expand('<abuf>'))) |
         \ endif
-  autocmd BufWinEnter *
+  autocmd BufWinEnter * nested
         \ if s:can_diffoff(+expand('<abuf>')) && s:diff_window_count() == 1 |
         \   call s:diffoff() |
         \ endif
