@@ -2014,6 +2014,8 @@ function! fugitive#BufReadStatus() abort
     call s:Map('x', 'gI', ":<C-U>execute <SID>StageIgnore(line(\"'<\"), line(\"'>\"), v:count)<CR>", '<silent>')
     call s:Map('n', '.', ':<C-U> <C-R>=<SID>StageArgs(0)<CR><Home>')
     call s:Map('x', '.', ':<C-U> <C-R>=<SID>StageArgs(1)<CR><Home>')
+    call s:Map('n', '!', ':<C-U> <C-R>=<SID>StageArgs(0)<CR><Home>!')
+    call s:Map('x', '!', ':<C-U> <C-R>=<SID>StageArgs(1)<CR><Home>!')
     setlocal filetype=fugitive
 
     for [lnum, section] in [[staged_end, 'Staged'], [unstaged_end, 'Unstaged']]

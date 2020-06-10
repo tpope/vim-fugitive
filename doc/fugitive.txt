@@ -539,8 +539,12 @@ Miscellaneous maps ~
 gq                      Close the status buffer.
 
                                                 *fugitive_.*
-.                       Start a |:| command line with the file under the
-                        cursor prepopulated.
+.                       Start a |:| command line with the file or commit under
+                        the cursor prepopulated.
+
+                                                *fugitive_!*
+!                       Start a |:!| command line with the file or commit under
+                        the cursor prepopulated.
 
                                                 *fugitive_g?*
 g?                      Show help for |fugitive-maps|.
