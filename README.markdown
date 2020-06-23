@@ -48,13 +48,13 @@ Additional commands are provided for higher level operations:
   it like `git add` when called from a work tree file and like `git checkout`
   when called from the index or a blob in history.
 * `:Ggrep` is `:grep` for `git grep`.  `:Glgrep` is `:lgrep` for the same.
-* `:GMove` does a `git mv` on the current file and changes the buffer name to
-  match.  `:GRename` does the same with a destination filename relative to the
+* `:Gmove` does a `git mv` on the current file and changes the buffer name to
+  match.  `:Grename` does the same with a destination filename relative to the
   current file's directory.
-* `:GDelete` does a `git rm` on the current file and simultaneously deletes
-  the buffer.  `:GRemove` does the same but leaves the (now empty) buffer
+* `:Gdelete` does a `git rm` on the current file and simultaneously deletes
+  the buffer.  `:Gremove` does the same but leaves the (now empty) buffer
   open.
-* `:GBrowse` to open the current file on the web front-end of your favorite
+* `:Gbrowse` to open the current file on the web front-end of your favorite
   hosting provider, with optional line range (try it in visual mode).  Plugins
   are available for popular providers such as [GitHub][rhubarb.vim],
   [GitLab][fugitive-gitlab.vim], [Bitbucket][fubitive.vim],
