@@ -9,6 +9,9 @@ arbitrary Git command.  If you know how to use Git at the command line, you
 know how to use `:Git`.  It's vaguely akin to `:!git` but with numerous
 improvements:
 
+* Without any arguments `:Git` provides a magit inspired status interface that shows
+  you the current state of your working area and index and allows you to easily
+  stage and unstage hunks.
 * The default behavior is to directly echo the command's output.  Quiet
   commands like `:Git add` avoid the dreaded "Press ENTER or type command to
   continue" prompt.
