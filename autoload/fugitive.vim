@@ -2699,8 +2699,7 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
   try
     let mods = s:Mods(a:mods, &splitbelow ? 'botright' : 'topleft')
     let file = fugitive#Find(':', dir)
-    let arg = ' +setl\ foldmethod=syntax\ foldlevel=1\|let\ w:fugitive_status=FugitiveGitDir() ' .
-          \ s:fnameescape(file)
+    let arg = s:fnameescape(file)
     for winnr in range(1, winnr('$'))
       if s:cpath(file, fnamemodify(bufname(winbufnr(winnr)), ':p'))
         if winnr == winnr()
