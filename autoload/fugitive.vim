@@ -1622,7 +1622,7 @@ endfunction
 
 function! s:CompleteRemote(A, L, P, ...) abort
   let dir = a:0 ? a:1 : s:Dir()
-  let remote = matchstr(a:L, '\u\w*[! ] *\zs\S\+\ze ')
+  let remote = matchstr(a:L, '\u\w*[! ] *.\{-\}\s\@<=\zs[^-[:space:]]\S*\ze ')
   if !empty(remote)
     let matches = s:LinesError([dir, 'ls-remote', remote])[0]
     call filter(matches, 'v:val =~# "\t" && v:val !~# "{"')
