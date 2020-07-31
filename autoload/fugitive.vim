@@ -3521,7 +3521,12 @@ function! s:StageApply(info, reverse, extra) abort
   let i = b:fugitive_expanded[info.section][info.filename][0]
   let head = []
   while get(b:fugitive_diff[info.section], i, '@') !~# '^@'
-    call add(head, b:fugitive_diff[info.section][i])
+    let line = b:fugitive_diff[info.section][i]
+    if line ==# '--- /dev/null'
+      call add(head, '--- ' . get(b:fugitive_diff[info.section], i + 1, '')[4:-1])
+    elseif line !~# '^new file '
+      call add(head, line)
+    endif
     let i += 1
   endwhile
   call extend(lines, head, 'keep')
@@ -3731,7 +3736,7 @@ function! s:DoUnstageStaged(record) abort
 endfunction
 
 function! s:DoToggleUnstaged(record) abort
-  if a:record.patch && a:record.status !=# 'A'
+  if a:record.patch
     return s:StageApply(a:record, 0, ['--cached'])
   else
     call s:TreeChomp(['add', '-A', '--'] + a:record.paths)
