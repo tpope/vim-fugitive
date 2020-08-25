@@ -344,6 +344,7 @@ P                       Open the current file in the [count]th parent.
 
                                                 *fugitive_C*
 C                       Open the commit containing the current file.
+                        Deprecated in favor of cc.
 
                                                 *fugitive_CTRL-P* *fugitive_(*
 (                       Jump to the previous file, hunk, or revision.
