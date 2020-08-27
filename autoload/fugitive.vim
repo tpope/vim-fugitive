@@ -4503,6 +4503,11 @@ function! s:DiffClose() abort
   diffoff!
 endfunction
 
+function! fugitive#DiffClose2() abort
+  call s:DiffClose()
+endfunction
+
+
 function! s:BlurStatus() abort
   if (&previewwindow || exists('w:fugitive_status')) && get(b:,'fugitive_type', '') ==# 'index'
     let winnrs = filter([winnr('#')] + range(1, winnr('$')), 's:UsableWin(v:val)')
