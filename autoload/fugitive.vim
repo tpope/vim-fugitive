@@ -4627,10 +4627,8 @@ endfunction
 " Section: :Gwrite, :Gwq
 
 function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abort
-  if exists('b:fugitive_commit_arguments')
-    return 'write|bdelete'
-  elseif expand('%:t') == 'COMMIT_EDITMSG' && $GIT_INDEX_FILE != ''
-    return 'wq'
+  if s:cpath(expand('%:p'), fugitive#Find('.git/COMMIT_EDITMSG'))
+    return (empty($GIT_INDEX_FILE) ? 'write|bdelete' : 'wq') . (a:bang ? '!' : '')
   elseif get(b:, 'fugitive_type', '') ==# 'index'
     return 'Git commit'
   elseif &buftype ==# 'nowrite' && getline(4) =~# '^[+-]\{3\} '
@@ -4759,7 +4757,7 @@ endfunction
 
 function! fugitive#WqCommand(...) abort
   let bang = a:4 ? '!' : ''
-  if exists('b:fugitive_commit_arguments')
+  if s:cpath(expand('%:p'), fugitive#Find('.git/COMMIT_EDITMSG'))
     return 'wq'.bang
   endif
   let result = call('fugitive#WriteCommand', a:000)
