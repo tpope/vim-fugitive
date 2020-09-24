@@ -551,9 +551,9 @@ function! fugitive#Config(...) abort
     let dir = a:1
   endif
   let name = substitute(name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
-  let key = len(dir) ? dir : '_'
-  if has_key(s:config, key) && s:config[key][0] ==# s:ConfigTimestamps(dir, s:config[key][1])
-    let dict = s:config[key][1]
+  let dir_key = len(dir) ? dir : '_'
+  if has_key(s:config, dir_key) && s:config[dir_key][0] ==# s:ConfigTimestamps(dir, s:config[dir_key][1])
+    let dict = s:config[dir_key][1]
   else
     let dict = {}
     let [lines, message, exec_error] = s:NullError([dir, 'config', '--list', '-z'])
@@ -571,7 +571,7 @@ function! fugitive#Config(...) abort
         call add(dict[key], strpart(line, len(key) + 1))
       endif
     endfor
-    let s:config[dir] = [s:ConfigTimestamps(dir, dict), dict]
+    let s:config[dir_key] = [s:ConfigTimestamps(dir, dict), dict]
     lockvar! dict
   endif
   return len(name) ? get(get(dict, name, []), 0, '') : dict
@@ -2639,14 +2639,15 @@ endfunction
 
 let s:aliases = {}
 function! s:Aliases(dir) abort
-  if !has_key(s:aliases, a:dir)
-    let s:aliases[a:dir] = {}
+  let dir_key = len(a:dir) ? a:dir : '_'
+  if !has_key(s:aliases, dir_key)
+    let s:aliases[dir_key] = {}
     let lines = s:NullError([a:dir, 'config', '-z', '--get-regexp', '^alias[.]'])[0]
     for line in lines
-      let s:aliases[a:dir][matchstr(line, '\.\zs.\{-}\ze\n')] = matchstr(line, '\n\zs.*')
+      let s:aliases[dir_key][matchstr(line, '\.\zs.\{-}\ze\n')] = matchstr(line, '\n\zs.*')
     endfor
   endif
-  return s:aliases[a:dir]
+  return s:aliases[dir_key]
 endfunction
 
 function! fugitive#Complete(lead, ...) abort
