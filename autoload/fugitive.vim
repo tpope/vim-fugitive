@@ -4513,7 +4513,7 @@ function! s:BlurStatus() abort
       belowright new
     endif
     if &diff
-      call s:DiffClose()
+      call fugitive#DiffClose()
     endif
   endif
 endfunction
