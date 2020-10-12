@@ -1641,6 +1641,7 @@ function! s:ReplaceCmd(cmd) abort
   if exec_error
     call s:throw((len(err) ? err : filereadable(temp) ? join(readfile(temp), ' ') : 'unknown error running ' . a:cmd))
   endif
+  setlocal noswapfile
   silent exe 'lockmarks keepalt 0read ++edit' s:fnameescape(temp)
   if &foldenable && foldlevel('$') > 0
     set nofoldenable
