@@ -146,11 +146,13 @@ endif
 function! s:TempScript(...) abort
   let body = join(a:000, "\n")
   if !has_key(s:temp_scripts, body)
-    let temp = tempname() . '.sh'
-    call writefile(['#!/bin/sh'] + a:000, temp)
-    let s:temp_scripts[body] = temp
+    let s:temp_scripts[body] = tempname() . '.sh'
   endif
-  return FugitiveGitPath(s:temp_scripts[body])
+  let temp = s:temp_scripts[body]
+  if !filereadable(temp)
+    call writefile(['#!/bin/sh'] + a:000, temp)
+  endif
+  return FugitiveGitPath(temp)
 endfunction
 
 function! s:DoAutocmd(cmd) abort
