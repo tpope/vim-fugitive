@@ -1941,6 +1941,10 @@ function! fugitive#BufReadStatus() abort
     if empty(s:Tree())
       call s:AddHeader('Bare', 'yes')
     endif
+    if get(FugitiveConfigGetAll('advice.statusHints', config), 0, 'true') !~# '^\%(false\|no|off\|0\|\)$'
+      call s:AddHeader('Help', 'g?')
+    endif
+
     call s:AddSection('Rebasing ' . rebasing_head, rebasing)
     call s:AddSection('Untracked', untracked)
     call s:AddSection('Unstaged', unstaged)
