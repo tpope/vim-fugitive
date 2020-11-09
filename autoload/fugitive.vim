@@ -4391,9 +4391,9 @@ function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
     let path = ''
   endif
   if s:HasOpt(args, '-g', '--walk-reflogs')
-    let format = "%gd %P\t%H %gs"
+    let format = "%gd %P\t%H [%cs] %gs"
   else
-    let format = "%h %P\t%H " . g:fugitive_summary_format
+    let format = "%h %P\t%H [%cs] " . g:fugitive_summary_format
   endif
   let cmd = ['--no-pager']
   if fugitive#GitVersion(1, 9)
