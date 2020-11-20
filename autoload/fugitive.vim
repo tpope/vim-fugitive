@@ -5187,7 +5187,7 @@ endfunction
 function! s:BlameCommitFileLnum(...) abort
   let line = a:0 ? a:1 : getline('.')
   let state = a:0 ? a:2 : s:TempState()
-  let commit = matchstr(line, '^\^\=\zs\x\+')
+  let commit = matchstr(line, '^\^\=[?*]*\zs\x\+')
   if commit =~# '^0\+$'
     let commit = ''
   elseif has_key(state, 'blame_reverse_end')
