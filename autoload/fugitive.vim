@@ -2653,13 +2653,26 @@ function! s:Aliases(dir) abort
   return s:aliases[dir_key]
 endfunction
 
+let s:list_cmds = {}
+function! s:ListCmds(dir) abort
+  let dir_key = len(a:dir) ? a:dir : '_'
+  if !has_key(s:list_cmds, dir_key)
+    let s:list_cmds[dir_key] = s:LinesError([a:dir, '--list-cmds=list-mainporcelain,others,nohelpers,alias,list-complete,config'])[0]
+  endif
+  return s:list_cmds[dir_key]
+endfunction
+
 function! fugitive#Complete(lead, ...) abort
   let dir = a:0 == 1 ? a:1 : a:0 >= 3 ? a:3 : s:Dir()
   let root = a:0 >= 4 ? a:4 : s:Tree(s:Dir())
   let pre = a:0 > 1 ? strpart(a:1, 0, a:2) : ''
   let subcmd = matchstr(pre, '\u\w*[! ] *\zs[[:alnum:]-]\+\ze ')
   if empty(subcmd)
-    let results = sort(s:Subcommands() + keys(s:Aliases(dir)))
+    if fugitive#GitVersion(2, 18, 0)
+      let results = copy(sort(s:ListCmds(dir)))
+    else
+      let results = sort(s:Subcommands() + keys(s:Aliases(dir)))
+    endif
   elseif a:0 ==# 2 && subcmd =~# '^\%(commit\|revert\|push\|fetch\|pull\|merge\|rebase\)$'
     let cmdline = substitute(a:1, '\u\w*\([! ] *\)' . subcmd, 'G' . subcmd, '')
     let caps_subcmd = substitute(subcmd, '\%(^\|-\)\l', '\u&', 'g')
