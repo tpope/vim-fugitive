@@ -68,7 +68,7 @@ Additional commands are provided for higher level operations:
 [pagure]: https://github.com/FrostyX/vim-fugitive-pagure
 [vim-phabricator]: https://github.com/jparise/vim-phabricator
 
-Add `%{FugitiveStatusline()}` to `'statusline'` to get an indicator
+Add `%{fugitive#statusline()}` to `'statusline'` to get an indicator
 with the current branch in your statusline.
 
 For more information, see `:help fugitive`.
