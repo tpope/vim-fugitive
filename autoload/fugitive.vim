@@ -4891,25 +4891,30 @@ function! s:diffthis() abort
 endfunction
 
 function! s:diffoff() abort
-  if exists('w:fugitive_diff_restore')
+  if exists('w:fugitive_diff_restore') && v:version < 704
     execute w:fugitive_diff_restore
-    unlet w:fugitive_diff_restore
-  else
-    diffoff
   endif
+  unlet! w:fugitive_diff_restore
+  diffoff
 endfunction
 
 function! s:diffoff_all(dir) abort
   let curwin = winnr()
   for nr in range(1,winnr('$'))
     if getwinvar(nr, '&diff') && !empty(getwinvar(nr, 'fugitive_diff_restore'))
-      if nr != winnr()
-        execute nr.'wincmd w'
+      if v:version < 704
+        if nr != winnr()
+          execute nr.'wincmd w'
+        endif
+        execute w:fugitive_diff_restore
       endif
-      call s:diffoff()
+      call setwinvar(nr, 'fugitive_diff_restore', '')
     endif
   endfor
-  execute curwin.'wincmd w'
+  if curwin != winnr()
+    execute curwin.'wincmd w'
+  endif
+  diffoff!
 endfunction
 
 function! s:CompareAge(mine, theirs) abort
