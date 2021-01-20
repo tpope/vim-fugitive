@@ -4795,7 +4795,7 @@ function! s:Dispatch(bang, options) abort
           \ ',%\&git_dir=' . escape(substitute(dir, '%', '%%', 'g'), '\,')
     let &l:makeprg = s:UserCommand({'git': a:options.git, 'dir': dir}, s:AskPassArgs(dir) + a:options.flags + [a:options.command] + a:options.args)
     if exists(':Make') == 2
-      Make
+      exec "Make".a:bang
       return ''
     else
       if !has('patch-8.1.0334') && has('terminal') && &autowrite
