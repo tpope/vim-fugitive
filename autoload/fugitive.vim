@@ -1019,11 +1019,7 @@ function! fugitive#Find(object, ...) abort
       if commit !~# '^[0-9a-f]\{40,\}$'
         let commit = matchstr(s:ChompDefault('', [dir, 'rev-parse', '--verify', commit . (len(file) ? '^{}' : ''), '--']), '\<[0-9a-f]\{40,\}\>')
       endif
-      if len(commit)
-        let f = 'fugitive://' . dir . '//' . commit . file
-      else
-        let f = base . '/' . substitute(rev, '^:/:\=\|^[^:]\+:', '', '')
-      endif
+      let f = 'fugitive://' . dir . '//' . (len(commit) ? commit : repeat('0', 40)) . file
     endif
   endif
   return FugitiveVimPath(f)
