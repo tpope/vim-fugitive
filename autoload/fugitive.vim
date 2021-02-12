@@ -4545,9 +4545,10 @@ function! s:OpenExec(cmd, mods, env, args, ...) abort
   return 'echo ' . string(':!' . s:UserCommand(options, a:args))
 endfunction
 
+let s:bang_edits = {'split': 'Git', 'vsplit': 'vert Git', 'tabedit': 'tab Git', 'pedit': 'Git!'}
 function! fugitive#Open(cmd, bang, mods, arg, args) abort
   if a:bang
-    return s:OpenExec(a:cmd, a:mods, {}, s:SplitExpand(a:arg, s:Tree()))
+    return 'echoerr ' . string(':G' . a:cmd . '! for temp buffer output has been replaced by :' . get(s:bang_edits, a:cmd, 'Git') . ' --paginate')
   endif
 
   let mods = s:Mods(a:mods)
@@ -4595,9 +4596,7 @@ endfunction
 
 function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
   if a:bang
-    let dir = s:Dir()
-    let args = s:SplitExpand(a:arg, s:Tree(dir))
-    return s:ReadExec(a:line1, a:count, a:range, a:mods, {}, args, {'dir': dir})
+    return 'echoerr ' . string(':Gread! for temp buffer output has been replaced by :{range}Git! --paginate')
   endif
   let [read, post] = s:ReadPrepare(a:line1, a:count, a:range, a:mods)
   try
