@@ -92,17 +92,18 @@ Install using your favorite package manager, or use Vim's built-in package suppo
 
 ## FAQ
 
-> Why can't I enter my password when I `:Git push`?
+> What happened to the dispatch.vim backed asynchronous `:Gpush` and
+> `:Gfetch`?
 
-It is highly recommended to use SSH keys or [credentials caching][] to avoid
-entering your password on every upstream interaction.  If this isn't an
-option, the official solution is to use the `core.askPass` Git option to
-request the password via a GUI.  Fugitive will configure this for you
-automatically if you have `ssh-askpass` or `git-gui` installed; otherwise it's
-your responsibility to set this up.
+This behavior was divisive, confusing, and complicated inputting passwords, so
+it was removed.  Use `:Dispatch git push` for effectively the same behavior,
+or provide your own asynchronous `:Gpush` and `:Gfetch` by adding the
+following to your vimrc:
 
-If you absolutely must type in your password by hand, sidestep Fugitive and
-use `:terminal git push`.
+    command! -bang -bar -nargs=* Gpush execute 'Dispatch<bang> -dir=' .
+          \ fnameescape(FugitiveGitDir()) 'git push' <q-args>
+    command! -bang -bar -nargs=* Gfetch execute 'Dispatch<bang> -dir=' .
+          \ fnameescape(FugitiveGitDir()) 'git fetch' <q-args>
 
 [credentials caching]: https://help.github.com/en/articles/caching-your-github-password-in-git
 

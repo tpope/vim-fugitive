@@ -664,14 +664,6 @@ function! s:QuickfixStream(nr, event, title, cmd, first, callback, ...) abort
   endif
 endfunction
 
-let s:common_efm = ''
-      \ . '%+Egit:%.%#,'
-      \ . '%+Eusage:%.%#,'
-      \ . '%+Eerror:%.%#,'
-      \ . '%+Efatal:%.%#,'
-      \ . '%-G%.%#%\e[K%.%#,'
-      \ . '%-G%.%#%\r%.%\+'
-
 function! fugitive#Cwindow() abort
   if &buftype == 'quickfix'
     cwindow
@@ -1967,7 +1959,7 @@ function! fugitive#BufReadStatus() abort
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
-    let b:dispatch = ':Git fetch --all'
+    let b:dispatch = '-dir=' . fnameescape(len(s:Tree()) ? s:Tree() : s:Dir()) . ' ' . g:fugitive_git_executable . ' fetch --all'
     call fugitive#MapJumps()
     call s:Map('n', '-', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
     call s:Map('x', '-', ":<C-U>execute <SID>Do('Toggle',1)<CR>", '<silent>')
@@ -4778,45 +4770,6 @@ endfunction
 
 function! fugitive#FetchComplete(A, L, P, ...) abort
   return s:CompleteSub('fetch', a:A, a:L, a:P, function('s:CompleteRemote'), a:000)
-endfunction
-
-function! s:Dispatch(bang, options) abort
-  let dir = a:options.dir
-  exe s:DirCheck(dir)
-  let [mp, efm, cc] = [&l:mp, &l:efm, get(b:, 'current_compiler', '')]
-  try
-    let b:current_compiler = 'git'
-    let &l:errorformat = s:common_efm .
-          \ ',%\&git_dir=' . escape(substitute(dir, '%', '%%', 'g'), '\,')
-    let &l:makeprg = s:UserCommand({'git': a:options.git, 'dir': dir}, s:AskPassArgs(dir) + a:options.flags + [a:options.command] + a:options.args)
-    if exists(':Make') == 2
-      Make
-      return ''
-    else
-      if !has('patch-8.1.0334') && has('terminal') && &autowrite
-        let autowrite_was_set = 1
-        set noautowrite
-        silent! wall
-      endif
-      silent noautocmd make!
-      redraw!
-      return 'call fugitive#Cwindow()|silent ' . s:DoAutocmd('ShellCmdPost')
-    endif
-  finally
-    let [&l:mp, &l:efm, b:current_compiler] = [mp, efm, cc]
-    if empty(cc) | unlet! b:current_compiler | endif
-    if exists('autowrite_was_set')
-      set autowrite
-    endif
-  endtry
-endfunction
-
-function! s:PushSubcommand(line1, line2, range, bang, mods, options) abort
-  return s:Dispatch(a:bang ? '!' : '', a:options)
-endfunction
-
-function! s:FetchSubcommand(line1, line2, range, bang, mods, options) abort
-  return s:Dispatch(a:bang ? '!' : '', a:options)
 endfunction
 
 " Section: :Gdiff
