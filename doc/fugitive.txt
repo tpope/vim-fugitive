@@ -78,15 +78,6 @@ that are part of Git repositories).
                                                 *:Git_mergetool*
 :Git mergetool [args]   Like |:Git_difftool|, but target merge conflicts.
 
-                                                *:Git_push*
-:Git push [args]        Invoke git-push, load the results into the |quickfix|
-                        list, and invoke |:cwindow| to reveal any errors.
-                        |:Dispatch| is used if available for asynchronous
-                        invocation.
-
-                                                *:Git_fetch*
-:Git fetch [args]       Like |:Git_push|, but for git-fetch.
-
                                                 *:Ggrep* *:Gcgrep* *:Git_grep*
 :Ggrep[!] [args]        |:grep|[!] with git-grep as 'grepprg'.
 :Git[!] grep [args]
@@ -633,8 +624,8 @@ just one space character longer than the legacy version.
 *:Gpull*        Superseded by |:Git| pull.
 *:Grebase*      Superseded by |:Git| rebase.
 *:Grevert*      Superseded by |:Git| revert.
-*:Gpush*        Superseded by |:Git_push|.
-*:Gfetch*       Superseded by |:Git_fetch|.
+*:Gpush*        Superseded by |:Git| push.
+*:Gfetch*       Superseded by |:Git| fetch.
 *:Glog*         Superseded by |:Gclog|.
 *:Gstatus*      Superseded by |:Git| (with no arguments).
 *:Git!*         Superseded by |:Git_--paginate|.
