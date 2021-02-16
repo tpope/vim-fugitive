@@ -5509,6 +5509,7 @@ function! s:BlameJump(suffix, ...) abort
   return ''
 endfunction
 
+let s:load_time = localtime()
 let s:hash_colors = {}
 
 function! fugitive#BlameSyntax() abort
@@ -5544,11 +5545,34 @@ function! fugitive#BlameSyntax() abort
   hi def link FugitiveblameShort              FugitiveblameDelimiter
   hi def link FugitiveblameDelimiter          Delimiter
   hi def link FugitiveblameNotCommittedYet    Comment
+
   if !get(g:, 'fugitive_dynamic_colors', 1) && !s:HasOpt(flags, '--color-lines') || s:HasOpt(flags, '--no-color-lines')
     return
   endif
+
+  call s:BlameHighlightDates()
+
   let seen = {}
+  let dates = {}
   for lnum in range(1, line('$'))
+    let match = matchlist(getline(lnum), '\<\(\d\d\d\d\)-\(\d\d\)-\(\d\d\).\(\d\d\):\(\d\d\):\(\d\d\) \([+-]\d\d\d\d\)\>')[0:7]
+    if !empty(match)
+      let age = s:load_time - call(s:function('s:unixtime'), match[1:7])
+    else
+      let match = matchlist(getline(lnum), '\<\(\d\+\) \([+-]\d\d\d\d\)\>')[0:2]
+      if !empty(match)
+        let age = s:load_time - match[1]
+      endif
+    endif
+    if exists('age') && exists('*log')
+      let staleness = age < 0 ? 0 : float2nr(ceil(log(1+age/86400)))
+      if staleness > 15 | let staleness = 15 | endif
+      if !has_key(dates, match[0])
+        exe 'syn match FugitiveblameTime'.staleness.' " \<'.match[0].'\>" contained containedin=FugitiveblameAnnotation'
+        let dates[match[0]] = 1
+      endif
+    endif
+
     let hash = matchstr(getline(lnum), '^\^\=\zs\x\{6\}')
     if hash ==# '' || hash ==# '000000' || has_key(seen, hash)
       continue
@@ -5562,6 +5586,10 @@ function! fugitive#BlameSyntax() abort
         let color = 8
       endif
       let s:hash_colors[hash] = ' ctermfg='.color
+    elseif &t_Co >= 256
+      " only use colors from the 6x6x6 cube without color 16 (black)
+      let color = (str2nr(strpart(hash,0,2),16) % 215) + 17
+      let s:hash_colors[hash] = ' ctermfg='.color
     else
       let s:hash_colors[hash] = ''
     endif
@@ -5570,7 +5598,23 @@ function! fugitive#BlameSyntax() abort
   call s:BlameRehighlight()
 endfunction
 
+function! s:BlameHighlightDates() abort
+  let shade256 = [235, 236, 237, 238, 239, 240, 242, 243, 102, 246, 248, 249, 251, 253, 255, 231]
+  for i in range(0, 15)
+    let shade = 0x11 * (&background == 'dark' ? 0xf - i : i)
+    if &t_Co > 16 && exists('*csapprox#per_component#Approximate')
+      let cterm = ' ctermfg='.csapprox#per_component#Approximate(shade, shade, shade)
+    elseif &t_Co >= 256
+      let cterm = ' cterm=bold ctermfg='.shade256[(&background == 'dark' ? 0xf - i : i)]
+    else
+      let cterm = ''
+    endif
+    execute 'hi FugitiveblameTime'.i.' guifg=#'.repeat(printf('%02x', shade),3).cterm
+  endfor
+endfunction
+
 function! s:BlameRehighlight() abort
+  call s:BlameHighlightDates()
   for [hash, cterm] in items(s:hash_colors)
     if !empty(cterm) || has('gui_running') || has('termguicolors') && &termguicolors
       exe 'hi FugitiveblameHash'.hash.' guifg=#'.hash.get(s:hash_colors, hash, '')
@@ -5617,6 +5661,18 @@ augroup fugitive_blame
   autocmd ColorScheme,GUIEnter * call s:BlameRehighlight()
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
+
+function! s:unixtime(year,mon,day,hour,min,sec, ...) abort
+  let y = a:year + 4800 - (a:mon <= 2)
+  let m = a:mon + (a:mon <= 2 ? 9 : -3)
+  let jul = a:day + (153*m+2)/5 + 1461*y/4 - 32083
+  let days = jul - y/100 + y/400 + 38 - 2440588
+
+  let offset = a:0 ? a:1 : '0000'
+  let seconds = days * 86400 + a:hour * 3600 + a:min * 60 + a:sec
+  let seconds -= 3600 * matchstr(offset, '[+-]\=\d\d') - 60 * matchstr(offset, '\d\d$')
+  return seconds
+endfunction
 
 " Section: :Gbrowse
 
