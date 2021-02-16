@@ -2294,21 +2294,21 @@ function! s:RunEdit(state, job) abort
   endif
 endfunction
 
-function! s:RunReceive(state, job, data, ...) abort
+function! s:RunReceive(state, type, job, data, ...) abort
   call add(a:state.log, a:data)
   let data = type(a:data) == type([]) ? join(a:data, "\n") : a:data
-  if has_key(a:state, 'buffer')
-    let data = remove(a:state, 'buffer') . data
-  endif
-  let escape = "\033]51;[^\007]*"
-  let a:state.escape_buffer = matchstr(data, escape . '$')
-  if len(a:state.escape_buffer)
-    let data = strpart(data, 0, len(data) - len(a:state.escape_buffer))
-  endif
-  let cmd = matchstr(data, escape . "\007")[5:-2]
-  let data = substitute(data, escape . "\007", '', 'g')
-  if cmd =~# '^fugitive:'
-    let a:state.request = strpart(cmd, 9)
+  if a:type ==# 'err' || a:state.pty
+    let data = a:state.escape_buffer . data
+    let escape = "\033]51;[^\007]*"
+    let a:state.escape_buffer = matchstr(data, escape . '$')
+    if len(a:state.escape_buffer)
+      let data = strpart(data, 0, len(data) - len(a:state.escape_buffer))
+    endif
+    let cmd = matchstr(data, escape . "\007")[5:-2]
+    let data = substitute(data, escape . "\007", '', 'g')
+    if cmd =~# '^fugitive:'
+      let a:state.request = strpart(cmd, 9)
+    endif
   endif
   let data = a:state.echo_buffer . data
   let a:state.echo_buffer = matchstr(data, "[\r\n]\\+$")
@@ -2568,11 +2568,12 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       let args = s:AskPassArgs(dir) + args
     endif
     let env.FUGITIVE_TEMP = state.temp
+    let env.FUGITIVE = state.temp
     let editor = 'sh ' . s:TempScript(
-          \ '[ -f "$FUGITIVE_TEMP.exit" ] && exit 1',
-          \ 'echo "$1" > "$FUGITIVE_TEMP.edit"',
-          \ 'printf "\033]51;fugitive:edit\007"',
-          \ 'while [ -f "$FUGITIVE_TEMP.edit" -a ! -f "$FUGITIVE_TEMP.exit" ]; do sleep 0.05 2>/dev/null || sleep 1; done',
+          \ '[ -f "$FUGITIVE.exit" ] && exit 1',
+          \ 'echo "$1" > "$FUGITIVE.edit"',
+          \ 'printf "\033]51;fugitive:edit\007" >&2',
+          \ 'while [ -f "$FUGITIVE.edit" -a ! -f "$FUGITIVE.exit" ]; do sleep 0.05 2>/dev/null || sleep 1; done',
           \ 'exit 0')
     call extend(env, {
           \ 'NO_COLOR': '1',
@@ -2590,7 +2591,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     if exists('*job_start')
       call extend(jobopts, {
             \ 'mode': 'raw',
-            \ 'callback': function('s:RunReceive', [state]),
+            \ 'out_cb': function('s:RunReceive', [state, 'out']),
+            \ 'err_cb': function('s:RunReceive', [state, 'err']),
             \ })
       if state.pty
         let jobopts.pty = 1
@@ -2600,8 +2602,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       let job = jobstart(argv, extend(jobopts, {
             \ 'pty': state.pty,
             \ 'TERM': 'dumb',
-            \ 'on_stdout': function('s:RunReceive', [state]),
-            \ 'on_stderr': function('s:RunReceive', [state]),
+            \ 'on_stdout': function('s:RunReceive', [state, 'out']),
+            \ 'on_stderr': function('s:RunReceive', [state, 'err']),
             \ }))
     endif
     let state.job = job
