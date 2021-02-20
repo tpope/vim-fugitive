@@ -2884,23 +2884,28 @@ endfunction
 function! s:ReloadTabStatus(...) abort
   let mytab = tabpagenr()
   let tab = a:0 ? a:1 : mytab
+  let wins = []
   for winnr in range(1, tabpagewinnr(tab, '$'))
     if getbufvar(tabpagebuflist(tab)[winnr-1], 'fugitive_type') ==# 'index'
-      execute 'tabnext '.tab
-      if winnr != winnr()
-        execute winnr.'wincmd w'
-        let restorewinnr = 1
-      endif
-      try
-        call s:ReloadWinStatus()
-      finally
-        if exists('restorewinnr')
-          unlet restorewinnr
-          wincmd p
-        endif
-        execute 'tabnext '.mytab
-      endtry
+      call add(wins, winnr)
     endif
+  endfor
+
+  for winnr in wins
+    execute 'tabnext '.tab
+    if winnr != winnr()
+      execute winnr.'wincmd w'
+      let restorewinnr = 1
+    endif
+    try
+      call s:ReloadWinStatus()
+    finally
+      if exists('restorewinnr')
+        unlet restorewinnr
+        wincmd p
+      endif
+      execute 'tabnext '.mytab
+    endtry
   endfor
   unlet! t:fugitive_reload_status
 endfunction
