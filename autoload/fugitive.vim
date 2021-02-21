@@ -1488,11 +1488,11 @@ function! s:FilterEscape(items, ...) abort
   return items
 endfunction
 
-function! s:GlobComplete(lead, pattern) abort
+function! s:GlobComplete(lead, pattern, ...) abort
   if a:lead ==# '/'
     return []
   elseif v:version >= 704
-    let results = glob(a:lead . a:pattern, 0, 1)
+    let results = glob(a:lead . a:pattern, a:0 ? a:1 : 0, 1)
   else
     let results = split(glob(a:lead . a:pattern), "\n")
   endif
@@ -2662,7 +2662,7 @@ endfunction
 
 function! s:Subcommands() abort
   let exec_path = s:ExecPath()
-  return map(split(glob(exec_path.'/git-*'),"\n"),'s:sub(v:val[strlen(exec_path)+5 : -1],"\\.exe$","")')
+  return map(s:GlobComplete(exec_path.'/git-', '*', 1),'substitute(v:val,"\\.exe$","","")')
 endfunction
 
 let s:aliases = {}
