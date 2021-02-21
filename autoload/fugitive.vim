@@ -2593,7 +2593,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
           \ 'echo_buffer': '',
           \ 'escape_buffer': '',
           \ 'log': [],
-          \ 'temp': tempname()}
+          \ 'temp': s:Resolve(tempname())}
     let state.pty = get(g:, 'fugitive_pty', has('unix') && (has('patch-8.0.0744') || has('nvim')))
     if !state.pty
       let args = s:AskPassArgs(dir) + args
