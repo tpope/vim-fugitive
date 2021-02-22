@@ -2915,7 +2915,8 @@ endfunction
 function! s:ReloadTabStatus(...) abort
   let mytab = tabpagenr()
   let tab = a:0 ? a:1 : mytab
-  for winnr in range(1, tabpagewinnr(tab, '$'))
+  let winnr = 1
+  while winnr <= tabpagewinnr(tab, '$')
     if getbufvar(tabpagebuflist(tab)[winnr-1], 'fugitive_type') ==# 'index'
       execute 'tabnext '.tab
       if winnr != winnr()
@@ -2932,7 +2933,8 @@ function! s:ReloadTabStatus(...) abort
         execute 'tabnext '.mytab
       endtry
     endif
-  endfor
+    let winnr += 1
+  endwhile
   unlet! t:fugitive_reload_status
 endfunction
 
