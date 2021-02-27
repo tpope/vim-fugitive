@@ -3647,7 +3647,7 @@ function! s:StageIgnore(lnum1, lnum2, count) abort
     call extend(paths, info.relative)
   endfor
   call map(paths, '"/" . v:val')
-  exe 'Gsplit' (a:count ? '.gitignore' : '.git/info/exclude')
+  exe 'split' (a:count ? '.gitignore' : '.git/info/exclude')
   let last = line('$')
   if last == 1 && empty(getline(1))
     call setline(last, paths)
