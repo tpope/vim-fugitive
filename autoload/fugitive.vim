@@ -6131,8 +6131,15 @@ function! s:cfile() abort
         let myhash = ''
       endtry
     endif
-    if empty(myhash) && getline(1) =~# '^\%(commit\|tag\) \w'
-      let myhash = matchstr(getline(1),'^\w\+ \zs\S\+')
+    if empty(myhash) && get(s:TempState(), 'filetype', '') ==# 'git'
+      let lnum = line('.')
+      while lnum > 0
+        if getline(lnum) =~# '^\%(commit\|tag\) \w'
+          let myhash = matchstr(getline(lnum),'^\w\+ \zs\S\+')
+          break
+        endif
+        let lnum -= 1
+      endwhile
     endif
 
     let showtree = (getline(1) =~# '^tree ' && getline(2) == "")
