@@ -36,10 +36,10 @@ Additional commands are provided for higher level operations:
 * View any blob, tree, commit, or tag in the repository with `:Gedit` (and
   `:Gsplit`, etc.).  For example, `:Gedit HEAD~3:%` loads the current file as
   it existed 3 commits ago.
-* `:Gdiffsplit` brings up the staged version of the file side by side with the
-  working tree version.  Use Vim's diff handling capabilities to apply changes
-  to the staged version, and write that buffer to stage the changes.  You can
-  also give an arbitrary `:Gedit` argument to diff against older versions of
+* `:Gdiffsplit` (or `:Gvdiffsplit`) brings up the staged version of the file 
+  side by side with the working tree version.  Use Vim's diff handling capabilities 
+  to apply changes to the staged version, and write that buffer to stage the changes.  
+  You can also give an arbitrary `:Gedit` argument to diff against older versions of
   the file.
 * `:Gread` is a variant of `git checkout -- filename` that operates on the
   buffer rather than the file itself.  This means you can use `u` to undo it
