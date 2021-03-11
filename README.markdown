@@ -108,7 +108,12 @@ following to your vimrc:
     command! -bang -bar -nargs=* Gfetch execute 'Dispatch<bang> -dir=' .
           \ fnameescape(FugitiveGitDir()) 'git fetch' <q-args>
 
-[credentials caching]: https://help.github.com/en/articles/caching-your-github-password-in-git
+> So I have a symlink and...
+
+Stop.  Just stop.  If Git won't deal with your symlink, then Fugitive won't
+either.  Consider using a [plugin that resolves
+symlinks](https://github.com/aymericbeaumet/symlink.vim), or even better,
+using fewer symlinks.
 
 ## Self-Promotion
 
