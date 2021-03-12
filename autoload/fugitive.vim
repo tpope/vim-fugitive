@@ -2241,7 +2241,9 @@ function! s:TempReadPre(file) abort
   if has_key(s:temp_files, s:cpath(a:file))
     let dict = s:temp_files[s:cpath(a:file)]
     setlocal nomodeline
-    setlocal bufhidden=delete
+    if empty(&bufhidden)
+      setlocal bufhidden=delete
+    endif
     setlocal buftype=nowrite
     setlocal nomodifiable
     if len(dict.dir)
@@ -2269,10 +2271,20 @@ function! s:TempReadPost(file) abort
   return ''
 endfunction
 
+function! s:TempDelete(file) abort
+  let key = s:cpath(a:file)
+  if has_key(s:temp_files, key)
+    call delete(a:file)
+    call remove(s:temp_files, key)
+  endif
+  return ''
+endfunction
+
 augroup fugitive_temp
   autocmd!
   autocmd BufReadPre  * exe s:TempReadPre( expand('<amatch>:p'))
   autocmd BufReadPost * exe s:TempReadPost(expand('<amatch>:p'))
+  autocmd BufWipeout  * exe s:TempDelete(  expand('<amatch>:p'))
 augroup END
 
 " Section: :Git
