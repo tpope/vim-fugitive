@@ -885,8 +885,8 @@ function! fugitive#Path(url, ...) abort
   endif
   let url = a:url
   let temp_state = s:TempState(url)
-  if has_key(temp_state, 'bufnr')
-    let url = bufname(temp_state.bufnr)
+  if has_key(temp_state, 'origin_bufnr')
+    let url = bufname(temp_state.origin_bufnr)
   endif
   let url = s:Slash(fnamemodify(url, ':p'))
   if url =~# '/$' && s:Slash(a:url) !~# '/$'
@@ -1070,9 +1070,9 @@ let s:expand = '\%(\(' . s:var . '\)\(' . s:flag . '*\)\(:S\)\=\)'
 
 function! s:BufName(var) abort
   if a:var ==# '%'
-    return bufname(get(s:TempState(), 'bufnr', ''))
+    return bufname(get(s:TempState(), 'origin_bufnr', ''))
   elseif a:var =~# '^#\d*$'
-    let nr = get(s:TempState(bufname(+a:var[1:-1])), 'bufnr', '')
+    let nr = get(s:TempState(bufname(+a:var[1:-1])), 'origin_bufnr', '')
     return bufname(nr ? nr : +a:var[1:-1])
   else
     return expand(a:var)
@@ -5149,7 +5149,7 @@ endfunction
 function! s:BlameBufnr(...) abort
   let state = s:TempState(bufname(a:0 ? a:1 : ''))
   if get(state, 'filetype', '') ==# 'fugitiveblame'
-    return get(state, 'bufnr', -1)
+    return get(state, 'origin_bufnr', -1)
   else
     return -1
   endif
@@ -5343,7 +5343,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
           silent tabedit %
         endif
         let bufnr = bufnr('')
-        let temp_state.bufnr = bufnr
+        let temp_state.origin_bufnr = bufnr
         let restore = []
         let mods = substitute(a:mods, '\<tab\>', '', 'g')
         for winnr in range(winnr('$'),1,-1)
