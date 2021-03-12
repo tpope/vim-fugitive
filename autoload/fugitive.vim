@@ -2290,7 +2290,7 @@ endfunction
 
 function! s:TempDelete(file) abort
   let key = s:cpath(a:file)
-  if has_key(s:temp_files, key)
+  if has_key(s:temp_files, key) && key !=# s:cpath(get(get(g:, '_fugitive_last_job', {}), 'file', ''))
     call delete(a:file)
     call remove(s:temp_files, key)
   endif
@@ -2325,7 +2325,7 @@ endfunction
 function! s:RunEdit(state, job) abort
   if get(a:state, 'request', '') == 'edit'
     call remove(a:state, 'request')
-    let file = readfile(a:state.temp . '.edit')[0]
+    let file = FugitiveVimPath(readfile(a:state.file . '.edit')[0])
     exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
     set bufhidden=wipe
     let s:edit_jobs[bufnr('')] = [a:state, a:job]
@@ -2334,7 +2334,6 @@ function! s:RunEdit(state, job) abort
 endfunction
 
 function! s:RunReceive(state, tmp, type, job, data, ...) abort
-  call add(a:state.log, a:data)
   let data = type(a:data) == type([]) ? join(a:data, "\n") : a:data
   if a:type ==# 'err' || a:state.pty
     let data = a:tmp.escape . data
@@ -2348,13 +2347,31 @@ function! s:RunReceive(state, tmp, type, job, data, ...) abort
     if cmd =~# '^fugitive:'
       let a:state.request = strpart(cmd, 9)
     endif
+    let lines = split(a:tmp.err . data, "\r\\=\n", 1)
+    let a:tmp.err = lines[-1]
+    let lines[-1] = ''
+    call map(lines, 'substitute(v:val, ".*\r", "", "")')
+  else
+    let lines = type(a:data) == type([]) ? a:data : split(a:data, "\n", 1)
+    if len(a:tmp.out)
+      let lines[0] = a:tmp.out . lines[0]
+    endif
+    let a:tmp.out = lines[-1]
+    let lines[-1] = ''
   endif
+  call writefile(lines, a:state.file, 'ba')
   let data = a:tmp.echo . data
   let a:tmp.echo = matchstr(data, "[\r\n]\\+$")
   if len(a:tmp.echo)
     let data = strpart(data, 0, len(data) - len(a:tmp.echo))
   endif
   echon substitute(data, "\r\\ze\n", '', 'g')
+endfunction
+
+function! s:RunClose(state, tmp, job, ...) abort
+  let noeol = substitute(substitute(a:tmp.err, "\r$", '', ''), ".*\r", '', '') . a:tmp.out
+  call writefile([noeol], a:state.file, 'ba')
+  call remove(a:state, 'job')
 endfunction
 
 function! s:RunSend(job, str) abort
@@ -2429,8 +2446,8 @@ endif
 function! fugitive#Resume() abort
   while len(s:resume_queue)
     let [state, job] = remove(s:resume_queue, 0)
-    if filereadable(state.temp . '.edit')
-      call delete(state.temp . '.edit')
+    if filereadable(state.file . '.edit')
+      call delete(state.file . '.edit')
     endif
     call s:RunWait(state, job)
   endwhile
@@ -2448,7 +2465,7 @@ augroup fugitive_job
   autocmd BufDelete * call s:RunBufDelete(expand('<abuf>'))
   autocmd VimLeave *
         \ for s:jobbuf in keys(s:edit_jobs) |
-        \   call writefile([], s:edit_jobs[s:jobbuf][0].temp . '.exit') |
+        \   call writefile([], s:edit_jobs[s:jobbuf][0].file . '.exit') |
         \   redraw! |
         \   call call('s:RunWait', remove(s:edit_jobs, s:jobbuf)) |
         \ endfor
@@ -2620,17 +2637,19 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   if s:RunJobs()
     let state = {
           \ 'dir': dir,
+          \ 'filetype': 'git',
           \ 'mods': s:Mods(a:mods),
-          \ 'log': [],
-          \ 'temp': s:Resolve(tempname())}
+          \ 'file': s:Resolve(tempname())}
     let state.pty = get(g:, 'fugitive_pty', has('unix') && (has('patch-8.0.0744') || has('nvim')))
     if !state.pty
       let args = s:AskPassArgs(dir) + args
     endif
     let tmp = {
+          \ 'err': '',
+          \ 'out': '',
           \ 'echo': '',
           \ 'escape': ''}
-    let env.FUGITIVE = state.temp
+    let env.FUGITIVE = state.file
     let editor = 'sh ' . s:TempScript(
           \ '[ -f "$FUGITIVE.exit" ] && exit 1',
           \ 'echo "$1" > "$FUGITIVE.edit"',
@@ -2648,14 +2667,20 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let argv = s:UserCommandList({'git': git, 'dir': dir}) + args
     let [argv, jobopts] = s:JobOpts(argv, env)
     let state.cmd = argv
+    if has_key(get(g:, '_fugitive_last_job', {}), 'file') && bufnr(g:_fugitive_last_job.file) < 0
+      exe s:TempDelete(remove(g:, '_fugitive_last_job').file)
+    endif
     let g:_fugitive_last_job = state
     if &autowrite || &autowriteall | silent! wall | endif
+    call writefile([], state.file, 'b')
+    let s:temp_files[s:cpath(state.file)] = state
     echo ""
     if exists('*job_start')
       call extend(jobopts, {
             \ 'mode': 'raw',
             \ 'out_cb': function('s:RunReceive', [state, tmp, 'out']),
             \ 'err_cb': function('s:RunReceive', [state, tmp, 'err']),
+            \ 'close_cb': function('s:RunClose', [state, tmp]),
             \ })
       if state.pty
         let jobopts.pty = 1
@@ -2667,6 +2692,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
             \ 'TERM': 'dumb',
             \ 'on_stdout': function('s:RunReceive', [state, tmp, 'out']),
             \ 'on_stderr': function('s:RunReceive', [state, tmp, 'err']),
+            \ 'on_exit': function('s:RunClose', [state, tmp]),
             \ }))
     endif
     let state.job = job
