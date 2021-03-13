@@ -233,7 +233,7 @@ endfunction
 let s:git_versions = {}
 function! fugitive#GitVersion(...) abort
   if !has_key(s:git_versions, g:fugitive_git_executable)
-    let s:git_versions[g:fugitive_git_executable] = matchstr(system(g:fugitive_git_executable.' --version'), '\d[^[:space:]]\+')
+    let s:git_versions[g:fugitive_git_executable] = matchstr(s:SystemError(g:fugitive_git_executable.' --version')[0], '\d[^[:space:]]\+')
   endif
   if !a:0
     return s:git_versions[g:fugitive_git_executable]
@@ -447,6 +447,10 @@ function! s:SystemError(cmd, ...) abort
         set shellredir=>%s\ 2>&1
       endif
     endif
+    if exists('+guioptions') && &guioptions =~# '!'
+      let guioptions = &guioptions
+      set guioptions-=!
+    endif
     let out = call('system', [type(a:cmd) ==# type([]) ? fugitive#Prepare(a:cmd) : a:cmd] + a:000)
     return [out, v:shell_error]
   catch /^Vim\%((\a\+)\)\=:E484:/
@@ -457,6 +461,9 @@ function! s:SystemError(cmd, ...) abort
   finally
     if exists('shellredir')
       let &shellredir = shellredir
+    endif
+    if exists('guioptions')
+      let &guioptions = guioptions
     endif
   endtry
 endfunction
@@ -4263,8 +4270,18 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   let prefix = FugitiveVimPath(s:HasOpt(args, '--cached') || empty(tree) ?
         \ 'fugitive://' . dir . '//0/' :
         \ s:cpath(getcwd(), tree) ? '' : tree . '/')
-  exe '!' . escape(s:UserCommand(a:options, cmd + args), '%#!')
-        \ printf(&shellpipe . (&shellpipe =~# '%s' ? '' : ' %s'), s:shellesc(tempfile))
+  try
+    if exists('+guioptions') && &guioptions =~# '!'
+      let guioptions = &guioptions
+      set guioptions-=!
+    endif
+    exe '!' . escape(s:UserCommand(a:options, cmd + args), '%#!')
+          \ printf(&shellpipe . (&shellpipe =~# '%s' ? '' : ' %s'), s:shellesc(tempfile))
+  finally
+    if exists('guioptions')
+      let &guioptions = guioptions
+    endif
+  endtry
   let list = map(readfile(tempfile), 's:GrepParseLine(prefix, name_only, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
   silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
