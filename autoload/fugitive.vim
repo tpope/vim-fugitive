@@ -1595,8 +1595,7 @@ function! fugitive#CompleteObject(base, ...) abort
     let parent = matchstr(a:base, '.*[:/]')
     let entries = s:LinesError(['ls-tree', substitute(parent,  ':\zs\./', '\=subdir', '')], dir)[0]
     call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
-    call map(entries,'tree.s:sub(v:val,".*\t","")')
-
+    call map(entries,'parent.s:sub(v:val,".*\t","")')
   endif
   return s:FilterEscape(entries, a:base)
 endfunction
