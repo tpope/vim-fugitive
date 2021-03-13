@@ -3554,9 +3554,9 @@ function! s:StageApply(info, reverse, extra) abort
   if empty(filter(copy(lines), 'v:val =~# "^[+-]"'))
     return -1
   endif
-  while getline(end) =~# '^[-+ ]'
+  while getline(end) =~# '^[-+\ ]'
     let end += 1
-    if getline(end) =~# '^[' . (a:reverse ? '+' : '-') . ' ]'
+    if getline(end) =~# '^[' . (a:reverse ? '+' : '-') . '\ ]'
       call add(lines, ' ' . getline(end)[1:-1])
     endif
   endwhile
