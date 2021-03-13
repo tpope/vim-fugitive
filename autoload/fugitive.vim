@@ -4463,10 +4463,22 @@ function! s:UsableWin(nr) abort
         \ index(['nofile','help','quickfix', 'terminal'], getbufvar(winbufnr(a:nr), '&buftype')) < 0
 endfunction
 
-function! s:OpenParse(args, wants_cmd) abort
+function! s:ArgSplit(string) abort
+  let string = a:string
+  let args = []
+  while string =~# '\S'
+    let arg = matchstr(string, '^\s*\%(\\.\|[^[:space:]]\)\+')
+    let string = strpart(string, len(arg))
+    let arg = substitute(arg, '^\s\+', '', '')
+    call add(args, substitute(arg, '\\\@<!\\ ', ' ', 'g'))
+  endwhile
+  return args
+endfunction
+
+function! s:OpenParse(string, wants_cmd) abort
   let opts = []
   let cmds = []
-  let args = copy(a:args)
+  let args = s:ArgSplit(a:string)
   while !empty(args)
     if args[0] =~# '^++'
       call add(opts, ' ' . escape(remove(args, 0), ' |"'))
@@ -4571,7 +4583,7 @@ function! fugitive#Open(cmd, bang, mods, arg, args) abort
 
   let mods = s:Mods(a:mods)
   try
-    let [file, pre] = s:OpenParse(a:args, 1)
+    let [file, pre] = s:OpenParse(a:arg, 1)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
@@ -4618,7 +4630,7 @@ function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
   endif
   let [read, post] = s:ReadPrepare(a:line1, a:count, a:range, a:mods)
   try
-    let [file, pre] = s:OpenParse(a:args, 0)
+    let [file, pre] = s:OpenParse(a:arg, 0)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
@@ -4657,7 +4669,7 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abor
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
   try
-    let file = len(a:args) ? s:Generate(s:Expand(join(a:args, ' '))) : fugitive#Real(@%)
+    let file = len(a:arg) ? s:Generate(s:Expand(a:arg)) : fugitive#Real(@%)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
@@ -4918,7 +4930,7 @@ function! s:IsConflicted() abort
 endfunction
 
 function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
-  let args = copy(a:args)
+  let args = s:ArgSplit(a:arg)
   let post = ''
   if get(args, 0) =~# '^+'
     let post = remove(args, 0)[1:-1]
@@ -5651,15 +5663,15 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
   exe s:DirCheck(dir)
   try
     let validremote = '\.\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)\='
-    if a:args ==# ['-']
+    if a:arg ==# '-'
       if a:count >= 0
         return 'echoerr ' . string('fugitive: ''-'' no longer required to get persistent URL if range given')
       else
         return 'echoerr ' . string('fugitive: use :0GBrowse instead of :GBrowse -')
       endif
-    elseif len(a:args)
-      let remote = matchstr(join(a:args, ' '),'@\zs\%('.validremote.'\)$')
-      let rev = substitute(join(a:args, ' '),'@\%('.validremote.'\)$','','')
+    elseif len(a:arg)
+      let remote = matchstr(a:arg, '@\zs\%('.validremote.'\)$')
+      let rev = substitute(a:arg, '@\%('.validremote.'\)$','','')
     else
       let remote = ''
       let rev = ''
@@ -5770,7 +5782,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
           if exec_error
             let commit = ''
           endif
-          if a:count > 0 && empty(a:args) && commit =~# '^\x\{40,\}$'
+          if a:count > 0 && empty(a:arg) && commit =~# '^\x\{40,\}$'
             let blame_list = tempname()
             call writefile([commit, ''], blame_list, 'b')
             let blame_in = tempname()
