@@ -2642,6 +2642,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let state.cmd = argv
     let g:_fugitive_last_job = state
     if &autowrite || &autowriteall | silent! wall | endif
+    echo ""
     if exists('*job_start')
       call extend(jobopts, {
             \ 'mode': 'raw',
