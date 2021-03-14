@@ -363,27 +363,20 @@ augroup fugitive
   autocmd FileType           netrw call FugitiveDetect(fnamemodify(get(b:, 'netrw_curdir', expand('<amatch>')), ':p'))
 
   autocmd FileType git
-        \ if len(FugitiveGitDir()) |
-        \   call fugitive#MapJumps() |
-        \   call fugitive#MapCfile() |
-        \ endif
+        \ call fugitive#MapCfile()
   autocmd FileType gitcommit
-        \ if len(FugitiveGitDir()) |
-        \   call fugitive#MapCfile('fugitive#MessageCfile()') |
-        \ endif
+        \ call fugitive#MapCfile('fugitive#MessageCfile()')
   autocmd FileType git,gitcommit
-        \ if len(FugitiveGitDir()) && &foldtext ==# 'foldtext()' |
+        \ if &foldtext ==# 'foldtext()' |
         \    setlocal foldtext=fugitive#Foldtext() |
         \ endif
   autocmd FileType fugitive
-        \ if len(FugitiveGitDir()) |
-        \   call fugitive#MapCfile('fugitive#StatusCfile()') |
-        \ endif
+        \ call fugitive#MapCfile('fugitive#StatusCfile()')
   autocmd FileType gitrebase
         \ let &l:include = '^\%(pick\|squash\|edit\|reword\|fixup\|drop\|[pserfd]\)\>' |
-        \ if len(FugitiveGitDir()) |
-        \   let &l:includeexpr = 'v:fname =~# ''^\x\{4,\}$'' ? FugitiveFind(v:fname) : ' .
-        \   (len(&l:includeexpr) ? &l:includeexpr : 'v:fname') |
+        \ if &l:includeexpr !~# 'Fugitive' |
+        \   let &l:includeexpr = 'v:fname =~# ''^\x\{4,\}$'' && len(FugitiveGitDir()) ? FugitiveFind(v:fname) : ' .
+        \     (len(&l:includeexpr) ? &l:includeexpr : 'v:fname') |
         \ endif |
         \ let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') . '|setl inex= inc='
 
