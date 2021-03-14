@@ -2108,6 +2108,7 @@ function! fugitive#BufReadCmd(...) abort
     if empty(dir)
       return 'echo "Invalid Fugitive URL"'
     endif
+    let b:git_dir = dir
     if rev =~# '^:\d$'
       let b:fugitive_type = 'stage'
     else
