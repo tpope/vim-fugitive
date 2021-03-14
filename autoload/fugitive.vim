@@ -3420,7 +3420,9 @@ function! s:StageInline(mode, ...) abort
   endif
   let lnum1 = a:0 ? a:1 : line('.')
   let lnum = lnum1 + 1
-  if a:0 > 1 && a:2 == 0
+  if a:0 > 1 && a:2 == 0 && lnum1 == 1
+    let lnum = line('$') - 1
+  elseif a:0 > 1 && a:2 == 0
     let info = s:StageInfo(lnum - 1)
     if empty(info.paths) && len(info.section)
       while len(getline(lnum))
