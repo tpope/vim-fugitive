@@ -2212,12 +2212,6 @@ function! fugitive#BufReadCmd(...) abort
 
     setlocal modifiable
 
-    let browsex = maparg('<Plug>NetrwBrowseX', 'n')
-    let remote_check = '\Cnetrw#CheckIfRemote(\%(netrw#GX()\)\=)'
-    if browsex =~# remote_check
-      exe 'nnoremap <silent> <buffer> <Plug>NetrwBrowseX' substitute(browsex, remote_check, '0', 'g')
-    endif
-
     return 'silent ' . s:DoAutocmd('BufReadPost') .
           \ (modifiable ? '' : '|setl nomodifiable') . '|silent ' .
           \ s:DoAutocmd('User Fugitive' . substitute(b:fugitive_type, '^\l', '\u&', ''))
@@ -6116,6 +6110,24 @@ function! fugitive#MapJumps(...) abort
     call s:Map('n', 'g?',    ":<C-U>help fugitive-map<CR>", '<silent>')
     call s:Map('n', '<F1>',  ":<C-U>help fugitive-map<CR>", '<silent>')
   endif
+
+  let old_browsex = maparg('<Plug>NetrwBrowseX', 'n')
+  let new_browsex = substitute(old_browsex, '\Cnetrw#CheckIfRemote(\%(netrw#GX()\)\=)', '0', 'g')
+  let new_browsex = substitute(new_browsex, 'netrw#GX()\|expand((exists("g:netrw_gx")? g:netrw_gx : ''<cfile>''))', 'fugitive#GX()', 'g')
+  if new_browsex !=# old_browsex
+    exe 'nnoremap <silent> <buffer> <Plug>NetrwBrowseX' new_browsex
+  endif
+endfunction
+
+function! fugitive#GX() abort
+  try
+    let results = &filetype ==# 'fugitive' ? s:StatusCfile() : &filetype ==# 'git' ? s:cfile() : []
+    if len(results) && len(results[0])
+      return FugitiveReal(s:Generate(results[0]))
+    endif
+  catch /^fugitive:/
+  endtry
+  return expand(get(g:, 'netrw_gx', expand('<cfile>')))
 endfunction
 
 function! s:StatusCfile(...) abort
