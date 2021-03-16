@@ -310,13 +310,15 @@ function! FugitiveGitPath(path) abort
   return s:Slash(a:path)
 endfunction
 
-function! s:Slash(path) abort
-  if exists('+shellslash')
+if exists('+shellslash')
+  function! s:Slash(path) abort
     return tr(a:path, '\', '/')
-  else
+  endfunction
+else
+  function! s:Slash(path) abort
     return a:path
-  endif
-endfunction
+  endfunction
+endif
 
 function! s:ProjectionistDetect() abort
   let file = s:Slash(get(g:, 'projectionist_file', ''))

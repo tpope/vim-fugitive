@@ -101,13 +101,15 @@ function! s:Mods(mods, ...) abort
   return substitute(mods, '\s\+', ' ', 'g')
 endfunction
 
-function! s:Slash(path) abort
-  if exists('+shellslash')
+if exists('+shellslash')
+  function! s:Slash(path) abort
     return tr(a:path, '\', '/')
-  else
+  endfunction
+else
+  function! s:Slash(path) abort
     return a:path
-  endif
-endfunction
+  endfunction
+endif
 
 function! s:Resolve(path) abort
   let path = resolve(a:path)
@@ -936,9 +938,11 @@ function! fugitive#Find(object, ...) abort
     let prefix = matchstr(a:object, '^[~$]\i*')
     let owner = expand(prefix)
     return FugitiveVimPath((len(owner) ? owner : prefix) . strpart(a:object, len(prefix)))
-  elseif s:Slash(a:object) =~# '^$\|^/\|^\%(\a\a\+:\).*\%(//\|::\)' . (has('win32') ? '\|^\a:/' : '')
+  endif
+  let rev = s:Slash(a:object)
+  if rev =~# '^$\|^/\|^\%(\a\a\+:\).*\%(//\|::\)' . (has('win32') ? '\|^\a:/' : '')
     return FugitiveVimPath(a:object)
-  elseif s:Slash(a:object) =~# '^\.\.\=\%(/\|$\)'
+  elseif rev =~# '^\.\.\=\%(/\|$\)'
     return FugitiveVimPath(simplify(getcwd() . '/' . a:object))
   endif
   let dir = a:0 ? a:1 : s:Dir()
@@ -949,7 +953,6 @@ function! fugitive#Find(object, ...) abort
       return fnamemodify(FugitiveVimPath(len(file) ? file : a:object), ':p')
     endif
   endif
-  let rev = s:Slash(a:object)
   let tree = s:Tree(dir)
   let base = len(tree) ? tree : 'fugitive://' . dir . '//0'
   if rev ==# '.git'
