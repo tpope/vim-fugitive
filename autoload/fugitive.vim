@@ -3634,7 +3634,7 @@ function! s:StageDelete(lnum1, lnum2, count) abort
         continue
       endif
       if info.status ==# 'D'
-        let undo = 'Gremove'
+        let undo = 'GRemove'
       elseif info.paths[0] =~# '/$'
         let err .= '|echoerr ' . string('fugitive: will not delete directory ' . string(info.relative[0]))
         break
@@ -5087,7 +5087,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
   endtry
 endfunction
 
-" Section: :Gmove, :Gremove
+" Section: :GMove, :GRemove
 
 function! s:Move(force, rename, destination) abort
   let dir = s:Dir()
