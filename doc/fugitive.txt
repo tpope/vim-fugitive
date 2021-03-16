@@ -255,10 +255,9 @@ U                       Unstage everything.
 X                       Discard the change under the cursor.  This uses
                         `checkout` or `clean` under the hood.  A command is
                         echoed that shows how to undo the change.  Consult
-                        `:messages` to see it again.  You can use this during
-                        a merge conflict to discard "our" changes (--theirs)
-                        in the "Unstaged" section or discard "their" changes
-                        (--ours) in the "Staged" section.
+                        `:messages` to see it again.  During a merge conflict,
+                        use 2X to call `checkout --ours` or 3X to call
+                        `checkout --theirs` .
 
                                                 *fugitive_=*
 =                       Toggle an inline diff of the file under the cursor.

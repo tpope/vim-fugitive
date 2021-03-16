@@ -3614,6 +3614,7 @@ endfunction
 function! s:StageDelete(lnum1, lnum2, count) abort
   let restore = []
   let err = ''
+  let did_conflict_err = 0
   try
     for info in s:Selection(a:lnum1, a:lnum2)
       if empty(info.paths)
@@ -3646,14 +3647,30 @@ function! s:StageDelete(lnum1, lnum2, count) abort
       elseif info.status ==# '?'
         call s:TreeChomp('clean', '-f', '--', info.paths[0])
       elseif a:count == 2
-        call s:TreeChomp('checkout', '--ours', '--', info.paths[0])
+        if get(b:fugitive_files['Staged'], info.filename, {'status': ''}).status ==# 'D'
+          call delete(FugitiveVimPath(info.paths[0]))
+        else
+          call s:TreeChomp('checkout', '--ours', '--', info.paths[0])
+        endif
       elseif a:count == 3
-        call s:TreeChomp('checkout', '--theirs', '--', info.paths[0])
+        if get(b:fugitive_files['Unstaged'], info.filename, {'status': ''}).status ==# 'D'
+          call delete(FugitiveVimPath(info.paths[0]))
+        else
+          call s:TreeChomp('checkout', '--theirs', '--', info.paths[0])
+        endif
       elseif info.status =~# '[ADU]' &&
             \ get(b:fugitive_files[info.section ==# 'Staged' ? 'Unstaged' : 'Staged'], info.filename, {'status': ''}).status =~# '[AU]'
-        call s:TreeChomp('checkout', info.section ==# 'Staged' ? '--ours' : '--theirs', '--', info.paths[0])
+        if get(g:, 'fugitive_conflict_x', 0)
+          call s:TreeChomp('checkout', info.section ==# 'Unstaged' ? '--ours' : '--theirs', '--', info.paths[0])
+        else
+          if !did_conflict_err
+            let err .= '|echoerr "Use 2X for --ours or 3X for --theirs"'
+            let did_conflict_err = 1
+          endif
+          continue
+        endif
       elseif info.status ==# 'U'
-        call s:TreeChomp('rm', '--', info.paths[0])
+        call delete(FugitiveVimPath(info.paths[0]))
       elseif info.status ==# 'A'
         call s:TreeChomp('rm', '-f', '--', info.paths[0])
       elseif info.section ==# 'Unstaged'
@@ -3661,7 +3678,9 @@ function! s:StageDelete(lnum1, lnum2, count) abort
       else
         call s:TreeChomp('checkout', 'HEAD^{}', '--', info.paths[0])
       endif
-      call add(restore, ':Gsplit ' . s:fnameescape(info.relative[0]) . '|' . undo)
+      if len(undo)
+        call add(restore, ':Gsplit ' . s:fnameescape(info.relative[0]) . '|' . undo)
+      endif
     endfor
   catch /^fugitive:/
     let err .= '|echoerr ' . string(v:exception)
