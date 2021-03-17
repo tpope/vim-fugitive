@@ -3483,7 +3483,7 @@ function! s:StageInline(mode, ...) abort
       let index += 1
     endfor
     if len(diff)
-      setlocal modifiable noreadonly
+      setlocal modifiable noreadonly foldenable foldmethod=syntax
       silent call append(lnum, diff)
       if foldclosed(lnum+1)
         silent exe (lnum+1) . ',' . (lnum+len(diff)) . 'foldopen!'
