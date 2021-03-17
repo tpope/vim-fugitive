@@ -3490,11 +3490,11 @@ function! s:StageInline(mode, ...) abort
     if len(diff)
       setlocal modifiable noreadonly
       silent call append(lnum, diff)
-      if foldclosed(lnum+1)
-        silent exe (lnum+1) . ',' . (lnum+len(diff)) . 'foldopen!'
-      endif
       let b:fugitive_expanded[info.section][info.filename] = [start, len(diff)]
       setlocal nomodifiable readonly nomodified
+      if foldclosed(lnum+1) > 0
+        silent exe (lnum+1) . ',' . (lnum+len(diff)) . 'foldopen!'
+      endif
     endif
   endwhile
   return lnum
