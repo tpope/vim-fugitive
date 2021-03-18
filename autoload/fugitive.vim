@@ -3611,6 +3611,7 @@ endfunction
 
 function! s:StageDelete(lnum1, lnum2, count) abort
   let restore = []
+
   let err = ''
   let did_conflict_err = 0
   try
@@ -5734,6 +5735,8 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     endif
     if rev =~# '^:\=$'
       let expanded = s:Relative()
+    elseif rev =~? '^\a\a\+:[\/][\/]' && rev !~? '^fugitive:'
+      let expanded = s:Expand(substitute(rev, '\\\@<!#\|\\\@<!%\ze\w', '\\&', 'g'))
     else
       let expanded = s:Expand(rev)
     endif
