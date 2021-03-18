@@ -2896,8 +2896,7 @@ function! s:ReloadStatusBuffer(...) abort
   let original_lnum = a:0 ? a:1 : line('.')
   let info = s:StageInfo(original_lnum)
   call fugitive#BufReadStatus()
-  exe s:StageSeek(info, original_lnum)
-  normal! 0
+  call setpos('.', [0, s:StageSeek(info, original_lnum), 1, 0])
   return ''
 endfunction
 
