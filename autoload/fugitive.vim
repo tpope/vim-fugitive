@@ -2332,15 +2332,15 @@ function! s:RunEdit(state, job) abort
   endif
 endfunction
 
-function! s:RunReceive(state, type, job, data, ...) abort
+function! s:RunReceive(state, tmp, type, job, data, ...) abort
   call add(a:state.log, a:data)
   let data = type(a:data) == type([]) ? join(a:data, "\n") : a:data
   if a:type ==# 'err' || a:state.pty
-    let data = a:state.escape_buffer . data
+    let data = a:tmp.escape . data
     let escape = "\033]51;[^\007]*"
-    let a:state.escape_buffer = matchstr(data, escape . '$')
-    if len(a:state.escape_buffer)
-      let data = strpart(data, 0, len(data) - len(a:state.escape_buffer))
+    let a:tmp.escape = matchstr(data, escape . '$')
+    if len(a:tmp.escape)
+      let data = strpart(data, 0, len(data) - len(a:tmp.escape))
     endif
     let cmd = matchstr(data, escape . "\007")[5:-2]
     let data = substitute(data, escape . "\007", '', 'g')
@@ -2348,10 +2348,10 @@ function! s:RunReceive(state, type, job, data, ...) abort
       let a:state.request = strpart(cmd, 9)
     endif
   endif
-  let data = a:state.echo_buffer . data
-  let a:state.echo_buffer = matchstr(data, "[\r\n]\\+$")
-  if len(a:state.echo_buffer)
-    let data = strpart(data, 0, len(data) - len(a:state.echo_buffer))
+  let data = a:tmp.echo . data
+  let a:tmp.echo = matchstr(data, "[\r\n]\\+$")
+  if len(a:tmp.echo)
+    let data = strpart(data, 0, len(data) - len(a:tmp.echo))
   endif
   echon substitute(data, "\r\\ze\n", '', 'g')
 endfunction
@@ -2620,16 +2620,15 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let state = {
           \ 'dir': dir,
           \ 'mods': s:Mods(a:mods),
-          \ 'title': ':Git ' . a:arg,
-          \ 'echo_buffer': '',
-          \ 'escape_buffer': '',
           \ 'log': [],
           \ 'temp': s:Resolve(tempname())}
     let state.pty = get(g:, 'fugitive_pty', has('unix') && (has('patch-8.0.0744') || has('nvim')))
     if !state.pty
       let args = s:AskPassArgs(dir) + args
     endif
-    let env.FUGITIVE_TEMP = state.temp
+    let tmp = {
+          \ 'echo': '',
+          \ 'escape': ''}
     let env.FUGITIVE = state.temp
     let editor = 'sh ' . s:TempScript(
           \ '[ -f "$FUGITIVE.exit" ] && exit 1',
@@ -2654,8 +2653,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     if exists('*job_start')
       call extend(jobopts, {
             \ 'mode': 'raw',
-            \ 'out_cb': function('s:RunReceive', [state, 'out']),
-            \ 'err_cb': function('s:RunReceive', [state, 'err']),
+            \ 'out_cb': function('s:RunReceive', [state, tmp, 'out']),
+            \ 'err_cb': function('s:RunReceive', [state, tmp, 'err']),
             \ })
       if state.pty
         let jobopts.pty = 1
@@ -2665,8 +2664,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       let job = jobstart(argv, extend(jobopts, {
             \ 'pty': state.pty,
             \ 'TERM': 'dumb',
-            \ 'on_stdout': function('s:RunReceive', [state, 'out']),
-            \ 'on_stderr': function('s:RunReceive', [state, 'err']),
+            \ 'on_stdout': function('s:RunReceive', [state, tmp, 'out']),
+            \ 'on_stderr': function('s:RunReceive', [state, tmp, 'err']),
             \ }))
     endif
     let state.job = job
