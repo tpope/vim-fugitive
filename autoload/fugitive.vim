@@ -3970,7 +3970,7 @@ function! s:MergeSubcommand(line1, line2, range, bang, mods, options) abort
         \ filereadable(fugitive#Find('.git/MERGE_MSG', dir)) ||
         \ isdirectory(fugitive#Find('.git/rebase-apply', dir)) ||
         \  !empty(s:TreeChomp(dir, 'diff-files', '--diff-filter=U')))
-    return 'echohl WarningMsg|echo ":Git merge for loading conflicts is deprecated in favor of :Git mergetool"|echohl NONE|silent Git' . (a:bang ? '!' : '') . s:fnameescape(a:options.flags + ['mergetool'])
+    return 'echoerr ":Git merge for loading conflicts hase been removed in favor of :Git mergetool"'
   endif
   return {}
 endfunction
