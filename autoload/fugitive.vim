@@ -2348,6 +2348,22 @@ function! s:RunJobs() abort
   return exists('*job_start') || exists('*jobstart')
 endfunction
 
+function! s:RunSave(state) abort
+  if has_key(get(g:, '_fugitive_last_job', {}), 'file') && bufnr(g:_fugitive_last_job.file) < 0
+    exe s:TempDelete(remove(g:, '_fugitive_last_job').file)
+  endif
+  let g:_fugitive_last_job = a:state
+  let s:temp_files[s:cpath(a:state.file)] = a:state
+endfunction
+
+function! s:RunFinished(state) abort
+  let first = join(readfile(a:state.file, '', 2), "\n")
+  if get(a:state, 'filetype', '') ==# 'git' && first =~# '\<\([[:upper:][:digit:]_-]\+(\d\+)\).*\1'
+    let a:state.filetype = 'man'
+  endif
+  call fugitive#ReloadStatus(a:state.dir, 1)
+endfunction
+
 function! s:RunEdit(state, job) abort
   if get(a:state, 'request', '') == 'edit'
     call remove(a:state, 'request')
@@ -2355,6 +2371,7 @@ function! s:RunEdit(state, job) abort
     exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
     set bufhidden=wipe
     let s:edit_jobs[bufnr('')] = [a:state, a:job]
+    call fugitive#ReloadStatus(a:state.dir, 1)
     return 1
   endif
 endfunction
@@ -2398,6 +2415,7 @@ function! s:RunClose(state, tmp, job, ...) abort
   let noeol = substitute(substitute(a:tmp.err, "\r$", '', ''), ".*\r", '', '') . a:tmp.out
   call writefile([noeol], a:state.file, 'ba')
   call remove(a:state, 'job')
+  call s:RunFinished(a:state)
 endfunction
 
 function! s:RunSend(job, str) abort
@@ -2462,7 +2480,6 @@ function! s:RunWait(state, job) abort
       endtry
     endif
   endtry
-  call fugitive#ReloadStatus(a:state.dir, 1)
   return ''
 endfunction
 
@@ -2496,30 +2513,6 @@ augroup fugitive_job
         \   call call('s:RunWait', remove(s:edit_jobs, s:jobbuf)) |
         \ endfor
 augroup END
-
-function! s:OpenExec(cmd, mods, env, args, ...) abort
-  let options = a:0 ? a:1 : {'dir': s:Dir()}
-  let temp = tempname()
-  let columns = get(g:, 'fugitive_columns', 80)
-  let env = s:BuildEnvPrefix(extend({'COLUMNS': columns}, a:env))
-  silent! execute '!' . escape(env . s:UserCommand(options, ['--no-pager'] + a:args), '!#%') .
-        \ (&shell =~# 'csh' ? ' >& ' . temp : ' > ' . temp . ' 2>&1')
-  redraw!
-  let temp = s:Resolve(temp)
-  let first = join(readfile(temp, '', 2), "\n")
-  if first =~# '\<\([[:upper:][:digit:]_-]\+(\d\+)\).*\1'
-    let filetype = 'man'
-  else
-    let filetype = 'git'
-  endif
-  let s:temp_files[s:cpath(temp)] = { 'dir': options.dir, 'filetype': filetype }
-  if a:cmd ==# 'edit'
-    call s:BlurStatus()
-  endif
-  silent execute s:Mods(a:mods) . a:cmd temp
-  call fugitive#ReloadStatus(options.dir, 1)
-  return 'echo ' . string(':!' . s:UserCommand(options, a:args))
-endfunction
 
 function! fugitive#PagerFor(argv, ...) abort
   let args = a:argv
@@ -2653,19 +2646,21 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       return 'exe ' . string(mods . 'terminal ' . (a:line2 ? '' : '++curwin ') . join(map(s:UserCommandList(options) + args, 's:fnameescape(v:val)'))) . assign . after
     endif
   endif
-  if pager is# 1
-    if editcmd ==# 'read'
-      return s:ReadExec(a:line1, a:line2, a:range, a:mods, env, args, options) . after
-    else
-      return s:OpenExec(editcmd, a:mods, env, args, options) . after
-    endif
+  if pager is# 1 && editcmd ==# 'read'
+    return s:ReadExec(a:line1, a:line2, a:range, a:mods, env, args, options) . after
   endif
-  if s:RunJobs()
-    let state = {
-          \ 'dir': dir,
-          \ 'filetype': 'git',
-          \ 'mods': s:Mods(a:mods),
-          \ 'file': s:Resolve(tempname())}
+  let state = {
+        \ 'git': git,
+        \ 'flags': flags,
+        \ 'args': args,
+        \ 'dir': dir,
+        \ 'filetype': 'git',
+        \ 'mods': s:Mods(a:mods),
+        \ 'file': s:Resolve(tempname())}
+  if pager is# 1
+    call extend(env, {'COLUMNS': '' . get(g:, 'fugitive_columns', 80)}, 'keep')
+  endif
+  if s:RunJobs() && pager isnot# 1
     let state.pty = get(g:, 'fugitive_pty', has('unix') && (has('patch-8.0.0744') || has('nvim')))
     if !state.pty
       let args = s:AskPassArgs(dir) + args
@@ -2692,14 +2687,9 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let args = s:disable_colors + flags + ['-c', 'advice.waitingForEditor=false'] + args
     let argv = s:UserCommandList({'git': git, 'dir': dir}) + args
     let [argv, jobopts] = s:JobOpts(argv, env)
-    let state.cmd = argv
-    if has_key(get(g:, '_fugitive_last_job', {}), 'file') && bufnr(g:_fugitive_last_job.file) < 0
-      exe s:TempDelete(remove(g:, '_fugitive_last_job').file)
-    endif
-    let g:_fugitive_last_job = state
     if &autowrite || &autowriteall | silent! wall | endif
     call writefile([], state.file, 'b')
-    let s:temp_files[s:cpath(state.file)] = state
+    call s:RunSave(state)
     echo ""
     if exists('*job_start')
       call extend(jobopts, {
@@ -2724,6 +2714,17 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let state.job = job
     call s:RunWait(state, job)
     return 'silent checktime' . after
+  elseif pager is# 1
+    let pre = s:BuildEnvPrefix(env)
+    silent! execute '!' . escape(pre . s:UserCommand(state, ['--no-pager'] + args), '!#%') .
+          \ (&shell =~# 'csh' ? ' >& ' . s:shellesc(state.file) : ' > ' . s:shellesc(state.file) . ' 2>&1')
+    redraw!
+    call s:RunSave(state)
+    call s:RunFinished(state)
+    if editcmd ==# 'edit'
+      call s:BlurStatus()
+    endif
+    return state.mods . editcmd . ' ' . s:fnameescape(state.file) . after
   elseif has('win32')
     return 'echoerr ' . string('fugitive: Vim 8 with job support required to use :Git on Windows')
   elseif has('gui_running')
@@ -5478,8 +5479,11 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         return ''
       endif
       let temp_state = {
+            \ 'git': a:options.git,
+            \ 'flags': a:options.flags,
+            \ 'args': [a:options.subcommand] + a:options.subcommand_args,
             \ 'dir': dir,
-            \ 'filetype': (raw ? '' : 'fugitiveblame'),
+            \ 'filetype': (raw ? 'git' : 'fugitiveblame'),
             \ 'blame_options': a:options,
             \ 'blame_flags': flags,
             \ 'blame_file': file}
