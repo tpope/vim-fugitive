@@ -6099,7 +6099,7 @@ function! fugitive#MapJumps(...) abort
 
     call s:Map('n', 'co<Space>', ':Git checkout<Space>')
     call s:Map('n', 'co<CR>', ':Git checkout<CR>')
-    call s:Map('n', 'coo', ':<C-U>Git checkout <C-R>=<SID>SquashArgument()<CR> --<CR>')
+    call s:Map('n', 'coo', ':<C-U>Git checkout <C-R>=substitute(<SID>SquashArgument(),"^$",get(<SID>TempState(),"filetype","") ==# "git" ? expand("<cfile>") : "","")<CR> --<CR>')
     call s:Map('n', 'co?', ':<C-U>help fugitive_co<CR>', '<silent>')
 
     call s:Map('n', 'cb<Space>', ':Git branch<Space>')
