@@ -4662,7 +4662,7 @@ function! s:ReadPrepare(line1, count, range, mods) abort
   else
     let pre = ''
   endif
-  return [pre . mods . after . 'read', delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')]
+  return [pre . 'keepalt ' . mods . after . 'read', delete . 'diffupdate' . (a:count < 0 ? '|' . line('.') : '')]
 endfunction
 
 function! s:ReadExec(line1, count, range, mods, env, args, options) abort
@@ -4685,7 +4685,7 @@ function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
     return 'echoerr ' . string(v:exception)
   endtry
   if file =~# '^fugitive:' && a:count is# 0
-    return 'exe ' .string(s:Mods(a:mods) . fugitive#FileReadCmd(file, 0, pre)) . '|diffupdate'
+    return 'exe ' .string('keepalt ' . s:Mods(a:mods) . fugitive#FileReadCmd(file, 0, pre)) . '|diffupdate'
   endif
   return read . ' ' . pre . ' ' . s:fnameescape(file) . '|' . post
 endfunction
