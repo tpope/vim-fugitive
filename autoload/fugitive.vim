@@ -404,7 +404,7 @@ endfunction
 function! s:JobOpts(cmd, env) abort
   if empty(a:env)
     return [a:cmd, {}]
-  elseif has('patch-8.2.0239') || has('patch-8.1.0902') && !has('nvim') && (!has('win32') || empty(filter(keys(a:env), 'exists("$" . v:val)')))
+  elseif has('patch-8.2.0239') || has('nvim-0.5.0') || has('patch-8.1.0902') && !has('nvim') && (!has('win32') || empty(filter(keys(a:env), 'exists("$" . v:val)')))
     return [a:cmd, {'env': a:env}]
   endif
   let envlist = map(items(a:env), 'join(v:val, "=")')
