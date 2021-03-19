@@ -4999,7 +4999,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
   let back = exists('*win_getid') ? 'call win_gotoid(' . win_getid() . ')' : 'wincmd p'
   if (empty(args) || args[0] ==# ':') && a:keepfocus
     exe s:DirCheck()
-    if empty(commit) && s:IsConflicted()
+    if commit =~# '^1\=$' && s:IsConflicted()
       let parents = [s:Relative(':2:'), s:Relative(':3:')]
     elseif empty(commit)
       let parents = [s:Relative(':0:')]
