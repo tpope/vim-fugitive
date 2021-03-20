@@ -609,13 +609,48 @@ function! s:Remote(dir) abort
   return remote =~# '^\.\=$' ? 'origin' : remote
 endfunction
 
+unlet! s:ssh_aliases
+function! fugitive#SshHostAlias(...) abort
+  if !exists('s:ssh_aliases')
+    let s:ssh_aliases = {}
+    if filereadable(expand('~/.ssh/config'))
+      let hosts = []
+      for line in readfile(expand('~/.ssh/config'))
+        let key = matchstr(line, '^\s*\zs\w\+\ze\s')
+        let value = matchstr(line, '^\s*\w\+\s\+\zs.*\S')
+        if key ==? 'host'
+          let hosts = split(value, '\s\+')
+        elseif key ==? 'hostname'
+          for host in hosts
+            if !has_key(s:ssh_aliases, host)
+              let s:ssh_aliases[host] = tolower(value)
+            endif
+          endfor
+        endif
+      endfor
+    endif
+  endif
+  if a:0
+    return get(s:ssh_aliases, a:1, a:1)
+  else
+    return s:ssh_aliases
+  endif
+endfunction
+
 function! fugitive#RemoteUrl(...) abort
   let dir = a:0 > 1 ? a:2 : s:Dir()
   let remote = !a:0 || a:1 =~# '^\.\=$' ? s:Remote(dir) : a:1
   if !fugitive#GitVersion(2, 7)
-    return fugitive#Config('remote.' . remote . '.url')
+    let url = FugitiveConfigGet('remote.' . remote . '.url')
+  else
+    let url = s:ChompDefault('', [dir, 'remote', 'get-url', remote, '--'])
   endif
-  return s:ChompDefault('', [dir, 'remote', 'get-url', remote, '--'])
+  if !get(a:, 3, 0)
+    let url = substitute(url,
+          \ '^ssh://\%([^@:/]\+@\)\=\zs[^/:]\+\|^\%([^@:/]\+@\)\=\zs[^/:]\+\ze:/\@!',
+          \ '\=fugitive#SshHostAlias(submatch(0))', '')
+  endif
+  return url
 endfunction
 
 " Section: Quickfix
