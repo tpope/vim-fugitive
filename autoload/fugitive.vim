@@ -2414,10 +2414,24 @@ function! s:RunReceive(state, tmp, type, job, data, ...) abort
   echon substitute(data, "\r\\ze\n", '', 'g')
 endfunction
 
+function! s:RunExit(state, tmp, job, exit_status) abort
+  let a:state.exit_status = a:exit_status
+  if has_key(a:state, 'job')
+    return
+  endif
+  call s:RunFinished(a:state)
+endfunction
+
 function! s:RunClose(state, tmp, job, ...) abort
+  if a:0
+    call s:RunExit(a:state, a:tmp, a:job, a:1)
+  endif
   let noeol = substitute(substitute(a:tmp.err, "\r$", '', ''), ".*\r", '', '') . a:tmp.out
   call writefile([noeol], a:state.file, 'ba')
   call remove(a:state, 'job')
+  if !has_key(a:state, 'exit_status')
+    return
+  endif
   call s:RunFinished(a:state)
 endfunction
 
@@ -2700,6 +2714,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
             \ 'out_cb': function('s:RunReceive', [state, tmp, 'out']),
             \ 'err_cb': function('s:RunReceive', [state, tmp, 'err']),
             \ 'close_cb': function('s:RunClose', [state, tmp]),
+            \ 'exit_cb': function('s:RunExit', [state, tmp]),
             \ })
       if state.pty
         let jobopts.pty = 1
@@ -2721,6 +2736,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let pre = s:BuildEnvPrefix(env)
     silent! execute '!' . escape(pre . s:UserCommand({'git': git, 'dir': dir}, s:disable_colors + flags + ['--no-pager'] + args), '!#%') .
           \ (&shell =~# 'csh' ? ' >& ' . s:shellesc(state.file) : ' > ' . s:shellesc(state.file) . ' 2>&1')
+    let state.exit_status = v:shell_error
     redraw!
     call s:RunSave(state)
     call s:RunFinished(state)
