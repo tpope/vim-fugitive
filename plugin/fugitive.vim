@@ -120,6 +120,11 @@ function! FugitivePrepare(...) abort
   return call('fugitive#Prepare', a:000)
 endfunction
 
+" FugitiveConfig() get returns an opaque structure that can be passed to other
+" FugitiveConfig functions in lieu of a Git directory.  This can be faster
+" when performing multiple config queries.  Do not rely on the internal
+" structure of the return value as it is not guaranteed.  If you want a full
+" dictionary of every config value, use FugitiveConfigGetRegexp('.*').
 function! FugitiveConfig(...) abort
   if a:0 == 2 && (type(a:2) != type({}) || has_key(a:2, 'git_dir'))
     return fugitive#Config(a:1, FugitiveGitDir(a:2))
@@ -147,6 +152,30 @@ function! FugitiveConfigGetAll(name, ...) abort
   endif
   let name = substitute(a:name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
   return copy(get(config, name, []))
+endfunction
+
+" FugitiveConfigGetRegexp() retrieves a dictionary of all configuration values
+" with a key matching the given pattern.  Like git config --get-regexp, but
+" using a Vim regexp.  Second argument has same semantics as
+" FugitiveConfigGet().
+function! FugitiveConfigGetRegexp(pattern, ...) abort
+  if a:0 && type(a:1) ==# type({}) && !has_key(a:2, 'git_dir')
+    let config = a:1
+  else
+    let config = fugitive#Config(FugitiveGitDir(a:0 ? a:1 : -1))
+  endif
+  let filtered = map(filter(copy(config), 'v:key =~# "\\." && v:key =~# a:pattern'), 'copy(v:val)')
+  if a:pattern !~# '\\\@<!\%(\\\\\)*\\z[se]'
+    return filtered
+  endif
+  let transformed = {}
+  for [k, v] in items(filtered)
+    let k = matchstr(k, a:pattern)
+    if len(k)
+      let transformed[k] = v
+    endif
+  endfor
+  return transformed
 endfunction
 
 function! FugitiveRemoteUrl(...) abort
