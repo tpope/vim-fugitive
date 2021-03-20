@@ -1789,12 +1789,13 @@ function! fugitive#BufReadStatus() abort
           else
             let files = file
           endif
+          let sub = matchstr(line, '^[12u] .. \zs....')
           if line[2] !=# '.'
-            call add(staged, {'type': 'File', 'status': line[2], 'filename': files})
+            call add(staged, {'type': 'File', 'status': line[2], 'filename': files, 'submodule': sub})
           endif
           if line[3] !=# '.'
             let sub = matchstr(line, '^[12u] .. \zs....')
-            call add(unstaged, {'type': 'File', 'status': get({'C':'M','M':'?','U':'?'}, matchstr(sub, 'S\.*\zs[CMU]'), line[3]), 'filename': file})
+            call add(unstaged, {'type': 'File', 'status': get({'C':'M','M':'?','U':'?'}, matchstr(sub, 'S\.*\zs[CMU]'), line[3]), 'filename': file, 'submodule': sub})
           endif
         endif
         let i += 1
@@ -1844,12 +1845,12 @@ function! fugitive#BufReadStatus() abort
           let i += 1
         endif
         if line[0] !~# '[ ?!#]'
-          call add(staged, {'type': 'File', 'status': line[0], 'filename': files})
+          call add(staged, {'type': 'File', 'status': line[0], 'filename': files, 'submodule': ''})
         endif
         if line[0:1] ==# '??'
           call add(untracked, {'type': 'File', 'status': line[1], 'filename': files})
         elseif line[1] !~# '[ !#]'
-          call add(unstaged, {'type': 'File', 'status': line[1], 'filename': file})
+          call add(unstaged, {'type': 'File', 'status': line[1], 'filename': file, 'submodule': ''})
         endif
       endwhile
     endif
@@ -3053,6 +3054,7 @@ function! s:StageInfo(...) abort
         \ 'paths': map(reverse(split(text, ' -> ')), 's:Tree() . "/" . v:val'),
         \ 'commit': matchstr(getline(lnum), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze '),
         \ 'status': matchstr(getline(lnum), '^[A-Z?]\ze \|^\%(\x\x\x\)\@!\l\+\ze [0-9a-f]'),
+        \ 'submodule': get(get(get(b:fugitive_files, section, {}), text, {}), 'submodule', ''),
         \ 'index': index}
 endfunction
 
@@ -3509,10 +3511,10 @@ function! s:StageDiff(diff) abort
   let lnum = line('.')
   let info = s:StageInfo(lnum)
   let prefix = info.offset > 0 ? '+' . info.offset : ''
-  if info.sub =~# '^S'
+  if info.submodule =~# '^S'
     if info.section ==# 'Staged'
       return 'Git --paginate diff --no-ext-diff --submodule=log --cached -- ' . info.paths[0]
-    elseif info.sub =~# '^SC'
+    elseif info.submodule =~# '^SC'
       return 'Git --paginate diff --no-ext-diff --submodule=log -- ' . info.paths[0]
     else
       return 'Git --paginate diff --no-ext-diff --submodule=diff -- ' . info.paths[0]
