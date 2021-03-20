@@ -2744,10 +2744,36 @@ function! s:ExecPath() abort
   return s:exec_paths[g:fugitive_git_executable]
 endfunction
 
+let s:subcommands_before_2_5 = [
+      \ 'add', 'am', 'apply', 'archive', 'bisect', 'blame', 'branch', 'bundle',
+      \ 'checkout', 'cherry', 'cherry-pick', 'citool', 'clean', 'clone', 'commit', 'config',
+      \ 'describe', 'diff', 'difftool', 'fetch', 'format-patch', 'fsck',
+      \ 'gc', 'grep', 'gui', 'help', 'init', 'instaweb', 'log',
+      \ 'merge', 'mergetool', 'mv', 'notes', 'pull', 'push',
+      \ 'rebase', 'reflog', 'remote', 'repack', 'replace', 'request-pull', 'reset', 'revert', 'rm',
+      \ 'send-email', 'shortlog', 'show', 'show-branch', 'stash', 'stage', 'status', 'submodule',
+      \ 'tag', 'whatchanged',
+      \ ]
 let s:path_subcommands = {}
 function! s:CompletableSubcommands(dir) abort
-  let commands = []
-  for path in [s:ExecPath()] + split($PATH, has('win32') ? ';' : ':')
+  let c_exec_path = s:cpath(s:ExecPath())
+  if !has_key(s:path_subcommands, c_exec_path)
+    if fugitive#GitVersion(2, 18)
+      let [lines, exec_error] = s:LinesError(a:dir, '--list-cmds=list-mainporcelain,nohelpers,list-complete')
+      call filter(lines, 'v:val =~# "^\\S\\+$"')
+      if !exec_error && len(lines)
+        let s:path_subcommands[c_exec_path] = lines
+      else
+        let s:path_subcommands[c_exec_path] = s:subcommands_before_2_5 +
+              \ ['maintenance', 'prune', 'range-diff', 'restore', 'sparse-checkout', 'switch', 'worktree']
+      endif
+    else
+      let s:path_subcommands[c_exec_path] = s:subcommands_before_2_5 +
+            \ (fugitive#GitVersion(2, 5) ? ['worktree'] : [])
+    endif
+  endif
+  let commands = copy(s:path_subcommands[c_exec_path])
+  for path in split($PATH, has('win32') ? ';' : ':')
     if path !~# '^/\|^\a:[\\/]'
       continue
     endif
