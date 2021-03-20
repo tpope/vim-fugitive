@@ -2744,22 +2744,42 @@ function! s:ExecPath() abort
   return s:exec_paths[g:fugitive_git_executable]
 endfunction
 
-function! s:Subcommands() abort
-  let exec_path = s:ExecPath()
-  return map(s:GlobComplete(exec_path.'/git-', '*', 1),'substitute(v:val,"\\.exe$","","")')
-endfunction
-
-let s:aliases = {}
-function! s:Aliases(dir) abort
-  let dir_key = len(a:dir) ? a:dir : '_'
-  if !has_key(s:aliases, dir_key)
-    let s:aliases[dir_key] = {}
-    let lines = s:NullError([a:dir, 'config', '-z', '--get-regexp', '^alias[.]'])[0]
-    for line in lines
-      let s:aliases[dir_key][matchstr(line, '\.\zs.\{-}\ze\n')] = matchstr(line, '\n\zs.*')
-    endfor
+let s:path_subcommands = {}
+function! s:CompletableSubcommands(dir) abort
+  let commands = []
+  for path in [s:ExecPath()] + split($PATH, has('win32') ? ';' : ':')
+    if path !~# '^/\|^\a:[\\/]'
+      continue
+    endif
+    let cpath = s:cpath(path)
+    if !has_key(s:path_subcommands, cpath)
+      let s:path_subcommands[cpath] = filter(map(s:GlobComplete(path.'/git-', '*', 1),'substitute(v:val,"\\.exe$","","")'), 'v:val !~# "--"')
+    endif
+    call extend(commands, s:path_subcommands[cpath])
+  endfor
+  call extend(commands, map(filter(keys(fugitive#Config(a:dir)), 'v:val =~# "^alias\\.[^.]*$"'), 'strpart(v:val, 6)'))
+  let configured = split(FugitiveConfigGet('completion.commands', a:dir), '\s\+')
+  let rejected = {}
+  for command in configured
+    if command =~# '^-.'
+      let rejected[strpart(command, 1)] = 1
+    endif
+  endfor
+  call filter(configured, 'v:val !~# "^-"')
+  let results = filter(sort(commands + configured), '!has_key(rejected, v:val)')
+  if exists('*uniq')
+    return uniq(results)
+  else
+    let i = 1
+    while i < len(results)
+      if results[i] ==# results[i-1]
+        call remove(results, i)
+      else
+        let i += 1
+      endif
+    endwhile
+    return results
   endif
-  return s:aliases[dir_key]
 endfunction
 
 function! fugitive#Complete(lead, ...) abort
@@ -2768,7 +2788,7 @@ function! fugitive#Complete(lead, ...) abort
   let pre = a:0 > 1 ? strpart(a:1, 0, a:2) : ''
   let subcmd = matchstr(pre, '\u\w*[! ] *\zs[[:alnum:]-]\+\ze ')
   if empty(subcmd)
-    let results = sort(s:Subcommands() + keys(s:Aliases(dir)))
+    let results = s:CompletableSubcommands(dir)
   elseif a:0 ==# 2 && subcmd =~# '^\%(commit\|revert\|push\|fetch\|pull\|merge\|rebase\)$'
     let cmdline = substitute(a:1, '\u\w*\([! ] *\)' . subcmd, 'G' . subcmd, '')
     let caps_subcmd = substitute(subcmd, '\%(^\|-\)\l', '\u&', 'g')
