@@ -1192,17 +1192,16 @@ function! fugitive#Expand(object) abort
         \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5))', 'g')
 endfunction
 
-function! s:ExpandSplit(string, ...) abort
+function! s:SplitExpandChain(string, ...) abort
   let list = []
   let string = a:string
-  let handle_bar = a:0 && a:1
-  let dquote = handle_bar ? '"\%([^"]\|""\|\\"\)*"\|' : ''
-  let cwd = a:0 > 1 ? a:2 : getcwd()
+  let dquote = '"\%([^"]\|""\|\\"\)*"\|'
+  let cwd = a:0 ? a:1 : getcwd()
   while string =~# '\S'
-    if handle_bar && string =~# '^\s*|'
+    if string =~# '^\s*|'
       return [list, substitute(string, '^\s*', '', '')]
     endif
-    let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^[:space:] ' . (handle_bar ? '|' : '') . ']\)\+')
+    let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^[:space:] |]\)\+')
     let string = strpart(string, len(arg))
     let arg = substitute(arg, '^\s\+', '', '')
     if !exists('seen_separator')
@@ -1217,15 +1216,7 @@ function! s:ExpandSplit(string, ...) abort
       let seen_separator = 1
     endif
   endwhile
-  return handle_bar ? [list, ''] : list
-endfunction
-
-function! s:SplitExpand(string, ...) abort
-  return s:ExpandSplit(a:string, 0, a:0 ? a:1 : getcwd())
-endfunction
-
-function! s:SplitExpandChain(string, ...) abort
-  return s:ExpandSplit(a:string, 1, a:0 ? a:1 : getcwd())
+  return [list, '']
 endfunction
 
 let s:trees = {}
@@ -4473,7 +4464,8 @@ function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
   let dir = s:Dir()
   exe s:DirCheck(dir)
   let listnr = a:type =~# '^l' ? 0 : -1
-  let [args, after] = s:SplitExpandChain(a:args, s:Tree(dir))
+  let [args, after] = s:SplitExpandChain('log ' . a:args, s:Tree(dir))
+  call remove(args, 0)
   let split = index(args, '--')
   if split > 0
     let paths = args[split : -1]
