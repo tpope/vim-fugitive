@@ -2367,13 +2367,13 @@ function! s:RunFinished(state) abort
   call fugitive#ReloadStatus(a:state.dir, 1)
 endfunction
 
-function! s:RunEdit(state, job) abort
+function! s:RunEdit(state, tmp, job) abort
   if get(a:state, 'request', '') == 'edit'
     call remove(a:state, 'request')
     let file = FugitiveVimPath(readfile(a:state.file . '.edit')[0])
     exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
     set bufhidden=wipe
-    let s:edit_jobs[bufnr('')] = [a:state, a:job]
+    let s:edit_jobs[bufnr('')] = [a:state, a:tmp, a:job]
     call fugitive#ReloadStatus(a:state.dir, 1)
     return 1
   endif
@@ -2437,7 +2437,7 @@ endfunction
 if !exists('s:edit_jobs')
   let s:edit_jobs = {}
 endif
-function! s:RunWait(state, job) abort
+function! s:RunWait(state, tmp, job) abort
   let finished = 0
   try
     while get(a:state, 'request', '') !=# 'edit' && (type(a:job) == type(0) ? jobwait([a:job], 1)[0] == -1 : ch_status(a:job) !=# 'closed' || job_status(a:job) ==# 'run')
@@ -2467,7 +2467,7 @@ function! s:RunWait(state, job) abort
     endwhile
     sleep 1m
     echo
-    call s:RunEdit(a:state, a:job)
+    call s:RunEdit(a:state, a:tmp, a:job)
     let finished = 1
   finally
     if !finished
@@ -2491,11 +2491,11 @@ if !exists('s:resume_queue')
 endif
 function! fugitive#Resume() abort
   while len(s:resume_queue)
-    let [state, job] = remove(s:resume_queue, 0)
+    let [state, tmp, job] = remove(s:resume_queue, 0)
     if filereadable(state.file . '.edit')
       call delete(state.file . '.edit')
     endif
-    call s:RunWait(state, job)
+    call s:RunWait(state, tmp, job)
   endwhile
 endfunction
 
@@ -2715,7 +2715,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
             \ }))
     endif
     let state.job = job
-    call s:RunWait(state, job)
+    call s:RunWait(state, tmp, job)
     return 'silent checktime' . after
   elseif pager is# 1
     let pre = s:BuildEnvPrefix(env)
