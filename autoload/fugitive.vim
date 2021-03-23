@@ -2180,6 +2180,9 @@ function! fugitive#BufReadCmd(...) abort
     setlocal endofline
 
     try
+      if &foldmethod ==# 'marker' && b:fugitive_type !=# 'blob'
+        setlocal foldmethod=manual
+      endif
       silent exe s:DoAutocmd('BufReadPre')
       if b:fugitive_type ==# 'tree'
         let b:fugitive_display_format = b:fugitive_display_format % 2
@@ -2233,7 +2236,7 @@ function! fugitive#BufReadCmd(...) abort
       endif
       let &l:modifiable = modifiable
       if b:fugitive_type !=# 'blob'
-        setlocal filetype=git foldmethod=syntax
+        setlocal filetype=git
         call s:Map('n', 'a', ":<C-U>let b:fugitive_display_format += v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>", '<silent>')
         call s:Map('n', 'i', ":<C-U>let b:fugitive_display_format -= v:count1<Bar>exe fugitive#BufReadCmd(@%)<CR>", '<silent>')
       endif
