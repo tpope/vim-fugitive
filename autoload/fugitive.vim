@@ -5806,19 +5806,23 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
   let dir = s:Dir()
   exe s:DirCheck(dir)
   try
+    let arg = a:arg
+    if arg =~# '^++remote='
+      let remote = matchstr(arg, '^++remote=\zs\S\+')
+      let arg = matchstr(arg, '\s\zs\S.*')
+    endif
     let validremote = '\.\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)\='
-    if a:arg ==# '-'
+    if arg ==# '-'
       if a:count >= 0
         return 'echoerr ' . string('fugitive: ''-'' no longer required to get persistent URL if range given')
       else
         return 'echoerr ' . string('fugitive: use :0GBrowse instead of :GBrowse -')
       endif
-    elseif len(a:arg)
-      let remote = matchstr(a:arg, '@\zs\%('.validremote.'\)$')
-      let rev = substitute(a:arg, '@\%('.validremote.'\)$','','')
+    elseif len(arg) && !exists('l:remote')
+      let remote = matchstr(arg, '@\zs\%('.validremote.'\)$')
+      let rev = substitute(arg, '@\%('.validremote.'\)$','','')
     else
-      let remote = ''
-      let rev = ''
+      let rev = arg
     endif
     if rev ==# ''
       let rev = s:DirRev(@%)[1]
@@ -5928,7 +5932,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
           if exec_error
             let commit = ''
           endif
-          if a:count > 0 && empty(a:arg) && commit =~# '^\x\{40,\}$'
+          if a:count > 0 && empty(arg) && commit =~# '^\x\{40,\}$'
             let blame_list = tempname()
             call writefile([commit, ''], blame_list, 'b')
             let blame_in = tempname()
