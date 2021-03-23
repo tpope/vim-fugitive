@@ -2780,7 +2780,7 @@ function! s:CompletableSubcommands(dir) abort
     endif
     let cpath = s:cpath(path)
     if !has_key(s:path_subcommands, cpath)
-      let s:path_subcommands[cpath] = filter(map(s:GlobComplete(path.'/git-', '*', 1),'substitute(v:val,"\\.exe$","","")'), 'v:val !~# "--"')
+      let s:path_subcommands[cpath] = filter(map(s:GlobComplete(path.'/git-', '*', 1),'substitute(v:val,"\\.exe$","","")'), 'v:val !~# "--\\|/"')
     endif
     call extend(commands, s:path_subcommands[cpath])
   endfor
