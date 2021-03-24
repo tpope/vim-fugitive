@@ -59,6 +59,12 @@ that are part of Git repositories).
                         ~     reblame at [count]th first grandparent
                         P     reblame at [count]th parent (like HEAD^[count])
 
+                                                *g:fugitive_dynamic_colors*
+                        In the GUI or a 256 color terminal, commit hashes will
+                        highlighted in different colors. To disable this:
+>
+                        let g:fugitive_dynamic_colors = 0
+<
 :[range]Git blame [...] If a range is given, just that part of the file will
 :Git blame [...] {file} be blamed, and a horizontal split without
                         scrollbinding is used.  You can also give an arbitrary
