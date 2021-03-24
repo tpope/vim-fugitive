@@ -2716,7 +2716,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     return 'silent checktime' . after
   elseif pager is# 1
     let pre = s:BuildEnvPrefix(env)
-    silent! execute '!' . escape(pre . s:UserCommand(state, ['--no-pager'] + args), '!#%') .
+    silent! execute '!' . escape(pre . s:UserCommand({'git': git, 'dir': dir}, s:disable_colors + flags + ['--no-pager'] + args), '!#%') .
           \ (&shell =~# 'csh' ? ' >& ' . s:shellesc(state.file) : ' > ' . s:shellesc(state.file) . ' 2>&1')
     redraw!
     call s:RunSave(state)
