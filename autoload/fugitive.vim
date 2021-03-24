@@ -5788,7 +5788,7 @@ function! s:BlameRehighlight() abort
   endfor
 endfunction
 
-function! s:BlameFileType() abort
+function! fugitive#BlameFileType() abort
   setlocal nomodeline
   setlocal foldmethod=manual
   if len(s:Dir())
@@ -5821,7 +5821,6 @@ endfunction
 
 augroup fugitive_blame
   autocmd!
-  autocmd FileType fugitiveblame call s:BlameFileType()
   autocmd ColorScheme,GUIEnter * call s:BlameRehighlight()
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
 augroup END
