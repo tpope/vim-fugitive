@@ -5821,7 +5821,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       else
         return 'echoerr ' . string('fugitive: use :0GBrowse instead of :GBrowse -')
       endif
-    elseif len(arg) && !exists('l:remote')
+    elseif !exists('l:remote')
       let remote = matchstr(arg, '@\zs\%('.validremote.'\)$')
       let rev = substitute(arg, '@\%('.validremote.'\)$','','')
     else
