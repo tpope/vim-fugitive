@@ -3807,6 +3807,15 @@ function! s:StageIgnore(lnum1, lnum2, count) abort
     call extend(paths, info.relative)
   endfor
   call map(paths, '"/" . v:val')
+  if !a:0
+    let dir = fugitive#Find('.git/info/')
+    if !isdirectory(dir)
+      try
+        call mkdir(dir)
+      catch
+      endtry
+    endif
+  endif
   exe 'Gsplit' (a:count ? '.gitignore' : '.git/info/exclude')
   let last = line('$')
   if last == 1 && empty(getline(1))
