@@ -1771,6 +1771,7 @@ function! s:IgnoreRefs(refs, refsToIgnore) abort
     return index(a:refsToIgnore, a:ref) == -1
   endfunction
 
+  " Strip the outer parentheses
   let refs = split(a:refs[1:-2], ", ")
   let refs = filter(refs, function('ShouldPreserveRef', [a:refsToIgnore]))
 
@@ -1778,7 +1779,7 @@ function! s:IgnoreRefs(refs, refsToIgnore) abort
     return ''
   endif
 
-  return '(' . join(refs, ", ") . ')'
+  return '(' . join(refs, ", ") . ') '
 endfunction
 
 function! s:QueryLog(refspec, refToIgnore) abort
@@ -1786,18 +1787,33 @@ function! s:QueryLog(refspec, refToIgnore) abort
   call map(lines, 'split(v:val, "\t", 1)')
   let refsToIgnore = [a:refToIgnore, 'HEAD']
 
-  function! HandleRefs(refsToIgnore, refs) abort
-    return s:IgnoreRefs(trim(a:refs), a:refsToIgnore)
+  function! HandleRefs(refsToIgnore, subject, refs) abort
+    let refs = trim(a:refs)
+    let refs = s:IgnoreRefs(refs, a:refsToIgnore)
+
+    if len(refs) == 0 && a:subject[0] == '('
+      " Add artificial (concealed) empty parentheses for refs. Helps avoid
+      " syntax highlighting false-positives (subject lines beginning with an
+      " open parenthesis).
+      return '()'
+    endif
+
+    return refs
+  endfunction
+  
+  function! CreateLineDict(refsToIgnore, index, parts) abort
+    let subject = join(a:parts[2 : -1], "\t")
+    return {"type": "Log", "commit": a:parts[0], "refs": HandleRefs(a:refsToIgnore, subject, a:parts[1]), "subject": subject}
   endfunction
 
-  call map(lines, '{"type": "Log", "commit": v:val[0], "refs": ' . string(function('HandleRefs', [refsToIgnore])) . '(v:val[1]), "subject": join(v:val[2 : -1], "\t")}')
+  call map(lines, function('CreateLineDict', [refsToIgnore]))
   return lines
 endfunction
 
 function! s:FormatLog(dict) abort
   setlocal conceallevel=3
   setlocal concealcursor=nc
-  return a:dict.commit . ' ' . ((len(a:dict.refs) > 0) ? ("\x1f" . a:dict.refs . ' ') : '') . a:dict.subject
+  return a:dict.commit . ' ' . ((len(a:dict.refs) > 0) ? a:dict.refs : '') . a:dict.subject
 endfunction
 
 function! s:FormatRebase(dict) abort
