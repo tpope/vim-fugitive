@@ -26,7 +26,8 @@ syn match fugitiveSymbolicRef /\.\@!\%(\.\.\@!\|[^[:space:][:cntrl:]\:.]\)\+\.\@
 syn match fugitiveHash /^\x\{4,\}\S\@!/ contained containedin=@fugitiveSection nextgroup=fugitiveRefs skipwhite
 syn match fugitiveHash /\S\@<!\x\{4,\}\S\@!/ contained
 syn match fugitiveRefs '()' contained conceal
-syn match fugitiveRefs /([^)]\+)/hs=s+1,he=e-1 contained
+syn match fugitiveRefs /([^)]\+)/hs=s+1,he=e-1 contained contains=fugitiveRef
+syn match fugitiveRef /\<[^[:space:][:cntrl:]]\+\>/ contained
 
 syn region fugitiveHunk start=/^\%(@@\+ -\)\@=/ end=/^\%([A-Za-z?@]\|$\)\@=/ contains=@fugitiveDiff containedin=@fugitiveSection fold
 
@@ -53,7 +54,7 @@ hi def link fugitiveStagedModifier Typedef
 hi def link fugitiveInstruction Type
 hi def link fugitiveStop Function
 hi def link fugitiveHash Identifier
-hi def link fugitiveRefs Function
+hi def link fugitiveRef Function
 hi def link fugitiveSymbolicRef Function
 hi def link fugitiveCount Number
 
