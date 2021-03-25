@@ -92,6 +92,22 @@ function! FugitiveParse(...) abort
   throw v:errmsg
 endfunction
 
+" FugitiveResult() returns an object encapsulating the result of the most
+" recend :Git command.  Will be empty if no result is available.  Pass in the
+" name of a temp buffer to get the result object for that command instead.
+" Contains the following keys:
+"
+" * "args": List of command arguments, starting with the subcommand.  Will be
+"   empty for usages like :Git --help.
+" * "dir": Git dir of the relevant repository.
+" * "exit_status": The integer exit code of the process.
+" * "flags": Flags passed directly to Git, like -c and --help.
+" * "file": Path to file containing command output.  Not guaranteed to exist,
+"   so verify with filereadable() before trying to access it.
+function! FugitiveResult(...) abort
+  return call('fugitive#Result', a:000)
+endfunction
+
 " FugitivePrepare() constructs a Git command string which can be executed with
 " functions like system() and commands like :!.  Integer arguments will be
 " treated as buffer numbers, and the appropriate relative path inserted in
