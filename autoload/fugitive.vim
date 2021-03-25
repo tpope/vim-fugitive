@@ -2458,13 +2458,13 @@ function! s:RunWait(state, tmp, job) abort
       if !exists('*jobwait')
         sleep 1m
       endif
-      if !get(a:state, 'closed')
+      if !get(a:state, 'closed_in')
         let peek = getchar(1)
         if peek != 0 && !(has('win32') && peek == 128)
           let c = getchar()
           let c = type(c) == type(0) ? nr2char(c) : c
           if c ==# "\<C-D>"
-            let a:state.closed = 1
+            let a:state.closed_in = 1
             if type(a:job) ==# type(0)
               call chanclose(a:job, 'stdin')
             else
@@ -2486,7 +2486,7 @@ function! s:RunWait(state, tmp, job) abort
   finally
     if !finished
       try
-        if a:state.pty
+        if a:state.pty && !get(a:state, 'closed_in')
           call s:RunSend(a:job, "\<C-C>")
         elseif type(a:job) == type(0)
           call jobstop(a:job)
