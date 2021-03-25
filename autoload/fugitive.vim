@@ -659,18 +659,37 @@ function! fugitive#SshHostAlias(...) abort
   endif
 endfunction
 
+let s:redirects = {}
+
+function! fugitive#ResolveRemote(remote) abort
+  if a:remote =~# '^https\=://' && s:executable('curl')
+    if !has_key(s:redirects, a:remote)
+      let s:redirects[a:remote] = matchstr(s:SystemError(
+            \ 'curl --disable --silent --max-time 5 -I ' .
+            \ s:shellesc(a:remote . '/info/refs?service=git-upload-pack'))[0],
+            \ 'Location: \zs\S\+\ze/info/refs?')
+    endif
+    if len(s:redirects[a:remote])
+      return s:redirects[a:remote]
+    endif
+  endif
+  return substitute(a:remote,
+        \ '^ssh://\%([^@:/]\+@\)\=\zs[^/:]\+\|^\%([^@:/]\+@\)\=\zs[^/:]\+\ze:/\@!',
+        \ '\=fugitive#SshHostAlias(submatch(0))', '')
+endfunction
+
 function! fugitive#RemoteUrl(...) abort
   let dir = a:0 > 1 ? a:2 : s:Dir()
-  let remote = !a:0 || a:1 =~# '^\.\=$' ? s:Remote(dir) : a:1
-  if !fugitive#GitVersion(2, 7)
-    let url = FugitiveConfigGet('remote.' . remote . '.url')
-  else
-    let url = s:ChompDefault('', [dir, 'remote', 'get-url', remote, '--'])
+  let url = !a:0 || a:1 =~# '^\.\=$' ? s:Remote(dir) : a:1
+  if url !~# ':\|^/\|^\.\.\=/'
+    if !fugitive#GitVersion(2, 7)
+      let url = FugitiveConfigGet('remote.' . url . '.url')
+    else
+      let url = s:ChompDefault('', [dir, 'remote', 'get-url', url, '--'])
+    endif
   endif
   if !get(a:, 3, 0)
-    let url = substitute(url,
-          \ '^ssh://\%([^@:/]\+@\)\=\zs[^/:]\+\|^\%([^@:/]\+@\)\=\zs[^/:]\+\ze:/\@!',
-          \ '\=fugitive#SshHostAlias(submatch(0))', '')
+    let url = fugitive#ResolveRemote(url)
   endif
   return url
 endfunction
@@ -5859,8 +5878,6 @@ augroup END
 
 " Section: :GBrowse
 
-let s:redirects = {}
-
 function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abort
   let dir = s:Dir()
   exe s:DirCheck(dir)
@@ -6030,17 +6047,6 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     let raw = fugitive#RemoteUrl(remote)
     if empty(raw)
       let raw = remote
-    endif
-
-    if raw =~# '^https\=://' && s:executable('curl')
-      if !has_key(s:redirects, raw)
-        let s:redirects[raw] = matchstr(system('curl -I ' .
-              \ s:shellesc(raw . '/info/refs?service=git-upload-pack')),
-              \ 'Location: \zs\S\+\ze/info/refs?')
-      endif
-      if len(s:redirects[raw])
-        let raw = s:redirects[raw]
-      endif
     endif
 
     let opts = {
