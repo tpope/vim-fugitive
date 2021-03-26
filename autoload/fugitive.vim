@@ -199,6 +199,23 @@ function! s:Map(mode, lhs, rhs, ...) abort
   endfor
 endfunction
 
+function! fugitive#Autowrite() abort
+  if &autowrite || &autowriteall
+    try
+      if &confirm
+        let reconfirm = 1
+        setglobal noconfirm
+      endif
+      silent! wall
+    finally
+      if exists('reconfirm')
+        setglobal confirm
+      endif
+    endtry
+  endif
+  return ''
+endfunction
+
 " Section: Git
 
 function! s:UserCommandList(...) abort
@@ -2656,10 +2673,10 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
     let assign = len(dir) ? '|let b:git_dir = ' . string(dir) : ''
     if has('nvim')
-      if &autowrite || &autowriteall | silent! wall | endif
+      call fugitive#Autowrite()
       return mods . (a:line2 ? 'split' : 'edit') . ' term://' . s:fnameescape(s:UserCommand(options, args)) . assign . '|startinsert' . after
     elseif has('terminal')
-      if &autowrite || &autowriteall | silent! wall | endif
+      call fugitive#Autowrite()
       return 'exe ' . string(mods . 'terminal ' . (a:line2 ? '' : '++curwin ') . join(map(s:UserCommandList(options) + args, 's:fnameescape(v:val)'))) . assign . after
     endif
   endif
@@ -2704,7 +2721,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let args = s:disable_colors + flags + ['-c', 'advice.waitingForEditor=false'] + args
     let argv = s:UserCommandList({'git': git, 'dir': dir}) + args
     let [argv, jobopts] = s:JobOpts(argv, env)
-    if &autowrite || &autowriteall | silent! wall | endif
+    call fugitive#Autowrite()
     call writefile([], state.file, 'b')
     call s:RunSave(state)
     echo ""
