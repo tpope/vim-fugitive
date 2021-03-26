@@ -2421,8 +2421,8 @@ function! s:RunEdit(state, tmp, job) abort
 endfunction
 
 function! s:RunReceive(state, tmp, type, job, data, ...) abort
-  let data = type(a:data) == type([]) ? join(a:data, "\n") : a:data
   if a:type ==# 'err' || a:state.pty
+    let data = type(a:data) == type([]) ? join(a:data, "\n") : a:data
     let data = a:tmp.escape . data
     let escape = "\033]51;[^\007]*"
     let a:tmp.escape = matchstr(data, escape . '$')
@@ -2447,12 +2447,12 @@ function! s:RunReceive(state, tmp, type, job, data, ...) abort
     let lines[-1] = ''
   endif
   call writefile(lines, a:state.file, 'ba')
-  let data = a:tmp.echo . data
-  let a:tmp.echo = matchstr(data, "[\r\n]\\+$")
-  if len(a:tmp.echo)
-    let data = strpart(data, 0, len(data) - len(a:tmp.echo))
+  if has_key(a:tmp, 'echo')
+    if !exists('l:data')
+      let data = type(a:data) == type([]) ? join(a:data, "\n") : a:data
+    endif
+    let a:tmp.echo .= data
   endif
-  echon substitute(data, "\r\\ze\n", '', 'g')
 endfunction
 
 function! s:RunExit(state, tmp, job, exit_status) abort
@@ -2489,16 +2489,32 @@ function! s:RunSend(job, str) abort
   endtry
 endfunction
 
+function! s:RunEcho(tmp) abort
+  let data = a:tmp.echo
+  let a:tmp.echo = matchstr(data, "[\r\n]\\+$")
+  if len(a:tmp.echo)
+    let data = strpart(data, 0, len(data) - len(a:tmp.echo))
+  endif
+  echon substitute(data, "\r\\ze\n", '', 'g')
+endfunction
+
+function! s:RunTick(job) abort
+  if type(a:job) == v:t_number
+    return jobwait([a:job], 1)[0] == -1
+  elseif type(a:job) == v:t_job && (ch_status(a:job) !=# 'closed' || job_status(a:job) ==# 'run')
+    sleep 1m
+    return ch_status(a:job) !=# 'closed' || job_status(a:job) ==# 'run'
+  endif
+endfunction
+
 if !exists('s:edit_jobs')
   let s:edit_jobs = {}
 endif
 function! s:RunWait(state, tmp, job) abort
   let finished = 0
   try
-    while get(a:state, 'request', '') !=# 'edit' && (type(a:job) == type(0) ? jobwait([a:job], 1)[0] == -1 : ch_status(a:job) !=# 'closed' || job_status(a:job) ==# 'run')
-      if !exists('*jobwait')
-        sleep 1m
-      endif
+    while get(a:state, 'request', '') !=# 'edit' && s:RunTick(a:job)
+      call s:RunEcho(a:tmp)
       if !get(a:state, 'closed_in')
         let peek = getchar(1)
         if peek != 0 && !(has('win32') && peek == 128)
@@ -2520,7 +2536,7 @@ function! s:RunWait(state, tmp, job) abort
         endif
       endif
     endwhile
-    sleep 1m
+    call s:RunEcho(a:tmp)
     echo
     call s:RunEdit(a:state, a:tmp, a:job)
     let finished = 1
