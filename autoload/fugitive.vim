@@ -218,6 +218,11 @@ endfunction
 
 " Section: Git
 
+function! s:UserCommandCwd(dir) abort
+  let tree = s:Tree(a:dir)
+  return len(tree) ? FugitiveVimPath(tree) : getcwd()
+endfunction
+
 function! s:UserCommandList(...) abort
   let git = split(get(g:, 'fugitive_git_command', g:fugitive_git_executable), '\s\+')
   let flags = []
@@ -2688,6 +2693,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
         \ 'flags': flags,
         \ 'args': args,
         \ 'dir': dir,
+        \ 'git_dir': dir,
+        \ 'cwd': s:UserCommandCwd(dir),
         \ 'filetype': 'git',
         \ 'mods': s:Mods(a:mods),
         \ 'file': s:Resolve(tempname())}
@@ -5528,6 +5535,8 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
             \ 'flags': a:options.flags,
             \ 'args': [a:options.subcommand] + a:options.subcommand_args,
             \ 'dir': dir,
+            \ 'git_dir': dir,
+            \ 'cwd': s:UserCommandCwd(dir),
             \ 'filetype': (raw ? 'git' : 'fugitiveblame'),
             \ 'blame_options': a:options,
             \ 'blame_flags': flags,
@@ -5540,7 +5549,8 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         return s:BlameCommit(edit, get(readfile(temp), 0, ''), temp_state)
       else
         let temp = s:Resolve(temp)
-        let s:temp_files[s:cpath(temp)] = temp_state
+        let temp_state.file = temp
+        call s:RunSave(temp_state)
         if len(ranges + commits + files) || raw
           let mods = s:Mods(a:mods)
           if a:count != 0
