@@ -2746,6 +2746,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
         \ 'file': s:Resolve(tempname())}
   if pager is# 1
     call extend(env, {'COLUMNS': '' . get(g:, 'fugitive_columns', 80)}, 'keep')
+  else
+    call extend(env, {'COLUMNS': '' . &columns - 1}, 'keep')
   endif
   if s:RunJobs() && pager isnot# 1
     let state.pty = get(g:, 'fugitive_pty', has('unix') && (has('patch-8.0.0744') || has('nvim')))
