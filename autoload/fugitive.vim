@@ -2360,7 +2360,7 @@ endfunction
 
 function! s:TempDelete(file) abort
   let key = s:cpath(a:file)
-  if has_key(s:temp_files, key) && key !=# s:cpath(get(get(g:, '_fugitive_last_job', {}), 'file', ''))
+  if has_key(s:temp_files, key) && !has_key(s:temp_files[key], 'job') && key !=# s:cpath(get(get(g:, '_fugitive_last_job', {}), 'file', ''))
     call delete(a:file)
     call remove(s:temp_files, key)
   endif
@@ -2393,14 +2393,14 @@ function! s:RunJobs() abort
 endfunction
 
 function! s:RunSave(state) abort
-  if has_key(get(g:, '_fugitive_last_job', {}), 'file') && bufnr(g:_fugitive_last_job.file) < 0
-    exe s:TempDelete(remove(g:, '_fugitive_last_job').file)
-  endif
-  let g:_fugitive_last_job = a:state
   let s:temp_files[s:cpath(a:state.file)] = a:state
 endfunction
 
 function! s:RunFinished(state) abort
+  if has_key(get(g:, '_fugitive_last_job', {}), 'file') && bufnr(g:_fugitive_last_job.file) < 0
+    exe s:TempDelete(remove(g:, '_fugitive_last_job').file)
+  endif
+  let g:_fugitive_last_job = a:state
   let first = join(readfile(a:state.file, '', 2), "\n")
   if get(a:state, 'filetype', '') ==# 'git' && first =~# '\<\([[:upper:][:digit:]_-]\+(\d\+)\).*\1'
     let a:state.filetype = 'man'
