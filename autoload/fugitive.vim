@@ -2490,6 +2490,9 @@ function! s:RunSend(job, str) abort
 endfunction
 
 function! s:RunEcho(tmp) abort
+  if !has_key(a:tmp, 'echo')
+    return
+  endif
   let data = a:tmp.echo
   let a:tmp.echo = matchstr(data, "[\r\n]\\+$")
   if len(a:tmp.echo)
@@ -2541,7 +2544,10 @@ function! s:RunWait(state, tmp, job) abort
       throw 'fugitive: close callback did not fire; this should never happen'
     endif
     call s:RunEcho(a:tmp)
-    echo
+    if has_key(a:tmp, 'echo')
+      let a:tmp.echo = substitute(a:tmp.echo, "^\r\\=\n", '', '')
+      echo
+    endif
     call s:RunEdit(a:state, a:tmp, a:job)
     let finished = 1
   finally
