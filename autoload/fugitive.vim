@@ -2501,9 +2501,10 @@ endfunction
 function! s:RunTick(job) abort
   if type(a:job) == v:t_number
     return jobwait([a:job], 1)[0] == -1
-  elseif type(a:job) == v:t_job && (ch_status(a:job) !=# 'closed' || job_status(a:job) ==# 'run')
+  elseif type(a:job) == 8
+    let running = ch_status(a:job) !=# 'closed' || job_status(a:job) ==# 'run'
     sleep 1m
-    return ch_status(a:job) !=# 'closed' || job_status(a:job) ==# 'run'
+    return running
   endif
 endfunction
 
@@ -2536,6 +2537,9 @@ function! s:RunWait(state, tmp, job) abort
         endif
       endif
     endwhile
+    if !has_key(a:state, 'request') && has_key(a:state, 'job') && exists('*job_status') && job_status(a:job) ==# "dead"
+      throw 'fugitive: close callback did not fire; this should never happen'
+    endif
     call s:RunEcho(a:tmp)
     echo
     call s:RunEdit(a:state, a:tmp, a:job)
