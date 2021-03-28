@@ -2411,10 +2411,11 @@ endfunction
 function! s:RunEdit(state, tmp, job) abort
   if get(a:state, 'request', '') == 'edit'
     call remove(a:state, 'request')
-    let file = FugitiveVimPath(readfile(a:state.file . '.edit')[0])
+    let sentinel = a:state.file . '.edit'
+    let file = FugitiveVimPath(readfile(sentinel, 1)[0])
     exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
     set bufhidden=wipe
-    let s:edit_jobs[bufnr('')] = [a:state, a:tmp, a:job]
+    let s:edit_jobs[bufnr('')] = [a:state, a:tmp, a:job, sentinel]
     call fugitive#ReloadStatus(a:state.dir, 1)
     return 1
   endif
@@ -2514,7 +2515,10 @@ endfunction
 if !exists('s:edit_jobs')
   let s:edit_jobs = {}
 endif
-function! s:RunWait(state, tmp, job) abort
+function! s:RunWait(state, tmp, job, ...) abort
+  if a:0 && filereadable(a:1)
+    call delete(a:1)
+  endif
   let finished = 0
   try
     while get(a:state, 'request', '') !=# 'edit' && s:RunTick(a:job)
@@ -2572,18 +2576,15 @@ if !exists('s:resume_queue')
 endif
 function! fugitive#Resume() abort
   while len(s:resume_queue)
-    let [state, tmp, job] = remove(s:resume_queue, 0)
-    if filereadable(state.file . '.edit')
-      call delete(state.file . '.edit')
-    endif
-    call s:RunWait(state, tmp, job)
+    call call('s:RunWait', remove(s:resume_queue, 0))
   endwhile
 endfunction
 
 function! s:RunBufDelete(bufnr) abort
   if has_key(s:edit_jobs, a:bufnr) |
     call add(s:resume_queue, remove(s:edit_jobs, a:bufnr))
-    call feedkeys(":redraw!|call fugitive#Resume()|silent checktime\r", 'n')
+    call feedkeys(":redraw!|call delete(" . string(s:resume_queue[-1][0].file . '.edit') .
+          \ ")|call fugitive#Resume()|silent checktime\r", 'n')
   endif
 endfunction
 
