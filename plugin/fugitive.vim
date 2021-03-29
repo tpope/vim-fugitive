@@ -22,6 +22,8 @@ function! FugitiveGitDir(...) abort
     return getbufvar(a:1, 'git_dir')
   elseif type(a:1) == type('')
     return substitute(s:Slash(a:1), '/$', '', '')
+  elseif type(a:1) == type({})
+    return get(a:1, 'git_dir', '')
   else
     return ''
   endif

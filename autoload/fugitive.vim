@@ -2322,7 +2322,9 @@ function! s:TempState(...) abort
 endfunction
 
 function! fugitive#Result(...) abort
-  if !a:0 || a:1 =~# '^-\=$'
+  if !a:0 && exists('g:fugitive_event')
+    return get(g:, 'fugitive_result', {})
+  elseif !a:0 || type(a:1) == type('') && a:1 =~# '^-\=$'
     return get(g:, '_fugitive_last_job', {})
   elseif type(a:1) == type(0)
     return s:TempState(bufname(a:1))
@@ -2579,7 +2581,7 @@ function! s:RunWait(state, tmp, job, ...) abort
       catch /.*/
       endtry
     elseif finished
-      call fugitive#ReloadStatus(a:state.dir, 1)
+      call fugitive#ReloadStatus(a:state, 1)
     endif
   endtry
   return ''
@@ -2831,7 +2833,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     if editcmd ==# 'edit'
       call s:BlurStatus()
     endif
-    return state.mods . editcmd . ' ' . s:fnameescape(state.file) . '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' . after
+    return state.mods . editcmd . ' ' . s:fnameescape(state.file) .
+          \ '|call fugitive#ReloadStatus(fugitive#Result(' . string(state.file) . '), 1)' . after
   elseif has('win32')
     return 'echoerr ' . string('fugitive: Vim 8 with job support required to use :Git on Windows')
   elseif has('gui_running')
@@ -3086,9 +3089,12 @@ function! s:DoAutocmdChanged(dir) abort
   endif
   try
     let g:fugitive_event = dir
+    if type(a:dir) == type({}) && has_key(a:dir, 'args')
+      let g:fugitive_result = a:dir
+    endif
     exe s:DoAutocmd('User FugitiveChanged')
   finally
-    unlet! g:fugitive_event
+    unlet! g:fugitive_event g:fugitive_result
     " Force statusline reload with the buffer's Git dir
     let &ro = &ro
   endtry
@@ -5636,15 +5642,16 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         let temp_state.file = temp
         call s:RunSave(temp_state)
         if len(ranges + commits + files) || raw
+          let reload = '|call fugitive#ReloadStatus(fugitive#Result(' . string(temp_state.file) . '), 1)'
           let mods = s:Mods(a:mods)
           if a:count != 0
             exe 'silent keepalt' mods 'split' s:fnameescape(temp)
           elseif !&modified || a:bang || &bufhidden ==# 'hide' || (empty(&bufhidden) && &hidden)
             exe 'silent' mods 'edit' . (a:bang ? '! ' : ' ') . s:fnameescape(temp)
           else
-            return mods . 'edit ' . s:fnameescape(temp)
+            return mods . 'edit ' . s:fnameescape(temp) . reload
           endif
-          return ''
+          return reload[1 : -1]
         endif
         if a:mods =~# '\<tab\>'
           silent tabedit %
@@ -5709,6 +5716,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         call s:Map('n', 'D', ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze\\d\\ze\\s\\+\\d\\+)')+1-v:count)<CR>", '<silent>')
         redraw
         syncbind
+        exe s:DoAutocmdChanged(temp_state)
       endif
     endtry
     return ''
