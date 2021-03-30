@@ -3813,8 +3813,14 @@ function! s:StageDelete(lnum1, lnum2, count) abort
       if empty(info.paths)
         continue
       endif
+      let sub = get(get(get(b:fugitive_files, info.section, {}), info.filename, {}), 'submodule')
       if info.status ==# 'D'
         let undo = 'GRemove'
+      elseif sub =~# '^S' && info.status !~# '[MD]'
+        let err .= '|echoerr ' . string('fugitive: will not delete submodule ' . string(info.relative[0]))
+        break
+      elseif sub =~# '^S'
+        let undo = 'Git checkout ' . fugitive#RevParse('HEAD', FugitiveExtractGitDir(info.paths[0]))[0:10] . ' --'
       elseif info.paths[0] =~# '/$'
         let err .= '|echoerr ' . string('fugitive: will not delete directory ' . string(info.relative[0]))
         break
@@ -3823,6 +3829,11 @@ function! s:StageDelete(lnum1, lnum2, count) abort
       endif
       if info.patch
         call s:StageApply(info, 1, info.section ==# 'Staged' ? ['--index'] : [])
+      elseif sub =~# '^S'
+        if info.section ==# 'Staged'
+          call s:TreeChomp('reset', '--', info.paths[0])
+        endif
+        call s:TreeChomp('submodule', 'update', '--', info.paths[0])
       elseif info.status ==# '?'
         call s:TreeChomp('clean', '-f', '--', info.paths[0])
       elseif a:count == 2
