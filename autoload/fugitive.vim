@@ -3926,13 +3926,13 @@ function! s:StageDelete(lnum1, lnum2, count) abort
         continue
       endif
       let sub = get(get(get(b:fugitive_files, info.section, {}), info.filename, {}), 'submodule')
-      if info.status ==# 'D'
-        let undo = 'GRemove'
-      elseif sub =~# '^S' && info.status !~# '[MD]'
-        let err .= '|echoerr ' . string('fugitive: will not delete submodule ' . string(info.relative[0]))
-        break
-      elseif sub =~# '^S'
+      if sub =~# '^S' && info.status ==# 'M'
         let undo = 'Git checkout ' . fugitive#RevParse('HEAD', FugitiveExtractGitDir(info.paths[0]))[0:10] . ' --'
+      elseif sub =~# '^S'
+        let err .= '|echoerr ' . string('fugitive: will not touch submodule ' . string(info.relative[0]))
+        break
+      elseif info.status ==# 'D'
+        let undo = 'GRemove'
       elseif info.paths[0] =~# '/$'
         let err .= '|echoerr ' . string('fugitive: will not delete directory ' . string(info.relative[0]))
         break
