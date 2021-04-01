@@ -170,7 +170,7 @@ endfunction
 " An optional second argument provides the Git dir, or the buffer number of a
 " buffer with a Git dir.  The default is the current buffer.
 function! FugitiveRemoteUrl(...) abort
-  return fugitive#RemoteUrl(a:0 ? a:1 : '', FugitiveGitDir(a:0 > 1 ? a:2 : -1), a:0 > 2 ? a:3 : 0)
+  return fugitive#RemoteUrl(a:0 ? a:1 : '', a:0 > 1 ? a:2 : -1, a:0 > 2 ? a:3 : 0)
 endfunction
 
 " FugitiveHead() retrieves the name of the current branch. If the current HEAD

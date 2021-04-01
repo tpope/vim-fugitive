@@ -233,6 +233,12 @@ function! fugitive#Autowrite() abort
   return ''
 endfunction
 
+function! s:add_methods(namespace, method_names) abort
+  for name in a:method_names
+    let s:{a:namespace}_prototype[name] = s:function('s:'.a:namespace.'_'.name)
+  endfor
+endfunction
+
 " Section: Git
 
 function! s:GitCmd() abort
@@ -633,13 +639,14 @@ function! s:ConfigTimestamps(dir, dict) abort
   return join(map(files, 'getftime(expand(v:val))'), ',')
 endfunction
 
+let s:config_prototype = {}
+
 let s:config = {}
 function! fugitive#Config(...) abort
   let name = ''
   let default = get(a:, 3, '')
-  if a:0 >= 2 && type(a:2) == type({}) && !has_key(a:2, 'git_dir')
-    let name = substitute(a:1, '^[^.]\+\|[^.]\+$', '\L&', 'g')
-    return len(a:1) ? get(get(a:2, name, []), 0, default) : a:2
+  if a:0 >= 2 && type(a:2) == type({}) && has_key(a:2, 'GetAll')
+    return fugitive#ConfigGetAll(a:1, a:2)
   elseif a:0 >= 2
     let dir = s:Dir(a:2)
     let name = a:1
@@ -658,7 +665,8 @@ function! fugitive#Config(...) abort
   if has_key(s:config, dir_key) && s:config[dir_key][0] ==# s:ConfigTimestamps(dir, s:config[dir_key][1])
     let dict = s:config[dir_key][1]
   else
-    let dict = {}
+    let dict = copy(s:config_prototype)
+    let dict.git_dir = dir
     let [lines, message, exec_error] = s:NullError([dir, 'config', '--list', '-z'])
     if exec_error
       return {}
@@ -701,6 +709,25 @@ function! fugitive#ConfigGetRegexp(pattern, ...) abort
   endfor
   return transformed
 endfunction
+
+function! s:config_GetAll(name) dict abort
+  let name = substitute(a:name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
+  if name =~# '\.'
+    return get(self, name, [])
+  else
+    return []
+  endif
+endfunction
+
+function! s:config_Get(name, ...) dict abort
+  return get(self.GetAll(a:name), 0, a:0 ? a:1 : '')
+endfunction
+
+function! s:config_GetRegexp(pattern) dict abort
+  return fugitive#ConfigGetRegexp(self, a:pattern)
+endfunction
+
+call s:add_methods('config', ['GetAll', 'Get', 'GetRegexp'])
 
 function! s:Remote(dir) abort
   let head = FugitiveHead(0, a:dir)
@@ -826,7 +853,7 @@ function! fugitive#ResolveRemote(remote) abort
 endfunction
 
 function! fugitive#RemoteUrl(...) abort
-  let dir = a:0 > 1 ? a:2 : s:Dir()
+  let dir = a:0 > 1 ? s:Dir(a:2) : s:Dir()
   let url = !a:0 || a:1 =~# '^\.\=$' ? s:Remote(dir) : a:1
   if url !~# ':\|^/\|^\.\.\=/'
     if !fugitive#GitVersion(2, 7)
@@ -920,12 +947,6 @@ function! fugitive#Cwindow() abort
 endfunction
 
 " Section: Repository Object
-
-function! s:add_methods(namespace, method_names) abort
-  for name in a:method_names
-    let s:{a:namespace}_prototype[name] = s:function('s:'.a:namespace.'_'.name)
-  endfor
-endfunction
 
 let s:repo_prototype = {}
 let s:repos = {}
