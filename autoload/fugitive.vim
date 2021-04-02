@@ -3125,10 +3125,10 @@ endfunction
 
 function! s:StageSeek(info, fallback) abort
   let info = a:info
-  if empty(info.section)
+  if empty(info.heading)
     return a:fallback
   endif
-  let line = search('^' . info.section, 'wn')
+  let line = search('^' . escape(substitute(info.heading, '(\d\+)$', '', ''), '^$.*[]~\'), 'wn')
   if !line
     for section in get({'Staged': ['Unstaged', 'Untracked'], 'Unstaged': ['Untracked', 'Staged'], 'Untracked': ['Unstaged', 'Staged']}, info.section, [])
       let line = search('^' . section, 'wn')
