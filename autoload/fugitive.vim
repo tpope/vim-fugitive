@@ -2566,6 +2566,19 @@ function! s:RunSend(job, str) abort
   endtry
 endfunction
 
+function! s:RunCloseIn(job) abort
+  try
+    if type(a:job) ==# type(0)
+      call chanclose(a:job, 'stdin')
+    else
+      call ch_close_in(a:job)
+    endif
+    return 1
+  catch /^Vim\%((\a\+)\)\=:E90[06]:/
+    return 0
+  endtry
+endfunction
+
 function! s:RunEcho(tmp) abort
   if !has_key(a:tmp, 'echo')
     return
@@ -2605,12 +2618,7 @@ function! s:RunWait(state, tmp, job, ...) abort
           let c = type(c) == type(0) ? nr2char(c) : c
           if c ==# "\<C-D>" || c ==# "\<Esc>"
             let a:state.closed_in = 1
-            if type(a:job) ==# type(0)
-              call chanclose(a:job, 'stdin')
-            else
-              call ch_close_in(a:job)
-            endif
-            let can_pedit = exists('*setbufline')
+            let can_pedit = s:RunCloseIn(a:job) && exists('*setbufline')
             for winnr in range(1, winnr('$'))
               if getwinvar(winnr, '&previewwindow') && getbufvar(winbufnr(winnr), '&modified')
                 let can_pedit = 0
