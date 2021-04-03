@@ -96,25 +96,26 @@ function! FugitivePrepare(...) abort
 endfunction
 
 function! FugitiveConfig(...) abort
-  if a:0 == 2 && type(a:2) != type({})
+  if a:0 == 2 && (type(a:2) != type({}) || has_key(a:2, 'git_dir'))
     return fugitive#Config(a:1, FugitiveGitDir(a:2))
-  elseif a:0 == 1 && a:1 !~# '^[[:alnum:]-]\+\.'
+  elseif a:0 == 1 && (type(a:1) !=# type('') || a:1 !~# '^[[:alnum:]-]\+\.')
     return fugitive#Config(FugitiveGitDir(a:1))
   else
     return call('fugitive#Config', a:000)
   endif
 endfunction
 
-" Retrieve a Git configuration value.  An optional second argument provides
-" the Git dir as with FugitiveFind().  Pass a blank string to limit to the
-" global config.
+" FugitiveConfigGet() retrieves a Git configuration value.  An optional second
+" argument provides the Git dir as with FugitiveFind().  Pass a blank string
+" to limit to the global config.
 function! FugitiveConfigGet(name, ...) abort
   return call('FugitiveConfig', [a:name] + a:000)
 endfunction
 
-" Like FugitiveConfigGet(), but return a list of all values.
+" FugitiveConfigGetAll() is like FugitiveConfigGet() but returns a list of
+" all values.
 function! FugitiveConfigGetAll(name, ...) abort
-  if a:0 && type(a:1) ==# type({})
+  if a:0 && type(a:1) ==# type({}) && !has_key(a:1, 'git_dir')
     let config = a:1
   else
     let config = fugitive#Config(FugitiveGitDir(a:0 ? a:1 : -1))
