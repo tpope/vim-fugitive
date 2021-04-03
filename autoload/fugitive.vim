@@ -6259,7 +6259,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       call s:throw("No GBrowse handler installed for '".raw."'")
     endif
 
-    let url = s:gsub(url, '[ <>]', '\="%".printf("%02X",char2nr(submatch(0)))')
+    let url = substitute(url, '[ <>\|"]', '\="%".printf("%02X",char2nr(submatch(0)))', 'g')
     if a:bang
       if has('clipboard')
         let @+ = url
