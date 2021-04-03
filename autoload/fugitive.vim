@@ -6232,6 +6232,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     endif
 
     let opts = {
+          \ 'git_dir': dir,
           \ 'dir': dir,
           \ 'repo': fugitive#repo(dir),
           \ 'remote': raw,
