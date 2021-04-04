@@ -6264,19 +6264,19 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       if has('clipboard')
         let @+ = url
       endif
-      return 'echomsg '.string(url)
+      return 'echo '.string(url)
     elseif exists(':Browse') == 2
-      return 'echomsg '.string(url).'|Browse '.url
+      return 'echo '.string(url).'|Browse '.url
     elseif exists(':OpenBrowser') == 2
-      return 'echomsg '.string(url).'|OpenBrowser '.url
+      return 'echo '.string(url).'|OpenBrowser '.url
     else
       if !exists('g:loaded_netrw')
         runtime! autoload/netrw.vim
       endif
       if exists('*netrw#BrowseX')
-        return 'echomsg '.string(url).'|call netrw#BrowseX('.string(url).', 0)'
+        return 'echo '.string(url).'|call netrw#BrowseX('.string(url).', 0)'
       elseif exists('*netrw#NetrwBrowseX')
-        return 'echomsg '.string(url).'|call netrw#NetrwBrowseX('.string(url).', 0)'
+        return 'echo '.string(url).'|call netrw#NetrwBrowseX('.string(url).', 0)'
       else
         return 'echoerr ' . string('Netrw not found. Define your own :Browse to use :GBrowse')
       endif
