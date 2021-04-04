@@ -212,9 +212,6 @@ that are part of Git repositories).
                                                 *:GBrowse*
 :GBrowse                Open the current file, blob, tree, commit, or tag
                         in your browser at the upstream hosting provider.
-                        If a range is given, it is appropriately appended to
-                        the URL as an anchor.
-
                         Upstream providers can be added by installing an
                         appropriate Vim plugin.  For example, GitHub can be
                         supported by installing rhubarb.vim, available at
@@ -222,15 +219,17 @@ that are part of Git repositories).
 
 :GBrowse {object}       Like :GBrowse, but for a given |fugitive-object|.
 
-:GBrowse [...]@{remote} Force using the given remote rather than the remote
-                        for the current branch.  The remote is used to
-                        determine which upstream repository to link to.
-
 :{range}GBrowse [args]  Appends an anchor to the URL that emphasizes the
                         selected lines. This also forces the URL to include a
                         commit rather than a branch name so it remains valid
                         if the file changes.  You can give a range of "0" to
                         force this behavior without including an anchor.
+
+:GBrowse [...]@{remote} Force using the given remote rather than the remote
+                        for the current branch.  The remote is used to
+                        determine which upstream repository to link to.
+
+:GBrowse {url}          Open an arbitrary URL in your browser.
 
 :[range]GBrowse! [args] Like :GBrowse, but put the URL on the clipboard rather
                         than opening it.
