@@ -6260,23 +6260,24 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     endif
 
     let url = substitute(url, '[ <>\|"]', '\="%".printf("%02X",char2nr(submatch(0)))', 'g')
+    let mods = s:Mods(a:mods)
     if a:bang
       if has('clipboard')
         let @+ = url
       endif
       return 'echo '.string(url)
     elseif exists(':Browse') == 2
-      return 'echo '.string(url).'|Browse '.url
+      return 'echo '.string(url).'|' . mods . 'Browse '.url
     elseif exists(':OpenBrowser') == 2
-      return 'echo '.string(url).'|OpenBrowser '.url
+      return 'echo '.string(url).'|' . mods . 'OpenBrowser '.url
     else
       if !exists('g:loaded_netrw')
         runtime! autoload/netrw.vim
       endif
       if exists('*netrw#BrowseX')
-        return 'echo '.string(url).'|call netrw#BrowseX('.string(url).', 0)'
+        return 'echo '.string(url).'|' . mods . 'call netrw#BrowseX('.string(url).', 0)'
       elseif exists('*netrw#NetrwBrowseX')
-        return 'echo '.string(url).'|call netrw#NetrwBrowseX('.string(url).', 0)'
+        return 'echo '.string(url).'|' . mods . 'call netrw#NetrwBrowseX('.string(url).', 0)'
       else
         return 'echoerr ' . string('Netrw not found. Define your own :Browse to use :GBrowse')
       endif
