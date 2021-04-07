@@ -6208,8 +6208,8 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       endif
     endif
 
-    let line1 = a:count > 0 ? a:line1 : 0
-    let line2 = a:count > 0 ? a:count : 0
+    let line1 = a:count > 0 && type ==# 'blob' ? a:line1 : 0
+    let line2 = a:count > 0 && type ==# 'blob' ? a:count : 0
     if empty(commit) && path !~# '^\.git/'
       if a:count < 0 && !empty(merge)
         let commit = merge
@@ -6221,12 +6221,12 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
           if exec_error
             let commit = ''
           endif
-          if a:count > 0 && empty(arg) && commit =~# '^\x\{40,\}$'
+          if line2 > 0 && empty(arg) && commit =~# '^\x\{40,\}$'
             let blame_list = tempname()
             call writefile([commit, ''], blame_list, 'b')
             let blame_in = tempname()
             silent exe '%write' blame_in
-            let [blame, exec_error] = s:LinesError(['-c', 'blame.coloring=none', 'blame', '--contents', blame_in, '-L', a:line1.','.a:count, '-S', blame_list, '-s', '--show-number', './' . path])
+            let [blame, exec_error] = s:LinesError(['-c', 'blame.coloring=none', 'blame', '--contents', blame_in, '-L', line1.','.line2, '-S', blame_list, '-s', '--show-number', './' . path])
             if !exec_error
               let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
               if get(blame, 0) =~# blame_regex && get(blame, -1) =~# blame_regex
