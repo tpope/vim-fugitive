@@ -588,8 +588,9 @@ Makefile        The file named Makefile in the work tree
 !:Makefile      The file named Makefile in the commit owning the current file
 !3^2            The second parent of the commit owning buffer #3
 .git/config     The repo config file
-:               The |fugitive-summary| buffer.
+:               The |fugitive-summary| buffer
 -               A temp file containing the last |:Git| invocation's output
+<cfile>         The file or commit under the cursor
 
 STATUSLINE                                      *fugitive-statusline*
 

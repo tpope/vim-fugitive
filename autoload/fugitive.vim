@@ -1159,7 +1159,7 @@ function! fugitive#Object(...) abort
   endif
 endfunction
 
-let s:var = '\%(%\|#<\=\d\+\|##\=\|<cfile>\)'
+let s:var = '\%(<\%(cword\|cWORD\|cexpr\|cfile\|sfile\|slnum\|afile\|abuf\|amatch' . (has('clientserver') ? '\|client' : '') . '\)>\|%\|#<\=\d\+\|##\=\)'
 let s:flag = '\%(:[p8~.htre]\|:g\=s\(.\).\{-\}\1.\{-\}\1\)'
 let s:expand = '\%(\(' . s:var . '\)\(' . s:flag . '*\)\(:S\)\=\)'
 
@@ -1195,27 +1195,43 @@ function! s:ExpandVar(other, var, flags, esc, ...) abort
     let owner = s:Owner(buffer)
     return len(owner) ? owner : '@'
   elseif a:var ==# '<cfile>'
-    let cfile = expand('<cfile>')
+    let bufname = expand('<cfile>')
     if v:version >= 704 && get(maparg('<Plug><cfile>', 'c', 0, 1), 'expr')
       try
-        let cfile = eval(maparg('<Plug><cfile>', 'c'))
+        let bufname = eval(maparg('<Plug><cfile>', 'c'))
+        if bufname ==# "\<C-R>\<C-F>"
+          let bufname = expand('<cfile>')
+        endif
       catch
       endtry
     endif
-    return cfile
+  elseif a:var =~# '^<'
+    let bufname = s:BufName(a:var)
+  else
+    let bufname = fugitive#Real(s:BufName(a:var))
   endif
   let flags = a:flags
-  let file = s:DotRelative(fugitive#Real(s:BufName(a:var)), cwd)
+  let file = s:DotRelative(bufname, cwd)
   while len(flags)
     let flag = matchstr(flags, s:flag)
     let flags = strpart(flags, len(flag))
     if flag ==# ':.'
-      let file = s:DotRelative(file, cwd)
+      let file = s:DotRelative(fugitive#Real(file), cwd)
     else
       let file = fnamemodify(file, flag)
     endif
   endwhile
   let file = s:Slash(file)
+  if file =~# '^fugitive://'
+    let [dir, commit, file_candidate] = s:DirCommitFile(file)
+    let tree = s:Tree(dir)
+    if len(tree) && len(file_candidate)
+      let file = (commit =~# '^.$' ? ':' : '') . commit . ':' .
+            \ s:DotRelative(tree . file_candidate)
+    elseif empty(file_candidate) && commit !~# '^.$'
+      let file = commit
+    endif
+  endif
   return (len(a:esc) ? shellescape(file) : file)
 endfunction
 
