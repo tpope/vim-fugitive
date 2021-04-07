@@ -5576,7 +5576,10 @@ endfunction
 
 function! s:BlameCommitFileLnum(...) abort
   let line = a:0 ? a:1 : getline('.')
-  let state = a:0 ? a:2 : s:TempState()
+  let state = a:0 > 1 ? a:2 : s:TempState()
+  if get(state, 'filetype', '') !=# 'fugitiveblame'
+    return ['', '', 0]
+  endif
   let commit = matchstr(line, '^\^\=[?*]*\zs\x\+')
   if commit =~# '^0\+$'
     let commit = ''
@@ -6126,9 +6129,6 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     else
       let rev = arg
     endif
-    if rev ==# ''
-      let rev = s:DirRev(@%)[1]
-    endif
     if rev =~? '^\a\a\+:[\/][\/]' && rev !~? '^fugitive:'
       let rev = substitute(rev, '\\\@<![#!]\|\\\@<!%\ze\w', '\\&', 'g')
     elseif rev ==# ':'
@@ -6140,7 +6140,17 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     endif
     exe s:DirCheck(dir)
     if empty(expanded)
-      let expanded = s:Relative(':(top)', dir)
+      let bufname = s:BufName('%')
+      let expanded = s:DirRev(bufname)[1]
+      if empty(expanded)
+        let expanded = fugitive#Path(bufname, ':(top)', dir)
+      endif
+      if a:count > 0 && bufname !=# bufname('')
+        let blame = s:BlameCommitFileLnum(getline(a:count))
+        if len(blame[0])
+          let expanded = blame[0]
+        endif
+      endif
     endif
     let cdir = FugitiveVimPath(fugitive#CommonDir(dir))
     for subdir in ['tags/', 'heads/', 'remotes/']
