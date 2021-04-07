@@ -6151,12 +6151,12 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     let full = fugitive#Find(expanded, dir)
     let commit = ''
     if full =~? '^fugitive:'
-      let [pathdir, commit, path] = s:DirCommitFile(full)
+      let [dir, commit, path] = s:DirCommitFile(full)
       if commit =~# '^:\=\d$'
         let commit = ''
       endif
       if commit =~ '..'
-        let type = s:TreeChomp('cat-file','-t',commit.s:sub(path,'^/',':'))
+        let type = s:TreeChomp(['cat-file','-t',commit.s:sub(path,'^/',':')], dir)
         let branch = matchstr(expanded, '^[^:]*')
       else
         let type = 'blob'
@@ -6201,16 +6201,16 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     elseif path =~# '^\.git/refs/heads/.'
       let branch = path[16:-1]
     elseif !exists('branch')
-      let branch = FugitiveHead()
+      let branch = FugitiveHead(0, dir)
     endif
     if !empty(branch)
-      let r = fugitive#Config('branch.'.branch.'.remote')
-      let m = fugitive#Config('branch.'.branch.'.merge')[11:-1]
+      let r = FugitiveConfigGet('branch.'.branch.'.remote', dir)
+      let m = FugitiveConfigGet('branch.'.branch.'.merge', dir)[11:-1]
       if r ==# '.' && !empty(m)
-        let r2 = fugitive#Config('branch.'.m.'.remote')
+        let r2 = FugitiveConfigGet('branch.'.m.'.remote', dir)
         if r2 !~# '^\.\=$'
           let r = r2
-          let m = fugitive#Config('branch.'.m.'.merge')[11:-1]
+          let m = FugitiveConfigGet('branch.'.m.'.merge', dir)[11:-1]
         endif
       endif
       if empty(remote)
@@ -6232,8 +6232,8 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       else
         let commit = ''
         if len(merge)
-          let owner = s:Owner(@%)
-          let [commit, exec_error] = s:ChompError(['merge-base', 'refs/remotes/' . remote . '/' . merge, empty(owner) ? 'HEAD' : owner, '--'])
+          let owner = s:Owner(@%, dir)
+          let [commit, exec_error] = s:ChompError(['merge-base', 'refs/remotes/' . remote . '/' . merge, empty(owner) ? 'HEAD' : owner, '--'], dir)
           if exec_error
             let commit = ''
           endif
@@ -6242,7 +6242,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
             call writefile([commit, ''], blame_list, 'b')
             let blame_in = tempname()
             silent exe '%write' blame_in
-            let [blame, exec_error] = s:LinesError(['-c', 'blame.coloring=none', 'blame', '--contents', blame_in, '-L', line1.','.line2, '-S', blame_list, '-s', '--show-number', './' . path])
+            let [blame, exec_error] = s:LinesError(['-c', 'blame.coloring=none', 'blame', '--contents', blame_in, '-L', line1.','.line2, '-S', blame_list, '-s', '--show-number', './' . path], dir)
             if !exec_error
               let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
               if get(blame, 0) =~# blame_regex && get(blame, -1) =~# blame_regex
@@ -6273,7 +6273,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     if empty(remote)
       let remote = '.'
     endif
-    let raw = fugitive#RemoteUrl(remote)
+    let raw = fugitive#RemoteUrl(remote, dir)
     if empty(raw)
       let raw = remote
     endif
