@@ -5709,7 +5709,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
       let cmd += [matchstr(s:DirCommitFile(@%)[1], '^\x\x\+$')]
     elseif empty(files) && !s:HasOpt(flags, '--reverse')
       let cmd += ['--contents', tempname . '.in']
-      silent execute 'keepalt %write ' . s:fnameescape(tempname . '.in')
+      silent execute 'noautocmd keepalt %write ' . s:fnameescape(tempname . '.in')
       let delete_in = 1
     endif
     let basecmd = [{'git': a:options.git, 'dir': dir}] + ['--literal-pathspecs'] + cmd + ['--'] + (len(files) ? files : [file])
