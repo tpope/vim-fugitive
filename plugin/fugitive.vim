@@ -425,6 +425,7 @@ command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#Complete Git exe
 
 if exists(':Gstatus') != 2 && get(g:, 'fugitive_legacy_commands', 1)
   exe 'command! -bang -bar     -range=-1' s:addr_other 'Gstatus exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
+        \ '|echohl WarningMSG|echo ":Gstatus is deprecated in favor of :Git (with no arguments)"|echohl NONE'
 endif
 
 for s:cmd in ['Commit', 'Revert', 'Merge', 'Rebase', 'Pull', 'Push', 'Fetch', 'Blame']
@@ -445,6 +446,7 @@ exe 'command! -bang -nargs=? -range=-1' s:addr_wins '-complete=customlist,fugiti
 
 if exists(':Glog') != 2 && get(g:, 'fugitive_legacy_commands', 1)
   exe 'command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#LogComplete Glog  :exe fugitive#LogCommand(<line1>,<count>,+"<range>",<bang>0,"<mods>",<q-args>, "")'
+        \ '|echohl WarningMSG|echo ":Glog is deprecated in favor of :Gclog"|echohl NONE'
 endif
 exe 'command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#LogComplete Gclog :exe fugitive#LogCommand(<line1>,<count>,+"<range>",<bang>0,"<mods>",<q-args>, "c")'
 exe 'command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#LogComplete GcLog :exe fugitive#LogCommand(<line1>,<count>,+"<range>",<bang>0,"<mods>",<q-args>, "c")'
