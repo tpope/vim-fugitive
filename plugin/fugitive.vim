@@ -137,7 +137,7 @@ function! FugitiveHead(...) abort
 endfunction
 
 function! FugitiveStatusline(...) abort
-  if !exists('b:git_dir')
+  if empty(get(b:, 'git_dir', ''))
     return ''
   endif
   return fugitive#Statusline()
@@ -277,12 +277,9 @@ function! FugitiveDetect(path) abort
     unlet b:git_dir
   endif
   if !exists('b:git_dir')
-    let dir = FugitiveExtractGitDir(a:path)
-    if dir !=# ''
-      let b:git_dir = dir
-    endif
+    let b:git_dir = FugitiveExtractGitDir(a:path)
   endif
-  if !exists('b:git_dir') || !exists('#User#Fugitive')
+  if empty(b:git_dir) || !exists('#User#Fugitive')
     return ''
   endif
   if v:version >= 704 || (v:version == 703 && has('patch442'))

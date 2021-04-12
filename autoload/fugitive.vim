@@ -2371,8 +2371,8 @@ function! s:TempReadPre(file) abort
     endif
     setlocal buftype=nowrite
     setlocal nomodifiable
+    let b:git_dir = dict.dir
     if len(dict.dir)
-      let b:git_dir = dict.dir
       call extend(b:, {'fugitive_type': 'temp'}, 'keep')
     endif
   endif
