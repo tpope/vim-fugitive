@@ -1853,7 +1853,11 @@ function! fugitive#BufReadStatus() abort
     let [staged, unstaged, untracked] = [[], [], []]
     let props = {}
 
-    if fugitive#GitVersion(2, 11)
+    let pull = ''
+    if empty(s:Tree())
+      let branch = FugitiveHead(0)
+      let head = FugitiveHead(11)
+    elseif fugitive#GitVersion(2, 11)
       let cmd += ['status', '--porcelain=v2', '-bz']
       let [output, message, exec_error] = s:NullError(cmd)
       if exec_error
@@ -1912,7 +1916,6 @@ function! fugitive#BufReadStatus() abort
         call remove(output, 0)
       endwhile
       let head = matchstr(output[0], '^## \zs\S\+\ze\%($\| \[\)')
-      let pull = ''
       if head =~# '\.\.\.'
         let [head, pull] = split(head, '\.\.\.')
         let branch = head
@@ -1945,10 +1948,6 @@ function! fugitive#BufReadStatus() abort
           call add(unstaged, {'type': 'File', 'status': line[1], 'filename': file, 'submodule': ''})
         endif
       endwhile
-    endif
-
-    if empty(s:Tree())
-      let [unstaged, untracked] = [[], []]
     endif
 
     for dict in staged
