@@ -6164,7 +6164,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
         let expanded = '.git/refs/' . subdir . expanded
       endif
     endfor
-    let full = fugitive#Find(expanded, dir)
+    let full = s:Generate(expanded, dir)
     let commit = ''
     if full =~? '^fugitive:'
       let [dir, commit, path] = s:DirCommitFile(full)
@@ -6174,6 +6174,8 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       if commit =~ '..'
         let type = s:TreeChomp(['cat-file','-t',commit.s:sub(path,'^/',':')], dir)
         let branch = matchstr(expanded, '^[^:]*')
+      elseif empty(path) || path ==# '/'
+        let type = 'tree'
       else
         let type = 'blob'
       endif
