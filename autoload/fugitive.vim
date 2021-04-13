@@ -4978,8 +4978,8 @@ function! fugitive#Open(cmd, bang, mods, arg, args) abort
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
-  if file !~# '^\a\a\+:'
-    let file = s:sub(file, '/$', '')
+  if file !~# '^\a\a\+:' && !(has('win32') && file =~# '^\a:/$')
+    let file = substitute(file, '.\zs' . (has('win32') ? '[\/]' : '/') . '$', '', '')
   endif
   if a:cmd ==# 'edit'
     call s:BlurStatus()
