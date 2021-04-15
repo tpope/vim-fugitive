@@ -1080,8 +1080,6 @@ function! fugitive#Find(object, ...) abort
     let f = matchstr(rev, ')\zs.*')
     if f=~# '^\.\.\=\%(/\|$\)'
       let f = simplify(getcwd() . '/' . f)
-    elseif empty(f)
-      let f = base
     elseif f !~# '^/\|^\%(\a\a\+:\).*\%(//\|::\)' . (has('win32') ? '\|^\a:/' : '')
       let f = base . '/' . f
     endif
