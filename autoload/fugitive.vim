@@ -85,6 +85,10 @@ endfunction
 function! s:VersionCheck() abort
   if v:version < 704
     return 'return ' . string('echoerr "fugitive: Vim 7.4 or newer required"')
+  elseif empty(fugitive#GitVersion())
+    return 'return ' . string('echoerr "fugitive: cannot execute Git"')
+  elseif !fugitive#GitVersion(1, 8, 5)
+    return 'return ' . string('echoerr "fugitive: Git 1.8.5 or newer required"')
   else
     return ''
   endif
@@ -235,6 +239,9 @@ function! s:UserCommandCwd(dir) abort
 endfunction
 
 function! s:UserCommandList(...) abort
+  if !fugitive#GitVersion(1, 8, 5)
+    throw 'fugitive: Git 1.8.5 or higher required'
+  endif
   let git = split(get(g:, 'fugitive_git_command', g:fugitive_git_executable), '\s\+')
   let flags = []
   if a:0 && type(a:1) == type({})
@@ -251,11 +258,7 @@ function! s:UserCommandList(...) abort
     if empty(tree)
       call add(git, '--git-dir=' . FugitiveGitPath(dir))
     elseif len(tree) && s:cpath(tree) !=# s:cpath(getcwd())
-      if fugitive#GitVersion(1, 8, 5)
-        call extend(git, ['-C', FugitiveGitPath(tree)])
-      else
-        throw 'fugitive: Git 1.8.5 or higher required to change directory'
-      endif
+      call extend(git, ['-C', FugitiveGitPath(tree)])
     endif
   endif
   return git + flags
@@ -334,8 +337,7 @@ function! s:HasOpt(args, ...) abort
 endfunction
 
 function! s:PreparePathArgs(cmd, dir, literal) abort
-  let literal_supported = fugitive#GitVersion(1, 9)
-  if a:literal && literal_supported
+  if a:literal
     call insert(a:cmd, '--literal-pathspecs')
   endif
   let split = index(a:cmd, '--')
@@ -352,8 +354,6 @@ function! s:PreparePathArgs(cmd, dir, literal) abort
       let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), './', a:dir)
     elseif a:literal
       let a:cmd[i] = fugitive#Path(a:cmd[i], './', a:dir)
-    elseif !literal_supported
-      let a:cmd[i] = substitute(a:cmd[i], '^:\%(/\|([^)]*)\)\=:\=', './', '')
     endif
   endfor
   return a:cmd
@@ -365,6 +365,9 @@ let s:prepare_env = {
       \ 'core.askpass': 'GIT_ASKPASS',
       \ }
 function! fugitive#PrepareDirEnvGitArgv(...) abort
+  if !fugitive#GitVersion(1, 8, 5)
+    throw 'fugitive: Git 1.8.5 or higher required'
+  endif
   let git = split(g:fugitive_git_executable)
   if a:0 && type(a:1) ==# type([])
     let cmd = a:000[1:-1] + a:1
@@ -395,18 +398,14 @@ function! fugitive#PrepareDirEnvGitArgv(...) abort
         let val = matchstr(cmd[i+1], '=\zs.*')
         let env[var] = val
       endif
-      if fugitive#GitVersion(1, 8) && cmd[i+1] =~# '\.'
+      if cmd[i+1] =~# '\.'
         let i += 2
       else
         call remove(cmd, i, i + 1)
       endif
     elseif cmd[i] =~# '^--.*pathspecs$'
       let explicit_pathspec_option = 1
-      if fugitive#GitVersion(1, 9)
-        let i += 1
-      else
-        call remove(cmd, i)
-      endif
+      let i += 1
     elseif cmd[i] !~# '^-'
       break
     else
@@ -459,10 +458,8 @@ function! s:BuildShell(dir, env, git, args) abort
   let pre = s:BuildEnvPrefix(a:env)
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
     call insert(cmd, '--git-dir=' . FugitiveGitPath(a:dir))
-  elseif fugitive#GitVersion(1, 8, 5)
-    call extend(cmd, ['-C', FugitiveGitPath(tree)], 'keep')
   else
-    let pre = 'cd ' . s:shellesc(tree) . (s:winshell() ? '& ' : '; ') . pre
+    call extend(cmd, ['-C', FugitiveGitPath(tree)], 'keep')
   endif
   return pre . join(map(a:git + cmd, 's:shellesc(v:val)'))
 endfunction
@@ -2438,7 +2435,7 @@ augroup END
 " Section: :Git
 
 function! s:AskPassArgs(dir) abort
-  if (len($DISPLAY) || len($TERM_PROGRAM) || has('gui_running')) && fugitive#GitVersion(1, 8) &&
+  if (len($DISPLAY) || len($TERM_PROGRAM) || has('gui_running')) &&
         \ empty($GIT_ASKPASS) && empty($SSH_ASKPASS) && empty(FugitiveConfigGetAll('core.askpass', a:dir))
     if s:executable(s:ExecPath() . '/git-gui--askpass')
       return ['-c', 'core.askPass=' . s:ExecPath() . '/git-gui--askpass']
@@ -4457,7 +4454,7 @@ function! s:ToolStream(line1, line2, range, bang, mods, options, args, state) ab
   let a:state.from = ''
   let a:state.to = ''
   let exec = s:UserCommandList({'git': a:options.git, 'dir': a:options.dir})
-  if fugitive#GitVersion(1, 9) || (!s:HasOpt(argv, '--name-status') && !prompt)
+  if !s:HasOpt(argv, '--name-status') && !prompt
     let exec += ['-c', 'diff.context=0']
   endif
   let exec += a:options.flags + ['--no-pager', 'diff', '--no-ext-diff', '--no-color', '--no-prefix'] + argv
@@ -4844,12 +4841,7 @@ function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
     let format = "%h %P\t%H " . g:fugitive_summary_format
   endif
   let cmd = ['--no-pager']
-  if fugitive#GitVersion(1, 9)
-    call extend(cmd, ['-c', 'diff.context=0', '-c', 'diff.noprefix=false', 'log'])
-  else
-    call extend(cmd, ['log', '-U0', '-s'])
-  endif
-  call extend(cmd,
+  call extend(cmd, ['-c', 'diff.context=0', '-c', 'diff.noprefix=false', 'log'] +
         \ ['--no-color', '--no-ext-diff', '--pretty=format:fugitive ' . format] +
         \ args + extra_args + paths + extra_paths)
   let state.target = path
