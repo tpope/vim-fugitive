@@ -5067,8 +5067,13 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abor
   endif
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
+  let args = s:ArgSplit(a:arg)
+  let after = ''
+  if get(args, 0) =~# '^+'
+    let after = '|' . remove(args, 0)[1:-1]
+  endif
   try
-    let file = len(a:arg) ? s:Generate(s:Expand(a:arg)) : fugitive#Real(@%)
+    let file = len(args) ? s:Generate(s:Expand(join(args, ' '))) : fugitive#Real(@%)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
@@ -5183,7 +5188,7 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abor
     endfor
   endfor
   call fugitive#ReloadStatus(-1, 1)
-  return 'checktime'
+  return 'silent checktime' . after
 endfunction
 
 function! fugitive#WqCommand(...) abort
