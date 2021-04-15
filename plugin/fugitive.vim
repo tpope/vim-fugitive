@@ -11,7 +11,9 @@ let g:loaded_fugitive = 1
 let s:bad_git_dir = '/$\|^fugitive:'
 
 function! FugitiveGitDir(...) abort
-  if !a:0 || type(a:1) == type(0) && a:1 < 0
+  if v:version < 704
+    return ''
+  elseif !a:0 || type(a:1) == type(0) && a:1 < 0
     if exists('g:fugitive_event')
       return g:fugitive_event
     endif
@@ -327,6 +329,9 @@ function! FugitiveExtractGitDir(path) abort
 endfunction
 
 function! FugitiveDetect(path) abort
+  if v:version < 704
+    return ''
+  endif
   if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir
     unlet b:git_dir
   endif
@@ -391,79 +396,6 @@ function! s:ProjectionistDetect() abort
     endif
   endif
 endfunction
-
-if v:version + has('patch061') < 703
-  runtime! autoload/fugitive.vim
-endif
-let g:io_fugitive = {
-      \ 'simplify': function('fugitive#simplify'),
-      \ 'resolve': function('fugitive#resolve'),
-      \ 'getftime': function('fugitive#getftime'),
-      \ 'getfsize': function('fugitive#getfsize'),
-      \ 'getftype': function('fugitive#getftype'),
-      \ 'filereadable': function('fugitive#filereadable'),
-      \ 'filewritable': function('fugitive#filewritable'),
-      \ 'isdirectory': function('fugitive#isdirectory'),
-      \ 'getfperm': function('fugitive#getfperm'),
-      \ 'setfperm': function('fugitive#setfperm'),
-      \ 'readfile': function('fugitive#readfile'),
-      \ 'writefile': function('fugitive#writefile'),
-      \ 'glob': function('fugitive#glob'),
-      \ 'delete': function('fugitive#delete'),
-      \ 'Real': function('FugitiveReal')}
-
-augroup fugitive
-  autocmd!
-
-  autocmd BufNewFile,BufReadPost * call FugitiveDetect(expand('<amatch>:p'))
-  autocmd FileType           netrw call FugitiveDetect(fnamemodify(get(b:, 'netrw_curdir', expand('<amatch>')), ':p'))
-
-  autocmd FileType git
-        \ call fugitive#MapCfile()
-  autocmd FileType gitcommit
-        \ call fugitive#MapCfile('fugitive#MessageCfile()')
-  autocmd FileType git,gitcommit
-        \ if &foldtext ==# 'foldtext()' |
-        \    setlocal foldtext=fugitive#Foldtext() |
-        \ endif
-  autocmd FileType fugitive
-        \ call fugitive#MapCfile('fugitive#StatusCfile()')
-  autocmd FileType gitrebase
-        \ let &l:include = '^\%(pick\|squash\|edit\|reword\|fixup\|drop\|[pserfd]\)\>' |
-        \ if &l:includeexpr !~# 'Fugitive' |
-        \   let &l:includeexpr = 'v:fname =~# ''^\x\{4,\}$'' && len(FugitiveGitDir()) ? FugitiveFind(v:fname) : ' .
-        \     (len(&l:includeexpr) ? &l:includeexpr : 'v:fname') |
-        \ endif |
-        \ let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') . '|setl inex= inc='
-
-  autocmd BufReadCmd index{,.lock}
-        \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
-        \   let b:git_dir = s:Slash(expand('<amatch>:p:h')) |
-        \   exe fugitive#BufReadStatus() |
-        \ elseif filereadable(expand('<amatch>')) |
-        \   silent doautocmd BufReadPre |
-        \   keepalt read <amatch> |
-        \   1delete_ |
-        \   silent doautocmd BufReadPost |
-        \ else |
-        \   silent doautocmd BufNewFile |
-        \ endif
-
-  autocmd BufReadCmd    fugitive://*//*             exe fugitive#BufReadCmd() |
-        \ if &path =~# '^\.\%(,\|$\)' |
-        \   let &l:path = substitute(&path, '^\.,\=', '', '') |
-        \ endif
-  autocmd BufWriteCmd   fugitive://*//[0-3]/*       exe fugitive#BufWriteCmd()
-  autocmd FileReadCmd   fugitive://*//*             exe fugitive#FileReadCmd()
-  autocmd FileWriteCmd  fugitive://*//[0-3]/*       exe fugitive#FileWriteCmd()
-  if exists('##SourceCmd')
-    autocmd SourceCmd     fugitive://*//*    nested exe fugitive#SourceCmd()
-  endif
-
-  autocmd User Flags call Hoist('buffer', function('FugitiveStatusline'))
-
-  autocmd User ProjectionistDetect call s:ProjectionistDetect()
-augroup END
 
 let s:addr_other = has('patch-8.1.560') ? '-addr=other' : ''
 let s:addr_tabs  = has('patch-7.4.542') ? '-addr=tabs' : ''
@@ -550,6 +482,80 @@ if exists(':Gbrowse') != 2 && get(g:, 'fugitive_legacy_commands', 1)
   exe 'command! -bar -bang -range=-1 -nargs=* -complete=customlist,fugitive#CompleteObject Gbrowse exe fugitive#BrowseCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>, [<f-args>])'
         \ '|if <bang>1|redraw!|endif|echohl WarningMSG|echo ":Gbrowse is deprecated in favor of :GBrowse"|echohl NONE'
 endif
+
+if v:version < 704
+  finish
+endif
+
+let g:io_fugitive = {
+      \ 'simplify': function('fugitive#simplify'),
+      \ 'resolve': function('fugitive#resolve'),
+      \ 'getftime': function('fugitive#getftime'),
+      \ 'getfsize': function('fugitive#getfsize'),
+      \ 'getftype': function('fugitive#getftype'),
+      \ 'filereadable': function('fugitive#filereadable'),
+      \ 'filewritable': function('fugitive#filewritable'),
+      \ 'isdirectory': function('fugitive#isdirectory'),
+      \ 'getfperm': function('fugitive#getfperm'),
+      \ 'setfperm': function('fugitive#setfperm'),
+      \ 'readfile': function('fugitive#readfile'),
+      \ 'writefile': function('fugitive#writefile'),
+      \ 'glob': function('fugitive#glob'),
+      \ 'delete': function('fugitive#delete'),
+      \ 'Real': function('FugitiveReal')}
+
+augroup fugitive
+  autocmd!
+
+  autocmd BufNewFile,BufReadPost * call FugitiveDetect(expand('<amatch>:p'))
+  autocmd FileType           netrw call FugitiveDetect(fnamemodify(get(b:, 'netrw_curdir', expand('<amatch>')), ':p'))
+
+  autocmd FileType git
+        \ call fugitive#MapCfile()
+  autocmd FileType gitcommit
+        \ call fugitive#MapCfile('fugitive#MessageCfile()')
+  autocmd FileType git,gitcommit
+        \ if &foldtext ==# 'foldtext()' |
+        \    setlocal foldtext=fugitive#Foldtext() |
+        \ endif
+  autocmd FileType fugitive
+        \ call fugitive#MapCfile('fugitive#StatusCfile()')
+  autocmd FileType gitrebase
+        \ let &l:include = '^\%(pick\|squash\|edit\|reword\|fixup\|drop\|[pserfd]\)\>' |
+        \ if &l:includeexpr !~# 'Fugitive' |
+        \   let &l:includeexpr = 'v:fname =~# ''^\x\{4,\}$'' && len(FugitiveGitDir()) ? FugitiveFind(v:fname) : ' .
+        \     (len(&l:includeexpr) ? &l:includeexpr : 'v:fname') |
+        \ endif |
+        \ let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') . '|setl inex= inc='
+
+  autocmd BufReadCmd index{,.lock}
+        \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
+        \   let b:git_dir = s:Slash(expand('<amatch>:p:h')) |
+        \   exe fugitive#BufReadStatus() |
+        \ elseif filereadable(expand('<amatch>')) |
+        \   silent doautocmd BufReadPre |
+        \   keepalt read <amatch> |
+        \   1delete_ |
+        \   silent doautocmd BufReadPost |
+        \ else |
+        \   silent doautocmd BufNewFile |
+        \ endif
+
+  autocmd BufReadCmd    fugitive://*//*             exe fugitive#BufReadCmd() |
+        \ if &path =~# '^\.\%(,\|$\)' |
+        \   let &l:path = substitute(&path, '^\.,\=', '', '') |
+        \ endif
+  autocmd BufWriteCmd   fugitive://*//[0-3]/*       exe fugitive#BufWriteCmd()
+  autocmd FileReadCmd   fugitive://*//*             exe fugitive#FileReadCmd()
+  autocmd FileWriteCmd  fugitive://*//[0-3]/*       exe fugitive#FileWriteCmd()
+  if exists('##SourceCmd')
+    autocmd SourceCmd     fugitive://*//*    nested exe fugitive#SourceCmd()
+  endif
+
+  autocmd User Flags call Hoist('buffer', function('FugitiveStatusline'))
+
+  autocmd User ProjectionistDetect call s:ProjectionistDetect()
+augroup END
 
 if get(g:, 'fugitive_no_maps')
   finish

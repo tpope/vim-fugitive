@@ -82,8 +82,19 @@ function! s:throw(string) abort
   throw 'fugitive: '.a:string
 endfunction
 
+function! s:VersionCheck() abort
+  if v:version < 704
+    return 'return ' . string('echoerr "fugitive: Vim 7.4 or newer required"')
+  else
+    return ''
+  endif
+endfunction
+
 function! s:DirCheck(...) abort
-  if !empty(a:0 ? s:Dir(a:1) : s:Dir())
+  let vcheck = s:VersionCheck()
+  if !empty(vcheck)
+    return vcheck
+  elseif !empty(a:0 ? s:Dir(a:1) : s:Dir())
     return ''
   elseif empty(bufname(''))
     return 'return ' . string('echoerr "fugitive: working directory does not belong to a Git repository"')
@@ -2777,6 +2788,7 @@ for s:colortype in ['advice', 'branch', 'diff', 'grep', 'interactive', 'pager', 
 endfor
 unlet s:colortype
 function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
+  exe s:VersionCheck()
   let dir = s:Dir()
   let config = copy(fugitive#Config(dir))
   let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
@@ -4976,6 +4988,7 @@ endfunction
 
 let s:bang_edits = {'split': 'Git', 'vsplit': 'vert Git', 'tabedit': 'tab Git', 'pedit': 'Git!'}
 function! fugitive#Open(cmd, bang, mods, arg, args) abort
+  exe s:VersionCheck()
   if a:bang
     return 'echoerr ' . string(':G' . a:cmd . '! for temp buffer output has been replaced by :' . get(s:bang_edits, a:cmd, 'Git') . ' --paginate')
   endif
@@ -5024,6 +5037,7 @@ function! s:ReadExec(line1, count, range, mods, env, args, options) abort
 endfunction
 
 function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, args) abort
+  exe s:VersionCheck()
   if a:bang
     return 'echoerr ' . string(':Gread! for temp buffer output has been replaced by :{range}Git! --paginate')
   endif
@@ -5058,6 +5072,7 @@ endfunction
 " Section: :Gwrite, :Gwq
 
 function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abort
+  exe s:VersionCheck()
   if s:cpath(expand('%:p'), fugitive#Find('.git/COMMIT_EDITMSG')) && empty(a:arg)
     return (empty($GIT_INDEX_FILE) ? 'write|bdelete' : 'wq') . (a:bang ? '!' : '')
   elseif get(b:, 'fugitive_type', '') ==# 'index' && empty(a:arg)
@@ -5334,6 +5349,7 @@ function! s:IsConflicted() abort
 endfunction
 
 function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
+  exe s:VersionCheck()
   let args = s:ArgSplit(a:arg)
   let post = ''
   if get(args, 0) =~# '^+'
@@ -6109,6 +6125,7 @@ function! s:BrowserOpen(url, mods, echo_copy) abort
 endfunction
 
 function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abort
+  exe s:VersionCheck()
   let dir = s:Dir()
   try
     let arg = a:arg
