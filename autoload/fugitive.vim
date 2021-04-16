@@ -918,7 +918,7 @@ function! s:Owner(path, ...) abort
     if commit =~# '^\x\{40,\}$'
       return commit
     elseif commit ==# '2'
-      return 'HEAD^{}'
+      return '@'
     elseif commit ==# '0'
       return ''
     endif
@@ -927,7 +927,7 @@ function! s:Owner(path, ...) abort
       return ''
     endif
     if commit ==# '3'
-      return merge_head . '^{}'
+      return merge_head
     elseif commit ==# '1'
       return s:TreeChomp('merge-base', 'HEAD', merge_head, '--')
     endif
@@ -1095,7 +1095,7 @@ function! fugitive#Find(object, ...) abort
     let f = 'fugitive://' . dir . '//0/' . rev[1:-1]
   else
     if !exists('f')
-      let commit = substitute(matchstr(rev, '^\%([^:.-]\|\.\.[^/:]\)[^:]*\|^:.*'), '^@\%($\|[~^]\|@{\)\@=', 'HEAD', '')
+      let commit = matchstr(rev, '^\%([^:.-]\|\.\.[^/:]\)[^:]*\|^:.*')
       let file = substitute(matchstr(rev, '^\%([^:.-]\|\.\.[^/:]\)[^:]*\zs:.*'), '^:', '/', '')
       if file =~# '^/\.\.\=\%(/\|$\)\|^//\|^/\a\+:'
         let file = file =~# '^/\.' ? simplify(getcwd() . file) : file[1:-1]
@@ -1111,7 +1111,7 @@ function! fugitive#Find(object, ...) abort
       endif
       let commits = split(commit, '\.\.\.-\@!', 1)
       if len(commits) == 2
-        call map(commits, 'empty(v:val) || v:val ==# "@" ? "HEAD" : v:val')
+        call map(commits, 'empty(v:val) ? "@" : v:val')
         let commit = matchstr(s:ChompDefault('', [dir, 'merge-base'] + commits + ['--']), '\<[0-9a-f]\{40,\}\>')
       endif
       if commit !~# '^[0-9a-f]\{40,\}$\|^$'
@@ -3870,7 +3870,7 @@ function! s:StageDiff(diff) abort
     return 'Git --paginate diff --no-ext-diff'
   elseif len(info.paths) > 1
     execute 'Gedit' . prefix s:fnameescape(':0:' . info.paths[0])
-    return a:diff . '! HEAD:'.s:fnameescape(info.paths[1])
+    return a:diff . '! @:'.s:fnameescape(info.paths[1])
   elseif info.section ==# 'Staged' && info.sigil ==# '-'
     execute 'Gedit' prefix s:fnameescape(':0:'.info.paths[0])
     return a:diff . '! :0:%'
@@ -4018,7 +4018,7 @@ function! s:StageDelete(lnum1, lnum2, count) abort
       elseif info.section ==# 'Unstaged'
         call s:TreeChomp('checkout', '--', info.paths[0])
       else
-        call s:TreeChomp('checkout', 'HEAD^{}', '--', info.paths[0])
+        call s:TreeChomp('checkout', '@', '--', info.paths[0])
       endif
       if len(undo)
         call add(restore, ':Gsplit ' . s:fnameescape(info.relative[0]) . '|' . undo)
@@ -4093,7 +4093,7 @@ function! s:DoStageUnpushedHeading(heading) abort
     let remote = '.'
   endif
   let branch = matchstr(a:heading, 'to \%([^/]\+/\)\=\zs\S\+')
-  call feedkeys(':Git push ' . remote . ' ' . 'HEAD:' . 'refs/heads/' . branch)
+  call feedkeys(':Git push ' . remote . ' ' . '@:' . 'refs/heads/' . branch)
 endfunction
 
 function! s:DoToggleUnpushedHeading(heading) abort
@@ -4829,7 +4829,7 @@ function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
   if len(path) && empty(filter(copy(args), 'v:val =~# "^[^-]"'))
     let owner = s:Owner(@%, dir)
     if len(owner)
-      call add(args, owner)
+      call add(args, owner . (owner =~# '^\x\{40,}' ? '' : '^{}'))
     endif
   endif
   if empty(extra_paths)
@@ -5366,7 +5366,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
     elseif empty(commit)
       let parents = [s:Relative(':0:')]
     elseif commit =~# '^\d\=$'
-      let parents = [s:Relative('HEAD:')]
+      let parents = [s:Relative('@:')]
     elseif commit =~# '^\x\x\+$'
       let parents = s:LinesError(['rev-parse', commit . '^@'])[0]
       call map(parents, 's:Relative(v:val . ":")')
@@ -5923,7 +5923,7 @@ function! s:BlameJump(suffix, ...) abort
     return 'echoerr ' . string('fugitive: could not determine filename for blame')
   endif
   if commit =~# '^0*$'
-    let commit = 'HEAD'
+    let commit = '@'
     let suffix = ''
   endif
   let offset = line('.') - line('w0')
@@ -6263,7 +6263,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
         let commit = ''
         if len(merge)
           let owner = s:Owner(@%, dir)
-          let [commit, exec_error] = s:ChompError(['merge-base', 'refs/remotes/' . remote . '/' . merge, empty(owner) ? 'HEAD' : owner, '--'], dir)
+          let [commit, exec_error] = s:ChompError(['merge-base', 'refs/remotes/' . remote . '/' . merge, empty(owner) ? '@' : owner, '--'], dir)
           if exec_error
             let commit = ''
           endif
@@ -6357,7 +6357,7 @@ endfunction
 
 function! s:ContainingCommit() abort
   let commit = s:Owner(@%)
-  return empty(commit) ? 'HEAD' : commit
+  return empty(commit) ? '@' : commit
 endfunction
 
 function! s:SquashArgument(...) abort
@@ -6384,7 +6384,7 @@ function! s:NavigateUp(count) abort
     elseif rev =~# '.:.'
       let rev = matchstr(rev, '^.[^:]*:')
     elseif rev =~# '^:'
-      let rev = 'HEAD^{}'
+      let rev = '@^{}'
     elseif rev =~# ':$'
       let rev = rev[0:-2]
     else
@@ -6762,9 +6762,9 @@ function! s:cfile() abort
         let prefixes.a = myhash.'^:'
         let prefixes.b = myhash.':'
       endif
-      let ref = substitute(ref, '^\(\w\)/', '\=get(prefixes, submatch(1), "HEAD:")', '')
+      let ref = substitute(ref, '^\(\w\)/', '\=get(prefixes, submatch(1), "@:")', '')
       if exists('dref')
-        let dref = substitute(dref, '^\(\w\)/', '\=get(prefixes, submatch(1), "HEAD:")', '')
+        let dref = substitute(dref, '^\(\w\)/', '\=get(prefixes, submatch(1), "@:")', '')
       endif
 
       if ref ==# '/dev/null'
