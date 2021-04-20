@@ -2110,7 +2110,7 @@ function! fugitive#BufReadStatus() abort
     call s:MapMotion('gp', "exe <SID>StageJump(v:count, 'Unpushed')")
     call s:MapMotion('gP', "exe <SID>StageJump(v:count, 'Unpulled')")
     call s:MapMotion('gr', "exe <SID>StageJump(v:count, 'Rebasing')")
-    call s:Map('n', 'C', ":echoerr ':Gstatus C has been removed in favor of cc'<CR>", '<silent>')
+    call s:Map('n', 'C', ":echoerr 'fugitive: C has been removed in favor of cc'<CR>", '<silent>')
     call s:Map('n', 'a', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
     call s:Map('n', 'i', ":<C-U>execute <SID>NextExpandedHunk(v:count1)<CR>", '<silent>')
     call s:Map('n', "=", ":<C-U>execute <SID>StageInline('toggle',line('.'),v:count)<CR>", '<silent>')
@@ -2119,7 +2119,7 @@ function! fugitive#BufReadStatus() abort
     call s:Map('x', "=", ":<C-U>execute <SID>StageInline('toggle',line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>", '<silent>')
     call s:Map('x', "<", ":<C-U>execute <SID>StageInline('hide',  line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>", '<silent>')
     call s:Map('x', ">", ":<C-U>execute <SID>StageInline('show',  line(\"'<\"),line(\"'>\")-line(\"'<\")+1)<CR>", '<silent>')
-    call s:Map('n', 'D', ":<C-U>execute <SID>StageDiff('Gdiffsplit')<Bar>redraw<Bar>echohl WarningMsg<Bar> echo ':Gstatus D is deprecated in favor of dd'<Bar>echohl NONE<CR>", '<silent>')
+    call s:Map('n', 'D', ":echoerr 'fugitive: D has been removed in favor of dd'<CR>", '<silent>')
     call s:Map('n', 'dd', ":<C-U>execute <SID>StageDiff('Gdiffsplit')<CR>", '<silent>')
     call s:Map('n', 'dh', ":<C-U>execute <SID>StageDiff('Ghdiffsplit')<CR>", '<silent>')
     call s:Map('n', 'ds', ":<C-U>execute <SID>StageDiff('Ghdiffsplit')<CR>", '<silent>')
@@ -2133,7 +2133,7 @@ function! fugitive#BufReadStatus() abort
     call s:Map('n', 'I', ":<C-U>execute <SID>StagePatch(line('.'),line('.'))<CR>", '<silent>')
     call s:Map('x', 'I', ":<C-U>execute <SID>StagePatch(line(\"'<\"),line(\"'>\"))<CR>", '<silent>')
     if empty(mapcheck('q', 'n'))
-      nnoremap <buffer> <silent> q :<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<Bar>echohl WarningMsg<Bar>echo ':Gstatus q is deprecated in favor of gq or the built-in <Lt>C-W>q'<Bar>echohl NONE<CR>
+      nnoremap <buffer> <silent> q :echoerr "fugitive: q removed in favor of gq (or :q)"<CR>
     endif
     call s:Map('n', 'gq', ":<C-U>if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>", '<silent>')
     call s:Map('n', 'R', ":echohl WarningMsg<Bar>echo 'Reloading is automatic.  Use :e to force'<Bar>echohl NONE<CR>", '<silent>')
@@ -2406,10 +2406,10 @@ function! s:TempReadPost(file) abort
       let &l:filetype = dict.filetype
     endif
     setlocal foldmarker=<<<<<<<,>>>>>>>
-    if empty(mapcheck('q', 'n'))
-      nnoremap <buffer> <silent> q    :<C-U>bdelete<Bar>echohl WarningMsg<Bar>echo "Temp file q is deprecated in favor of the built-in <Lt>C-W>q"<Bar>echohl NONE<CR>
-    endif
     if !&modifiable
+      if empty(mapcheck('q', 'n'))
+        nnoremap <buffer> <silent> q    :<C-U>echoerr "fugitive: q is removed in favor of gq (or :q)"<CR>
+      endif
       call s:Map('n', 'gq', ":<C-U>bdelete<CR>", '<silent> <unique>')
     endif
   endif
@@ -6065,7 +6065,7 @@ function! fugitive#BlameFileType() abort
   call s:Map('n', '<F1>', ':help :Git_blame<CR>', '<silent>')
   call s:Map('n', 'g?',   ':help :Git_blame<CR>', '<silent>')
   if mapcheck('q', 'n') =~# '^$\|bdelete'
-    call s:Map('n', 'q',  ':exe <SID>BlameQuit()<Bar>echohl WarningMsg<Bar>echo ":Git blame q is deprecated in favor of gq"<Bar>echohl NONE<CR>', '<silent>')
+    call s:Map('n', 'q',  'echoerr "fugitive: q removed in favor of gq (or :q)"<CR>', '<silent>')
   endif
   call s:Map('n', 'gq',   ':exe <SID>BlameQuit()<CR>', '<silent>')
   call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
@@ -6412,7 +6412,7 @@ function! fugitive#MapJumps(...) abort
       call s:Map('n', 'gO',   ':<C-U>0,4' . blame_map, '<silent>')
       call s:Map('n', 'O',    ':<C-U>0,5' . blame_map, '<silent>')
 
-      call s:Map('n', 'D',  ":<C-U>call fugitive#DiffClose()<Bar>Gdiffsplit!<Bar>redraw<Bar>echohl WarningMsg<Bar> echo ':Gstatus D is deprecated in favor of dd'<Bar>echohl NONE<CR>", '<silent>')
+      call s:Map('n', 'D', ":echoerr 'fugitive: D has been removed in favor of dd'<CR>", '<silent>')
       call s:Map('n', 'dd', ":<C-U>call fugitive#DiffClose()<Bar>Gdiffsplit!<CR>", '<silent>')
       call s:Map('n', 'dh', ":<C-U>call fugitive#DiffClose()<Bar>Ghdiffsplit!<CR>", '<silent>')
       call s:Map('n', 'ds', ":<C-U>call fugitive#DiffClose()<Bar>Ghdiffsplit!<CR>", '<silent>')
