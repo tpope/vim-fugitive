@@ -309,7 +309,7 @@ Navigation maps ~
 
                                                 *fugitive_<CR>*
 <CR>                    Open the file or |fugitive-object| under the cursor.
-                        in a blob, this and similar maps jump to the patch
+                        In a blob, this and similar maps jump to the patch
                         from the diff where this was added, or where it was
                         removed if a count was given.  If the line is still in
                         the work tree version, passing a count takes you to
