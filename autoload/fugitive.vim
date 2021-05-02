@@ -3103,18 +3103,22 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
     let file = fugitive#Find(':', dir)
     let arg = ' +let\ w:fugitive_status=FugitiveGitDir() ' .
           \ s:fnameescape(file)
-    for winnr in range(1, winnr('$'))
-      if s:cpath(file, fnamemodify(bufname(winbufnr(winnr)), ':p'))
-        if winnr == winnr()
-          call s:ReloadStatus()
-        else
-          call s:ExpireStatus(dir)
-          exe winnr . 'wincmd w'
+    for tabnr in [tabpagenr()] + (mods =~# '\<tab\>' ? range(1, tabpagenr('$')) : [])
+      let bufs = tabpagebuflist(tabnr)
+      for winnr in range(1, tabpagewinnr(tabnr, '$'))
+        if s:cpath(file, fnamemodify(bufname(bufs[winnr-1]), ':p'))
+          if tabnr == tabpagenr() && winnr == winnr()
+            call s:ReloadStatus()
+          else
+            call s:ExpireStatus(dir)
+            exe tabnr . 'tabnext'
+            exe winnr . 'wincmd w'
+          endif
+          let w:fugitive_status = dir
+          1
+          return ''
         endif
-        let w:fugitive_status = dir
-        1
-        return ''
-      endif
+      endfor
     endfor
     if a:count ==# 0
       return mods . 'edit' . (a:bang ? '!' : '') . arg
