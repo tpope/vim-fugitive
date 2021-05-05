@@ -16,7 +16,7 @@ let s:bad_git_dir = '/$\|^fugitive:'
 " Fugitive is active in the current buffer.  Do not rely on this for direct
 " filesystem access; use FugitiveFind('.git/whatever') instead.
 function! FugitiveGitDir(...) abort
-  if v:version < 703
+  if v:version < 704
     return ''
   elseif !a:0 || type(a:1) == type(0) && a:1 < 0 || a:1 is# get(v:, 'true', -1)
     if exists('g:fugitive_event')
@@ -463,7 +463,7 @@ function! FugitiveExtractGitDir(path) abort
 endfunction
 
 function! FugitiveDetect(...) abort
-  if v:version < 703
+  if v:version < 704
     return ''
   endif
   if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir
@@ -645,7 +645,7 @@ elseif exists(':Gbrowse') != 2 && !exists('g:fugitive_legacy_commands')
         \ 'echoerr ":Gbrowse has been removed in favor of :GBrowse"'
 endif
 
-if v:version < 703
+if v:version < 704
   finish
 endif
 
@@ -730,10 +730,8 @@ if get(g:, 'fugitive_no_maps')
   finish
 endif
 
-let s:nowait = v:version >= 704 ? '<nowait>' : ''
-
 function! s:Map(mode, lhs, rhs, flags) abort
-  let flags = a:flags . (a:rhs =~# '<Plug>' ? '' : '<script>')
+  let flags = a:flags . (a:rhs =~# '<Plug>' ? '' : '<script>') . '<nowait>'
   let head = a:lhs
   let tail = ''
   let keys = get(g:, a:mode.'remap', {})
@@ -751,7 +749,7 @@ function! s:Map(mode, lhs, rhs, flags) abort
     endwhile
   endif
   if empty(mapcheck(head.tail, a:mode))
-    exe a:mode.'map' s:nowait flags head.tail a:rhs
+    exe a:mode.'map' flags head.tail a:rhs
   endif
 endfunction
 
