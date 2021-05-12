@@ -2261,8 +2261,8 @@ function! fugitive#BufReadCmd(...) abort
     setlocal endofline
 
     try
-      if &foldmethod ==# 'marker' && b:fugitive_type !=# 'blob'
-        setlocal foldmethod=manual
+      if b:fugitive_type !=# 'blob'
+        setlocal foldmarker=<<<<<<<<,>>>>>>>>
       endif
       silent exe s:DoAutocmd('BufReadPre')
       if b:fugitive_type ==# 'tree'
@@ -2405,7 +2405,7 @@ function! s:TempReadPost(file) abort
     if has_key(dict, 'filetype')
       let &l:filetype = dict.filetype
     endif
-    setlocal foldmarker=<<<<<<<,>>>>>>>
+    setlocal foldmarker=<<<<<<<<,>>>>>>>>
     if !&modifiable
       if empty(mapcheck('q', 'n'))
         nnoremap <buffer> <silent> q    :<C-U>echoerr "fugitive: q is removed in favor of gq (or :q)"<CR>
@@ -3101,7 +3101,7 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
   try
     let mods = s:Mods(a:mods, &splitbelow ? 'botright' : 'topleft')
     let file = fugitive#Find(':', dir)
-    let arg = ' +let\ w:fugitive_status=FugitiveGitDir() ' .
+    let arg = ' +setl\ foldmarker=<<<<<<<<,>>>>>>>>\|let\ w:fugitive_status=FugitiveGitDir() ' .
           \ s:fnameescape(file)
     for tabnr in [tabpagenr()] + (mods =~# '\<tab\>' ? range(1, tabpagenr('$')) : [])
       let bufs = tabpagebuflist(tabnr)
