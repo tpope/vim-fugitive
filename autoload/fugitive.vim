@@ -623,9 +623,10 @@ let s:config = {}
 function! fugitive#Config(...) abort
   let dir = s:Dir()
   let name = ''
+  let default = get(a:, 3, '')
   if a:0 >= 2 && type(a:2) == type({})
     let name = substitute(a:1, '^[^.]\+\|[^.]\+$', '\L&', 'g')
-    return len(a:1) ? get(get(a:2, name, []), 0, '') : a:2
+    return len(a:1) ? get(get(a:2, name, []), 0, default) : a:2
   elseif a:0 >= 2
     let dir = a:2
     let name = a:1
@@ -660,7 +661,7 @@ function! fugitive#Config(...) abort
     let s:config[dir_key] = [s:ConfigTimestamps(dir, dict), dict]
     lockvar! dict
   endif
-  return len(name) ? get(get(dict, name, []), 0, '') : dict
+  return len(name) ? get(get(dict, name, []), 0, default) : dict
 endfunction
 
 function! s:Remote(dir) abort
