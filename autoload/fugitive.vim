@@ -6248,9 +6248,15 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
         let remote = r
       endif
       if r ==# '.' || r ==# remote
-        let merge = m
-        if path =~# '^\.git/refs/heads/.'
-          let path = '.git/refs/heads/'.merge
+        let remote_ref = 'refs/remotes/' . remote . '/' . branch
+        if FugitiveConfigGet('push.default', dir) ==# 'upstream' ||
+              \ !filereadable(FugitiveFind('.git/' . remote_ref)) && s:ChompError(['rev-parse', '--verify', remote_ref, '--'], dir)[1]
+          let merge = m
+          if path =~# '^\.git/refs/heads/.'
+            let path = '.git/refs/heads/'.merge
+          endif
+        else
+          let merge = branch
         endif
       endif
     endif
