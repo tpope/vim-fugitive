@@ -665,11 +665,11 @@ endfunction
 
 function! s:Remote(dir) abort
   let head = FugitiveHead(0, a:dir)
-  let remote = len(head) ? fugitive#Config('branch.' . head . '.remote') : ''
+  let remote = len(head) ? FugitiveConfigGet('branch.' . head . '.remote', dir) : ''
   let i = 10
   while remote ==# '.' && i > 0
-    let head = matchstr(fugitive#Config('branch.' . head . '.merge'), 'refs/heads/\zs.*')
-    let remote = len(head) ? fugitive#Config('branch.' . head . '.remote') : ''
+    let head = matchstr(FugitiveConfigGet('branch.' . head . '.merge', dir), 'refs/heads/\zs.*')
+    let remote = len(head) ? FugitiveConfigGet('branch.' . head . '.remote', dir) : ''
     let i -= 1
   endwhile
   return remote =~# '^\.\=$' ? 'origin' : remote
@@ -906,7 +906,7 @@ endfunction
 call s:add_methods('repo',['superglob'])
 
 function! s:repo_config(name) dict abort
-  return fugitive#Config(a:name, self.git_dir)
+  return FugitiveConfigGet(a:name, self.git_dir)
 endfunction
 
 function! s:repo_user() dict abort
@@ -2011,9 +2011,9 @@ function! fugitive#BufReadStatus() abort
 
     let pull_type = 'Pull'
     if len(pull)
-      let rebase = fugitive#Config('branch.' . branch . '.rebase', config)
+      let rebase = FugitiveConfigGet('branch.' . branch . '.rebase', config)
       if empty(rebase)
-        let rebase = fugitive#Config('pull.rebase', config)
+        let rebase = FugitiveConfigGet('pull.rebase', config)
       endif
       if rebase =~# '^\%(true\|yes\|on\|1\|interactive\|merges\|preserve\)$'
         let pull_type = 'Rebase'
@@ -2022,11 +2022,11 @@ function! fugitive#BufReadStatus() abort
       endif
     endif
 
-    let push_remote = fugitive#Config('branch.' . branch . '.pushRemote', config)
+    let push_remote = FugitiveConfigGet('branch.' . branch . '.pushRemote', config)
     if empty(push_remote)
-      let push_remote = fugitive#Config('remote.pushDefault', config)
+      let push_remote = FugitiveConfigGet('remote.pushDefault', config)
     endif
-    let fetch_remote = fugitive#Config('branch.' . branch . '.remote', config)
+    let fetch_remote = FugitiveConfigGet('branch.' . branch . '.remote', config)
     if empty(fetch_remote)
       let fetch_remote = 'origin'
     endif
@@ -2034,7 +2034,7 @@ function! fugitive#BufReadStatus() abort
       let push_remote = fetch_remote
     endif
 
-    let push_default = fugitive#Config('push.default')
+    let push_default = FugitiveConfigGet('push.default', config)
     if empty(push_default)
       let push_default = fugitive#GitVersion(2) ? 'simple' : 'matching'
     endif
@@ -2851,7 +2851,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [])
     return (empty(cmd) ? 'exe' : cmd) . after
   endif
-  let alias = fugitive#Config('alias.' . get(args, 0, ''), config)
+  let alias = FugitiveConfigGet('alias.' . get(args, 0, ''), config)
   if get(args, 1, '') !=# '--help' && alias !~# '^$\|^!\|[\"'']' && !filereadable(s:ExecPath() . '/git-' . args[0])
         \ && !(has('win32') && filereadable(s:ExecPath() . '/git-' . args[0] . '.exe'))
     call remove(args, 0)
@@ -3063,7 +3063,7 @@ function! s:CompletableSubcommands(dir) abort
     endif
     call extend(commands, s:path_subcommands[cpath])
   endfor
-  call extend(commands, map(filter(keys(fugitive#Config(a:dir)), 'v:val =~# "^alias\\.[^.]*$"'), 'strpart(v:val, 6)'))
+  call extend(commands, keys(FugitiveConfigGetRegexp('^alias\.\zs[^.]\+$', a:dir)))
   let configured = split(FugitiveConfigGet('completion.commands', a:dir), '\s\+')
   let rejected = {}
   for command in configured
@@ -6287,7 +6287,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       if r ==# '.' || r ==# remote
         let remote_ref = 'refs/remotes/' . remote . '/' . branch
         if FugitiveConfigGet('push.default', dir) ==# 'upstream' ||
-              \ !filereadable(FugitiveFind('.git/' . remote_ref)) && s:ChompError(['rev-parse', '--verify', remote_ref, '--'], dir)[1]
+              \ !filereadable(FugitiveFind('.git/' . remote_ref, dir)) && s:ChompError(['rev-parse', '--verify', remote_ref, '--'], dir)[1]
           let merge = m
           if path =~# '^\.git/refs/heads/.'
             let path = '.git/refs/heads/'.merge
