@@ -666,11 +666,11 @@ endfunction
 
 function! s:Remote(dir) abort
   let head = FugitiveHead(0, a:dir)
-  let remote = len(head) ? FugitiveConfigGet('branch.' . head . '.remote', dir) : ''
+  let remote = len(head) ? FugitiveConfigGet('branch.' . head . '.remote', a:dir) : ''
   let i = 10
   while remote ==# '.' && i > 0
-    let head = matchstr(FugitiveConfigGet('branch.' . head . '.merge', dir), 'refs/heads/\zs.*')
-    let remote = len(head) ? FugitiveConfigGet('branch.' . head . '.remote', dir) : ''
+    let head = matchstr(FugitiveConfigGet('branch.' . head . '.merge', a:dir), 'refs/heads/\zs.*')
+    let remote = len(head) ? FugitiveConfigGet('branch.' . head . '.remote', a:dir) : ''
     let i -= 1
   endwhile
   return remote =~# '^\.\=$' ? 'origin' : remote
