@@ -5487,8 +5487,6 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
       set diffopt-=vertical
     endif
     execute mods 'diffsplit' s:fnameescape(spec)
-    let &l:readonly = &l:readonly
-    redraw
     let w:fugitive_diff_restore = restore
     let winnr = winnr()
     if getwinvar('#', '&diff')
