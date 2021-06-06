@@ -1480,7 +1480,7 @@ function! fugitive#getfperm(url) abort
   return perm ==# '---------' ? '' : perm
 endfunction
 
-function s:UpdateIndex(dir, info) abort
+function! s:UpdateIndex(dir, info) abort
   let info = join(a:info[0:-2]) . "\t" . a:info[-1] . "\n"
   let [error, exec_error] = s:SystemError([a:dir, 'update-index', '--index-info'], info)
   return !exec_error ? '' : len(error) ? error : 'fugitive: unknown update-index error'
