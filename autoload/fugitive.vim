@@ -2993,9 +2993,19 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     return 'call fugitive#Resume()|silent checktime' . after
   elseif pager is# 1
     let pre = s:BuildEnvPrefix(env)
-    silent! execute '!' . escape(pre . s:UserCommand({'git': git, 'dir': dir}, s:disable_colors + flags + ['--no-pager'] + args), '!#%') .
-          \ (&shell =~# 'csh' ? ' >& ' . s:shellesc(state.file) : ' > ' . s:shellesc(state.file) . ' 2>&1')
-    let state.exit_status = v:shell_error
+    try
+      if exists('+guioptions') && &guioptions =~# '!'
+        let guioptions = &guioptions
+        set guioptions-=!
+      endif
+      silent! execute '!' . escape(pre . s:UserCommand({'git': git, 'dir': dir}, s:disable_colors + flags + ['--no-pager'] + args), '!#%') .
+            \ (&shell =~# 'csh' ? ' >& ' . s:shellesc(state.file) : ' > ' . s:shellesc(state.file) . ' 2>&1')
+      let state.exit_status = v:shell_error
+    finally
+      if exists('guioptions')
+        let &guioptions = guioptions
+      endif
+    endtry
     redraw!
     call s:RunSave(state)
     call s:RunFinished(state)
