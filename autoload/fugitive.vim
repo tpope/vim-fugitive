@@ -41,7 +41,7 @@ endfunction
 
 function! s:WinShellEsc(arg) abort
   if type(a:arg) == type([])
-    return join(map(copy(a:arg), 's:shellesc(v:val)'))
+    return join(map(copy(a:arg), 's:WinShellEsc(v:val)'))
   elseif a:arg =~# '^[A-Za-z0-9_/:.-]\+$'
     return a:arg
   else
