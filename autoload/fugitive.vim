@@ -3978,7 +3978,7 @@ function! s:StageApply(info, reverse, extra) abort
     endif
   endwhile
   if start == 0
-    throw 'fugitive: cold not find hunk'
+    throw 'fugitive: could not find hunk'
   elseif getline(start) !~# '^@@ '
     throw 'fugitive: cannot apply conflict hunk'
   endif
