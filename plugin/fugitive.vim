@@ -180,7 +180,12 @@ function! FugitiveCommonDir(...) abort
 endfunction
 
 function! FugitiveWorkTree(...) abort
-  return s:Tree(FugitiveGitDir(a:0 ? a:1 : -1))
+  let tree = s:Tree(FugitiveGitDir(a:0 ? a:1 : -1))
+  if tree isnot# 0 || a:0 > 1
+    return tree
+  else
+    return ''
+  endif
 endfunction
 
 function! FugitiveIsGitDir(path) abort
@@ -204,9 +209,14 @@ function! s:Tree(path) abort
     let config_file = dir . '/config'
     if filereadable(config_file)
       let config = readfile(config_file,'',10)
-      call filter(config,'v:val =~# "^\\s*worktree *="')
-      if len(config) == 1
+      let wt_config = filter(copy(config),'v:val =~# "^\\s*worktree *="')
+      if len(wt_config) == 1
         let worktree = FugitiveVimPath(matchstr(config[0], '= *\zs.*'))
+      else
+        call filter(config,'v:val =~# "^\\s*bare *= *false *$"')
+        if len(config)
+          let s:worktree_for_dir[dir] = 0
+        endif
       endif
     elseif filereadable(dir . '/gitdir')
       let worktree = fnamemodify(FugitiveVimPath(readfile(dir . '/gitdir')[0]), ':h')
@@ -358,7 +368,7 @@ function! s:ProjectionistDetect() abort
   if empty(base)
     let base = s:Tree(dir)
   endif
-  if len(base)
+  if !empty(base)
     if exists('+shellslash') && !&shellslash
       let base = tr(base, '/', '\')
     endif
