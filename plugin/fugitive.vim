@@ -176,7 +176,7 @@ function! FugitiveCommonDir(...) abort
   if empty(dir)
     return ''
   endif
-  return fugitive#CommonDir(dir)
+  return fugitive#Find('.git/refs/..', dir)
 endfunction
 
 function! FugitiveWorkTree(...) abort

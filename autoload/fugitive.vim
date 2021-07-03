@@ -1109,19 +1109,20 @@ function! fugitive#Find(object, ...) abort
   if rev ==# '.git'
     let f = len(tree) ? tree . '/.git' : dir
   elseif rev =~# '^\.git/'
-    let f = substitute(rev, '^\.git', '', '')
-    let cdir = fugitive#CommonDir(dir)
-    if f =~# '^/\.\./\.\.\%(/\|$\)'
-      let f = simplify(len(tree) ? tree . f[3:-1] : dir . f)
-    elseif f =~# '^/\.\.\%(/\|$\)'
-      let f = base . f[3:-1]
-    elseif cdir !=# dir && (
-          \ f =~# '^/\%(config\|hooks\|info\|logs/refs\|objects\|refs\|worktrees\)\%(/\|$\)' ||
-          \ f !~# '^/\%(index$\|index\.lock$\|\w*MSG$\|\w*HEAD$\|logs/\w*HEAD$\|logs$\|rebase-\w\+\)\%(/\|$\)' &&
-          \ getftime(FugitiveVimPath(dir . f)) < 0 && getftime(FugitiveVimPath(cdir . f)) >= 0)
+    let f = strpart(rev, 5)
+    let fdir = dir . '/'
+    let cdir = fugitive#CommonDir(dir) . '/'
+    if f =~# '^\.\./\.\.\%(/\|$\)'
+      let f = simplify(len(tree) ? tree . f[2:-1] : fdir . f)
+    elseif f =~# '^\.\.\%(/\|$\)'
+      let f = base . f[2:-1]
+    elseif cdir !=# fdir && (
+          \ f =~# '^\%(config\|hooks\|info\|logs/refs\|objects\|refs\|worktrees\)\%(/\|$\)' ||
+          \ f !~# '^\%(index$\|index\.lock$\|\w*MSG$\|\w*HEAD$\|logs/\w*HEAD$\|logs$\|rebase-\w\+\)\%(/\|$\)' &&
+          \ getftime(FugitiveVimPath(fdir . f)) < 0 && getftime(FugitiveVimPath(cdir . f)) >= 0)
       let f = simplify(cdir . f)
     else
-      let f = simplify(dir . f)
+      let f = simplify(fdir . f)
     endif
   elseif rev ==# ':/'
     let f = tree
@@ -1146,10 +1147,9 @@ function! fugitive#Find(object, ...) abort
   elseif rev =~# '^:[0-3]:'
     let f = 'fugitive://' . dir . '//' . rev[1] . '/' . rev[3:-1]
   elseif rev ==# ':'
-    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && s:cpath(fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(dir)]) ==# s:cpath(dir . '/') && filereadable($GIT_INDEX_FILE)
+    let f = FugitiveFind('.git/index', dir)
+    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && s:cpath(fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(f)-6], s:cpath(f[0 : -6])) && filereadable($GIT_INDEX_FILE)
       let f = fnamemodify($GIT_INDEX_FILE, ':p')
-    else
-      let f = fugitive#Find('.git/index', dir)
     endif
   elseif rev =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
     let f = matchstr(rev, ')\zs.*')
@@ -1714,12 +1714,13 @@ function! fugitive#CompletePath(base, ...) abort
     let stripped = matchstr(a:base, '^\%(:(literal)\|:\)')
     let base = strpart(a:base, len(stripped))
   endif
-  if base =~# '^\.git/'
+  if base =~# '^\.git/' && len(dir)
     let pattern = s:gsub(base[5:-1], '/', '*&').'*'
-    let matches = s:GlobComplete(dir . '/', pattern)
-    let cdir = fugitive#CommonDir(dir)
-    if len(cdir) && s:cpath(dir) !=# s:cpath(cdir)
-      call extend(matches, s:GlobComplete(cdir . '/', pattern))
+    let fdir = fugitive#Find(dir . '/')
+    let matches = s:GlobComplete(fdir, pattern)
+    let cdir = fugitive#Find('.git/refs', dir)[0 : -5]
+    if len(cdir) && s:cpath(fdir) !=# s:cpath(cdir)
+      call extend(matches, s:GlobComplete(cdir, pattern))
     endif
     call s:Uniq(matches)
     call map(matches, "'.git/' . v:val")
@@ -1761,7 +1762,8 @@ function! fugitive#CompleteObject(base, ...) abort
   if a:base =~# '^\.\=/\|^:(' || a:base !~# ':'
     let results = []
     if a:base =~# '^refs/'
-      let results += map(s:GlobComplete(fugitive#CommonDir(dir) . '/', a:base . '*'), 's:Slash(v:val)')
+      let cdir = fugitive#Find('.git/refs', dir)[0 : -5]
+      let results += map(s:GlobComplete(cdir, a:base . '*'), 's:Slash(v:val)')
       call map(results, 's:fnameescape(v:val)')
     elseif a:base !~# '^\.\=/\|^:('
       let heads = s:CompleteHeads(dir)
@@ -6263,9 +6265,9 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
         endif
       endif
     endif
-    let cdir = FugitiveVimPath(fugitive#CommonDir(dir))
+    let refdir = fugitive#Find('.git/refs', dir)
     for subdir in ['tags/', 'heads/', 'remotes/']
-      if expanded !~# '^[./]' && filereadable(cdir . '/refs/' . subdir . expanded)
+      if expanded !~# '^[./]' && filereadable(refdir . '/' . subdir . expanded)
         let expanded = '.git/refs/' . subdir . expanded
       endif
     endfor
@@ -6301,8 +6303,9 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     if type ==# 'tree' && !empty(path)
       let path = s:sub(path, '/\=$', '/')
     endif
-    if path =~# '^\.git/.*HEAD$' && filereadable(dir . '/' . path[5:-1])
-      let body = readfile(dir . '/' . path[5:-1])[0]
+    let actual_dir = fugitive#Find('.git/', dir)
+    if path =~# '^\.git/.*HEAD$' && filereadable(actual_dir . path[5:-1])
+      let body = readfile(actual_dir . path[5:-1])[0]
       if body =~# '^\x\{40,\}$'
         let commit = body
         let type = 'commit'
@@ -6389,7 +6392,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       endif
       let i = 0
       while commit =~# '^ref: ' && i < 10
-        let ref_file = cdir . '/' . commit[5:-1]
+        let ref_file = refdir[0 : -5] . commit[5:-1]
         if getfsize(ref_file) > 0
           let commit = readfile(ref_file, '', 1)[0]
         else
