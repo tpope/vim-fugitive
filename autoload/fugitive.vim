@@ -1954,7 +1954,7 @@ function! fugitive#BufReadStatus() abort
         if len(prop)
           let props[prop[1]] = prop[2]
         elseif line[0] ==# '?'
-          call add(untracked, {'type': 'File', 'status': line[0], 'filename': line[2:-1]})
+          call add(untracked, {'type': 'File', 'status': line[0], 'filename': line[2:-1], 'relative': [line[2:-1]]})
         elseif line[0] !=# '#'
           if line[0] ==# 'u'
             let file = matchstr(line, '^.\{37\} \x\{40,\} \x\{40,\} \x\{40,\} \zs.*$')
@@ -1964,17 +1964,18 @@ function! fugitive#BufReadStatus() abort
           if line[0] ==# '2'
             let i += 1
             let file = matchstr(file, ' \zs.*')
-            let files = output[i] . ' -> ' . file
+            let relative = [file, output[i]]
           else
-            let files = file
+            let relative = [file]
           endif
+          let filename = join(reverse(copy(relative)), ' -> ')
           let sub = matchstr(line, '^[12u] .. \zs....')
           if line[2] !=# '.'
-            call add(staged, {'type': 'File', 'status': line[2], 'filename': files, 'submodule': sub})
+            call add(staged, {'type': 'File', 'status': line[2], 'filename': filename, 'relative': relative, 'submodule': sub})
           endif
           if line[3] !=# '.'
             let sub = matchstr(line, '^[12u] .. \zs....')
-            call add(unstaged, {'type': 'File', 'status': get({'C':'M','M':'?','U':'?'}, matchstr(sub, 'S\.*\zs[CMU]'), line[3]), 'filename': file, 'submodule': sub})
+            call add(unstaged, {'type': 'File', 'status': get({'C':'M','M':'?','U':'?'}, matchstr(sub, 'S\.*\zs[CMU]'), line[3]), 'filename': file, 'relative': [file], 'submodule': sub})
           endif
         endif
         let i += 1
@@ -2013,22 +2014,24 @@ function! fugitive#BufReadStatus() abort
       while i < len(output)
         let line = output[i]
         let file = line[3:-1]
-        let files = file
         let i += 1
         if line[2] !=# ' '
           continue
         endif
         if line[0:1] =~# '[RC]'
-          let files = output[i] . ' -> ' . file
+          let relative = [file, output[i]]
           let i += 1
+        else
+          let relative = [file]
         endif
+        let filename = join(reverse(copy(relative)), ' -> ')
         if line[0] !~# '[ ?!#]'
-          call add(staged, {'type': 'File', 'status': line[0], 'filename': files, 'submodule': ''})
+          call add(staged, {'type': 'File', 'status': line[0], 'filename': filename, 'relative': relative, 'submodule': ''})
         endif
         if line[0:1] ==# '??'
-          call add(untracked, {'type': 'File', 'status': line[1], 'filename': files})
+          call add(untracked, {'type': 'File', 'status': line[1], 'filename': filename, 'relative': relative})
         elseif line[1] !~# '[ !#]'
-          call add(unstaged, {'type': 'File', 'status': line[1], 'filename': file, 'submodule': ''})
+          call add(unstaged, {'type': 'File', 'status': line[1], 'filename': file, 'relative': [file], 'submodule': ''})
         endif
       endwhile
     endif
@@ -3480,16 +3483,18 @@ function! s:StageInfo(...) abort
     endif
   endwhile
   let text = matchstr(getline(lnum), '^[A-Z?] \zs.*')
+  let file = get(get(b:fugitive_files, heading, {}), text, {})
+  let relative = get(file, 'relative', len(text) ? [text] : [])
   return {'section': matchstr(heading, '^\u\l\+'),
         \ 'heading': heading,
         \ 'sigil': sigil,
         \ 'offset': offset,
         \ 'filename': text,
-        \ 'relative': reverse(split(text, ' -> ')),
-        \ 'paths': map(reverse(split(text, ' -> ')), 's:Tree() . "/" . v:val'),
+        \ 'relative': copy(relative),
+        \ 'paths': map(copy(relative), 's:Tree() . "/" . v:val'),
         \ 'commit': matchstr(getline(lnum), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze '),
         \ 'status': matchstr(getline(lnum), '^[A-Z?]\ze \|^\%(\x\x\x\)\@!\l\+\ze [0-9a-f]'),
-        \ 'submodule': get(get(get(b:fugitive_files, heading, {}), text, {}), 'submodule', ''),
+        \ 'submodule': get(file, 'submodule', ''),
         \ 'index': index}
 endfunction
 
@@ -3559,12 +3564,14 @@ function! s:Selection(arg1, ...) abort
       endif
       let results[-1].lnum = lnum
     elseif line =~# '^[A-Z?] '
-      let filename = matchstr(line, '^[A-Z?] \zs.*')
+      let text = matchstr(line, '^[A-Z?] \zs.*')
+      let file = get(get(b:fugitive_files, template.heading, {}), text, {})
+      let relative = get(file, 'relative', len(text) ? [text] : [])
       call add(results, extend(deepcopy(template), {
             \ 'lnum': lnum,
-            \ 'filename': filename,
-            \ 'relative': reverse(split(filename, ' -> ')),
-            \ 'paths': map(reverse(split(filename, ' -> ')), 'root . v:val'),
+            \ 'filename': text,
+            \ 'relative': copy(relative),
+            \ 'paths': map(copy(relative), 'root . v:val'),
             \ 'status': matchstr(line, '^[A-Z?]'),
             \ }))
     elseif line =~# '^\x\x\x\+ '
