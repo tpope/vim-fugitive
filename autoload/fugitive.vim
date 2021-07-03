@@ -3237,7 +3237,7 @@ function! s:StageSeek(info, fallback) abort
   if empty(info.heading)
     return a:fallback
   endif
-  let line = search('^' . escape(substitute(info.heading, '(\d\+)$', '', ''), '^$.*[]~\'), 'wn')
+  let line = search('^' . escape(info.heading, '^$.*[]~\') . ' (\d\+)$', 'wn')
   if !line
     for section in get({'Staged': ['Unstaged', 'Untracked'], 'Unstaged': ['Untracked', 'Staged'], 'Untracked': ['Unstaged', 'Staged']}, info.section, [])
       let line = search('^' . section, 'wn')
@@ -3457,18 +3457,18 @@ function! s:StageInfo(...) abort
     endwhile
   endif
   let slnum = lnum + 1
-  let section = ''
+  let heading = ''
   let index = 0
-  while len(getline(slnum - 1)) && empty(section)
+  while len(getline(slnum - 1)) && empty(heading)
     let slnum -= 1
-    let section = matchstr(getline(slnum), '^\u\l\+\ze.* (\d\+)$')
-    if empty(section) && getline(slnum) !~# '^[ @\+-]'
+    let heading = matchstr(getline(slnum), '^\u\l\+.\{-\}\ze (\d\+)$')
+    if empty(heading) && getline(slnum) !~# '^[ @\+-]'
       let index += 1
     endif
   endwhile
   let text = matchstr(getline(lnum), '^[A-Z?] \zs.*')
-  return {'section': section,
-        \ 'heading': getline(slnum),
+  return {'section': matchstr(heading, '^\u\l\+'),
+        \ 'heading': heading,
         \ 'sigil': sigil,
         \ 'offset': offset,
         \ 'filename': text,
@@ -3476,7 +3476,7 @@ function! s:StageInfo(...) abort
         \ 'paths': map(reverse(split(text, ' -> ')), 's:Tree() . "/" . v:val'),
         \ 'commit': matchstr(getline(lnum), '^\%(\%(\x\x\x\)\@!\l\+\s\+\)\=\zs[0-9a-f]\{4,\}\ze '),
         \ 'status': matchstr(getline(lnum), '^[A-Z?]\ze \|^\%(\x\x\x\)\@!\l\+\ze [0-9a-f]'),
-        \ 'submodule': get(get(get(b:fugitive_files, section, {}), text, {}), 'submodule', ''),
+        \ 'submodule': get(get(get(b:fugitive_files, heading, {}), text, {}), 'submodule', ''),
         \ 'index': index}
 endfunction
 
@@ -3510,11 +3510,11 @@ function! s:Selection(arg1, ...) abort
     let flnum -= 1
   endwhile
   let slnum = flnum + 1
-  let section = ''
+  let heading = ''
   let index = 0
-  while len(getline(slnum - 1)) && empty(section)
+  while empty(heading)
     let slnum -= 1
-    let heading = matchstr(getline(slnum), '^\u\l\+.* (\d\+)$')
+    let heading = matchstr(getline(slnum), '^\u\l\+.\{-\}\ze (\d\+)$')
     if empty(heading) && getline(slnum) !~# '^[ @\+-]'
       let index += 1
     endif
@@ -3522,7 +3522,7 @@ function! s:Selection(arg1, ...) abort
   let results = []
   let template = {
         \ 'heading': heading,
-        \ 'section': matchstr(heading, '^\u\l\+\ze.* (\d\+)$'),
+        \ 'section': matchstr(heading, '^\u\l\+'),
         \ 'filename': '',
         \ 'relative': [],
         \ 'paths': [],
@@ -3534,9 +3534,10 @@ function! s:Selection(arg1, ...) abort
   let lnum = first - (arg1 == flnum ? 0 : 1)
   let root = s:Tree() . '/'
   while lnum <= last
-    if line =~# '^\u\l\+\ze.* (\d\+)$'
-      let template.heading = getline(lnum)
-      let template.section = matchstr(template.heading, '^\u\l\+\ze.* (\d\+)$')
+    let heading = matchstr(line, '^\u\l\+\ze.\{-\}\ze (\d\+)$')
+    if len(heading)
+      let template.heading = heading
+      let template.section = matchstr(heading, '^\u\l\+')
       let template.index = 0
     elseif line =~# '^[ @\+-]'
       let template.index -= 1
