@@ -621,21 +621,23 @@ endfunction
 
 let s:config = {}
 function! fugitive#Config(...) abort
-  let dir = s:Dir()
   let name = ''
   let default = get(a:, 3, '')
-  if a:0 >= 2 && type(a:2) == type({})
+  if a:0 >= 2 && type(a:2) == type({}) && !has_key(a:2, 'git_dir')
     let name = substitute(a:1, '^[^.]\+\|[^.]\+$', '\L&', 'g')
     return len(a:1) ? get(get(a:2, name, []), 0, default) : a:2
   elseif a:0 >= 2
-    let dir = a:2
+    let dir = s:Dir(a:2)
     let name = a:1
-  elseif a:0 == 1 && type(a:1) == type({})
+  elseif a:0 == 1 && type(a:1) == type({}) && !has_key(a:1, 'git_dir')
     return a:1
-  elseif a:0 == 1 && a:1 =~# '^[[:alnum:]-]\+\.'
+  elseif a:0 == 1 && type(a:1) == type('') && a:1 =~# '^[[:alnum:]-]\+\.'
+    let dir = s:Dir()
     let name = a:1
   elseif a:0 == 1
-    let dir = a:1
+    let dir = s:Dir(a:1)
+  else
+    let dir = s:Dir()
   endif
   let name = substitute(name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
   let dir_key = len(dir) ? dir : '_'
@@ -662,6 +664,28 @@ function! fugitive#Config(...) abort
     lockvar! dict
   endif
   return len(name) ? get(get(dict, name, []), 0, default) : dict
+endfunction
+
+function! fugitive#ConfigGetAll(name, ...) abort
+  let config = fugitive#Config(a:0 ? a:1 : s:Dir())
+  let name = substitute(a:name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
+  return copy(get(config, name, []))
+endfunction
+
+function! fugitive#ConfigGetRegexp(pattern, ...) abort
+  let config = fugitive#Config(a:0 ? a:1 : s:Dir())
+  let filtered = map(filter(copy(config), 'v:key =~# "\\." && v:key =~# a:pattern'), 'copy(v:val)')
+  if a:pattern !~# '\\\@<!\%(\\\\\)*\\z[se]'
+    return filtered
+  endif
+  let transformed = {}
+  for [k, v] in items(filtered)
+    let k = matchstr(k, a:pattern)
+    if len(k)
+      let transformed[k] = v
+    endif
+  endfor
+  return transformed
 endfunction
 
 function! s:Remote(dir) abort
@@ -2102,7 +2126,7 @@ function! fugitive#BufReadStatus() abort
     if empty(s:Tree())
       call s:AddHeader('Bare', 'yes')
     endif
-    if get(FugitiveConfigGetAll('advice.statusHints', config), 0, 'true') !~# '^\%(false\|no|off\|0\|\)$'
+    if get(fugitive#ConfigGetAll('advice.statusHints', config), 0, 'true') !~# '^\%(false\|no|off\|0\|\)$'
       call s:AddHeader('Help', 'g?')
     endif
 
@@ -2473,7 +2497,7 @@ augroup END
 
 function! s:AskPassArgs(dir) abort
   if (len($DISPLAY) || len($TERM_PROGRAM) || has('gui_running')) &&
-        \ empty($GIT_ASKPASS) && empty($SSH_ASKPASS) && empty(FugitiveConfigGetAll('core.askpass', a:dir))
+        \ empty($GIT_ASKPASS) && empty($SSH_ASKPASS) && empty(fugitive#ConfigGetAll('core.askpass', a:dir))
     if s:executable(s:ExecPath() . '/git-gui--askpass')
       return ['-c', 'core.askPass=' . s:ExecPath() . '/git-gui--askpass']
     elseif s:executable('ssh-askpass')
@@ -2800,7 +2824,7 @@ function! fugitive#PagerFor(argv, ...) abort
     return 0
   endif
   let config = a:0 ? a:1 : fugitive#Config()
-  let value = get(FugitiveConfigGetAll('pager.' . args[0], config), 0, -1)
+  let value = get(fugitive#ConfigGetAll('pager.' . args[0], config), 0, -1)
   if value =~# '^\%(true\|yes\|on\|1\)$'
     return 1
   elseif value =~# '^\%(false\|no|off\|0\|\)$'
@@ -3075,7 +3099,7 @@ function! s:CompletableSubcommands(dir) abort
     endif
     call extend(commands, s:path_subcommands[cpath])
   endfor
-  call extend(commands, keys(FugitiveConfigGetRegexp('^alias\.\zs[^.]\+$', a:dir)))
+  call extend(commands, keys(fugitive#ConfigGetRegexp('^alias\.\zs[^.]\+$', a:dir)))
   let configured = split(FugitiveConfigGet('completion.commands', a:dir), '\s\+')
   let rejected = {}
   for command in configured
