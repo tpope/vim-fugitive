@@ -553,7 +553,13 @@ endfunction
 
 function! s:NullError(...) abort
   let [out, exec_error] = s:SystemError(call('fugitive#Prepare', a:000))
-  return [exec_error ? [] : split(out, "\1"), exec_error ? substitute(out, "\n$", "", "") : '', exec_error]
+  if exec_error
+    return [[], substitute(out, "\n$", "", "") : '', exec_error]
+  else
+    let list = split(out, "\1", 1)
+    call remove(list, -1)
+    return [list, '', exec_error]
+  endif
 endfunction
 
 function! s:TreeChomp(...) abort
