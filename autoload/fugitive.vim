@@ -554,7 +554,7 @@ endfunction
 function! s:NullError(...) abort
   let [out, exec_error] = s:SystemError(call('fugitive#Prepare', a:000))
   if exec_error
-    return [[], substitute(out, "\n$", "", "") : '', exec_error]
+    return [[], substitute(out, "\n$", "", ""), exec_error]
   else
     let list = split(out, "\1", 1)
     call remove(list, -1)
