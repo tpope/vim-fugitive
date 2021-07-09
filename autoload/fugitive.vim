@@ -5474,6 +5474,10 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
       exe pre
       let mods = (a:autodir ? s:diff_modifier(len(parents) + 1) : '') . s:Mods(mods, 'leftabove')
       let nr = bufnr('')
+      if len(parents) > 1 && !&equalalways
+        let equalalways = 0
+        set equalalways
+      endif
       execute mods 'split' s:fnameescape(fugitive#Find(parents[0]))
       call s:Map('n', 'dp', ':diffput '.nr.'<Bar>diffupdate<CR>', '<silent>')
       let nr2 = bufnr('')
@@ -5490,9 +5494,6 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
         call s:Map('n', 'd' . (i + 2) . 'o', ':diffget '.nrx.'<Bar>diffupdate<CR>', '<silent>')
       endfor
       call s:diffthis()
-      if len(parents) > 1
-        wincmd =
-      endif
       return post
     elseif len(args)
       let arg = join(args, ' ')
@@ -5556,6 +5557,9 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   finally
+    if exists('l:equalalways')
+      let &l:equalalways = equalalways
+    endif
     if exists('diffopt')
       let &diffopt = diffopt
     endif
