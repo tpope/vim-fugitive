@@ -801,6 +801,7 @@ function! s:QuickfixCreate(nr, opts) abort
 endfunction
 
 function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) abort
+  call s:BlurStatus()
   let mods = s:Mods(a:mods)
   let opts = {'title': a:title, 'context': {'items': []}}
   call s:QuickfixCreate(a:nr, opts)
@@ -834,7 +835,6 @@ function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) ab
 
   silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if a:first && len(s:QuickfixGet(a:nr))
-    call s:BlurStatus()
     return mods . (a:nr < 0 ? 'cfirst' : 'lfirst')
   else
     return 'exe'
