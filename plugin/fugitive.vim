@@ -211,7 +211,7 @@ function! s:Tree(path) abort
       let config = readfile(config_file,'',10)
       let wt_config = filter(copy(config),'v:val =~# "^\\s*worktree *="')
       if len(wt_config) == 1
-        let worktree = FugitiveVimPath(matchstr(config[0], '= *\zs.*'))
+        let worktree = FugitiveVimPath(matchstr(wt_config[0], '= *\zs.*'))
       else
         call filter(config,'v:val =~# "^\\s*bare *= *false *$"')
         if len(config)
