@@ -1283,44 +1283,50 @@ function! s:ExpandVar(other, var, flags, esc, ...) abort
     let owner = s:Owner(buffer)
     return len(owner) ? owner : '@'
   elseif a:var ==# '<cfile>'
-    let bufname = expand('<cfile>')
+    let bufnames = [expand('<cfile>')]
     if v:version >= 704 && get(maparg('<Plug><cfile>', 'c', 0, 1), 'expr')
       try
-        let bufname = eval(maparg('<Plug><cfile>', 'c'))
-        if bufname ==# "\<C-R>\<C-F>"
-          let bufname = expand('<cfile>')
+        let bufnames = [eval(maparg('<Plug><cfile>', 'c'))]
+        if bufnames[0] ==# "\<C-R>\<C-F>"
+          let bufnames = [expand('<cfile>')]
         endif
       catch
       endtry
     endif
   elseif a:var =~# '^<'
-    let bufname = s:BufName(a:var)
+    let bufnames = [s:BufName(a:var)]
+  elseif a:var ==# '##'
+    let bufnames = map(argv(), 'fugitive#Real(v:val)')
   else
-    let bufname = fugitive#Real(s:BufName(a:var))
+    let bufnames = [fugitive#Real(s:BufName(a:var))]
   endif
-  let flags = a:flags
-  let file = s:DotRelative(bufname, cwd)
-  while len(flags)
-    let flag = matchstr(flags, s:flag)
-    let flags = strpart(flags, len(flag))
-    if flag ==# ':.'
-      let file = s:DotRelative(fugitive#Real(file), cwd)
-    else
-      let file = fnamemodify(file, flag)
+  let files = []
+  for bufname in bufnames
+    let flags = a:flags
+    let file = s:DotRelative(bufname, cwd)
+    while len(flags)
+      let flag = matchstr(flags, s:flag)
+      let flags = strpart(flags, len(flag))
+      if flag ==# ':.'
+        let file = s:DotRelative(fugitive#Real(file), cwd)
+      else
+        let file = fnamemodify(file, flag)
+      endif
+    endwhile
+    let file = s:Slash(file)
+    if file =~# '^fugitive://'
+      let [dir, commit, file_candidate] = s:DirCommitFile(file)
+      let tree = s:Tree(dir)
+      if len(tree) && len(file_candidate)
+        let file = (commit =~# '^.$' ? ':' : '') . commit . ':' .
+              \ s:DotRelative(tree . file_candidate)
+      elseif empty(file_candidate) && commit !~# '^.$'
+        let file = commit
+      endif
     endif
-  endwhile
-  let file = s:Slash(file)
-  if file =~# '^fugitive://'
-    let [dir, commit, file_candidate] = s:DirCommitFile(file)
-    let tree = s:Tree(dir)
-    if len(tree) && len(file_candidate)
-      let file = (commit =~# '^.$' ? ':' : '') . commit . ':' .
-            \ s:DotRelative(tree . file_candidate)
-    elseif empty(file_candidate) && commit !~# '^.$'
-      let file = commit
-    endif
-  endif
-  return (len(a:esc) ? shellescape(file) : file)
+    call add(files, len(a:esc) ? shellescape(file) : file)
+  endfor
+  return join(files, "\1")
 endfunction
 
 function! s:Expand(rev, ...) abort
@@ -1337,13 +1343,13 @@ function! s:Expand(rev, ...) abort
   endif
   return substitute(file,
         \ '\(\\[' . s:fnameescape . ']\|^\\[>+-]\|!\d*\)\|' . s:expand,
-        \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),"", a:0 ? a:1 : getcwd())', 'g')
+        \ '\=tr(s:ExpandVar(submatch(1),submatch(2),submatch(3),"", a:0 ? a:1 : getcwd()), "\1", " ")', 'g')
 endfunction
 
 function! fugitive#Expand(object) abort
   return substitute(a:object,
         \ '\(\\[' . s:fnameescape . ']\|^\\[>+-]\|!\d*\)\|' . s:expand,
-        \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5))', 'g')
+        \ '\=tr(s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5)), "\1", " ")', 'g')
 endfunction
 
 function! s:SplitExpandChain(string, ...) abort
@@ -1365,7 +1371,7 @@ function! s:SplitExpandChain(string, ...) abort
     let arg = substitute(arg,
           \ '\(' . dquote . '''\%(''''\|[^'']\)*''\|\\[' . s:fnameescape . ']\|^\\[>+-]\|!\d*\)\|' . s:expand,
           \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5), cwd)', 'g')
-    call add(list, arg)
+    call extend(list, split(arg, "\1", 1))
     if arg ==# '--'
       let seen_separator = 1
     endif
