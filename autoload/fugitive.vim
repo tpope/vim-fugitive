@@ -711,32 +711,83 @@ function! s:Remote(dir) abort
   return remote =~# '^\.\=$' ? 'origin' : remote
 endfunction
 
-unlet! s:ssh_aliases
-function! fugitive#SshHostAlias(...) abort
-  if !exists('s:ssh_aliases')
-    let s:ssh_aliases = {}
-    if filereadable(expand('~/.ssh/config'))
-      let hosts = []
-      for line in readfile(expand('~/.ssh/config'))
-        let key = matchstr(line, '^\s*\zs\w\+\ze\s')
-        let value = matchstr(line, '^\s*\w\+\s\+\zs.*\S')
-        if key ==? 'host'
-          let hosts = split(value, '\s\+')
-        elseif key ==? 'hostname'
-          for host in hosts
-            if !has_key(s:ssh_aliases, host)
-              let s:ssh_aliases[host] = tolower(value)
-            endif
-          endfor
-        endif
-      endfor
+function! s:SshParseHost(value) abort
+  let patterns = []
+  let negates = []
+  for host in split(a:value, '\s\+')
+    let pattern = substitute(host, '[\\^$.*~?]', '\=submatch(0) == "*" ? ".*" : submatch(0) == "?" ? "." : "\\" . submatch(0)', 'g')
+    if pattern[0] ==# '!'
+      call add(negates, '\&\%(^' . pattern[1 : -1] . '$\)\@!')
+    else
+      call add(patterns, pattern)
     endif
+  endfor
+  return '^\%(' . join(patterns, '\|') . '\)$' . join(negates, '')
+endfunction
+
+function! s:SshParseConfig(into, root, file, ...) abort
+  if !filereadable(a:file)
+    return a:into
   endif
-  if a:0
-    return get(s:ssh_aliases, a:1, a:1)
-  else
-    return s:ssh_aliases
+  let host = a:0 ? a:1 : '^\%(.*\)$'
+  for line in readfile(a:file)
+    let key = tolower(matchstr(line, '^\s*\zs\w\+\ze\s'))
+    let value = matchstr(line, '^\s*\w\+\s\+\zs.*\S')
+    if key ==# 'match'
+      let host = value ==# 'all' ? '^\%(.*\)$' : ''
+    elseif key ==# 'host'
+      let host = s:SshParseHost(value)
+    elseif key ==# 'include'
+      call s:SshParseInclude(a:into, a:root, host, value)
+    elseif len(key) && len(host)
+      call extend(a:into, {key: []}, 'keep')
+      call add(a:into[key], [host, value])
+    endif
+  endfor
+  return a:into
+endfunction
+
+function! s:SshParseInclude(into, root, host, value) abort
+  for glob in split(a:value)
+    if glob !~# '^/'
+      let glob = a:root . glob
+    endif
+    for file in split(glob(glob), "\n")
+      call s:SshParseConfig(a:into, a:root, file, a:host)
+    endfor
+  endfor
+endfunction
+
+unlet! s:ssh_config
+function! fugitive#SshConfig(host, ...) abort
+  if !exists('s:ssh_config')
+    let s:ssh_config = {}
+    for file in [expand("~/.ssh/config"), "/etc/ssh/ssh_config"]
+      call s:SshParseConfig(s:ssh_config, substitute(file, '\w*$', '', ''), file)
+    endfor
   endif
+  let host_config = {}
+  for key in a:0 ? a:1 : keys(s:ssh_config)
+    for [host_pattern, value] in get(s:ssh_config, key, [])
+      if a:host =~# host_pattern
+        let host_config[key] = value
+        break
+      endif
+    endfor
+  endfor
+  return host_config
+endfunction
+
+function! fugitive#SshHostAlias(authority) abort
+  let [_, user, host, port; __] = matchlist(a:authority, '^\%(\([^/@]\+\)@\)\=\(.\{-\}\)\%(:\(\d\+\)\)\=$')
+  let c = fugitive#SshConfig(host, ['user', 'hostname', 'port'])
+  if empty(user)
+    let user = get(c, 'user', '')
+  endif
+  if empty(port)
+    let port = get(c, 'port', '')
+  endif
+  return (len(user) ? user . '@' : '') . get(c, 'hostname', host) . (port =~# '^\%(22\)\=$' ? '' : ':' . port)
 endfunction
 
 let s:redirects = {}
@@ -752,10 +803,23 @@ function! fugitive#ResolveRemote(remote) abort
     if len(s:redirects[a:remote])
       return s:redirects[a:remote]
     endif
+  elseif a:remote =~# '^ssh://'
+    let authority = matchstr(a:remote, '[^/?#]*', 6)
+    return 'ssh://' . fugitive#SshHostAlias(authority) . strpart(a:remote, 6 + len(authority))
   endif
-  return substitute(a:remote,
-        \ '^ssh://\%([^@:/]\+@\)\=\zs[^/:]\+\|^\%([^@:/]\+@\)\=\zs[^/:]\+\ze:/\@!',
-        \ '\=fugitive#SshHostAlias(submatch(0))', '')
+  let scp_authority = matchstr(a:remote, '^[^:/]\+\ze:\%(//\)\@!')
+  if empty(scp_authority)
+    return a:remote
+  endif
+  let path = strpart(a:remote, len(scp_authority) + 1)
+  let alias = fugitive#SshHostAlias(scp_authority)
+  if alias !~# ':'
+    return alias . ':' . path
+  elseif path =~# '^/'
+    return 'ssh://' . alias . path
+  else
+    return a:remote
+  endif
 endfunction
 
 function! fugitive#RemoteUrl(...) abort
