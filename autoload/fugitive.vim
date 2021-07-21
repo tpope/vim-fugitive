@@ -6465,7 +6465,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
             let blame_list = tempname()
             call writefile([commit, ''], blame_list, 'b')
             let blame_in = tempname()
-            silent exe '%write' blame_in
+            silent exe 'noautocmd keepalt %write' blame_in
             let [blame, exec_error] = s:LinesError(['-c', 'blame.coloring=none', 'blame', '--contents', blame_in, '-L', line1.','.line2, '-S', blame_list, '-s', '--show-number', './' . path], dir)
             if !exec_error
               let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
