@@ -603,12 +603,10 @@ a statusline, this one matches the default when 'ruler' is set:
 <
 DEPRECATIONS                                    *fugitive-deprecated*
 
-The following commands are softly deprecated in favor of replacements that
-adhere to a new naming scheme.  They will eventually be removed, but probably
-not in the near future.
-
-Remember that |:Git| can be shortened to |:G|, so replacements using it are
-just one space character longer than the legacy version.
+The following commands are deprecated in favor of replacements that adhere to
+a new naming scheme.  Remember that |:Git| can be shortened to |:G|, so
+replacements using it are just one space character longer than the legacy
+version.
 
 *:Gremove*      Superseded by |:GRemove|.
 *:Gdelete*      Superseded by |:GDelete|.
