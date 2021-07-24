@@ -465,7 +465,7 @@ function! s:BuildEnvPrefix(env) abort
   let env = items(a:env)
   if empty(env)
     return ''
-  elseif &shellcmdflag =~# '-Command'
+  elseif &shell =~? '\%(powershell\|pwsh\)\%(\.exe\)\=$'
     return join(map(env, '"$Env:" . v:val[0] . " = ''" . substitute(v:val[1], "''", "''''", "g") . "''; "'), '')
   elseif s:winshell()
     return join(map(env, '"set " . substitute(join(v:val, "="), "[&|<>^]", "^^^&", "g") . "& "'), '')
@@ -1607,9 +1607,11 @@ function! s:TempCmd(out, cmd) abort
   try
     let cmd = (type(a:cmd) == type([]) ? fugitive#Prepare(a:cmd) : a:cmd)
     let redir = ' > ' . a:out
-    if (s:winshell() || &shellcmdflag ==# '-Command') && !has('nvim')
+    if s:winshell() && !has('nvim')
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
       return s:SystemError('cmd /c "' . s:gsub(cmd, '[<>%]', cmd_escape_char . '&') . redir . '"')
+    elseif &shell =~? '\%(powershell\|pwsh\)\%(\.exe\)\=$'
+      return s:SystemError(&shell . ' ' . &shellcmdflag . ' ' . s:shellesc(cmd . redir))
     elseif &shell =~# 'fish'
       return s:SystemError(' begin;' . cmd . redir . ';end ')
     else
