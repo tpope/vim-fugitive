@@ -156,6 +156,13 @@ function! FugitiveRemoteUrl(...) abort
   return fugitive#RemoteUrl(a:0 ? a:1 : '', FugitiveGitDir(a:0 > 1 ? a:2 : -1), a:0 > 2 ? a:3 : 0)
 endfunction
 
+" FugitiveHead() retrieves the name of the current branch. If the current HEAD
+" is detached, FugitiveHead() will return the empty string, unless the
+" optional argument is given, in which case the hash of the current commit
+" will be truncated to the given number of characters.
+"
+" An optional second argument provides the Git dir, or the buffer number of a
+" buffer with a Git dir.  The default is the current buffer.
 function! FugitiveHead(...) abort
   let dir = FugitiveGitDir(a:0 > 1 ? a:2 : -1)
   if empty(dir)

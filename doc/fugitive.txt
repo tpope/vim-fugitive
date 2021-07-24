@@ -601,12 +601,6 @@ a statusline, this one matches the default when 'ruler' is set:
 >
         set statusline=%<%f\ %h%m%r%{FugitiveStatusline()}%=%-14.(%l,%c%V%)\ %P
 <
-                                *FugitiveHead(...)* *fugitive#head(...)*
-Use FugitiveHead() to return the name of the current branch. If the current
-HEAD is detached, FugitiveHead() will return the empty string, unless the
-optional argument is given, in which case the hash of the current commit will
-be truncated to the given number of characters.
-
 DEPRECATIONS                                    *fugitive-deprecated*
 
 The following commands are softly deprecated in favor of replacements that
