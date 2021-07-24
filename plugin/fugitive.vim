@@ -160,6 +160,13 @@ function! FugitiveConfigGetRegexp(pattern, ...) abort
   return call('fugitive#ConfigGetRegexp', [a:pattern] + a:000)
 endfunction
 
+" FugitiveRemoteUrl() retrieves the remote URL for the given remote name,
+" defaulting to the current branch's remote or "origin" if no argument is
+" given.  Similar to `git remote get-url`, but also attempts to resolve HTTP
+" redirects and SSH host aliases.
+"
+" An optional second argument provides the Git dir, or the buffer number of a
+" buffer with a Git dir.  The default is the current buffer.
 function! FugitiveRemoteUrl(...) abort
   return fugitive#RemoteUrl(a:0 ? a:1 : '', FugitiveGitDir(a:0 > 1 ? a:2 : -1), a:0 > 2 ? a:3 : 0)
 endfunction
