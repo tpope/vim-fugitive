@@ -99,9 +99,11 @@ function! FugitiveParse(...) abort
 endfunction
 
 " FugitiveResult() returns an object encapsulating the result of the most
-" recend :Git command.  Will be empty if no result is available.  Pass in the
-" name of a temp buffer to get the result object for that command instead.
-" Contains the following keys:
+" recent :Git command.  Will be empty if no result is available.  During a
+" User FugitiveChanged event, this is guaranteed to correspond to the :Git
+" command that triggered the event, or be empty if :Git was not the trigger.
+" Pass in the name of a temp buffer to get the result object for that command
+" instead.  Contains the following keys:
 "
 " * "args": List of command arguments, starting with the subcommand.  Will be
 "   empty for usages like :Git --help.
