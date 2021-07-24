@@ -1,6 +1,9 @@
 " Location:     autoload/fugitive.vim
 " Maintainer:   Tim Pope <http://tpo.pe/>
 
+" The functions contained within this file are for internal use only.  For the
+" official API, see the commented functions in plugin/fugitive.vim.
+
 if exists('g:autoloaded_fugitive')
   finish
 endif

@@ -601,6 +601,10 @@ a statusline, this one matches the default when 'ruler' is set:
 >
         set statusline=%<%f\ %h%m%r%{FugitiveStatusline()}%=%-14.(%l,%c%V%)\ %P
 <
+API                                             *fugitive-api*
+
+Officially supported functions are documented inline in plugin/fugitive.vim.
+
 DEPRECATIONS                                    *fugitive-deprecated*
 
 The following commands are deprecated in favor of replacements that adhere to
