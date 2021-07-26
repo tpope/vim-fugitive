@@ -127,13 +127,17 @@ endfunction
 " when performing multiple config queries.  Do not rely on the internal
 " structure of the return value as it is not guaranteed.  If you want a full
 " dictionary of every config value, use FugitiveConfigGetRegexp('.*').
+"
+" An optional argument provides the Git dir, or the buffer number of a
+" buffer with a Git dir.  The default is the current buffer.  Pass a blank
+" string to limit to the global config.
 function! FugitiveConfig(...) abort
   return call('fugitive#Config', a:000)
 endfunction
 
 " FugitiveConfigGet() retrieves a Git configuration value.  An optional second
-" argument provides the Git dir as with FugitiveFind().  Pass a blank string
-" to limit to the global config.
+" argument can be either the object returned by FugitiveConfig(), or a Git
+" dir or buffer number to be passed along to FugitiveConfig().
 function! FugitiveConfigGet(name, ...) abort
   return get(call('FugitiveConfigGetAll', [a:name] + (a:0 ? [a:1] : [])), 0, get(a:, 2, ''))
 endfunction
