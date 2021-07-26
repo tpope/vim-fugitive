@@ -629,7 +629,7 @@ function! s:TreeChomp(...) abort
   throw 'fugitive: error running `' . cmd . '`: ' . out
 endfunction
 
-function! s:StdoutToFile(out, cmd) abort
+function! s:StdoutToFile(out, cmd, ...) abort
   let [argv, jopts, _] = s:PrepareJob(a:cmd)
   let exit = []
   if exists('*jobstart')
@@ -638,6 +638,9 @@ function! s:StdoutToFile(out, cmd) abort
           \ 'stderr_buffered': v:true,
           \ 'on_exit': { j, code, _ -> add(exit, code) }})
     let job = jobstart(argv, jopts)
+    if a:0
+      call chansend(job, a:1)
+    endif
     call chanclose(job, 'stdin')
     call jobwait([job])
     if len(a:out)
@@ -654,6 +657,9 @@ function! s:StdoutToFile(out, cmd) abort
             \ 'err_name': err,
             \ 'exit_cb': { j, code -> add(exit, code) }})
       let job = job_start(argv, jopts)
+      if a:0
+        call ch_sendraw(job, a:1)
+      endif
       call ch_close_in(job)
       while ch_status(job) !=# 'closed' || job_status(job) ==# 'run'
         exe has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
@@ -1733,7 +1739,7 @@ endfunction
 
 function! s:UpdateIndex(dir, info) abort
   let info = join(a:info[0:-2]) . "\t" . a:info[-1] . "\n"
-  let [error, exec_error] = s:SystemError(fugitive#Prepare([a:dir, 'update-index', '--index-info']), info)
+  let [error, exec_error] = s:StdoutToFile('', [a:dir, 'update-index', '--index-info'], info)
   return !exec_error ? '' : len(error) ? error : 'unknown update-index error'
 endfunction
 
