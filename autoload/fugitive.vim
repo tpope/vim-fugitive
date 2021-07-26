@@ -852,15 +852,29 @@ function! fugitive#ResolveRemote(remote) abort
   endif
 endfunction
 
+function! s:ConfigLengthSort(i1, i2) abort
+  return len(a:i2[0]) - len(a:i1[0])
+endfunction
+
 function! fugitive#RemoteUrl(...) abort
   let dir = a:0 > 1 ? s:Dir(a:2) : s:Dir()
   let url = !a:0 || a:1 =~# '^\.\=$' ? s:Remote(dir) : a:1
   if url !~# ':\|^/\|^\.\.\=/'
-    if !fugitive#GitVersion(2, 7)
-      let url = FugitiveConfigGet('remote.' . url . '.url')
-    else
-      let url = s:ChompDefault('', [dir, 'remote', 'get-url', url, '--'])
-    endif
+    let config = fugitive#Config(a:0 > 1 ? a:2 : s:Dir())
+    let url = FugitiveConfigGet('remote.' . url . '.url', config)
+    let instead_of = []
+    for [k, vs] in items(fugitive#ConfigGetRegexp('^url\.\zs.\{-\}\ze\.insteadof$', config))
+      for v in vs
+        call add(instead_of, [v, k])
+      endfor
+    endfor
+    call sort(instead_of, 's:ConfigLengthSort')
+    for [orig, replacement] in instead_of
+      if strpart(url, 0, len(orig)) ==# orig
+        let url = replacement . strpart(url, len(orig))
+        break
+      endif
+    endfor
   endif
   if !get(a:, 3, 0)
     let url = fugitive#ResolveRemote(url)
