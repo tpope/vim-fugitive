@@ -315,7 +315,7 @@ let s:git_versions = {}
 function! fugitive#GitVersion(...) abort
   let git = s:GitShellCmd()
   if !has_key(s:git_versions, git)
-    let s:git_versions[git] = matchstr(s:SystemError(git.' --version')[0], '\d[^[:space:]]\+')
+    let s:git_versions[git] = matchstr(s:SystemError([git, '--version'])[0], '\d[^[:space:]]\+')
   endif
   if !a:0
     return s:git_versions[git]
@@ -527,7 +527,7 @@ function! s:SystemError(cmd, ...) abort
       let guioptions = &guioptions
       set guioptions-=!
     endif
-    let out = call('system', [type(a:cmd) ==# type([]) ? fugitive#Prepare(a:cmd) : a:cmd] + a:000)
+    let out = call('system', [type(a:cmd) == type([]) ? s:shellesc(a:cmd) : a:cmd] + a:000)
     return [out, v:shell_error]
   catch /^Vim\%((\a\+)\)\=:E484:/
     let opts = ['shell', 'shellcmdflag', 'shellredir', 'shellquote', 'shellxquote', 'shellxescape', 'shellslash']
@@ -799,8 +799,8 @@ function! fugitive#ResolveRemote(remote) abort
   if a:remote =~# '^https\=://' && s:executable('curl')
     if !has_key(s:redirects, a:remote)
       let s:redirects[a:remote] = matchstr(s:SystemError(
-            \ 'curl --disable --silent --max-time 5 -I ' .
-            \ s:shellesc(a:remote . '/info/refs?service=git-upload-pack'))[0],
+            \ ['curl', '--disable', '--silent', '--max-time', '5', '-I',
+            \ a:remote . '/info/refs?service=git-upload-pack'])[0],
             \ 'Location: \zs\S\+\ze/info/refs?')
     endif
     if len(s:redirects[a:remote])
@@ -881,7 +881,7 @@ function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) ab
   endif
 
   let buffer = []
-  let lines = split(s:SystemError(s:shellesc(a:cmd))[0], "\n")
+  let lines = split(s:SystemError(a:cmd)[0], "\n")
   for line in lines
     call extend(buffer, call(a:callback, a:000 + [line]))
     if len(buffer) >= 20
@@ -1590,8 +1590,8 @@ endfunction
 
 function! s:UpdateIndex(dir, info) abort
   let info = join(a:info[0:-2]) . "\t" . a:info[-1] . "\n"
-  let [error, exec_error] = s:SystemError([a:dir, 'update-index', '--index-info'], info)
-  return !exec_error ? '' : len(error) ? error : 'fugitive: unknown update-index error'
+  let [error, exec_error] = s:SystemError(fugitive#Prepare([a:dir, 'update-index', '--index-info']), info)
+  return !exec_error ? '' : len(error) ? error : 'unknown update-index error'
 endfunction
 
 function! fugitive#setfperm(url, perm) abort
@@ -2351,7 +2351,7 @@ function! fugitive#FileWriteCmd(...) abort
     endif
     silent execute "'[,']write !".fugitive#Prepare(dir, 'hash-object', '-w', '--stdin', '--').' > '.tmp
     let sha1 = readfile(tmp)[0]
-    let old_mode = matchstr(s:SystemError([dir, 'ls-files', '--stage', '.' . file])[0], '^\d\+')
+    let old_mode = matchstr(s:ChompError(['ls-files', '--stage', '.' . file], dir)[0], '^\d\+')
     if empty(old_mode)
       let old_mode = executable(s:Tree(dir) . file) ? '100755' : '100644'
     endif
@@ -4647,7 +4647,7 @@ function! s:ToolStream(line1, line2, range, bang, mods, options, args, state) ab
     let filename = ''
     let cmd = []
     let tabnr = tabpagenr() + 1
-    for line in split(s:SystemError(s:shellesc(exec))[0], "\n")
+    for line in split(s:SystemError(exec)[0], "\n")
       for item in s:ToolParse(a:state, line)
         if len(get(item, 'filename', '')) && item.filename != filename
           call add(cmd, 'tabedit ' . s:fnameescape(item.filename))
