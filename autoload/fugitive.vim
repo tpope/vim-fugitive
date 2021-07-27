@@ -1928,7 +1928,7 @@ function! s:CompleteSub(subcommand, A, L, P, ...) abort
   if pre =~# ' -- '
     return fugitive#CompletePath(a:A)
   elseif a:A =~# '^-' || a:A is# 0
-    return s:FilterEscape(split(s:ChompDefault('', a:subcommand, '--git-completion-helper'), ' '), a:A)
+    return s:FilterEscape(split(s:ChompDefault('', [a:subcommand, '--git-completion-helper']), ' '), a:A)
   elseif !a:0
     return fugitive#CompleteObject(a:A, s:Dir())
   elseif type(a:1) == type(function('tr'))
@@ -2428,7 +2428,7 @@ function! fugitive#BufReadCmd(...) abort
     else
       let [b:fugitive_type, exec_error] = s:ChompError([dir, 'cat-file', '-t', rev])
       if exec_error && rev =~# '^:0'
-        let sha = s:ChompDefault('', dir, 'write-tree', '--prefix=' . rev[3:-1])
+        let sha = s:ChompDefault('', [dir, 'write-tree', '--prefix=' . rev[3:-1]])
         let exec_error = empty(sha)
         let b:fugitive_type = exec_error ? '' : 'tree'
       endif
@@ -3220,7 +3220,7 @@ function! s:CompletableSubcommands(dir) abort
   let c_exec_path = s:cpath(s:ExecPath())
   if !has_key(s:path_subcommands, c_exec_path)
     if fugitive#GitVersion(2, 18)
-      let [lines, exec_error] = s:LinesError(a:dir, '--list-cmds=list-mainporcelain,nohelpers,list-complete')
+      let [lines, exec_error] = s:LinesError([a:dir, '--list-cmds=list-mainporcelain,nohelpers,list-complete'])
       call filter(lines, 'v:val =~# "^\\S\\+$"')
       if !exec_error && len(lines)
         let s:path_subcommands[c_exec_path] = lines
@@ -3283,7 +3283,7 @@ function! fugitive#Complete(lead, ...) abort
   elseif pre =~# ' -- '
     return fugitive#CompletePath(a:lead, a:1, a:2, dir, root)
   elseif a:lead =~# '^-'
-    let results = split(s:ChompDefault('', dir, subcmd, '--git-completion-helper'), ' ')
+    let results = split(s:ChompDefault('', [dir, subcmd, '--git-completion-helper']), ' ')
   else
     return fugitive#CompleteObject(a:lead, a:1, a:2, dir, root)
   endif
@@ -5567,7 +5567,7 @@ function! s:CompareAge(mine, theirs) abort
 endfunction
 
 function! s:IsConflicted() abort
-  return len(@%) && !empty(s:ChompDefault('', 'ls-files', '--unmerged', '--', expand('%:p')))
+  return len(@%) && !empty(s:ChompDefault('', ['ls-files', '--unmerged', '--', expand('%:p')]))
 endfunction
 
 function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
@@ -5833,7 +5833,7 @@ function! s:BlameCommitFileLnum(...) abort
   if commit =~# '^0\+$'
     let commit = ''
   elseif has_key(state, 'blame_reverse_end')
-    let commit = get(s:LinesError(state.dir, 'rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end)[0], 0, '')
+    let commit = get(s:LinesError([state.dir, 'rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end])[0], 0, '')
   endif
   let lnum = +matchstr(line, ' \zs\d\+\ze \%((\| *\d\+)\)')
   let path = matchstr(line, '^\^\=[?*]*\x* \+\%(\d\+ \+\d\+ \+\)\=\zs.\{-\}\ze\s*\d\+ \%((\| *\d\+)\)')
