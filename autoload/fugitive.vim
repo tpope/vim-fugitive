@@ -38,6 +38,14 @@ function! s:Uniq(list) abort
   return a:list
 endfunction
 
+function! s:JoinChomp(list) abort
+  if empty(a:list[-1])
+    return join(a:list[0:-2], "\n")
+  else
+    return join(a:list, "\n")
+  endif
+endfunction
+
 function! s:winshell() abort
   return has('win32') && &shellcmdflag !~# '^-'
 endfunction
@@ -233,6 +241,90 @@ function! fugitive#Autowrite() abort
   return ''
 endfunction
 
+function! fugitive#Wait(job_or_jobs, ...) abort
+  let jobs = type(a:job_or_jobs) == type([]) ? copy(a:job_or_jobs) : [a:job_or_jobs]
+  call map(jobs, 'type(v:val) ==# type({}) ? get(v:val, "job", "") : v:val')
+  call filter(jobs, 'type(v:val) !=# type("")')
+  let timeout_ms = a:0 ? a:1 : -1
+  if exists('*jobwait')
+    call map(copy(jobs), 'chanclose(v:val, "stdin")')
+    call jobwait(jobs, timeout_ms)
+  else
+    let sleep = has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
+    for job in jobs
+      if ch_status(job) !=# 'closed'
+        call ch_close_in(job)
+      endif
+    endfor
+    let i = 0
+    for job in jobs
+      while ch_status(job) !=# 'closed' || job_status(job) ==# 'run'
+        if i == timeout_ms
+          break
+        endif
+        let i += 1
+        exe sleep
+      endwhile
+    endfor
+  endif
+  return a:job_or_jobs
+endfunction
+
+function! s:JobVimExit(dict, callback, temp, job, status) abort
+  let a:dict.exit_status = a:status
+  let a:dict.stderr = readfile(a:temp . '.err', 'b')
+  call delete(a:temp . '.err')
+  let a:dict.stdout = readfile(a:temp . '.out', 'b')
+  call delete(a:temp . '.out')
+  call remove(a:dict, 'job')
+  call call(a:callback[0], [a:dict] + a:callback[1:-1])
+endfunction
+
+function! s:JobNvimExit(dict, callback, job, data, type) dict abort
+  let a:dict.stdout = self.stdout
+  let a:dict.stderr = self.stderr
+  let a:dict.exit_status = a:data
+  call call(a:callback[0], [a:dict] + a:callback[1:-1])
+endfunction
+
+function! s:JobExecute(argv, jopts, callback, ...) abort
+  let dict = a:0 ? a:1 : {}
+  let cb = len(a:callback) ? a:callback : [function('len')]
+  if exists('*jobstart')
+    call extend(a:jopts, {
+          \ 'stdout_buffered': v:true,
+          \ 'stderr_buffered': v:true,
+          \ 'on_exit': function('s:JobNvimExit', [dict, cb])})
+    let dict.job = jobstart(a:argv, a:jopts)
+  elseif exists('*job_start')
+    let temp = tempname()
+    call extend(a:jopts, {
+          \ 'out_io': 'file',
+          \ 'out_name': temp . '.out',
+          \ 'err_io': 'file',
+          \ 'err_name': temp . '.err',
+          \ 'exit_cb': function('s:JobVimExit', [dict, cb, temp])})
+    let dict.job = job_start(a:argv, a:jopts)
+  elseif &shell !~# 'sh' || &shell =~# 'fish\|\%(powershell\|pwsh\)\%(\.exe\)\=$'
+    throw 'fugitive: Vim 8 or higher required to use ' . &shell
+  else
+    let cmd = fugitive#ShellCommand(args)
+    let outfile = tempname()
+    try
+      let dict.stderr = split(system(' (' . cmd . ' >' . outfile . ') '), "\n", 1)
+      let dict.exit_status = v:shell_error
+      let dict.stdout = readfile(outfile, 'b')
+      call call(cb[0], [dict] + cb[1:-1])
+    finally
+      call delete(outfile)
+    endtry
+  endif
+  if empty(a:callback)
+    call fugitive#Wait(dict)
+  endif
+  return dict
+endfunction
+
 function! s:add_methods(namespace, method_names) abort
   for name in a:method_names
     let s:{a:namespace}_prototype[name] = s:function('s:'.a:namespace.'_'.name)
@@ -321,8 +413,7 @@ let s:git_versions = {}
 function! fugitive#GitVersion(...) abort
   let git = s:GitShellCmd()
   if !has_key(s:git_versions, git)
-    let [out, exec_error] = s:SystemError(s:GitCmd() + ['--version'])
-    let s:git_versions[git] = exec_error ? '' : matchstr(out, '\d[^[:space:]]\+')
+    let s:git_versions[git] = matchstr(get(s:JobExecute(s:GitCmd() + ['--version'], {}, [], {}).stdout, 0, ''), '\d[^[:space:]]\+')
   endif
   if !a:0
     return s:git_versions[git]
@@ -551,6 +642,16 @@ function! s:PrepareJob(...) abort
   return s:JobOpts(cmd, exec_env) + [dict]
 endfunction
 
+function! fugitive#Execute(...) abort
+  let cb = copy(a:000)
+  let cmd = []
+  while len(cb) && type(cb[0]) !=# type(function('tr'))
+    call add(cmd, remove(cb, 0))
+  endwhile
+  let [argv, jopts, dict] = call('s:PrepareJob', cmd)
+  return s:JobExecute(argv, jopts, cb, dict)
+endfunction
+
 function! s:BuildShell(dir, env, git, args) abort
   let cmd = copy(a:args)
   let tree = s:Tree(a:dir)
@@ -604,46 +705,36 @@ function! s:SystemError(cmd, ...) abort
   endtry
 endfunction
 
-function! s:ChompError(...) abort
-  let [out, exec_error] = s:SystemError(call('fugitive#Prepare', a:000))
-  return [s:sub(out, '\n$', ''), exec_error]
-endfunction
-
 function! s:ChompStderr(...) abort
-  let [out, exec_error] = call('s:ChompError', a:000)
-  let out = substitute(out, "\n$", '', '')
-  return !exec_error ? '' ? len(out) : out : 'unknown Git error'
+  let r = call('fugitive#Execute', a:000)
+  return !r.exit_status ? '' ? len(r.stderr) > 1 : s:JoinChomp(r.stderr) : 'unknown Git error'
 endfunction
 
 function! s:ChompDefault(default, ...) abort
-  let [out, exec_error] = call('s:ChompError', a:000)
-  return exec_error ? a:default : out
+  let r = call('fugitive#Execute', a:000)
+  return r.exit_status ? a:default : s:JoinChomp(r.stdout)
 endfunction
 
 function! s:LinesError(...) abort
-  let [out, exec_error] = call('s:ChompError', a:000)
-  return [len(out) && !exec_error ? split(out, "\n", 1) : [], exec_error]
+  let r = call('fugitive#Execute', a:000)
+  if empty(r.stdout[-1])
+    call remove(r.stdout, -1)
+  endif
+  return [r.exit_status ? [] : r.stdout, r.exit_status]
 endfunction
 
-function! s:NullError(...) abort
-  let [out, exec_error] = s:SystemError(call('fugitive#Prepare', a:000))
-  if exec_error
-    return [[], substitute(out, "\n$", "", ""), exec_error]
-  else
-    let list = split(out, "\1", 1)
-    call remove(list, -1)
-    return [list, '', exec_error]
-  endif
+function! s:NullError(cmd) abort
+  let r = fugitive#Execute(a:cmd)
+  let list = r.exit_status ? [] : split(tr(join(r.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
+  return [list, s:JoinChomp(r.stderr), r.exit_status]
 endfunction
 
 function! s:TreeChomp(...) abort
-  let cmd = call('fugitive#Prepare', a:000)
-  let [out, exec_error] = s:SystemError(cmd)
-  let out = s:sub(out, '\n$', '')
-  if !exec_error
-    return out
+  let r = call('fugitive#Execute', a:000)
+  if !r.exit_status
+    return s:JoinChomp(r.stdout)
   endif
-  throw 'fugitive: error running `' . cmd . '`: ' . out
+  throw 'fugitive: error running `' . call('fugitive#ShellCommand', a:000) . '`: ' . s:JoinChomp(r.stderr)
 endfunction
 
 function! s:StdoutToFile(out, cmd, ...) abort
@@ -944,9 +1035,9 @@ let s:redirects = {}
 function! fugitive#ResolveRemote(remote) abort
   if a:remote =~# '^https\=://' && s:executable('curl')
     if !has_key(s:redirects, a:remote)
-      let s:redirects[a:remote] = matchstr(s:SystemError(
+      let s:redirects[a:remote] = matchstr(join(s:JobExecute(
             \ ['curl', '--disable', '--silent', '--max-time', '5', '-I',
-            \ a:remote . '/info/refs?service=git-upload-pack'])[0],
+            \ a:remote . '/info/refs?service=git-upload-pack'], {}, [], {}).stdout, "\n"),
             \ 'Location: \zs\S\+\ze/info/refs?')
     endif
     if len(s:redirects[a:remote])
@@ -2547,14 +2638,15 @@ function! fugitive#BufReadCmd(...) abort
     if rev =~# '^:\d$'
       let b:fugitive_type = 'stage'
     else
-      let [b:fugitive_type, exec_error] = s:ChompError([dir, 'cat-file', '-t', rev])
-      if exec_error && rev =~# '^:0'
-        let sha = s:ChompDefault('', [dir, 'write-tree', '--prefix=' . rev[3:-1]])
-        let exec_error = empty(sha)
-        let b:fugitive_type = exec_error ? '' : 'tree'
+      let r = fugitive#Execute([dir, 'cat-file', '-t', rev])
+      let b:fugitive_type = get(r.stdout, 0, '')
+      if r.exit_status && rev =~# '^:0'
+        let r = fugitive#Execute([dir, 'write-tree', '--prefix=' . rev[3:-1]])
+        let sha = get(r.stdout, 0, '')
+        let b:fugitive_type = 'tree'
       endif
-      if exec_error
-        let error = b:fugitive_type
+      if r.exit_status
+        let error = substitute(join(r.stderr, "\n"), "\n*$", '', '')
         unlet b:fugitive_type
         setlocal noswapfile
         if empty(&bufhidden)
@@ -3322,7 +3414,7 @@ let s:exec_paths = {}
 function! s:ExecPath() abort
   let git = s:GitShellCmd()
   if !has_key(s:exec_paths, git)
-    let s:exec_paths[git] = s:sub(system(git.' --exec-path'),'\n$','')
+    let s:exec_paths[git] = get(s:JobExecute(s:GitCmd() + ['--exec-path'], {}, [], {}).stdout, 0, '')
   endif
   return s:exec_paths[git]
 endfunction
