@@ -251,7 +251,7 @@ function! s:GitCmd() abort
     let string = g:fugitive_git_executable
     let list = []
     if string =~# '^\w\+='
-      call add(list, 'env')
+      call add(list, '/usr/bin/env')
     endif
     while string =~# '\S'
       let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^[:space:] |]\)\+')
@@ -479,7 +479,7 @@ function! s:BuildEnvPrefix(env) abort
   elseif s:winshell()
     return join(map(env, '"set " . substitute(join(v:val, "="), "[&|<>^]", "^^^&", "g") . "& "'), '')
   else
-    return 'env ' . s:shellesc(map(env, 'join(v:val, "=")')) . ' '
+    return '/usr/bin/env ' . s:shellesc(map(env, 'join(v:val, "=")')) . ' '
   endif
 endfunction
 
@@ -491,7 +491,7 @@ function! s:JobOpts(cmd, env) abort
   endif
   let envlist = map(items(a:env), 'join(v:val, "=")')
   if !has('win32')
-    return [['env'] + envlist + a:cmd, {}]
+    return [['/usr/bin/env'] + envlist + a:cmd, {}]
   else
     let pre = join(map(envlist, '"set " . substitute(v:val, "[&|<>^]", "^^^&", "g") . "& "'), '')
     if len(a:cmd) == 3 && a:cmd[0] ==# 'cmd.exe' && a:cmd[1] ==# '/c'
