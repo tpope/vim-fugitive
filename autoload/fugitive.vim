@@ -5893,7 +5893,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
       let i += 1
       if i == len(flags)
         echohl ErrorMsg
-        echo s:ChompError(['blame', arg])[0]
+        echo s:ChompError([dir, 'blame', arg])[0]
         echohl NONE
         return ''
       endif
