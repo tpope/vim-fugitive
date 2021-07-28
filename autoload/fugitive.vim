@@ -2671,7 +2671,7 @@ function! s:RunEdit(state, tmp, job) abort
   endif
   call remove(a:state, 'request')
   let sentinel = a:state.file . '.edit'
-  let file = FugitiveVimPath(readfile(sentinel, 1)[0])
+  let file = FugitiveVimPath(readfile(sentinel, '', 1)[0])
   exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
   set bufhidden=wipe
   let s:edit_jobs[bufnr('')] = [a:state, a:tmp, a:job, sentinel]
@@ -6373,7 +6373,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       let result = s:TempState(empty(expanded) ? @% : expanded)
     endif
     if !empty(result) && filereadable(get(result, 'file', ''))
-      for line in readfile(result.file, 4096)
+      for line in readfile(result.file, '', 4096)
         let rev = s:fnameescape(matchstr(line, '\<https\=://[^[:space:]<>]*[^[:space:]<>.,;:"''!?]'))
         if len(rev)
           break
