@@ -321,7 +321,8 @@ let s:git_versions = {}
 function! fugitive#GitVersion(...) abort
   let git = s:GitShellCmd()
   if !has_key(s:git_versions, git)
-    let s:git_versions[git] = matchstr(s:SystemError(s:GitCmd() + ['--version'])[0], '\d[^[:space:]]\+')
+    let [out, exec_error] = s:SystemError(s:GitCmd() + ['--version'])
+    let s:git_versions[git] = exec_error ? '' : matchstr(out, '\d[^[:space:]]\+')
   endif
   if !a:0
     return s:git_versions[git]
