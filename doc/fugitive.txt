@@ -166,6 +166,11 @@ that are part of Git repositories).
 :Gwq! [path]            Like |:Gwrite|! followed by |:quit|! if the write
 :Gx! [path]             succeeded.
 
+                                                *:Gwa* *:Gwqa* *:Gxa*
+:Gwa[!]                 The commands work accordingly *:wa* *:wqa* and *:xa*
+:Gwqa[!]                commands. Each stages the changes in all active
+:Gxa[!]                 buffers. *:Gwqa* and *:Gxa* additionally |:quit|.
+
                                                 *:Gdiffsplit*
 :Gdiffsplit [object]    Perform a |vimdiff| against the given file, or if a
                         commit is given, the current file in that commit.
