@@ -147,24 +147,24 @@ that are part of Git repositories).
 :{range}Gread! [args]   |:read| the output of a Git command after {range}.
 
                                                 *:Gwrite* *fugitive-:Gw*
-:Gwrite                 Write to the current file's path and stage the results.
+:Gw[rite]               Write to the current file's path and stage the results.
                         When run in a work tree file, it is effectively git
                         add.  Elsewhere, it is effectively git-checkout.  A
                         great deal of effort is expended to behave sensibly
                         when the work tree or index version of the file is
                         open in another buffer.
 
-:Gwrite {path}          You can give |:Gwrite| an explicit path of where in
+:Gw[rite] {path}        You can give |:Gwrite| an explicit path of where in
                         the work tree to write.  You can also give a path like
                         :0:foo.txt or :0:% to write to just that stage in
                         the index.
 
-                                                *:Gwq*
+                                                *:Gwq* *:Gx*
 :Gwq [path]             Like |:Gwrite| followed by |:quit| if the write
-                        succeeded.
+:Gx [path]              succeeded.
 
 :Gwq! [path]            Like |:Gwrite|! followed by |:quit|! if the write
-                        succeeded.
+:Gx! [path]             succeeded.
 
                                                 *:Gdiffsplit*
 :Gdiffsplit [object]    Perform a |vimdiff| against the given file, or if a
