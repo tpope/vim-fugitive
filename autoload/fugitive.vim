@@ -680,6 +680,49 @@ function! s:BuildShell(dir, env, git, args) abort
   return pre . join(map(a:git + cmd, 's:shellesc(v:val)'))
 endfunction
 
+function! s:JobNvimCallback(lines, job, data, type) abort
+  let a:lines[-1] .= remove(a:data, 0)
+  call extend(a:lines, a:data)
+endfunction
+
+function! s:SystemList(cmd) abort
+  let exit = []
+  if exists('*jobstart')
+    let lines = ['']
+    let jopts = {
+          \ 'on_stdout': function('s:JobNvimCallback', [lines]),
+          \ 'on_stderr': function('s:JobNvimCallback', [lines]),
+          \ 'on_exit': { j, code, _ -> add(exit, code) }}
+    let job = jobstart(a:cmd, jopts)
+    call chanclose(job, 'stdin')
+    call jobwait([job])
+    if empty(lines[-1])
+      call remove(lines, -1)
+    endif
+    return [lines, exit[0]]
+  elseif exists('*job_start')
+    let lines = []
+    let jopts = {
+          \ 'out_cb': { j, str -> add(lines, str) },
+          \ 'err_cb': { j, str -> add(lines, str) },
+          \ 'exit_cb': { j, code -> add(exit, code) }}
+    let job = job_start(a:cmd, jopts)
+    call ch_close_in(job)
+    let sleep = has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
+    while ch_status(job) !=# 'closed' || job_status(job) ==# 'run'
+      exe sleep
+    endwhile
+    return [lines, exit[0]]
+  else
+    let [output, exec_error] = call('s:SystemError', s:shellesc(a:cmd))
+    let lines = split(output, "\n", 1)
+    if empty(lines[-1])
+      call remove(lines, -1)
+    endif
+    return [lines, v:shell_error]
+  endif
+endfunction
+
 function! fugitive#ShellCommand(...) abort
   let [dir, _, env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
   return s:BuildShell(dir, env, git, flags + args)
@@ -1164,7 +1207,7 @@ function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) ab
   endif
 
   let buffer = []
-  let lines = split(s:SystemError(a:cmd)[0], "\n")
+  let lines = s:SystemList(a:cmd)[0]
   for line in lines
     call extend(buffer, call(a:callback, a:000 + [line]))
     if len(buffer) >= 20
@@ -4930,7 +4973,7 @@ function! s:ToolStream(line1, line2, range, bang, mods, options, args, state) ab
     let filename = ''
     let cmd = []
     let tabnr = tabpagenr() + 1
-    for line in split(s:SystemError(exec)[0], "\n")
+    for line in s:SystemList(exec)[0]
       for item in s:ToolParse(a:state, line)
         if len(get(item, 'filename', '')) && item.filename != filename
           call add(cmd, 'tabedit ' . s:fnameescape(item.filename))
