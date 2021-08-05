@@ -474,7 +474,7 @@ function! s:BuildEnvPrefix(env) abort
   let env = items(a:env)
   if empty(env)
     return ''
-  elseif &shell =~? '\%(powershell\|pwsh\)\%(\.exe\)\=$'
+  elseif &shell =~# '\%(powershell\|pwsh\)\%(\.exe\)\=$'
     return join(map(env, '"$Env:" . v:val[0] . " = ''" . substitute(v:val[1], "''", "''''", "g") . "''; "'), '')
   elseif s:winshell()
     return join(map(env, '"set " . substitute(join(v:val, "="), "[&|<>^]", "^^^&", "g") . "& "'), '')
@@ -1645,7 +1645,7 @@ function! s:TempCmd(out, cmd) abort
   try
     let cmd = (type(a:cmd) == type([]) ? fugitive#Prepare(a:cmd) : a:cmd)
     let redir = ' > ' . a:out
-    let pwsh = &shell =~? '\%(powershell\|pwsh\)\%(\.exe\)\=$'
+    let pwsh = &shell =~# '\%(powershell\|pwsh\)\%(\.exe\)\=$'
     if pwsh && has('patch-8.2.3079')
       return s:SystemError(&shell . ' ' . &shellcmdflag . ' ' . s:shellesc(cmd . redir))
     elseif (s:winshell() || pwsh) && !has('nvim')
