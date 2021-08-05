@@ -520,6 +520,7 @@ function! fugitive#Prepare(...) abort
 endfunction
 
 function! s:SystemError(cmd, ...) abort
+  let cmd = type(a:cmd) == type([]) ? s:shellesc(a:cmd) : a:cmd
   try
     if &shellredir ==# '>' && &shell =~# 'sh\|cmd'
       let shellredir = &shellredir
@@ -533,13 +534,13 @@ function! s:SystemError(cmd, ...) abort
       let guioptions = &guioptions
       set guioptions-=!
     endif
-    let out = call('system', [type(a:cmd) == type([]) ? s:shellesc(a:cmd) : a:cmd] + a:000)
+    let out = call('system', [cmd] + a:000)
     return [out, v:shell_error]
   catch /^Vim\%((\a\+)\)\=:E484:/
     let opts = ['shell', 'shellcmdflag', 'shellredir', 'shellquote', 'shellxquote', 'shellxescape', 'shellslash']
     call filter(opts, 'exists("+".v:val) && !empty(eval("&".v:val))')
     call map(opts, 'v:val."=".eval("&".v:val)')
-    call s:throw('failed to run `' . a:cmd . '` with ' . join(opts, ' '))
+    call s:throw('failed to run `' . cmd . '` with ' . join(opts, ' '))
   finally
     if exists('shellredir')
       let &shellredir = shellredir
