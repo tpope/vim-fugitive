@@ -1645,11 +1645,12 @@ function! s:TempCmd(out, cmd) abort
   try
     let cmd = (type(a:cmd) == type([]) ? fugitive#Prepare(a:cmd) : a:cmd)
     let redir = ' > ' . a:out
-    if s:winshell() && !has('nvim')
+    let pwsh = &shell =~? '\%(powershell\|pwsh\)\%(\.exe\)\=$'
+    if pwsh && has('patch-8.2.3079')
+      return s:SystemError(&shell . ' ' . &shellcmdflag . ' ' . s:shellesc(cmd . redir))
+    elseif (s:winshell() || pwsh) && !has('nvim')
       let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
       return s:SystemError('cmd /c "' . s:gsub(cmd, '[<>%]', cmd_escape_char . '&') . redir . '"')
-    elseif &shell =~? '\%(powershell\|pwsh\)\%(\.exe\)\=$'
-      return s:SystemError(&shell . ' ' . &shellcmdflag . ' ' . s:shellesc(cmd . redir))
     elseif &shell =~# 'fish'
       return s:SystemError(' begin;' . cmd . redir . ';end ')
     else
