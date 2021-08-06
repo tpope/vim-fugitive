@@ -557,6 +557,12 @@ function! s:ChompError(...) abort
   return [s:sub(out, '\n$', ''), exec_error]
 endfunction
 
+function! s:ChompStderr(...) abort
+  let [out, exec_error] = call('s:ChompError', a:000)
+  let out = substitute(out, "\n$", '', '')
+  return !exec_error ? '' ? len(out) : out : 'unknown Git error'
+endfunction
+
 function! s:ChompDefault(default, ...) abort
   let [out, exec_error] = call('s:ChompError', a:000)
   return exec_error ? a:default : out
@@ -592,7 +598,7 @@ function! s:EchoExec(...) abort
   if s:RunJobs()
     return 'Git ' . s:fnameescape(a:000)
   else
-    echo call('s:ChompError', a:000)[0]
+    echo substitute(s:SystemError(call('fugitive#Prepare', a:000))[0], "\n$", '', '')
     call fugitive#ReloadStatus(-1, 1)
     return 'checktime'
   endif
@@ -624,11 +630,11 @@ function! fugitive#Head(...) abort
 endfunction
 
 function! fugitive#RevParse(rev, ...) abort
-  let [hash, exec_error] = s:ChompError([a:0 ? a:1 : s:Dir(), 'rev-parse', '--verify', a:rev, '--'])
-  if !exec_error && hash =~# '^\x\{40,\}$'
+  let hash = s:ChompDefault('', [a:0 ? a:1 : s:Dir(), 'rev-parse', '--verify', a:rev, '--'])
+  if hash =~# '^\x\{40,\}$'
     return hash
   endif
-  throw 'fugitive: rev-parse '.a:rev.': '.hash
+  throw 'fugitive: failed to parse revision ' . a:rev
 endfunction
 
 function! s:ConfigTimestamps(dir, dict) abort
@@ -1511,8 +1517,8 @@ function! s:TreeInfo(dir, commit) abort
       let s:trees[a:dir] = {}
     endif
     if !has_key(s:trees[a:dir], a:commit)
-      let [ftime, exec_error] = s:ChompError([a:dir, 'log', '-1', '--pretty=format:%ct', a:commit, '--'])
-      if exec_error
+      let ftime = s:ChompDefault('', [a:dir, 'log', '-1', '--pretty=format:%ct', a:commit, '--'])
+      if empty(ftime)
         let s:trees[a:dir][a:commit] = [{}, -1]
         return s:trees[a:dir][a:commit]
       endif
@@ -1710,9 +1716,9 @@ function! fugitive#writefile(lines, url, ...) abort
       call writefile(fugitive#readfile(url, 'b'), temp, 'b')
     endif
     call call('writefile', [a:lines, temp] + a:000)
-    let [hash, exec_error] = s:ChompError([dir, 'hash-object', '-w', temp])
+    let hash = s:ChompDefault('', [dir, 'hash-object', '-w', temp])
     let mode = len(entry[1]) ? entry[1] : '100644'
-    if !exec_error && hash =~# '^\x\{40,\}$'
+    if hash =~# '^\x\{40,\}$'
       let error = s:UpdateIndex(dir, [mode, hash, commit, file[1:-1]])
       if empty(error)
         return 0
@@ -2385,7 +2391,7 @@ function! fugitive#FileWriteCmd(...) abort
     endif
     silent execute "noautocmd keepalt '[,']write ".temp
     let hash = s:TreeChomp([dir, 'hash-object', '-w', '--', temp])
-    let old_mode = matchstr(s:ChompError(['ls-files', '--stage', '.' . file], dir)[0], '^\d\+')
+    let old_mode = matchstr(s:ChompDefault('', ['ls-files', '--stage', '.' . file], dir), '^\d\+')
     if empty(old_mode)
       let old_mode = executable(s:Tree(dir) . file) ? '100755' : '100644'
     endif
@@ -4166,8 +4172,8 @@ function! s:StageApply(info, reverse, extra) abort
     call add(cmd, '--reverse')
   endif
   call extend(cmd, ['--', temp])
-  let [output, exec_error] = s:ChompError(cmd)
-  if !exec_error
+  let output = s:ChompStderr(cmd)
+  if empty(output)
     return 1
   endif
   call s:throw(output)
@@ -5355,13 +5361,9 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abor
     execute 'write! '.s:fnameescape(file)
   endif
 
-  if a:bang
-    let [error, exec_error] = s:ChompError(['add', '--force', '--', file])
-  else
-    let [error, exec_error] = s:ChompError(['add', '--', file])
-  endif
-  if exec_error
-    let v:errmsg = 'fugitive: '.error
+  let message = s:ChompStderr(['add'] + (a:bang ? ['--force'] : []) + ['--', file])
+  if len(message)
+    let v:errmsg = 'fugitive: '.message
     return 'echoerr v:errmsg'
   endif
   if s:cpath(fugitive#Real(@%), file) && s:DirCommitFile(@%)[1] =~# '^\d$'
@@ -5711,8 +5713,8 @@ function! s:Move(force, rename, destination) abort
   if isdirectory(@%)
     setlocal noswapfile
   endif
-  let [message, exec_error] = s:ChompError(['mv'] + (a:force ? ['-f'] : []) + ['--', expand('%:p'), destination], dir)
-  if exec_error
+  let message = s:ChompStderr(['mv'] + (a:force ? ['-f'] : []) + ['--', expand('%:p'), destination], dir)
+  if len(message)
     let v:errmsg = 'fugitive: '.message
     return 'echoerr v:errmsg'
   endif
@@ -5761,8 +5763,8 @@ function! s:Remove(after, force) abort
   if a:force
     let cmd += ['--force']
   endif
-  let [message, exec_error] = s:ChompError(cmd + ['--', expand('%:p')], dir)
-  if exec_error
+  let message = s:ChompStderr(cmd + ['--', expand('%:p')], dir)
+  if len(message)
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
   else
@@ -5891,7 +5893,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
       let i += 1
       if i == len(flags)
         echohl ErrorMsg
-        echo s:ChompError([dir, 'blame', arg])[0]
+        echo s:ChompStderr([dir, 'blame', arg])
         echohl NONE
         return ''
       endif
@@ -6475,7 +6477,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       if r ==# '.' || r ==# remote
         let remote_ref = 'refs/remotes/' . remote . '/' . branch
         if FugitiveConfigGet('push.default', dir) ==# 'upstream' ||
-              \ !filereadable(FugitiveFind('.git/' . remote_ref, dir)) && s:ChompError(['rev-parse', '--verify', remote_ref, '--'], dir)[1]
+              \ !filereadable(FugitiveFind('.git/' . remote_ref, dir)) && empty(s:ChompDefault('', ['rev-parse', '--verify', remote_ref, '--'], dir))
           let merge = m
           if path =~# '^\.git/refs/heads/.'
             let path = '.git/refs/heads/'.merge
@@ -6495,10 +6497,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
         let commit = ''
         if len(merge)
           let owner = s:Owner(@%, dir)
-          let [commit, exec_error] = s:ChompError(['merge-base', 'refs/remotes/' . remote . '/' . merge, empty(owner) ? '@' : owner, '--'], dir)
-          if exec_error
-            let commit = ''
-          endif
+          let commit = s:ChompDefault('', ['merge-base', 'refs/remotes/' . remote . '/' . merge, empty(owner) ? '@' : owner, '--'], dir)
           if line2 > 0 && empty(arg) && commit =~# '^\x\{40,\}$'
             let blame_list = tempname()
             call writefile([commit, ''], blame_list, 'b')
