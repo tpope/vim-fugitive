@@ -2296,7 +2296,7 @@ function! fugitive#BufReadStatus() abort
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
-    let b:dispatch = '-dir=' . fnameescape(len(s:Tree()) ? s:Tree() : s:Dir()) . ' ' . s:GitShellCmd() . ' fetch --all'
+    let b:dispatch = '-dir=' . s:fnameescape(len(s:Tree()) ? s:Tree() : s:Dir()) . ' ' . s:GitShellCmd() . ' fetch --all'
     call fugitive#MapJumps()
     call s:Map('n', '-', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
     call s:Map('x', '-', ":<C-U>execute <SID>Do('Toggle',1)<CR>", '<silent>')
@@ -2863,7 +2863,7 @@ function! s:RunWait(state, tmp, job, ...) abort
                 call remove(a:tmp, 'echo')
               endif
               call writefile(['fugitive: aborting edit due to background operation.'], a:state.file . '.exit')
-              exe (&splitbelow ? 'botright' : 'topleft') 'silent pedit ++ff=unix' fnameescape(a:state.file)
+              exe (&splitbelow ? 'botright' : 'topleft') 'silent pedit ++ff=unix' s:fnameescape(a:state.file)
               let a:state.capture_bufnr = bufnr(a:state.file)
               call setbufvar(a:state.capture_bufnr, '&modified', 1)
               let finished = 0
@@ -6673,7 +6673,7 @@ function! fugitive#MapJumps(...) abort
 
       if !exists('g:fugitive_no_maps')
         if exists(':CtrlP') && get(g:, 'ctrl_p_map') =~? '^<c-p>$'
-          nnoremap <buffer> <silent> <C-P> :<C-U>execute line('.') == 1 ? 'CtrlP ' . fnameescape(<SID>Tree()) : <SID>PreviousItem(v:count1)<CR>
+          nnoremap <buffer> <silent> <C-P> :<C-U>execute line('.') == 1 ? 'CtrlP ' . s:fnameescape(<SID>Tree()) : <SID>PreviousItem(v:count1)<CR>
         else
           nnoremap <buffer> <silent> <C-P> :<C-U>execute <SID>PreviousItem(v:count1)<CR>
         endif
