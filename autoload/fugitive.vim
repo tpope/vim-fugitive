@@ -432,6 +432,9 @@ function! fugitive#PrepareDirEnvGitArgv(...) abort
       if has_key(cmd[i], 'dir')
         let dir = cmd[i].dir
       endif
+      if has_key(cmd[i], 'git_dir')
+        let dir = cmd[i].git_dir
+      endif
       if has_key(cmd[i], 'git')
         let git = cmd[i].git
       endif
