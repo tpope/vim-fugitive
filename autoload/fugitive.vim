@@ -886,26 +886,42 @@ function! s:ConfigLengthSort(i1, i2) abort
 endfunction
 
 function! fugitive#RemoteUrl(...) abort
-  let dir = a:0 > 1 ? s:Dir(a:2) : s:Dir()
-  let url = !a:0 || a:1 =~# '^\.\=$' ? s:Remote(dir) : a:1
-  if url !~# ':\|^/\|^\.\.\=/'
-    let config = fugitive#Config(a:0 > 1 ? a:2 : s:Dir())
-    let url = FugitiveConfigGet('remote.' . url . '.url', config)
-    let instead_of = []
-    for [k, vs] in items(fugitive#ConfigGetRegexp('^url\.\zs.\{-\}\ze\.insteadof$', config))
-      for v in vs
-        call add(instead_of, [v, k])
-      endfor
-    endfor
-    call sort(instead_of, 's:ConfigLengthSort')
-    for [orig, replacement] in instead_of
-      if strpart(url, 0, len(orig)) ==# orig
-        let url = replacement . strpart(url, len(orig))
-        break
-      endif
-    endfor
+  let args = a:000
+  if a:0 && type(a:1) !=# type('')
+    let config = fugitive#Config(a:1)
+    let args = a:000[1:-1]
+  elseif a:0 > 1
+    let config = fugitive#Config(a:2)
+    let args = [a:1] + a:000[2:-1]
+  else
+    let config = fugitive#Config()
+    let args = copy(a:000)
   endif
-  if !get(a:, 3, 0)
+  if empty(args)
+    let url = s:Remote(config)
+  elseif args[0] =~# '^\.\=$'
+    call remove(args, 0)
+    let url = s:Remote(config)
+  else
+    let url = remove(args, 0)
+  endif
+  if url !~# ':\|^/\|^\.\.\=/'
+    let url = FugitiveConfigGet('remote.' . url . '.url', config)
+  endif
+  let instead_of = []
+  for [k, vs] in items(fugitive#ConfigGetRegexp('^url\.\zs.\{-\}\ze\.insteadof$', config))
+    for v in vs
+      call add(instead_of, [v, k])
+    endfor
+  endfor
+  call sort(instead_of, 's:ConfigLengthSort')
+  for [orig, replacement] in instead_of
+    if strpart(url, 0, len(orig)) ==# orig
+      let url = replacement . strpart(url, len(orig))
+      break
+    endif
+  endfor
+  if !index(args, 1) && !index(args, get(v:, 'true', 1)) && !index(args, 'noresolve')
     let url = fugitive#ResolveRemote(url)
   endif
   return url
