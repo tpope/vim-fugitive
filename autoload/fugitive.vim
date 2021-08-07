@@ -597,6 +597,24 @@ function! s:TreeChomp(...) abort
   throw 'fugitive: error running `' . cmd . '`: ' . out
 endfunction
 
+function! s:StdoutToFile(out, cmd) abort
+  try
+    let cmd = (type(a:cmd) == type([]) ? fugitive#Prepare(a:cmd) : a:cmd)
+    let redir = ' > ' . a:out
+    let pwsh = &shell =~# '\%(powershell\|pwsh\)\%(\.exe\)\=$'
+    if pwsh && has('patch-8.2.3079')
+      return s:SystemError(&shell . ' ' . &shellcmdflag . ' ' . s:shellesc(cmd . redir))
+    elseif (s:winshell() || pwsh) && !has('nvim')
+      let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
+      return s:SystemError('cmd /c "' . s:gsub(cmd, '[<>%]', cmd_escape_char . '&') . redir . '"')
+    elseif &shell =~# 'fish'
+      return s:SystemError(' begin;' . cmd . redir . ';end ')
+    else
+      return s:SystemError(' (' . cmd . redir . ') ')
+    endif
+  endtry
+endfunction
+
 function! s:EchoExec(...) abort
   if s:RunJobs()
     return 'Git ' . s:fnameescape(a:000)
@@ -1652,24 +1670,6 @@ function! fugitive#setfperm(url, perm) abort
   return len(error) ? -1 : 0
 endfunction
 
-function! s:TempCmd(out, cmd) abort
-  try
-    let cmd = (type(a:cmd) == type([]) ? fugitive#Prepare(a:cmd) : a:cmd)
-    let redir = ' > ' . a:out
-    let pwsh = &shell =~# '\%(powershell\|pwsh\)\%(\.exe\)\=$'
-    if pwsh && has('patch-8.2.3079')
-      return s:SystemError(&shell . ' ' . &shellcmdflag . ' ' . s:shellesc(cmd . redir))
-    elseif (s:winshell() || pwsh) && !has('nvim')
-      let cmd_escape_char = &shellxquote == '(' ?  '^' : '^^^'
-      return s:SystemError('cmd /c "' . s:gsub(cmd, '[<>%]', cmd_escape_char . '&') . redir . '"')
-    elseif &shell =~# 'fish'
-      return s:SystemError(' begin;' . cmd . redir . ';end ')
-    else
-      return s:SystemError(' (' . cmd . redir . ') ')
-    endif
-  endtry
-endfunction
-
 if !exists('s:blobdirs')
   let s:blobdirs = {}
 endif
@@ -1688,7 +1688,7 @@ function! s:BlobTemp(url) abort
   endif
   if commit =~# '^\d$' || !filereadable(tempfile)
     let rev = s:DirRev(a:url)[1]
-    let exec_error = s:TempCmd(tempfile, [dir, 'cat-file', 'blob', rev])[1]
+    let exec_error = s:StdoutToFile(tempfile, [dir, 'cat-file', 'blob', rev])[1]
     if exec_error
       call delete(tempfile)
       return ''
@@ -1959,9 +1959,9 @@ endfunction
 
 function! s:ReplaceCmd(cmd) abort
   let temp = tempname()
-  let [err, exec_error] = s:TempCmd(temp, a:cmd)
+  let [err, exec_error] = s:StdoutToFile(temp, a:cmd)
   if exec_error
-    throw 'fugitive: ' . (len(err) ? err : 'unknown error running ' . string(a:cmd))
+    throw 'fugitive: ' . (len(err) ? substitute(err, "\n$", '', '') : 'unknown error running ' . string(a:cmd))
   endif
   setlocal noswapfile
   silent exe 'lockmarks keepalt 0read ++edit' s:fnameescape(temp)
@@ -5962,7 +5962,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
       let delete_in = 1
     endif
     let basecmd = [{'git': a:options.git, 'dir': dir}] + ['--literal-pathspecs'] + cmd + ['--'] + (len(files) ? files : [file])
-    let [err, exec_error] = s:TempCmd(temp, basecmd)
+    let [err, exec_error] = s:StdoutToFile(temp, basecmd)
     if exists('delete_in')
       call delete(tempname . '.in')
     endif
