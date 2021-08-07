@@ -1958,7 +1958,7 @@ function! s:ReplaceCmd(cmd) abort
   let temp = tempname()
   let [err, exec_error] = s:TempCmd(temp, a:cmd)
   if exec_error
-    call s:throw((len(err) ? err : 'unknown error running ' . a:cmd))
+    throw 'fugitive: ' . (len(err) ? err : 'unknown error running ' . string(a:cmd))
   endif
   setlocal noswapfile
   silent exe 'lockmarks keepalt 0read ++edit' s:fnameescape(temp)
