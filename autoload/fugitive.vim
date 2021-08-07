@@ -5246,7 +5246,17 @@ endfunction
 function! s:ReadExec(line1, count, range, mods, env, args, options) abort
   let [read, post] = s:ReadPrepare(a:line1, a:count, a:range, a:mods)
   let env = s:BuildEnvPrefix(extend({'COLUMNS': &tw ? &tw : 80}, a:env))
-  silent execute read . '!' escape(env . s:UserCommand(a:options, ['--no-pager'] + a:args), '!#%')
+  try
+    if exists('+guioptions') && &guioptions =~# '!'
+      let guioptions = &guioptions
+      set guioptions-=!
+    endif
+    silent execute read . '!' escape(env . s:UserCommand(a:options, ['--no-pager'] + a:args), '!#%')
+  finally
+    if exists('guioptions')
+      let &guioptions = guioptions
+    endif
+  endtry
   execute post
   call fugitive#ReloadStatus(a:options.dir, 1)
   return 'redraw|echo '.string(':!'.s:UserCommand(a:options, a:args))
