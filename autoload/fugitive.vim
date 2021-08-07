@@ -420,11 +420,16 @@ function! fugitive#PrepareDirEnvGitArgv(...) abort
     throw 'fugitive: Git 1.8.5 or higher required'
   endif
   let git = s:GitCmd()
-  if a:0 && type(a:1) ==# type([])
-    let cmd = a:000[1:-1] + a:1
-  else
-    let cmd = copy(a:000)
-  endif
+  let list_args = []
+  let cmd = []
+  for arg in a:000
+    if type(arg) ==# type([])
+      call extend(list_args, arg)
+    else
+      call add(cmd, arg)
+    endif
+  endfor
+  call extend(cmd, list_args)
   let env = {}
   let i = 0
   while i < len(cmd)
@@ -675,7 +680,7 @@ function! fugitive#Config(...) abort
   let name = ''
   let default = get(a:, 3, '')
   if a:0 >= 2 && type(a:2) == type({}) && has_key(a:2, 'GetAll')
-    return fugitive#ConfigGetAll(a:1, a:2)
+    return get(fugitive#ConfigGetAll(a:1, a:2), 0, default)
   elseif a:0 >= 2
     let dir = s:Dir(a:2)
     let name = a:1
@@ -718,20 +723,32 @@ function! fugitive#Config(...) abort
 endfunction
 
 function! fugitive#ConfigGetAll(name, ...) abort
-  let config = fugitive#Config(a:0 ? a:1 : s:Dir())
-  let name = substitute(a:name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
+  if type(a:name) !=# type('') && a:0
+    let config = fugitive#Config(a:0)
+    let name = a:1
+  else
+    let config = fugitive#Config(a:0 ? a:1 : s:Dir())
+    let name = a:name
+  endif
+  let name = substitute(name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
   return copy(get(config, name, []))
 endfunction
 
 function! fugitive#ConfigGetRegexp(pattern, ...) abort
-  let config = fugitive#Config(a:0 ? a:1 : s:Dir())
-  let filtered = map(filter(copy(config), 'v:key =~# "\\." && v:key =~# a:pattern'), 'copy(v:val)')
-  if a:pattern !~# '\\\@<!\%(\\\\\)*\\z[se]'
+  if type(a:pattern) !=# type('') && a:0
+    let config = fugitive#Config(a:0)
+    let pattern = a:1
+  else
+    let config = fugitive#Config(a:0 ? a:1 : s:Dir())
+    let pattern = a:pattern
+  endif
+  let filtered = map(filter(copy(config), 'v:key =~# "\\." && v:key =~# pattern'), 'copy(v:val)')
+  if pattern !~# '\\\@<!\%(\\\\\)*\\z[se]'
     return filtered
   endif
   let transformed = {}
   for [k, v] in items(filtered)
-    let k = matchstr(k, a:pattern)
+    let k = matchstr(k, pattern)
     if len(k)
       let transformed[k] = v
     endif
