@@ -921,7 +921,7 @@ function! fugitive#RemoteUrl(...) abort
       break
     endif
   endfor
-  if !index(args, 1) && !index(args, get(v:, 'true', 1)) && !index(args, 'noresolve')
+  if index(args, 1) < 0 && index(args, get(v:, 'true', 1)) < 0 && index(args, 'noresolve') < 0
     let url = fugitive#ResolveRemote(url)
   endif
   return url
