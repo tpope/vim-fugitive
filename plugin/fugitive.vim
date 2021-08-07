@@ -213,8 +213,11 @@ function! FugitiveWorkTree(...) abort
   endif
 endfunction
 
-function! FugitiveIsGitDir(path) abort
-  let path = substitute(a:path, '[\/]$', '', '') . '/'
+function! FugitiveIsGitDir(...) abort
+  if !a:0 || type(a:1) !=# ''
+    return !empty(call('FugitiveGitDir', a:000))
+  endif
+  let path = substitute(a:1, '[\/]$', '', '') . '/'
   return len(a:path) && getfsize(path.'HEAD') > 10 && (
         \ isdirectory(path.'objects') && isdirectory(path.'refs') ||
         \ getftype(path.'commondir') ==# 'file')
