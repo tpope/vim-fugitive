@@ -198,7 +198,7 @@ function! FugitiveHead(...) abort
     let arg = a:1
   else
     let dir = FugitiveGitDir()
-    let args = get(a:, 1, 0)
+    let arg = get(a:, 1, 0)
   endif
   if empty(dir)
     return ''
