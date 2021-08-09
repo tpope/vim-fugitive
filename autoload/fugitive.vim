@@ -1753,7 +1753,7 @@ function! fugitive#writefile(lines, url, ...) abort
     endif
     call call('writefile', [a:lines, temp] + a:000)
     let hash = s:ChompDefault('', [dir, '--literal-pathspecs', 'hash-object', '-w', FugitiveGitPath(temp)])
-    let mode = len(entry[1]) ? entry[1] : '100644'
+    let mode = entry[1] !=# '000000' ? entry[1] : '100644'
     if hash =~# '^\x\{40,\}$'
       let error = s:UpdateIndex(dir, [mode, hash, commit, file[1:-1]])
       if empty(error)
