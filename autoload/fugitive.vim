@@ -1752,7 +1752,7 @@ function! fugitive#writefile(lines, url, ...) abort
       call writefile(fugitive#readfile(url, 'b'), temp, 'b')
     endif
     call call('writefile', [a:lines, temp] + a:000)
-    let hash = s:ChompDefault('', [dir, 'hash-object', '-w', temp])
+    let hash = s:ChompDefault('', [dir, '--literal-pathspecs', 'hash-object', '-w', FugitiveGitPath(temp)])
     let mode = len(entry[1]) ? entry[1] : '100644'
     if hash =~# '^\x\{40,\}$'
       let error = s:UpdateIndex(dir, [mode, hash, commit, file[1:-1]])
@@ -2426,7 +2426,7 @@ function! fugitive#FileWriteCmd(...) abort
       return "noautocmd '[,']write" . (v:cmdbang ? '!' : '') . ' ' . s:fnameescape(amatch)
     endif
     silent execute "noautocmd keepalt '[,']write ".temp
-    let hash = s:TreeChomp([dir, 'hash-object', '-w', '--', temp])
+    let hash = s:TreeChomp([dir, '--literal-pathspecs', 'hash-object', '-w', '--', FugitiveGitPath(temp)])
     let old_mode = matchstr(s:ChompDefault('', ['ls-files', '--stage', '.' . file], dir), '^\d\+')
     if empty(old_mode)
       let old_mode = executable(s:Tree(dir) . file) ? '100755' : '100644'
