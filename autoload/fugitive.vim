@@ -485,7 +485,7 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
     let dir = s:Dir()
   endif
   call s:PreparePathArgs(cmd, dir, !exists('explicit_pathspec_option'))
-  return [dir, env, git, cmd[0 : -arg_count-1], cmd[-arg_count : -1]]
+  return [dir, env, git, cmd[0 : -arg_count-1], arg_count ? cmd[-arg_count : -1] : []]
 endfunction
 
 function! s:BuildEnvPrefix(env) abort
