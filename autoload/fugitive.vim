@@ -2675,7 +2675,7 @@ augroup END
 function! s:AskPassArgs(dir) abort
   if (len($DISPLAY) || len($TERM_PROGRAM) || has('gui_running')) &&
         \ empty($GIT_ASKPASS) && empty($SSH_ASKPASS) && empty(fugitive#ConfigGetAll('core.askpass', a:dir))
-    if s:executable(s:ExecPath() . '/git-gui--askpass')
+    if s:executable(FugitiveVimPath(s:ExecPath() . '/git-gui--askpass'))
       return ['-c', 'core.askPass=' . s:ExecPath() . '/git-gui--askpass']
     elseif s:executable('ssh-askpass')
       return ['-c', 'core.askPass=ssh-askpass']
@@ -3058,8 +3058,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     return (empty(cmd) ? 'exe' : cmd) . after
   endif
   let alias = FugitiveConfigGet('alias.' . get(args, 0, ''), config)
-  if get(args, 1, '') !=# '--help' && alias !~# '^$\|^!\|[\"'']' && !filereadable(s:ExecPath() . '/git-' . args[0])
-        \ && !(has('win32') && filereadable(s:ExecPath() . '/git-' . args[0] . '.exe'))
+  if get(args, 1, '') !=# '--help' && alias !~# '^$\|^!\|[\"'']' && !filereadable(FugitiveVimPath(s:ExecPath() . '/git-' . args[0]))
+        \ && !(has('win32') && filereadable(FugitiveVimPath(s:ExecPath() . '/git-' . args[0] . '.exe')))
     call remove(args, 0)
     call extend(args, split(alias, '\s\+'), 'keep')
   endif
