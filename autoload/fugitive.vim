@@ -420,16 +420,24 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
     throw 'fugitive: Git 1.8.5 or higher required'
   endif
   let git = s:GitCmd()
-  let list_args = []
-  let cmd = []
-  for arg in a:000
-    if type(arg) ==# type([])
-      call extend(list_args, arg)
-    else
-      call add(cmd, arg)
+  if a:0 == 1 && type(a:1) == type({}) && has_key(a:1, 'git_dir') && has_key(a:1, 'flags') && has_key(a:1, 'args')
+    let cmd = a:1.flags + a:1.args
+    let dir = a:1.git_dir
+    if has_key(a:1, 'git')
+      let git = a:1.git
     endif
-  endfor
-  call extend(cmd, list_args)
+  else
+    let list_args = []
+    let cmd = []
+    for arg in a:000
+      if type(arg) ==# type([])
+        call extend(list_args, arg)
+      else
+        call add(cmd, arg)
+      endif
+    endfor
+    call extend(cmd, list_args)
+  endif
   let env = {}
   let i = 0
   let arg_count = 0
