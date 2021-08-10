@@ -415,7 +415,7 @@ let s:prepare_env = {
       \ 'core.editor': 'GIT_EDITOR',
       \ 'core.askpass': 'GIT_ASKPASS',
       \ }
-function! fugitive#PrepareDirEnvGitArgv(...) abort
+function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
   if !fugitive#GitVersion(1, 8, 5)
     throw 'fugitive: Git 1.8.5 or higher required'
   endif
@@ -432,6 +432,7 @@ function! fugitive#PrepareDirEnvGitArgv(...) abort
   call extend(cmd, list_args)
   let env = {}
   let i = 0
+  let arg_count = 0
   while i < len(cmd)
     if type(cmd[i]) == type({})
       if has_key(cmd[i], 'dir')
@@ -466,6 +467,7 @@ function! fugitive#PrepareDirEnvGitArgv(...) abort
       let explicit_pathspec_option = 1
       let i += 1
     elseif cmd[i] !~# '^-'
+      let arg_count = len(cmd) - i
       break
     else
       let i += 1
@@ -475,7 +477,7 @@ function! fugitive#PrepareDirEnvGitArgv(...) abort
     let dir = s:Dir()
   endif
   call s:PreparePathArgs(cmd, dir, !exists('explicit_pathspec_option'))
-  return [dir, env, git, cmd]
+  return [dir, env, git, cmd[0 : -arg_count-1], cmd[-arg_count : -1]]
 endfunction
 
 function! s:BuildEnvPrefix(env) abort
@@ -524,8 +526,8 @@ function! s:BuildShell(dir, env, git, args) abort
 endfunction
 
 function! fugitive#Prepare(...) abort
-  let [dir, env, git, argv] = call('fugitive#PrepareDirEnvGitArgv', a:000)
-  return s:BuildShell(dir, env, git, argv)
+  let [dir, env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
+  return s:BuildShell(dir, env, git, flags + args)
 endfunction
 
 function! s:SystemError(cmd, ...) abort
