@@ -116,7 +116,7 @@ endfunction
 "
 " * "args": List of command arguments, starting with the subcommand.  Will be
 "   empty for usages like :Git --help.
-" * "dir": Git dir of the relevant repository.
+" * "git_dir": Git dir of the relevant repository.
 " * "exit_status": The integer exit code of the process.
 " * "flags": Flags passed directly to Git, like -c and --help.
 " * "file": Path to file containing command output.  Not guaranteed to exist,
