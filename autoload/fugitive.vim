@@ -525,9 +525,13 @@ function! s:BuildShell(dir, env, git, args) abort
   return pre . join(map(a:git + cmd, 's:shellesc(v:val)'))
 endfunction
 
-function! fugitive#Prepare(...) abort
+function! fugitive#ShellCommand(...) abort
   let [dir, env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
   return s:BuildShell(dir, env, git, flags + args)
+endfunction
+
+function! fugitive#Prepare(...) abort
+  return call('fugitive#ShellCommand', a:000)
 endfunction
 
 function! s:SystemError(cmd, ...) abort
@@ -626,7 +630,7 @@ function! s:EchoExec(...) abort
   if s:RunJobs()
     return 'Git ' . s:fnameescape(a:000)
   else
-    echo substitute(s:SystemError(call('fugitive#Prepare', a:000))[0], "\n$", '', '')
+    echo substitute(s:SystemError(call('fugitive#ShellCommand', a:000))[0], "\n$", '', '')
     call fugitive#ReloadStatus(-1, 1)
     return 'checktime'
   endif
@@ -1078,17 +1082,13 @@ endfunction
 
 call s:add_methods('repo',['dir','tree','bare','find','translate','head'])
 
-function! s:repo_prepare(...) dict abort
-  return call('fugitive#Prepare', [self.git_dir] + a:000)
-endfunction
-
 function! s:repo_git_command(...) dict abort
   let git = s:GitShellCmd() . ' --git-dir='.s:shellesc(self.git_dir)
   return git.join(map(copy(a:000),'" ".s:shellesc(v:val)'),'')
 endfunction
 
 function! s:repo_git_chomp(...) dict abort
-  return s:sub(system(FugitivePrepare(a:000, self.git_dir)), '\n$', '')
+  return s:sub(system(fugitive#ShellCommand(a:000, self.git_dir)), '\n$', '')
 endfunction
 
 function! s:repo_git_chomp_in_tree(...) dict abort
@@ -1099,7 +1099,7 @@ function! s:repo_rev_parse(rev) dict abort
   return fugitive#RevParse(a:rev, self.git_dir)
 endfunction
 
-call s:add_methods('repo',['prepare','git_command','git_chomp','git_chomp_in_tree','rev_parse'])
+call s:add_methods('repo',['git_command','git_chomp','git_chomp_in_tree','rev_parse'])
 
 function! s:repo_superglob(base) dict abort
   return map(fugitive#CompleteObject(a:base, self.git_dir), 'substitute(v:val, ''\\\(.\)'', ''\1'', "g")')
@@ -2408,9 +2408,9 @@ function! fugitive#FileReadCmd(...) abort
     return 'noautocmd ' . line . 'read ' . s:fnameescape(amatch)
   endif
   if rev !~# ':' && s:ChompDefault('', [dir, 'cat-file', '-t', rev]) =~# '^\%(commit\|tag\)$'
-    let cmd = fugitive#Prepare(dir, 'log', '--pretty=format:%B', '-1', rev, '--')
+    let cmd = fugitive#ShellCommand([dir, 'log', '--pretty=format:%B', '-1', rev, '--'])
   else
-    let cmd = fugitive#Prepare(dir, 'cat-file', '-p', rev)
+    let cmd = fugitive#ShellCommand([dir, 'cat-file', '-p', rev, '--'])
   endif
   return line . 'read !' . escape(cmd, '!#%')
 endfunction

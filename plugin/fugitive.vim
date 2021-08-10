@@ -134,7 +134,7 @@ endfunction
 " it will be used as the Git dir.  If it's a buffer number, the Git dir for
 " that buffer will be used.  The default is the current buffer.
 function! FugitivePrepare(...) abort
-  return call('fugitive#Prepare', a:000)
+  return call('fugitive#ShellCommand', a:000)
 endfunction
 
 " FugitiveConfig() get returns an opaque structure that can be passed to other
