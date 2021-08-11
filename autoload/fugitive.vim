@@ -2464,11 +2464,18 @@ function! fugitive#FileReadCmd(...) abort
     return 'noautocmd ' . line . 'read ' . s:fnameescape(amatch)
   endif
   if rev !~# ':' && s:ChompDefault('', [dir, 'cat-file', '-t', rev]) =~# '^\%(commit\|tag\)$'
-    let cmd = fugitive#ShellCommand([dir, 'log', '--pretty=format:%B', '-1', rev, '--'])
+    let cmd = [dir, 'log', '--pretty=format:%B', '-1', rev, '--']
   else
-    let cmd = fugitive#ShellCommand([dir, 'cat-file', '-p', rev, '--'])
+    let cmd = [dir, 'cat-file', '-p', rev, '--']
   endif
-  return line . 'read !' . escape(cmd, '!#%')
+  let temp = tempname()
+  let [err, exec_error] = s:StdoutToFile(temp, cmd)
+  if exec_error
+    call delete(temp)
+    return 'noautocmd ' . line . 'read ' . s:fnameescape(amatch)
+  else
+    return 'silent keepalt ' . line . 'read ' . s:fnameescape(temp) . '|call delete(' . string(temp) . ')'
+  endif
 endfunction
 
 function! fugitive#FileWriteCmd(...) abort
