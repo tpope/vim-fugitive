@@ -410,6 +410,16 @@ function! s:PreparePathArgs(cmd, dir, literal) abort
   return a:cmd
 endfunction
 
+function! s:PrepareEnv(env, dir) abort
+  if len($GIT_INDEX_FILE) && len(s:Tree(a:dir)) && !has_key(a:env, 'GIT_INDEX_FILE')
+    let index_dir = substitute($GIT_INDEX_FILE, '[^/]\+$', '', '')
+    let our_dir = fugitive#Find('.git/', a:dir)
+    if !s:cpath(index_dir, our_dir) && !s:cpath(resolve(FugitiveVimPath(index_dir)), our_dir)
+      let a:env['GIT_INDEX_FILE'] = FugitiveGitPath(fugitive#Find('.git/index', a:dir))
+    endif
+  endif
+endfunction
+
 let s:prepare_env = {
       \ 'sequence.editor': 'GIT_SEQUENCE_EDITOR',
       \ 'core.editor': 'GIT_EDITOR',
@@ -426,6 +436,7 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
     if has_key(a:1, 'git')
       let git = a:1.git
     endif
+    let env = get(a:1, 'env', {})
   else
     let list_args = []
     let cmd = []
@@ -437,8 +448,9 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
       endif
     endfor
     call extend(cmd, list_args)
+    let env = {}
   endif
-  let env = {}
+  let autoenv = {}
   let i = 0
   let arg_count = 0
   while i < len(cmd)
@@ -452,6 +464,9 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
       if has_key(cmd[i], 'git')
         let git = cmd[i].git
       endif
+      if has_key(cmd[i], 'env')
+        call extend(env, cmd[i].env)
+      endif
       call remove(cmd, i)
     elseif cmd[i] =~# '^$\|[\/.]' && cmd[i] !~# '^-'
       let dir = remove(cmd, i)
@@ -461,16 +476,12 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
       let dir = s:Dir(remove(cmd, i))
     elseif cmd[i] ==# '-c' && len(cmd) > i + 1
       let key = matchstr(cmd[i+1], '^[^=]*')
-      if has_key(s:prepare_env, tolower(key)) || key !~# '\.'
-        let var = get(s:prepare_env, tolower(key), key)
+      if has_key(s:prepare_env, tolower(key))
+        let var = s:prepare_env[tolower(key)]
         let val = matchstr(cmd[i+1], '=\zs.*')
-        let env[var] = val
+        let autoenv[var] = val
       endif
-      if cmd[i+1] =~# '\.'
-        let i += 2
-      else
-        call remove(cmd, i, i + 1)
-      endif
+      let i += 2
     elseif cmd[i] =~# '^--.*pathspecs$'
       let explicit_pathspec_option = 1
       let i += 1
@@ -484,8 +495,11 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
   if !exists('dir')
     let dir = s:Dir()
   endif
+  if !has_key(env, 'GIT_INDEX_FILE')
+    call s:PrepareEnv(autoenv, dir)
+  endif
   call s:PreparePathArgs(cmd, dir, !exists('explicit_pathspec_option'))
-  return [dir, env, git, cmd[0 : -arg_count-1], arg_count ? cmd[-arg_count : -1] : []]
+  return [dir, env, extend(autoenv, env), git, cmd[0 : -arg_count-1], arg_count ? cmd[-arg_count : -1] : []]
 endfunction
 
 function! s:BuildEnvPrefix(env) abort
@@ -522,8 +536,11 @@ function! s:JobOpts(cmd, env) abort
 endfunction
 
 function! s:PrepareJob(...) abort
-  let [dir, env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
+  let [dir, user_env, exec_env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
   let dict = {'git': git, 'git_dir': dir, 'flags': flags, 'args': args}
+  if len(user_env)
+    let dict.env = user_env
+  endif
   let cmd = flags + args
   let tree = s:Tree(dir)
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
@@ -531,7 +548,7 @@ function! s:PrepareJob(...) abort
   else
     call extend(cmd, git + ['-C', FugitiveGitPath(tree)], 'keep')
   endif
-  return s:JobOpts(cmd, env) + [dict]
+  return s:JobOpts(cmd, exec_env) + [dict]
 endfunction
 
 function! s:BuildShell(dir, env, git, args) abort
@@ -547,7 +564,7 @@ function! s:BuildShell(dir, env, git, args) abort
 endfunction
 
 function! fugitive#ShellCommand(...) abort
-  let [dir, env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
+  let [dir, _, env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
   return s:BuildShell(dir, env, git, flags + args)
 endfunction
 
@@ -1368,9 +1385,15 @@ function! fugitive#Find(object, ...) abort
   elseif rev =~# '^:[0-3]:'
     let f = 'fugitive://' . dir . '//' . rev[1] . '/' . rev[3:-1]
   elseif rev ==# ':'
-    let f = FugitiveFind('.git/index', dir)
-    if $GIT_INDEX_FILE =~# '/[^/]*index[^/]*\.lock$' && s:cpath(fnamemodify($GIT_INDEX_FILE,':p')[0:strlen(f)-6], s:cpath(f[0 : -6])) && filereadable($GIT_INDEX_FILE)
-      let f = fnamemodify($GIT_INDEX_FILE, ':p')
+    let fdir = dir . '/'
+    let f = fdir . 'index'
+    if len($GIT_INDEX_FILE)
+      let index_dir = substitute($GIT_INDEX_FILE, '[^/]\+$', '', '')
+      if s:cpath(index_dir, fdir)
+        let f = FugitiveVimPath($GIT_INDEX_FILE)
+      elseif s:cpath(resolve(FugitiveVimPath(index_dir)), fdir)
+        let f = resolve(FugitiveVimPath($GIT_INDEX_FILE))
+      endif
     endif
   elseif rev =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
     let f = matchstr(rev, ')\zs.*')
@@ -2144,8 +2167,8 @@ function! fugitive#BufReadStatus() abort
 
     let cmd = [fnamemodify(amatch, ':h')]
     setlocal noro ma nomodeline buftype=nowrite
-    if s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? $GIT_INDEX_FILE : fugitive#Find('.git/index'), ':p')) !=# s:cpath(amatch)
-      let cmd += ['-c', 'GIT_INDEX_FILE=' . amatch]
+    if s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? FugitiveVimPath($GIT_INDEX_FILE) : fugitive#Find('.git/index'), ':p')) !=# s:cpath(amatch)
+      let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
     endif
 
     if fugitive#GitVersion(2, 15)
@@ -3159,6 +3182,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     endif
     let i += 1
   endwhile
+  call s:PrepareEnv(env, dir)
   let editcmd = a:line2 ? 'split' : 'edit'
   if pager is# 1
     if a:bang && a:line2 >= 0
