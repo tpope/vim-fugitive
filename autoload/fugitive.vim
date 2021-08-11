@@ -5100,6 +5100,7 @@ function! fugitive#LogComplete(A, L, P) abort
 endfunction
 
 function! s:GrepParseLine(options, dir, line) abort
+  echo a:line
   let entry = {'valid': 1}
   let match = matchlist(a:line, '^\(.\{-\}\):\([1-9]\d*\):\([1-9]\d*:\)\=\(.*\)$')
   if len(match)
@@ -5204,31 +5205,33 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   else
     call s:BlurStatus()
   endif
-  redraw
   let title = (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)
   call s:QuickfixCreate(listnr, {'title': title})
   let tempfile = tempname()
+  let state = {
+        \ 'git': a:options.git,
+        \ 'flags': a:options.flags,
+        \ 'args': cmd + args,
+        \ 'dir': dir,
+        \ 'git_dir': dir,
+        \ 'cwd': s:UserCommandCwd(dir),
+        \ 'filetype': 'git',
+        \ 'mods': s:Mods(a:mods),
+        \ 'file': s:Resolve(tempfile)}
   let event = listnr < 0 ? 'grep-fugitive' : 'lgrep-fugitive'
   silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
-  try
-    if exists('+guioptions') && &guioptions =~# '!'
-      let guioptions = &guioptions
-      set guioptions-=!
-    endif
-    exe '!' . escape(s:UserCommand(a:options, cmd + args), '%#!')
-          \ printf(&shellpipe . (&shellpipe =~# '%s' ? '' : ' %s'), s:shellesc(tempfile))
-  finally
-    if exists('guioptions')
-      let &guioptions = guioptions
-    endif
-  endtry
-  let list = readfile(tempfile)
+  call s:RunSave(state)
+  echo title
+  let list = s:SystemList(s:UserCommandList(a:options) + cmd + args)[0]
+  call writefile(list + [''], tempfile, 'b')
   call map(list, 's:GrepParseLine(options, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
-  silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
-  if !has('gui_running')
-    redraw
+  let press_enter_shortfall = &cmdheight - len(list)
+  if press_enter_shortfall > 0
+    echo repeat("\n", press_enter_shortfall - 1)
   endif
+  call s:RunFinished(state)
+  silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if !a:bang && !empty(list)
     return (listnr < 0 ? 'c' : 'l').'first'
   else
