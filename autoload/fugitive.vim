@@ -2183,11 +2183,22 @@ function! s:ReplaceCmd(cmd) abort
   endif
 endfunction
 
-function! s:QueryLog(refspec) abort
-  let lines = s:LinesError(['log', '-n', '256', '--pretty=format:%h%x09%s', a:refspec, '--'])[0]
+function! s:StatusLogCallback(result, dest) abort
+  let lines = a:result.stdout
+  if empty(lines[-1])
+    call remove(lines, -1)
+  endif
   call map(lines, 'split(v:val, "\t", 1)')
   call map(lines, '{"type": "Log", "commit": v:val[0], "subject": join(v:val[1 : -1], "\t")}')
-  return lines
+  call add(a:dest, lines)
+endfunction
+
+function! s:StatusLog(refspec, dest) abort
+  return fugitive#Execute(['log', '-n', '256', '--pretty=format:%h%x09%s', a:refspec, '--'], function('s:StatusLogCallback'), a:dest)
+endfunction
+
+function! s:StatusDiffCallback(result, dict, key) abort
+  let a:dict[a:key] = a:result.stdout
 endfunction
 
 function! s:FormatLog(dict) abort
@@ -2377,6 +2388,15 @@ function! fugitive#BufReadStatus() abort
       let b:fugitive_files['Unstaged'][dict.filename] = dict
     endfor
 
+    let jobs = []
+    let diff = {'Staged': [], 'Unstaged': []}
+    if len(staged)
+      call add(jobs, fugitive#Execute(['diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'], function('s:StatusDiffCallback'), diff, 'Staged'))
+    endif
+    if len(unstaged)
+      call add(jobs, fugitive#Execute(['diff', '--color=never', '--no-ext-diff', '--no-prefix'], function('s:StatusDiffCallback'), diff, 'Unstaged'))
+    endif
+
     let pull_type = 'Pull'
     if len(pull)
       let rebase = FugitiveConfigGet('branch.' . branch . '.rebase', config)
@@ -2410,6 +2430,24 @@ function! fugitive#BufReadStatus() abort
       let push = pull
     else
       let push = len(branch) ? (push_remote ==# '.' ? '' : push_remote . '/') . branch : ''
+    endif
+
+    let logs = []
+    if len(pull) && get(props, 'branch.ab') !~# ' -0$'
+      call add(logs, ['Unpulled from ' . pull])
+      call add(jobs, s:StatusLog(head . '..' . pull, logs[-1]))
+    endif
+    if len(push) && push !=# pull
+      call add(logs, ['Unpulled from ' . push])
+      call add(jobs, s:StatusLog(head . '..' . push, logs[-1]))
+    endif
+    if len(pull) && push !=# pull
+      call add(logs, ['Unpushed to ' . pull])
+      call add(jobs, s:StatusLog(pull . '..' . head, logs[-1]))
+    endif
+    if len(push) && !(push ==# pull && get(props, 'branch.ab') =~# '^+0 ')
+      call add(logs, ['Unpushed to ' . push])
+      call add(jobs, s:StatusLog(push . '..' . head, logs[-1]))
     endif
 
     if isdirectory(fugitive#Find('.git/rebase-merge/'))
@@ -2446,15 +2484,8 @@ function! fugitive#BufReadStatus() abort
       endfor
     endif
 
-    let diff = {'Staged': [], 'Unstaged': []}
-    if len(staged)
-      let diff['Staged'] =
-          \ s:LinesError(['diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'])[0]
-    endif
-    if len(unstaged)
-      let diff['Unstaged'] =
-          \ s:LinesError(['diff', '--color=never', '--no-ext-diff', '--no-prefix'])[0]
-    endif
+    call fugitive#Wait(jobs)
+
     let b:fugitive_diff = diff
     let expanded = get(b:, 'fugitive_expanded', {'Staged': {}, 'Unstaged': {}})
     let b:fugitive_expanded = {'Staged': {}, 'Unstaged': {}}
@@ -2482,18 +2513,9 @@ function! fugitive#BufReadStatus() abort
     call s:AddSection('Staged', staged)
     let staged_end = len(staged) ? line('$') : 0
 
-    if len(pull) && get(props, 'branch.ab') !~# ' -0$'
-      call s:AddSection('Unpulled from ' . pull, s:QueryLog(head . '..' . pull))
-    endif
-    if len(push) && push !=# pull
-      call s:AddSection('Unpulled from ' . push, s:QueryLog(head . '..' . push))
-    endif
-    if len(pull) && push !=# pull
-      call s:AddSection('Unpushed to ' . pull, s:QueryLog(pull . '..' . head))
-    endif
-    if len(push) && !(push ==# pull && get(props, 'branch.ab') =~# '^+0 ')
-      call s:AddSection('Unpushed to ' . push, s:QueryLog(push . '..' . head))
-    endif
+    for [title, log] in logs
+      call s:AddSection(title, log)
+    endfor
 
     setlocal nomodified readonly noswapfile
     silent doautocmd BufReadPost
