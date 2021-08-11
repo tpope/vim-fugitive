@@ -1770,6 +1770,12 @@ function! s:BlobTemp(url) abort
   let tempparent = fnamemodify(tempfile, ':h')
   if !isdirectory(tempparent)
     call mkdir(tempparent, 'p')
+  elseif isdirectory(tempfile)
+    if commit =~# '^\d$' && has('patch-7.4.1107')
+      call delete(tempfile, 'rf')
+    else
+      return ''
+    endif
   endif
   if commit =~# '^\d$' || !filereadable(tempfile)
     let rev = s:DirRev(a:url)[1]
