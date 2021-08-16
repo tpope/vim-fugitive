@@ -5084,6 +5084,20 @@ function! s:GrepOptions(args, dir) abort
   return options
 endfunction
 
+function! s:GrepCfile(result) abort
+  let options = s:GrepOptions(a:result.args, a:result)
+  let entry = s:GrepParseLine(options, a:result, getline('.'))
+  if get(entry, 'col')
+    return [entry.filename, entry.lnum, "norm!" . entry.col . "|"]
+  elseif has_key(entry, 'lnum')
+    return [entry.filename, entry.lnum]
+  elseif has_key(entry, 'filename')
+    return [entry.filename]
+  else
+    return []
+  endif
+endfunction
+
 function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   let args = copy(a:options.subcommand_args)
   let handle = -1
@@ -7045,7 +7059,7 @@ endfunction
 
 function! fugitive#GX() abort
   try
-    let results = &filetype ==# 'fugitive' ? s:StatusCfile() : &filetype ==# 'git' ? s:cfile() : []
+    let results = &filetype ==# 'fugitive' ? s:CfilePorcelain() : &filetype ==# 'git' ? s:cfile() : []
     if len(results) && len(results[0])
       return FugitiveReal(s:Generate(results[0]))
     endif
@@ -7054,7 +7068,7 @@ function! fugitive#GX() abort
   return expand(get(g:, 'netrw_gx', expand('<cfile>')))
 endfunction
 
-function! s:StatusCfile(...) abort
+function! s:CfilePorcelain(...) abort
   let tree = s:Tree()
   if empty(tree)
     return ['']
@@ -7081,42 +7095,47 @@ function! s:StatusCfile(...) abort
   endif
 endfunction
 
-function! fugitive#StatusCfile() abort
-  let file = fugitive#Find(s:StatusCfile()[0])
+function! fugitive#PorcelainCfile() abort
+  let file = fugitive#Find(s:CfilePorcelain()[0])
   return empty(file) ? fugitive#Cfile() : s:fnameescape(file)
 endfunction
 
-function! s:MessageCfile(...) abort
+function! s:StatusCfile(...) abort
   let tree = s:Tree()
   if empty(tree)
     return ''
   endif
   let lead = s:cpath(tree, getcwd()) ? './' : tree . '/'
   if getline('.') =~# '^.\=\trenamed:.* -> '
-    return lead . matchstr(getline('.'),' -> \zs.*')
+    return [lead . matchstr(getline('.'),' -> \zs.*')]
   elseif getline('.') =~# '^.\=\t\(\k\| \)\+\p\?: *.'
-    return lead . matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')
+    return [lead . matchstr(getline('.'),': *\zs.\{-\}\ze\%( ([^()[:digit:]]\+)\)\=$')]
   elseif getline('.') =~# '^.\=\t.'
-    return lead . matchstr(getline('.'),'\t\zs.*')
+    return [lead . matchstr(getline('.'),'\t\zs.*')]
   elseif getline('.') =~# ': needs merge$'
-    return lead . matchstr(getline('.'),'.*\ze: needs merge$')
+    return [lead . matchstr(getline('.'),'.*\ze: needs merge$')]
   elseif getline('.') =~# '^\%(. \)\=Not currently on any branch.$'
-    return 'HEAD'
+    return ['HEAD']
   elseif getline('.') =~# '^\%(. \)\=On branch '
-    return 'refs/heads/'.getline('.')[12:]
+    return ['refs/heads/'.getline('.')[12:]]
   elseif getline('.') =~# "^\\%(. \\)\=Your branch .*'"
-    return matchstr(getline('.'),"'\\zs\\S\\+\\ze'")
+    return [matchstr(getline('.'),"'\\zs\\S\\+\\ze'")]
   else
-    return ''
+    return []
   endif
 endfunction
 
 function! fugitive#MessageCfile() abort
-  let file = fugitive#Find(s:MessageCfile())
+  let file = fugitive#Find(get(s:StatusCfile(), 0, ''))
   return empty(file) ? fugitive#Cfile() : s:fnameescape(file)
 endfunction
 
 function! s:cfile() abort
+  let temp_state = s:TempState()
+  let name = substitute(get(get(temp_state, 'args', []), 0, ''), '\%(^\|-\)\(\l\)', '\u\1', 'g')
+  if exists('*s:' . name . 'Cfile')
+    return s:{name}Cfile(temp_state)
+  endif
   if empty(FugitiveGitDir())
     return []
   endif
@@ -7129,7 +7148,7 @@ function! s:cfile() abort
         let myhash = ''
       endtry
     endif
-    if empty(myhash) && get(s:TempState(), 'filetype', '') ==# 'git'
+    if empty(myhash) && get(temp_state, 'filetype', '') ==# 'git'
       let lnum = line('.')
       while lnum > 0
         if getline(lnum) =~# '^\%(commit\|tag\) \w'
@@ -7282,13 +7301,13 @@ endfunction
 
 function! s:GF(mode) abort
   try
-    let results = &filetype ==# 'fugitive' ? s:StatusCfile() : &filetype ==# 'gitcommit' ? [s:MessageCfile()] : s:cfile()
+    let results = &filetype ==# 'fugitive' ? s:CfilePorcelain() : &filetype ==# 'gitcommit' ? s:StatusCfile() : s:cfile()
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
   if len(results) > 1
     return 'G' . a:mode .
-          \ ' +' . escape(results[1], ' ') . ' ' .
+          \ ' +' . escape(results[1], ' |') . ' ' .
           \ s:fnameescape(results[0]) . join(map(results[2:-1], '"|" . v:val'), '')
   elseif len(results) && len(results[0])
     return 'G' . a:mode . ' ' . s:fnameescape(results[0])

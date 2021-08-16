@@ -546,7 +546,7 @@ augroup fugitive
         \    setlocal foldtext=fugitive#Foldtext() |
         \ endif
   autocmd FileType fugitive
-        \ call fugitive#MapCfile('fugitive#StatusCfile()')
+        \ call fugitive#MapCfile('fugitive#PorcelainCfile()')
   autocmd FileType gitrebase
         \ let &l:include = '^\%(pick\|squash\|edit\|reword\|fixup\|drop\|[pserfd]\)\>' |
         \ if &l:includeexpr !~# 'Fugitive' |
