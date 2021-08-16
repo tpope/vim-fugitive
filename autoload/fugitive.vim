@@ -105,7 +105,7 @@ function! s:DirCheck(...) abort
   if !empty(vcheck)
     return vcheck
   endif
-  let dir = a:0 ? s:Dir(a:1) : s:Dir()
+  let dir = call('FugitiveGitDir', a:000)
   if !empty(dir) && FugitiveWorkTree(dir, 1) is# 0
     return 'return ' . string('echoerr "fugitive: ' . s:worktree_error . '"')
   elseif !empty(dir)
@@ -1425,7 +1425,7 @@ function! fugitive#Find(object, ...) abort
   elseif rev =~# '^\.\.\=\%(/\|$\)'
     return FugitiveVimPath(simplify(getcwd() . '/' . a:object))
   endif
-  let dir = a:0 ? a:1 : s:Dir()
+  let dir = call('FugitiveGitDir', a:000)
   if empty(dir)
     let file = matchstr(a:object, '^\%(:\d:\|[^:]*:\)\zs\%(\.\.\=$\|\.\.\=/.*\|/.*\|\w:/.*\)')
     let dir = FugitiveExtractGitDir(file)
@@ -3243,7 +3243,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   endif
   let name = substitute(get(args, 0, ''), '\%(^\|-\)\(\l\)', '\u\1', 'g')
   let git = s:UserCommandList()
-  let options = {'git': git, 'dir': dir, 'flags': flags}
+  let options = {'git': git, 'dir': dir, 'git_dir': dir, 'flags': flags}
   if pager is# -1 && name =~# '^\a\+$' && exists('*s:' . name . 'Subcommand') && get(args, 1, '') !=# '--help'
     try
       let overrides = s:{name}Subcommand(a:line1, a:line2, a:range, a:bang, a:mods, extend({'subcommand': args[0], 'subcommand_args': args[1:-1]}, options))
@@ -5029,7 +5029,7 @@ function! fugitive#LogComplete(A, L, P) abort
   return s:CompleteSub('log', a:A, a:L, a:P)
 endfunction
 
-function! s:GrepParseLine(prefix, name_only, dir, line) abort
+function! s:GrepParseLine(options, dir, line) abort
   let entry = {'valid': 1}
   let match = matchlist(a:line, '^\(.\{-\}\):\([1-9]\d*\):\([1-9]\d*:\)\=\(.*\)$')
   if len(match)
@@ -5046,44 +5046,86 @@ function! s:GrepParseLine(prefix, name_only, dir, line) abort
       let entry.valid = 0
     endif
   endif
-  if empty(entry.module) && a:name_only
+  if empty(entry.module) && a:options.name_count && a:line =~# ':\d\+$'
+    let entry.text = matchstr(a:line, '\d\+$')
+    let entry.module = strpart(a:line, 0, len(a:line) - len(entry.text) - 1)
+  endif
+  if empty(entry.module) && a:options.name_only
     let entry.module = a:line
   endif
   if empty(entry.module)
     return {'text': a:line}
   endif
   if entry.module !~# ':'
-    let entry.filename = a:prefix . entry.module
+    let entry.filename = a:options.prefix . entry.module
   else
     let entry.filename = fugitive#Find(entry.module, a:dir)
   endif
   return entry
 endfunction
 
+let s:grep_combine_flags = '[aiIrhHEGPFnlLzocpWq]\{-\}'
+function! s:GrepOptions(args, dir) abort
+  let options = {'name_only': 0, 'name_count': 0}
+  let tree = s:Tree(a:dir)
+  let options.prefix = empty(tree) ? fugitive#Find(':0:', a:dir) :
+        \ s:cpath(getcwd(), tree) ? '' : FugitiveVimPath(tree . '/')
+  for arg in a:args
+    if arg ==# '--'
+      break
+    elseif arg =~# '^\%(-' . s:grep_combine_flags . 'c\|--count\)$'
+      let options.name_count = 1
+    elseif arg =~# '^\%(-' . s:grep_combine_flags . '[lL]\|--files-with-matches\|--name-only\|--files-without-match\)$'
+      let options.name_only = 1
+    elseif arg ==# '--cached'
+      let options.prefix = fugitive#Find(':0:', a:dir)
+    endif
+  endfor
+  return options
+endfunction
+
 function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
-  let dir = a:options.dir
-  exe s:DirCheck(dir)
-  let listnr = a:line1 == 0 ? a:line1 : a:line2
-  let cmd = ['--no-pager', 'grep', '-n', '--no-color', '--full-name']
-  let tree = s:Tree(dir)
-  let args = a:options.subcommand_args
-  if get(args, 0, '') =~# '^\%(-O\|--open-files-in-pager\)$'
-    let args = args[1:-1]
+  let args = copy(a:options.subcommand_args)
+  let handle = -1
+  let i = 0
+  while i < len(args) && args[i] !=# '--'
+    let partition = matchstr(args[i], '^-' . s:grep_combine_flags . '\zeO')
+    if len(partition) > 1
+      call insert(args, '-' . strpart(args[i], len(partition)), i+1)
+      let args[i] = partition
+    elseif args[i] =~# '^\%(-' . s:grep_combine_flags . '[eABC]\|--max-depth\|--context\|--after-context\|--before-context\|--threads\)$'
+      let i += 1
+    elseif args[i] =~# '^\%(-O\|--open-files-in-pager\)$'
+      let handle = 1
+      call remove(args, i)
+      continue
+    elseif args[i] =~# '^\%(-O\|--open-files-in-pager=\)'
+      let handle = 0
+    elseif args[i] =~# '^\%(--heading\)$'
+      call remove(args, i)
+      continue
+    endif
+    let i += 1
+  endwhile
+  if !handle
+    return {}
   endif
-  let name_only = s:HasOpt(args, '-l', '--files-with-matches', '--name-only', '-L', '--files-without-match')
+  exe s:DirCheck(a:options)
+  let listnr = a:line1 == 0 ? a:line1 : a:line2
+  let cmd = ['grep', '-n', '--no-color', '--full-name']
+  let dir = a:options.git_dir
+  let options = s:GrepOptions(args, dir)
   if listnr > 0
     exe listnr 'wincmd w'
   else
     call s:BlurStatus()
   endif
   redraw
-  call s:QuickfixCreate(listnr, {'title': (listnr < 0 ? ':Git grep ' : ':0Git grep ') . s:fnameescape(args)})
+  let title = (listnr < 0 ? ':Ggrep ' : ':Glgrep ') . s:fnameescape(args)
+  call s:QuickfixCreate(listnr, {'title': title})
   let tempfile = tempname()
   let event = listnr < 0 ? 'grep-fugitive' : 'lgrep-fugitive'
   silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
-  let prefix = FugitiveVimPath(s:HasOpt(args, '--cached') || empty(tree) ?
-        \ 'fugitive://' . dir . '//0/' :
-        \ s:cpath(getcwd(), tree) ? '' : tree . '/')
   try
     if exists('+guioptions') && &guioptions =~# '!'
       let guioptions = &guioptions
@@ -5096,7 +5138,8 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
       let &guioptions = guioptions
     endif
   endtry
-  let list = map(readfile(tempfile), 's:GrepParseLine(prefix, name_only, dir, v:val)')
+  let list = readfile(tempfile)
+  call map(list, 's:GrepParseLine(options, dir, v:val)')
   call s:QuickfixSet(listnr, list, 'a')
   silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if !has('gui_running')
@@ -5111,7 +5154,7 @@ endfunction
 
 function! fugitive#GrepCommand(line1, line2, range, bang, mods, arg) abort
   return fugitive#Command(a:line1, a:line2, a:range, a:bang, a:mods,
-        \ "grep -O " . (fugitive#GitVersion(2, 19) ? "--column " : "") . a:arg)
+        \ "-c grep.column grep -O " . a:arg)
 endfunction
 
 let s:log_diff_context = '{"filename": fugitive#Find(v:val . from, a:dir), "lnum": get(offsets, v:key), "module": strpart(v:val, 0, len(a:state.base_module)) . from}'
