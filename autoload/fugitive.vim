@@ -5031,7 +5031,7 @@ endfunction
 
 function! s:GrepParseLine(prefix, name_only, dir, line) abort
   let entry = {'valid': 1}
-  let match = matchlist(a:line, '^\(.\{-\}\):\(\d\+\):\(\d\+:\)\=\(.*\)$')
+  let match = matchlist(a:line, '^\(.\{-\}\):\([1-9]\d*\):\([1-9]\d*:\)\=\(.*\)$')
   if len(match)
     let entry.module = match[1]
     let entry.lnum = +match[2]
