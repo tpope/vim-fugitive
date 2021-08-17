@@ -3295,12 +3295,17 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
         \ type(pager) == type('')) && pager isnot# 1
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
     let assign = len(dir) ? '|let b:git_dir = ' . string(dir) : ''
+    let argv = s:UserCommandList(options) + args
+    let term_opts = len(env) ? {'env': env} : {}
     if has('nvim')
       call fugitive#Autowrite()
-      return mods . (a:line2 ? 'new' : 'enew') . '|call termopen(' . string(s:UserCommandList(options) + args) . ')' . assign . '|startinsert' . after
-    elseif has('terminal')
+      return mods . (a:line2 ? 'new' : 'enew') . '|call termopen(' . string(argv) . ', ' . string(term_opts) . ')' . assign . '|startinsert' . after
+    elseif exists('*term_start')
       call fugitive#Autowrite()
-      return 'exe ' . string(mods . 'terminal ' . (a:line2 ? '' : '++curwin ') . join(map(s:UserCommandList(options) + args, 's:fnameescape(v:val)'))) . assign . after
+      if !a:line2
+        let term_opts.curwin = 1
+      endif
+      return mods . 'call term_start(' . string(argv) . ', ' . string(term_opts) . ')' . assign . after
     endif
   endif
   if pager is# 1 && editcmd ==# 'read'
