@@ -637,8 +637,10 @@ function! s:PrepareJob(...) abort
   let cmd = flags + args
   let tree = s:Tree(dir)
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
+    let dict.cwd = getcwd()
     call extend(cmd, git + ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
   else
+    let dict.cwd = FugitiveVimPath(tree)
     call extend(cmd, git + ['-C', FugitiveGitPath(tree)], 'keep')
   endif
   return s:JobOpts(cmd, exec_env) + [dict]
