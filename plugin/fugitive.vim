@@ -299,7 +299,13 @@ function! s:CeilingDirectories() abort
 endfunction
 
 function! FugitiveExtractGitDir(path) abort
-  let path = s:Slash(a:path)
+  if type(a:path) ==# type({})
+    return get(a:path, 'git_dir', '')
+  elseif type(a:path) == type(0)
+    let path = s:Slash(a:path >= 0 ? bufname(a:path) : bufname(''))
+  else
+    let path = s:Slash(a:path)
+  endif
   if path =~# '^fugitive:'
     return matchstr(path, '\C^fugitive:\%(//\)\=\zs.\{-\}\ze\%(//\|::\|$\)')
   elseif empty(path)
@@ -355,7 +361,7 @@ function! FugitiveExtractGitDir(path) abort
   return ''
 endfunction
 
-function! FugitiveDetect(path) abort
+function! FugitiveDetect(...) abort
   if v:version < 704
     return ''
   endif
@@ -363,7 +369,7 @@ function! FugitiveDetect(path) abort
     unlet b:git_dir
   endif
   if !exists('b:git_dir')
-    let b:git_dir = FugitiveExtractGitDir(a:path)
+    let b:git_dir = FugitiveExtractGitDir(a:0 ? a:1 : bufnr(''))
   endif
   if empty(b:git_dir) || !exists('#User#Fugitive')
     return ''
