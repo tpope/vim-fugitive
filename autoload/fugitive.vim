@@ -3213,6 +3213,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
   let flags = []
   let pager = -1
+  let explicit_pathspec_option = 0
   while len(args)
     if args[0] ==# '-c' && len(args) > 1
       call extend(flags, remove(args, 0, 1))
@@ -3222,7 +3223,10 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     elseif args[0] =~# '^-P$\|^--no-pager$'
       let pager = 0
       call remove(args, 0)
-    elseif args[0] =~# '^--\%([[:lower:]-]\+-pathspecs\|no-optional-locks\)$'
+    elseif args[0] =~# '^--\%([[:lower:]-]\+-pathspecs\)$'
+      let explicit_pathspec_option = 1
+      call add(flags, remove(args, 0))
+    elseif args[0] =~# '^\%(--no-optional-locks\)$'
       call add(flags, remove(args, 0))
     elseif args[0] =~# '^-C$\|^--\%(exec-path=\|git-dir=\|work-tree=\|bare$\)'
       return 'echoerr ' . string('fugitive: ' . args[0] . ' is not supported')
@@ -3230,6 +3234,9 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       break
     endif
   endwhile
+  if !explicit_pathspec_option
+    call insert(flags, '--no-literal-pathspecs')
+  endif
   if pager is# 0
     call add(flags, '--no-pager')
   endif
