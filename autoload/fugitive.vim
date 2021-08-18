@@ -1453,7 +1453,7 @@ function! fugitive#Find(object, ...) abort
   let tree = s:Tree(dir)
   let base = len(tree) ? tree : 'fugitive://' . dir . '//0'
   if rev ==# '.git'
-    let f = len(tree) ? tree . '/.git' : dir
+    let f = len(tree) && len(getftype(tree . '/.git')) ? tree . '/.git' : dir
   elseif rev =~# '^\.git/'
     let f = strpart(rev, 5)
     let fdir = dir . '/'
