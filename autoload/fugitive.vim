@@ -388,7 +388,7 @@ function! s:UserCommandList(...) abort
   if a:0 && type(a:1) == type({})
     let git = copy(get(a:1, 'git', git))
     let flags = get(a:1, 'flags', flags)
-    let dir = a:1.dir
+    let dir = a:1.git_dir
   elseif a:0
     let dir = a:1
   else
@@ -551,11 +551,10 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
   let arg_count = 0
   while i < len(cmd)
     if type(cmd[i]) == type({})
-      if has_key(cmd[i], 'dir')
-        let dir = cmd[i].dir
-      endif
       if has_key(cmd[i], 'git_dir')
         let dir = cmd[i].git_dir
+      elseif has_key(cmd[i], 'dir')
+        let dir = cmd[i].dir
       endif
       if has_key(cmd[i], 'git')
         let git = cmd[i].git
@@ -2819,8 +2818,8 @@ function! s:TempReadPre(file) abort
     endif
     setlocal buftype=nowrite
     setlocal nomodifiable
-    let b:git_dir = dict.dir
-    if len(dict.dir)
+    let b:git_dir = dict.git_dir
+    if len(dict.git_dir)
       call extend(b:, {'fugitive_type': 'temp'}, 'keep')
     endif
   endif
@@ -2912,7 +2911,7 @@ function! s:RunEdit(state, tmp, job) abort
   exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
   set bufhidden=wipe
   let s:edit_jobs[bufnr('')] = [a:state, a:tmp, a:job, sentinel]
-  call fugitive#ReloadStatus(a:state.dir, 1)
+  call fugitive#ReloadStatus(a:state.git_dir, 1)
   return 1
 endfunction
 
@@ -3374,7 +3373,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
           \ 'GIT_PAGER': 'cat',
           \ 'PAGER': 'cat'}, 'keep')
     let args = s:disable_colors + flags + ['-c', 'advice.waitingForEditor=false'] + args
-    let argv = s:UserCommandList({'git': git, 'dir': dir}) + args
+    let argv = s:UserCommandList({'git': git, 'git_dir': dir}) + args
     let [argv, jobopts] = s:JobOpts(argv, env)
     call fugitive#Autowrite()
     call writefile([], state.file, 'b')
@@ -3411,7 +3410,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
         let guioptions = &guioptions
         set guioptions-=!
       endif
-      silent! execute '!' . escape(pre . s:UserCommand({'git': git, 'dir': dir}, s:disable_colors + flags + ['--no-pager'] + args), '!#%') .
+      silent! execute '!' . escape(pre . s:shellesc(s:UserCommandList(options) + s:disable_colors + flags + ['--no-pager'] + args), '!#%') .
             \ (&shell =~# 'csh' ? ' >& ' . s:shellesc(state.file) : ' > ' . s:shellesc(state.file) . ' 2>&1')
       let state.exit_status = v:shell_error
     finally
@@ -3433,7 +3432,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     return 'echoerr ' . string('fugitive: Vim 8 with job support required to use :Git in GVim')
   else
     let pre = s:BuildEnvPrefix(env)
-    return 'exe ' . string('noautocmd !' . escape(pre . s:UserCommand(options, args), '!#%')) .
+    return 'exe ' . string('noautocmd !' . escape(pre . s:shellesc(s:UserCommandList(options) + args), '!#%')) .
           \ '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' .
           \ after
   endif
@@ -4718,7 +4717,7 @@ endfunction
 " Section: :Git commit, :Git revert
 
 function! s:CommitInteractive(line1, line2, range, bang, mods, options, patch) abort
-  let status = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [], a:options.dir)
+  let status = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [], a:options.git_dir)
   let status = len(status) ? status . '|' : ''
   if a:patch
     return status . 'if search("^Unstaged")|exe "normal >"|exe "+"|endif'
@@ -4788,11 +4787,10 @@ function! fugitive#PullComplete(A, L, P, ...) abort
 endfunction
 
 function! s:MergeSubcommand(line1, line2, range, bang, mods, options) abort
-  let dir = a:options.dir
   if empty(a:options.subcommand_args) && (
         \ filereadable(fugitive#Find('.git/MERGE_MSG', dir)) ||
         \ isdirectory(fugitive#Find('.git/rebase-apply', dir)) ||
-        \  !empty(s:TreeChomp(dir, 'diff-files', '--diff-filter=U')))
+        \  !empty(s:TreeChomp([a:options.git_dir, 'diff-files', '--diff-filter=U'])))
     return 'echoerr ":Git merge for loading conflicts hase been removed in favor of :Git mergetool"'
   endif
   return {}
@@ -4923,7 +4921,7 @@ function! s:ToolStream(line1, line2, range, bang, mods, options, args, state) ab
   let a:state.mode = 'init'
   let a:state.from = ''
   let a:state.to = ''
-  let exec = s:UserCommandList({'git': a:options.git, 'dir': a:options.dir}) + ['-c', 'diff.context=0']
+  let exec = s:UserCommandList({'git': a:options.git, 'git_dir': a:options.git_dir}) + ['-c', 'diff.context=0']
   let exec += a:options.flags + ['--no-pager', 'diff', '--no-ext-diff', '--no-color', '--no-prefix'] + argv
   if prompt
     let title = ':Git ' . s:fnameescape(a:options.flags + [a:options.subcommand] + a:options.subcommand_args)
@@ -4949,7 +4947,7 @@ function! s:ToolStream(line1, line2, range, bang, mods, options, args, state) ab
 endfunction
 
 function! s:MergetoolSubcommand(line1, line2, range, bang, mods, options) abort
-  let dir = a:options.dir
+  let dir = a:options.git_dir
   exe s:DirCheck(dir)
   let i = 0
   let prompt = 1
@@ -4961,7 +4959,7 @@ function! s:MergetoolSubcommand(line1, line2, range, bang, mods, options) abort
 endfunction
 
 function! s:DifftoolSubcommand(line1, line2, range, bang, mods, options) abort
-  let dir = a:options.dir
+  let dir = a:options.git_dir
   exe s:DirCheck(dir)
   let i = 0
   let argv = copy(a:options.subcommand_args)
@@ -6133,7 +6131,7 @@ function! s:BlameCommitFileLnum(...) abort
   if commit =~# '^0\+$'
     let commit = ''
   elseif has_key(state, 'blame_reverse_end')
-    let commit = get(s:LinesError([state.dir, 'rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end])[0], 0, '')
+    let commit = get(s:LinesError([state.git_dir, 'rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end])[0], 0, '')
   endif
   let lnum = +matchstr(line, ' \zs\d\+\ze \%((\| *\d\+)\)')
   let path = matchstr(line, '^\^\=[?*]*\x* \+\%(\d\+ \+\d\+ \+\)\=\zs.\{-\}\ze\s*\d\+ \%((\| *\d\+)\)')
@@ -6261,7 +6259,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
       silent execute 'noautocmd keepalt %write ' . s:fnameescape(tempname . '.in')
       let delete_in = 1
     endif
-    let basecmd = [{'git': a:options.git, 'dir': dir}] + ['--literal-pathspecs'] + cmd + ['--'] + (len(files) ? files : [file])
+    let basecmd = [{'git': a:options.git, 'git_dir': dir}] + ['--literal-pathspecs'] + cmd + ['--'] + (len(files) ? files : [file])
     let [err, exec_error] = s:StdoutToFile(temp, basecmd)
     if exists('delete_in')
       call delete(tempname . '.in')
