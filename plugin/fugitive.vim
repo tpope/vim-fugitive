@@ -479,10 +479,13 @@ if exists(':Gstatus') != 2 && get(g:, 'fugitive_legacy_commands', 1)
 endif
 
 for s:cmd in ['Commit', 'Revert', 'Merge', 'Rebase', 'Pull', 'Push', 'Fetch', 'Blame']
-  if exists(':G' . tolower(s:cmd)) != 2 && get(g:, 'fugitive_legacy_commands', 1)
+  if exists(':G' . tolower(s:cmd)) != 2 && get(g:, 'fugitive_legacy_commands', 0)
     exe 'command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#' . s:cmd . 'Complete G' . tolower(s:cmd)
           \ 'echohl WarningMSG|echomsg ":G' . tolower(s:cmd) . ' is deprecated in favor of :Git ' . tolower(s:cmd) . '"|echohl NONE|'
           \ 'exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", "' . tolower(s:cmd) . ' " . <q-args>)'
+  elseif exists(':G' . tolower(s:cmd)) != 2 && !exists('g:fugitive_legacy_commands')
+    exe 'command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#' . s:cmd . 'Complete G' . tolower(s:cmd)
+          \ 'echoerr ":G' . tolower(s:cmd) . ' has been removed in favor of :Git ' . tolower(s:cmd) . '"'
   endif
 endfor
 unlet s:cmd
@@ -494,9 +497,12 @@ exe 'command! -bang -nargs=? -range=-1' s:addr_wins '-complete=customlist,fugiti
 exe 'command! -bang -nargs=? -range=-1' s:addr_wins '-complete=customlist,fugitive#GrepComplete Gcgrep exe fugitive#GrepCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
 exe 'command! -bang -nargs=? -range=-1' s:addr_wins '-complete=customlist,fugitive#GrepComplete Glgrep exe fugitive#GrepCommand(0, <count> > 0 ? <count> : 0, +"<range>", <bang>0, "<mods>", <q-args>)'
 
-if exists(':Glog') != 2 && get(g:, 'fugitive_legacy_commands', 1)
+if exists(':Glog') != 2 && get(g:, 'fugitive_legacy_commands', 0)
   exe 'command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#LogComplete Glog  :exe fugitive#LogCommand(<line1>,<count>,+"<range>",<bang>0,"<mods>",<q-args>, "")'
         \ '|echohl WarningMSG|echomsg ":Glog is deprecated in favor of :Gclog"|echohl NONE'
+elseif exists(':Glog') != 2 && !exists('g:fugitive_legacy_commands')
+  exe 'command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#LogComplete Glog'
+        \ ' echoerr ":Glog has been removed in favor of :Gclog"'
 endif
 exe 'command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#LogComplete Gclog :exe fugitive#LogCommand(<line1>,<count>,+"<range>",<bang>0,"<mods>",<q-args>, "c")'
 exe 'command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#LogComplete GcLog :exe fugitive#LogCommand(<line1>,<count>,+"<range>",<bang>0,"<mods>",<q-args>, "c")'
