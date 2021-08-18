@@ -1127,7 +1127,7 @@ endfunction
 
 function! fugitive#RemoteUrl(...) abort
   let args = a:000
-  if a:0 && type(a:1) !=# type('')
+  if a:0 && (type(a:1) !=# type('') || a:1 =~# '^/\|^\a:[\\/]' && get(a:, 2, '') !~# '^/\|^\a:[\\/]')
     let config = fugitive#Config(a:1)
     let args = a:000[1:-1]
   elseif a:0 > 1
