@@ -869,7 +869,7 @@ function! fugitive#Config(...) abort
   else
     let dict = copy(s:config_prototype)
     let dict.git_dir = dir
-    let [lines, message, exec_error] = s:NullError([dir, 'config', '--list', '-z'])
+    let [lines, message, exec_error] = s:NullError([dir, 'config', '--list', '-z', '--'])
     if exec_error
       return {}
     endif
