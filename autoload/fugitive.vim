@@ -398,8 +398,13 @@ function! s:UserCommandList(...) abort
     let tree = s:Tree(dir)
     if empty(tree)
       call add(git, '--git-dir=' . FugitiveGitPath(dir))
-    elseif len(tree) && s:cpath(tree) !=# s:cpath(getcwd())
-      call extend(git, ['-C', FugitiveGitPath(tree)])
+    else
+      if !s:cpath(tree . '/.git', dir)
+        call add(git, '--git-dir=' . FugitiveGitPath(dir))
+      endif
+      if !s:cpath(tree, getcwd())
+        call extend(git, ['-C', FugitiveGitPath(tree)])
+      endif
     endif
   endif
   return git + flags
@@ -638,11 +643,16 @@ function! s:PrepareJob(...) abort
   let tree = s:Tree(dir)
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
     let dict.cwd = getcwd()
-    call extend(cmd, git + ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
+    call extend(cmd, ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
   else
     let dict.cwd = FugitiveVimPath(tree)
-    call extend(cmd, git + ['-C', FugitiveGitPath(tree)], 'keep')
+    call extend(cmd, ['-C', FugitiveGitPath(tree)], 'keep')
+    if !s:cpath(tree . '/.git', dir)
+      call extend(cmd, ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
+    endif
   endif
+  call extend(cmd, git, 'keep')
+  let dict.full_argv = cmd
   return s:JobOpts(cmd, exec_env) + [dict]
 endfunction
 
@@ -664,6 +674,9 @@ function! s:BuildShell(dir, env, git, args) abort
     call insert(cmd, '--git-dir=' . FugitiveGitPath(a:dir))
   else
     call extend(cmd, ['-C', FugitiveGitPath(tree)], 'keep')
+    if !s:cpath(tree . '/.git', dir)
+      call extend(cmd, ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
+    endif
   endif
   return pre . join(map(a:git + cmd, 's:shellesc(v:val)'))
 endfunction
