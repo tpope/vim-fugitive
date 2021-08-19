@@ -5256,10 +5256,10 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
         \ 'file': s:Resolve(tempfile)}
   let event = listnr < 0 ? 'grep-fugitive' : 'lgrep-fugitive'
   silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
-  call s:RunSave(state)
   echo title
   let list = s:SystemList(s:UserCommandList(a:options) + cmd + args)[0]
   call writefile(list + [''], tempfile, 'b')
+  call s:RunSave(state)
   try
     if &more
       let more = 1
