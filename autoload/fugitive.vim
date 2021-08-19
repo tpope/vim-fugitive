@@ -902,7 +902,18 @@ let s:config = {}
 function! fugitive#Config(...) abort
   let name = ''
   let default = get(a:, 3, '')
-  if a:0 >= 2 && type(a:2) == type({}) && has_key(a:2, 'GetAll')
+  if a:0 && type(a:1) == type(function('tr'))
+    let dir = s:Dir()
+    let callback = a:000
+  elseif a:0 > 1 && type(a:2) == type(function('tr'))
+    if type(a:1) == type({}) && has_key(a:1, 'GetAll')
+      call call(a:2, [a:1] + a:000[2:-1])
+      return a:1
+    else
+      let dir = s:Dir(a:1)
+      let callback = a:000[1:-1]
+    endif
+  elseif a:0 >= 2 && type(a:2) == type({}) && has_key(a:2, 'GetAll')
     return get(fugitive#ConfigGetAll(a:1, a:2), 0, default)
   elseif a:0 >= 2
     let dir = s:Dir(a:2)
@@ -941,6 +952,9 @@ function! fugitive#Config(...) abort
     endfor
     let s:config[dir_key] = [s:ConfigTimestamps(dir, dict), dict]
     lockvar! dict
+  endif
+  if exists('callback')
+    call call(callback[0], [dict] + callback[1:-1])
   endif
   return len(name) ? get(get(dict, name, []), 0, default) : dict
 endfunction
