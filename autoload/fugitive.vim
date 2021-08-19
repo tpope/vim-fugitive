@@ -5258,22 +5258,20 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
         \ 'file': s:Resolve(tempfile)}
   let event = listnr < 0 ? 'grep-fugitive' : 'lgrep-fugitive'
   silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
-  echo title
-  let list = s:SystemList(s:UserCommandList(a:options) + cmd + args)[0]
-  call writefile(list + [''], tempfile, 'b')
-  call s:RunSave(state)
   try
     if &more
       let more = 1
       set nomore
     endif
+    echo title
+    let list = s:SystemList(s:UserCommandList(a:options) + cmd + args)[0]
+    call writefile(list + [''], tempfile, 'b')
+    call s:RunSave(state)
     call map(list, 's:GrepParseLine(options, 0, dir, v:val)')
     call s:QuickfixSet(listnr, list, 'a')
     let press_enter_shortfall = &cmdheight - len(list)
     if press_enter_shortfall > 0
       echo repeat("\n", press_enter_shortfall - 1)
-    elseif !a:bang && !empty(list)
-      echo ""
     endif
   finally
     if exists('l:more')
@@ -5283,7 +5281,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   call s:RunFinished(state)
   silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if !a:bang && !empty(list)
-    return (listnr < 0 ? 'c' : 'l').'first'
+    return 'silent ' . (listnr < 0 ? 'c' : 'l').'first'
   else
     return ''
   endif
