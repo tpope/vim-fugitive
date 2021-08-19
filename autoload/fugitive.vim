@@ -5135,8 +5135,10 @@ function! fugitive#LogComplete(A, L, P) abort
   return s:CompleteSub('log', a:A, a:L, a:P)
 endfunction
 
-function! s:GrepParseLine(options, dir, line) abort
-  echo a:line
+function! s:GrepParseLine(options, quiet, dir, line) abort
+  if !a:quiet
+    echo a:line
+  endif
   let entry = {'valid': 1}
   let match = matchlist(a:line, '^\(.\{-\}\):\([1-9]\d*\):\([1-9]\d*:\)\=\(.*\)$')
   if len(match)
@@ -5193,7 +5195,7 @@ endfunction
 
 function! s:GrepCfile(result) abort
   let options = s:GrepOptions(a:result.args, a:result)
-  let entry = s:GrepParseLine(options, a:result, getline('.'))
+  let entry = s:GrepParseLine(options, 1, a:result, getline('.'))
   if get(entry, 'col')
     return [entry.filename, entry.lnum, "norm!" . entry.col . "|"]
   elseif has_key(entry, 'lnum')
@@ -5265,7 +5267,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
       let more = 1
       set nomore
     endif
-    call map(list, 's:GrepParseLine(options, dir, v:val)')
+    call map(list, 's:GrepParseLine(options, 0, dir, v:val)')
     call s:QuickfixSet(listnr, list, 'a')
     let press_enter_shortfall = &cmdheight - len(list)
     if press_enter_shortfall > 0
