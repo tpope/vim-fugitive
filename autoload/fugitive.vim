@@ -1314,8 +1314,7 @@ endfunction
 call s:add_methods('repo',['dir','tree','bare','find','translate','head'])
 
 function! s:repo_git_command(...) dict abort
-  let git = s:GitShellCmd() . ' --git-dir='.s:shellesc(self.git_dir)
-  return git.join(map(copy(a:000),'" ".s:shellesc(v:val)'),'')
+  throw 'fugitive: fugitive#repo().git_command(...) has been replaced by FugitiveShellCommand(...)'
 endfunction
 
 function! s:repo_git_chomp(...) dict abort

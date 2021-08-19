@@ -125,14 +125,17 @@ function! FugitiveResult(...) abort
   return call('fugitive#Result', a:000)
 endfunction
 
-" FugitivePrepare() constructs a Git command string which can be executed with
-" functions like system() and commands like :!.  Integer arguments will be
-" treated as buffer numbers, and the appropriate relative path inserted in
-" their place.
+" FugitiveShellCommand() turns an array of arugments into a Git command string
+" which can be executed with functions like system() and commands like :!.
+" Integer arguments will be treated as buffer numbers, and the appropriate
+" relative path inserted in their place.
 "
-" If the first argument is a string that looks like a path or an empty string,
-" it will be used as the Git dir.  If it's a buffer number, the Git dir for
-" that buffer will be used.  The default is the current buffer.
+" An optional second argument provides the Git dir, or the buffer number of a
+" buffer with a Git dir.  The default is the current buffer.
+function! FugitiveShellCommand(...) abort
+  return call('fugitive#ShellCommand', a:000)
+endfunction
+
 function! FugitivePrepare(...) abort
   return call('fugitive#ShellCommand', a:000)
 endfunction
