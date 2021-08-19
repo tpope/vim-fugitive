@@ -5260,12 +5260,24 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   echo title
   let list = s:SystemList(s:UserCommandList(a:options) + cmd + args)[0]
   call writefile(list + [''], tempfile, 'b')
-  call map(list, 's:GrepParseLine(options, dir, v:val)')
-  call s:QuickfixSet(listnr, list, 'a')
-  let press_enter_shortfall = &cmdheight - len(list)
-  if press_enter_shortfall > 0
-    echo repeat("\n", press_enter_shortfall - 1)
-  endif
+  try
+    if &more
+      let more = 1
+      set nomore
+    endif
+    call map(list, 's:GrepParseLine(options, dir, v:val)')
+    call s:QuickfixSet(listnr, list, 'a')
+    let press_enter_shortfall = &cmdheight - len(list)
+    if press_enter_shortfall > 0
+      echo repeat("\n", press_enter_shortfall - 1)
+    elseif !a:bang && !empty(list)
+      echo ""
+    endif
+  finally
+    if exists('l:more')
+      let &more = more
+    endif
+  endtry
   call s:RunFinished(state)
   silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if !a:bang && !empty(list)
