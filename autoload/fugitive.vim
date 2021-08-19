@@ -92,7 +92,7 @@ function! s:VersionCheck() abort
     return 'return ' . string('echoerr "fugitive: Vim 7.4 or newer required"')
   elseif empty(fugitive#GitVersion())
     let exe = get(s:GitCmd(), 0, '')
-    if exists('*exepath') && len(exe) && empty(exepath(exe))
+    if len(exe) && !executable(exe)
       return 'return ' . string('echoerr "fugitive: cannot find ' . string(exe) . ' in PATH"')
     endif
     return 'return ' . string('echoerr "fugitive: cannot execute Git"')
