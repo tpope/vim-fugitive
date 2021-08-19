@@ -3357,9 +3357,6 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   call s:PrepareEnv(env, dir)
   if pager is# -1
     let pager = fugitive#PagerFor(args, config)
-    if a:bang && pager isnot# 1
-      return 'echoerr ' .  string('fugitive: :Git! for temp buffer output has been replaced by :Git --paginate')
-    endif
   endif
   if type(pager) ==# type('') ||
         \ (s:HasOpt(args, ['add', 'checkout', 'commit', 'stage', 'stash', 'reset'], '-p', '--patch') ||
@@ -3389,8 +3386,16 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
         \ 'filetype': 'git',
         \ 'mods': s:Mods(a:mods),
         \ 'file': s:Resolve(tempname())}
-  if pager
-    let after_edit = ''
+  let allow_pty = 1
+  let after_edit = ''
+  let stream = 0
+  if a:bang && pager isnot# 2
+    let pager = 1
+    let stream = exists('*setbufline')
+    let do_edit = substitute(s:Mods(a:mods, &splitbelow ? 'botright' : 'topleft'), '\<tab\>', '-tab', 'g') . 'pedit!'
+    call extend(env, {'COLUMNS': '' . (&columns - 1)}, 'keep')
+  elseif pager
+    let allow_pty = 0
     if pager is# 2 && a:bang && a:line2 >= 0
       let [do_edit, after_edit] = s:ReadPrepare(a:line1, a:line2, a:range, a:mods)
     elseif pager is# 2 && a:bang
@@ -3403,10 +3408,10 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     endif
     call extend(env, {'COLUMNS': '' . get(g:, 'fugitive_columns', 80)}, 'keep')
   else
-    call extend(env, {'COLUMNS': '' . &columns - 1}, 'keep')
+    call extend(env, {'COLUMNS': '' . (&columns - 1)}, 'keep')
   endif
   if s:RunJobs()
-    let state.pty = !pager && get(g:, 'fugitive_pty', has('unix') && !has('win32unix') && (has('patch-8.0.0744') || has('nvim')) && fugitive#GitVersion() !~# '\.windows\>')
+    let state.pty = allow_pty && get(g:, 'fugitive_pty', has('unix') && !has('win32unix') && (has('patch-8.0.0744') || has('nvim')) && fugitive#GitVersion() !~# '\.windows\>')
     if !state.pty
       let args = s:AskPassArgs(dir) + args
     endif
@@ -3428,7 +3433,9 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
           \ 'GIT_SEQUENCE_EDITOR': editor,
           \ 'GIT_PAGER': 'cat',
           \ 'PAGER': 'cat'}, 'keep')
-    if pager
+    if stream
+      call writefile(['fugitive: aborting edit due to background operation.'], state.file . '.exit')
+    elseif pager
       call writefile(['fugitive: aborting edit due to use of pager.'], state.file . '.exit')
       let after = '|' . do_edit . ' ' . s:fnameescape(state.file) . after_edit . after
     else
@@ -3469,6 +3476,12 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     if pager
       let tmp.closed_in = 1
       call s:RunCloseIn(job)
+    endif
+    if stream
+      exe 'silent' do_edit '++ff=unix' s:fnameescape(state.file)
+      let state.capture_bufnr = bufnr(state.file)
+      call setbufvar(state.capture_bufnr, '&modified', 1)
+      return (after_edit . after)[1:-1]
     endif
     call add(s:resume_queue, [state, tmp, job])
     return 'call fugitive#Resume()|silent checktime' . after
