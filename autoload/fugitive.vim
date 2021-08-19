@@ -673,8 +673,8 @@ function! s:BuildShell(dir, env, git, args) abort
     call insert(cmd, '--git-dir=' . FugitiveGitPath(a:dir))
   else
     call extend(cmd, ['-C', FugitiveGitPath(tree)], 'keep')
-    if !s:cpath(tree . '/.git', dir)
-      call extend(cmd, ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
+    if !s:cpath(tree . '/.git', a:dir)
+      call extend(cmd, ['--git-dir=' . FugitiveGitPath(a:dir)], 'keep')
     endif
   endif
   return pre . join(map(a:git + cmd, 's:shellesc(v:val)'))
