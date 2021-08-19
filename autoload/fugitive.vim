@@ -5136,7 +5136,6 @@ function! fugitive#LogComplete(A, L, P) abort
 endfunction
 
 function! s:GrepParseLine(options, dir, line) abort
-  echo a:line
   let entry = {'valid': 1}
   let match = matchlist(a:line, '^\(.\{-\}\):\([1-9]\d*\):\([1-9]\d*:\)\=\(.*\)$')
   if len(match)
