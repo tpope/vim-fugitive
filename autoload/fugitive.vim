@@ -3129,6 +3129,10 @@ function! s:RunWait(state, tmp, job, ...) abort
     call delete(a:1)
   endif
   try
+    if a:tmp.no_more && &more
+      let more = &more
+      let &more = 0
+    endif
     while get(a:state, 'request', '') !=# 'edit' && s:RunTick(a:job)
       call s:RunEcho(a:tmp)
       if !get(a:tmp, 'closed_in')
@@ -3175,6 +3179,9 @@ function! s:RunWait(state, tmp, job, ...) abort
     endif
     let finished = !s:RunEdit(a:state, a:tmp, a:job)
   finally
+    if exists('l:more')
+      let &more = more
+    endif
     if !exists('finished')
       try
         if a:state.pty && !get(a:tmp, 'closed_in')
@@ -3355,6 +3362,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let i += 1
   endwhile
   call s:PrepareEnv(env, dir)
+  let no_pager = pager is# 0
   if pager is# -1
     let pager = fugitive#PagerFor(args, config)
   endif
@@ -3414,6 +3422,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       let args = s:AskPassArgs(dir) + args
     endif
     let tmp = {
+          \ 'no_more': no_pager,
           \ 'line_count': 0,
           \ 'err': '',
           \ 'out': '',
