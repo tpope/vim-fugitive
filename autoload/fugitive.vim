@@ -3315,7 +3315,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   if !explicit_pathspec_option
     call insert(flags, '--no-literal-pathspecs')
   endif
-  if pager is# 0
+  let no_pager = pager is# 0
+  if no_pager
     call add(flags, '--no-pager')
   endif
   if empty(args) && pager is# -1
@@ -3362,7 +3363,6 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let i += 1
   endwhile
   call s:PrepareEnv(env, dir)
-  let no_pager = pager is# 0
   if pager is# -1
     let pager = fugitive#PagerFor(args, config)
   endif
