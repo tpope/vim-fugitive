@@ -312,7 +312,7 @@ function! s:JobExecute(argv, jopts, callback, ...) abort
   elseif &shell !~# 'sh' || &shell =~# 'fish\|\%(powershell\|pwsh\)\%(\.exe\)\=$'
     throw 'fugitive: Vim 8 or higher required to use ' . &shell
   else
-    let cmd = fugitive#ShellCommand(args)
+    let cmd = s:shellesc(a:argv)
     let outfile = tempname()
     try
       let dict.stderr = split(system(' (' . cmd . ' >' . outfile . ') '), "\n", 1)
