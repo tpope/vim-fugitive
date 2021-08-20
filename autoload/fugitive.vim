@@ -5841,8 +5841,24 @@ endfunction
 
 " Section: :Git push, :Git fetch
 
+function! s:CompletePush(A, L, P, ...) abort
+  let dir = a:0 ? a:1 : s:Dir()
+  let remote = matchstr(a:L, '\u\w*[! ] *.\{-\}\s\@<=\zs[^-[:space:]]\S*\ze ')
+  if empty(remote)
+    let matches = s:LinesError([dir, 'remote'])[0]
+  elseif a:A =~# ':'
+    let lead = matchstr(a:A, '^[^:]*:')
+    let matches = s:LinesError([dir, 'ls-remote', remote])[0]
+    call filter(matches, 'v:val =~# "\t" && v:val !~# "{"')
+    call map(matches, 'lead . s:sub(v:val, "^.*\t", "")')
+  else
+    let matches = s:CompleteHeads(dir)
+  endif
+  return s:FilterEscape(matches, a:A)
+endfunction
+
 function! fugitive#PushComplete(A, L, P, ...) abort
-  return s:CompleteSub('push', a:A, a:L, a:P, function('s:CompleteRemote'), a:000)
+  return s:CompleteSub('push', a:A, a:L, a:P, function('s:CompletePush'), a:000)
 endfunction
 
 function! fugitive#FetchComplete(A, L, P, ...) abort
