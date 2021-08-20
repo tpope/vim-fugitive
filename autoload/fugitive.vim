@@ -632,7 +632,27 @@ function! s:JobOpts(cmd, env) abort
   endif
 endfunction
 
-function! s:PrepareJob(...) abort
+function! s:PrepareJob(opts) abort
+  let dict = {'argv': a:opts.argv}
+  if has_key(a:opts, 'env')
+    let dict.env = a:opts.env
+  endif
+  let [argv, jopts] = s:JobOpts(a:opts.argv, get(a:opts, 'env', {}))
+  if has_key(a:opts, 'cwd')
+    if has('patch-8.0.0902')
+      let jopts.cwd = a:opts.cwd
+      let dict.cwd = a:opts.cwd
+    else
+      throw 'fugitive: cwd unsupported'
+    endif
+  endif
+  return [argv, jopts, dict]
+endfunction
+
+function! fugitive#PrepareJob(...) abort
+  if a:0 == 1 && type(a:1) == type({}) && has_key(a:1, 'argv') && !has_key(a:1, 'args')
+    return s:PrepareJob(a:1)
+  endif
   let [dir, user_env, exec_env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
   let dict = {'git': git, 'git_dir': dir, 'flags': flags, 'args': args}
   if len(user_env)
@@ -651,7 +671,6 @@ function! s:PrepareJob(...) abort
     endif
   endif
   call extend(cmd, git, 'keep')
-  let dict.full_argv = cmd
   return s:JobOpts(cmd, exec_env) + [dict]
 endfunction
 
@@ -661,7 +680,7 @@ function! fugitive#Execute(...) abort
   while len(cb) && type(cb[0]) !=# type(function('tr'))
     call add(cmd, remove(cb, 0))
   endwhile
-  let [argv, jopts, dict] = call('s:PrepareJob', cmd)
+  let [argv, jopts, dict] = call('fugitive#PrepareJob', cmd)
   return s:JobExecute(argv, jopts, cb, dict)
 endfunction
 
@@ -797,7 +816,7 @@ function! s:TreeChomp(...) abort
 endfunction
 
 function! s:StdoutToFile(out, cmd, ...) abort
-  let [argv, jopts, _] = s:PrepareJob(a:cmd)
+  let [argv, jopts, _] = fugitive#PrepareJob(a:cmd)
   let exit = []
   if exists('*jobstart')
     call extend(jopts, {
