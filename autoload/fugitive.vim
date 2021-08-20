@@ -5238,6 +5238,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
     elseif args[i] =~# '^\%(-[qz]\|--quiet\)$'
       let quiet = 1
       call remove(args, i)
+      continue
     elseif args[i] =~# '^--no-quiet$'
       let quiet = 0
     elseif args[i] =~# '^\%(--heading\)$'
