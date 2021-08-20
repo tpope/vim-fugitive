@@ -5213,7 +5213,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   let quiet = 0
   let i = 0
   while i < len(args) && args[i] !=# '--'
-    let partition = matchstr(args[i], '^-' . s:grep_combine_flags . '\ze[qO]')
+    let partition = matchstr(args[i], '^-' . s:grep_combine_flags . '\ze[qzO]')
     if len(partition) > 1
       call insert(args, '-' . strpart(args[i], len(partition)), i+1)
       let args[i] = partition
@@ -5225,10 +5225,10 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
       continue
     elseif args[i] =~# '^\%(-O\|--open-files-in-pager=\)'
       let handle = 0
-    elseif args[i] =~# '^-q.'
+    elseif args[i] =~# '^-[qz].'
       let args[i] = '-' . args[i][2:-1]
       let quiet = 1
-    elseif args[i] =~# '^\%(-q\|--quiet\)$'
+    elseif args[i] =~# '^\%(-[qz]\|--quiet\)$'
       let quiet = 1
       call remove(args, i)
     elseif args[i] =~# '^--no-quiet$'
