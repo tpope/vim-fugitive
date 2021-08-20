@@ -5210,9 +5210,10 @@ endfunction
 function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   let args = copy(a:options.subcommand_args)
   let handle = -1
+  let quiet = 0
   let i = 0
   while i < len(args) && args[i] !=# '--'
-    let partition = matchstr(args[i], '^-' . s:grep_combine_flags . '\zeO')
+    let partition = matchstr(args[i], '^-' . s:grep_combine_flags . '\ze[qO]')
     if len(partition) > 1
       call insert(args, '-' . strpart(args[i], len(partition)), i+1)
       let args[i] = partition
@@ -5224,6 +5225,14 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
       continue
     elseif args[i] =~# '^\%(-O\|--open-files-in-pager=\)'
       let handle = 0
+    elseif args[i] =~# '^-q.'
+      let args[i] = '-' . args[i][2:-1]
+      let quiet = 1
+    elseif args[i] =~# '^\%(-q\|--quiet\)$'
+      let quiet = 1
+      call remove(args, i)
+    elseif args[i] =~# '^--no-quiet$'
+      let quiet = 0
     elseif args[i] =~# '^\%(--heading\)$'
       call remove(args, i)
       continue
@@ -5259,18 +5268,20 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   let event = listnr < 0 ? 'grep-fugitive' : 'lgrep-fugitive'
   silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
   try
-    if &more
+    if !quiet && &more
       let more = 1
       set nomore
     endif
-    echo title
+    if !quiet
+      echo title
+    endif
     let list = s:SystemList(s:UserCommandList(a:options) + cmd + args)[0]
     call writefile(list + [''], tempfile, 'b')
     call s:RunSave(state)
-    call map(list, 's:GrepParseLine(options, 0, dir, v:val)')
+    call map(list, 's:GrepParseLine(options, ' . quiet . ', dir, v:val)')
     call s:QuickfixSet(listnr, list, 'a')
     let press_enter_shortfall = &cmdheight - len(list)
-    if press_enter_shortfall > 0
+    if press_enter_shortfall > 0 && !quiet
       echo repeat("\n", press_enter_shortfall - 1)
     endif
   finally
@@ -5280,6 +5291,13 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   endtry
   call s:RunFinished(state)
   silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
+  if quiet
+    let bufnr = bufnr('')
+    silent exe substitute(s:Mods(a:mods), '\<tab\>', '', '') (listnr < 0 ? 'c' : 'l').'open'
+    if bufnr != bufnr('')
+      wincmd p
+    endif
+  end
   if !a:bang && !empty(list)
     return 'silent ' . (listnr < 0 ? 'c' : 'l').'first'
   else
