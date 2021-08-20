@@ -337,6 +337,8 @@ endfunction
 
 " Section: Git
 
+let s:run_jobs = (exists('*job_start') || exists('*jobstart')) && exists('*bufwinid')
+
 function! s:GitCmd() abort
   if !exists('g:fugitive_git_executable')
     return ['git']
@@ -859,16 +861,6 @@ function! s:StdoutToFile(out, cmd, ...) abort
   else
     let cmd = fugitive#ShellCommand(a:cmd)
     return s:SystemError(' (' . cmd . ' >' . a:out . ') ')
-  endif
-endfunction
-
-function! s:EchoExec(...) abort
-  if s:RunJobs()
-    return 'Git ' . s:fnameescape(a:000)
-  else
-    echo substitute(s:SystemError(call('fugitive#ShellCommand', a:000))[0], "\n$", '', '')
-    call fugitive#ReloadStatus(-1, 1)
-    return 'checktime'
   endif
 endfunction
 
@@ -2600,7 +2592,7 @@ function! fugitive#BufReadStatus() abort
     call s:Map('x', 's', ":<C-U>execute <SID>Do('Stage',1)<CR>", '<silent>')
     call s:Map('n', 'u', ":<C-U>execute <SID>Do('Unstage',0)<CR>", '<silent>')
     call s:Map('x', 'u', ":<C-U>execute <SID>Do('Unstage',1)<CR>", '<silent>')
-    call s:Map('n', 'U', ":exe <SID>EchoExec('reset', '-q')<CR>", '<silent>')
+    call s:Map('n', 'U', "Git --no-pager reset -q<CR>", '<silent>')
     call s:MapMotion('gu', "exe <SID>StageJump(v:count, 'Untracked', 'Unstaged')")
     call s:MapMotion('gU', "exe <SID>StageJump(v:count, 'Unstaged', 'Untracked')")
     call s:MapMotion('gs', "exe <SID>StageJump(v:count, 'Staged')")
@@ -2951,10 +2943,6 @@ function! s:AskPassArgs(dir) abort
     endif
   endif
   return []
-endfunction
-
-function! s:RunJobs() abort
-  return (exists('*job_start') || exists('*jobstart')) && exists('*bufwinid')
 endfunction
 
 function! s:RunSave(state) abort
@@ -3433,7 +3421,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     endif
     call extend(env, {'COLUMNS': '' . get(g:, 'fugitive_columns', 80)}, 'keep')
   endif
-  if s:RunJobs()
+  if s:run_jobs
     call extend(env, {'COLUMNS': '' . (&columns - 1)}, 'keep')
     let state.pty = allow_pty && get(g:, 'fugitive_pty', has('unix') && !has('win32unix') && (has('patch-8.0.0744') || has('nvim')) && fugitive#GitVersion() !~# '\.windows\>')
     if !state.pty
@@ -3535,10 +3523,30 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   elseif has('gui_running')
     return 'echoerr ' . string('fugitive: Vim 8 with job support required to use :Git in GVim')
   else
-    let pre = s:BuildEnvPrefix(env)
-    return 'exe ' . string('noautocmd !' . escape(pre . s:shellesc(s:UserCommandList(options) + args), '!#%')) .
-          \ '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' .
-          \ after
+    if !explicit_pathspec_option && get(options.flags, 0, '') ==# '--no-literal-pathspecs'
+      call remove(options.flags, 0)
+    endif
+    let cmd = s:BuildEnvPrefix(env) . s:shellesc(s:UserCommandList(options) + args)
+    let after = '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' . after
+    if no_pager
+      let output = substitute(s:SystemError(cmd)[0], "\n$", '', '')
+      if len(output)
+        try
+          if &more
+            let more = 1
+            set nomore
+          endif
+          echo output
+        finally
+          if exists('l:more')
+            set more
+          endif
+        endtry
+      endif
+      return 'silent checktime' . after
+    else
+      return 'exe ' . string('noautocmd !' . escape(cmd, '!#%')) . after
+    endif
   endif
 endfunction
 
