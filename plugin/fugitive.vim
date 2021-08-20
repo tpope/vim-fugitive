@@ -79,18 +79,6 @@ function! FugitiveFind(...) abort
   endif
 endfunction
 
-function! FugitivePath(...) abort
-  if a:0 > 2 && type(a:1) ==# type({})
-    return fugitive#Path(a:2, a:3, FugitiveGitDir(a:1))
-  elseif a:0 && type(a:1) ==# type({})
-    return FugitiveReal(a:0 > 1 ? a:2 : @%)
-  elseif a:0 > 1
-    return fugitive#Path(a:1, a:2, FugitiveGitDir(a:0 > 2 ? a:3 : -1))
-  else
-    return FugitiveReal(a:0 ? a:1 : @%)
-  endif
-endfunction
-
 " FugitiveParse() takes a fugitive:// URL and returns a 2 element list
 " containing an object name ("commit:file") and the Git dir.  It's effectively
 " the inverse of FugitiveFind().
@@ -207,6 +195,18 @@ function! FugitiveHead(...) abort
     return ''
   endif
   return fugitive#Head(arg, dir)
+endfunction
+
+function! FugitivePath(...) abort
+  if a:0 > 2 && type(a:1) ==# type({})
+    return fugitive#Path(a:2, a:3, FugitiveGitDir(a:1))
+  elseif a:0 && type(a:1) ==# type({})
+    return FugitiveReal(a:0 > 1 ? a:2 : @%)
+  elseif a:0 > 1
+    return fugitive#Path(a:1, a:2, FugitiveGitDir(a:0 > 2 ? a:3 : -1))
+  else
+    return FugitiveReal(a:0 ? a:1 : @%)
+  endif
 endfunction
 
 function! FugitiveStatusline(...) abort
