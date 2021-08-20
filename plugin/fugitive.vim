@@ -117,6 +117,22 @@ function! FugitiveResult(...) abort
   return call('fugitive#Result', a:000)
 endfunction
 
+" FugitiveExecute() runs Git with a list of arguments and returns a dictionary
+" with the following keys:
+"
+" * "exit_status": The integer exit code of the process.
+" * "stdout": The stdout produced by the process, as a list of lines.
+" * "stderr": The stdout produced by the process, as a list of lines.
+"
+" An optional second argument provides the Git dir, or the buffer number of a
+" buffer with a Git dir.  The default is the current buffer.
+"
+" An optional final argument is a callback Funcref, for asynchronous
+" execution.
+function! FugitiveExecute(args, ...) abort
+  return call('fugitive#Execute', [a:args] + a:000)
+endfunction
+
 " FugitiveShellCommand() turns an array of arugments into a Git command string
 " which can be executed with functions like system() and commands like :!.
 " Integer arguments will be treated as buffer numbers, and the appropriate
@@ -128,6 +144,9 @@ function! FugitiveShellCommand(...) abort
   return call('fugitive#ShellCommand', a:000)
 endfunction
 
+" FugitivePrepare() is a deprecated alias for FugitiveShellCommand().  If you
+" are using this in conjunction with system(), consider using
+" FugitiveExecute() instead.
 function! FugitivePrepare(...) abort
   return call('fugitive#ShellCommand', a:000)
 endfunction
