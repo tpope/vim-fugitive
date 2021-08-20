@@ -156,6 +156,12 @@ endfunction
 " are using this in conjunction with system(), consider using
 " FugitiveExecute() instead.
 function! FugitivePrepare(...) abort
+  if !exists('s:did_prepare_warning')
+    let s:did_prepare_warning = 1
+    echohl WarningMsg
+    unsilent echomsg 'FugitivePrepare() has been superseded by FugitiveShellCommand()'
+    echohl NONE
+  endif
   return call('fugitive#ShellCommand', a:000)
 endfunction
 
