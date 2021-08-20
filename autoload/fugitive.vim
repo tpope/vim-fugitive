@@ -3393,7 +3393,6 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let pager = 1
     let stream = exists('*setbufline')
     let do_edit = substitute(s:Mods(a:mods, &splitbelow ? 'botright' : 'topleft'), '\<tab\>', '-tab', 'g') . 'pedit!'
-    call extend(env, {'COLUMNS': '' . (&columns - 1)}, 'keep')
   elseif pager
     let allow_pty = 0
     if pager is# 2 && a:bang && a:line2 >= 0
@@ -3407,10 +3406,9 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       call s:BlurStatus()
     endif
     call extend(env, {'COLUMNS': '' . get(g:, 'fugitive_columns', 80)}, 'keep')
-  else
-    call extend(env, {'COLUMNS': '' . (&columns - 1)}, 'keep')
   endif
   if s:RunJobs()
+    call extend(env, {'COLUMNS': '' . (&columns - 1)}, 'keep')
     let state.pty = allow_pty && get(g:, 'fugitive_pty', has('unix') && !has('win32unix') && (has('patch-8.0.0744') || has('nvim')) && fugitive#GitVersion() !~# '\.windows\>')
     if !state.pty
       let args = s:AskPassArgs(dir) + args
