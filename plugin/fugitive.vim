@@ -99,6 +99,14 @@ function! FugitiveParse(...) abort
   throw v:errmsg
 endfunction
 
+" FugitiveGitVersion() queries the version of Git in use.  Pass up to 3
+" arguments to return a Boolean of whether a certain minimum version is
+" available (FugitiveGitVersion(2,3,4) checks for 2.3.4 or higher) or no
+" arguments to get a raw string.
+function! FugitiveGitVersion(...) abort
+  return call('fugitive#GitVersion', a:000)
+endfunction
+
 " FugitiveResult() returns an object encapsulating the result of the most
 " recent :Git command.  Will be empty if no result is available.  During a
 " User FugitiveChanged event, this is guaranteed to correspond to the :Git
