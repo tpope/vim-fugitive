@@ -675,7 +675,6 @@ version.
 *:Gfetch*       Superseded by |:Git| fetch.
 *:Glog*         Superseded by |:Gclog|.
 *:Gstatus*      Superseded by |:Git| (with no arguments).
-*:Git!*         Superseded by |:Git_--paginate|.
 *:Gsplit!*      Superseded by |:Git_--paginate|.
 *:Gvsplit!*     Superseded by :vert Git --paginate.
 *:Gtabsplit!*   Superseded by :tab Git --paginate.
