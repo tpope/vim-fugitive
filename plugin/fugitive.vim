@@ -18,7 +18,7 @@ let s:bad_git_dir = '/$\|^fugitive:'
 function! FugitiveGitDir(...) abort
   if v:version < 704
     return ''
-  elseif !a:0 || type(a:1) == type(0) && a:1 < 0
+  elseif !a:0 || type(a:1) == type(0) && a:1 < 0 || a:1 is# get(v:, 'true', -1)
     if exists('g:fugitive_event')
       return g:fugitive_event
     endif
@@ -30,7 +30,7 @@ function! FugitiveGitDir(...) abort
       return b:git_dir
     endif
     return dir =~# s:bad_git_dir ? '' : dir
-  elseif type(a:1) == type(0)
+  elseif type(a:1) == type(0) && a:1 isnot# 0
     if a:1 == bufnr('') && (!exists('b:git_dir') || b:git_dir =~# s:bad_git_dir) && empty(&buftype)
       let b:git_dir = FugitiveExtractGitDir(expand('%:p'))
     endif
