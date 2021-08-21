@@ -1170,7 +1170,9 @@ function! fugitive#RemoteUrl(...) abort
   else
     let url = remove(args, 0)
   endif
-  if url !~# ':\|^/\|^\.\.\=/'
+  if url ==# '.git'
+    let url = FugitiveGitDir(config)
+  elseif url !~# ':\|^/\|^\.\.\=/'
     let url = FugitiveConfigGet('remote.' . url . '.url', config)
   endif
   let instead_of = []
@@ -6794,11 +6796,11 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
   let dir = s:Dir()
   try
     let arg = a:arg
-    if arg =~# '^++remote='
-      let remote = matchstr(arg, '^++remote=\zs\S\+')
+    if arg =~# '^++\%([Gg]it\)\=[Rr]emote='
+      let remote = matchstr(arg, '^++\%([Gg]it\)\=[Rr]emote=\zs\S\+')
       let arg = matchstr(arg, '\s\zs\S.*')
     endif
-    let validremote = '\.\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)\='
+    let validremote = '\.\%(git\)\=\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)\='
     if arg ==# '-'
       let remote = ''
       let rev = ''
