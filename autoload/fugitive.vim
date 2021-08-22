@@ -971,8 +971,8 @@ function! fugitive#Config(...) abort
 endfunction
 
 function! fugitive#ConfigGetAll(name, ...) abort
-  if type(a:name) !=# type('') && a:0
-    let config = fugitive#Config(a:0)
+  if a:0 && (type(a:name) !=# type('') || (a:name !~# '^[[:alnum:]-]\+\.' && a:1 =~# '^[[:alnum:]-]\+\.'))
+    let config = fugitive#Config(a:name)
     let name = a:1
   else
     let config = fugitive#Config(a:0 ? a:1 : s:Dir())
@@ -983,9 +983,9 @@ function! fugitive#ConfigGetAll(name, ...) abort
 endfunction
 
 function! fugitive#ConfigGetRegexp(pattern, ...) abort
-  if type(a:pattern) !=# type('') && a:0
-    let config = fugitive#Config(a:0)
-    let pattern = a:1
+  if type(a:pattern) !=# type('')
+    let config = fugitive#Config(a:name)
+    let pattern = a:0 ? a:1 : '.*'
   else
     let config = fugitive#Config(a:0 ? a:1 : s:Dir())
     let pattern = a:pattern
