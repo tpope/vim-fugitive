@@ -937,7 +937,7 @@ function! fugitive#Config(...) abort
   elseif a:0 >= 2
     let dir = s:Dir(a:2)
     let name = a:1
-  elseif a:0 == 1 && type(a:1) == type({}) && !has_key(a:1, 'git_dir')
+  elseif a:0 == 1 && type(a:1) == type({}) && has_key(a:1, 'GetAll')
     return a:1
   elseif a:0 == 1 && type(a:1) == type('') && a:1 =~# '^[[:alnum:]-]\+\.'
     let dir = s:Dir()
@@ -3336,6 +3336,23 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   if no_pager
     call add(flags, '--no-pager')
   endif
+  let env = {}
+  let i = 0
+  while i < len(flags) - 1
+    if flags[i] ==# '-c'
+      let i += 1
+      let config_name = tolower(matchstr(flags[i], '^[^=]\+'))
+      if has_key(s:prepare_env, config_name) && flags[i] =~# '=.'
+        let env[s:prepare_env[config_name]] = matchstr(flags[i], '=\zs.*')
+      endif
+      if flags[i] =~# '='
+        let config[config_name] = [matchstr(flags[i], '=\zs.*')]
+      else
+        let config[config_name] = [1]
+      endif
+    endif
+    let i += 1
+  endwhile
   let options = {'git': s:UserCommandList(), 'git_dir': s:GitDir(dir), 'flags': flags}
   if empty(args) && pager is# -1
     let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [], options)
@@ -3361,23 +3378,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   else
     let overrides = {}
   endif
-  let env = get(overrides, 'env', {})
-  let i = 0
-  while i < len(flags) - 1
-    if flags[i] ==# '-c'
-      let i += 1
-      let config_name = tolower(matchstr(flags[i], '^[^=]\+'))
-      if has_key(s:prepare_env, config_name) && flags[i] =~# '=.'
-        let env[s:prepare_env[config_name]] = matchstr(flags[i], '=\zs.*')
-      endif
-      if flags[i] =~# '='
-        let config[config_name] = [matchstr(flags[i], '=\zs.*')]
-      else
-        let config[config_name] = [1]
-      endif
-    endif
-    let i += 1
-  endwhile
+  call extend(env, get(overrides, 'env', {}))
   call s:PrepareEnv(env, dir)
   if pager is# -1
     let pager = fugitive#PagerFor(args, config)
