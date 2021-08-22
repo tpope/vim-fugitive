@@ -88,8 +88,8 @@ function! s:throw(string) abort
 endfunction
 
 function! s:VersionCheck() abort
-  if v:version < 704
-    return 'return ' . string('echoerr "fugitive: Vim 7.4 or newer required"')
+  if v:version < 703
+    return 'return ' . string('echoerr "fugitive: Vim 7.3 or newer required"')
   elseif empty(fugitive#GitVersion())
     let exe = get(s:GitCmd(), 0, '')
     if len(exe) && !executable(exe)
