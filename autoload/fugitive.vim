@@ -787,7 +787,7 @@ endfunction
 
 function! s:ChompStderr(...) abort
   let r = call('fugitive#Execute', a:000)
-  return !r.exit_status ? '' ? len(r.stderr) > 1 : s:JoinChomp(r.stderr) : 'unknown Git error'
+  return !r.exit_status ? '' : len(r.stderr) > 1 ? s:JoinChomp(r.stderr) : 'unknown Git error' . string(r)
 endfunction
 
 function! s:ChompDefault(default, ...) abort
