@@ -1155,7 +1155,7 @@ function! fugitive#RemoteUrl(...) abort
     if type(a:1) ==# type({}) && has_key(a:1, 'remote_name') && (type(get(args, 0, 0)) !=# type('') || args[0] =~# '^:')
       call insert(args, a:1.remote_name)
     endif
-  elseif a:0 > 1
+  elseif a:0 > 1 && a:2 !~# '^:'
     let config = fugitive#Config(a:2)
     let args = [a:1] + a:000[2:-1]
   else
