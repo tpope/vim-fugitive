@@ -1152,6 +1152,9 @@ function! fugitive#RemoteUrl(...) abort
   if a:0 && (type(a:1) !=# type('') || a:1 =~# '^/\|^\a:[\\/]' && get(a:, 2, '') !~# '^/\|^\a:[\\/]')
     let config = fugitive#Config(a:1)
     let args = a:000[1:-1]
+    if type(a:1) ==# type({}) && has_key(a:1, 'remote_name') && (type(get(args, 0, 0)) !=# type('') || args[0] =~# '^:')
+      call insert(args, a:1.remote_name)
+    endif
   elseif a:0 > 1
     let config = fugitive#Config(a:2)
     let args = [a:1] + a:000[2:-1]
@@ -1159,7 +1162,7 @@ function! fugitive#RemoteUrl(...) abort
     let config = fugitive#Config()
     let args = copy(a:000)
   endif
-  if empty(args)
+  if empty(args) || args[0] =~# '^:'
     let url = s:Remote(config)
   elseif args[0] =~# '^\.\=$'
     call remove(args, 0)
@@ -1185,8 +1188,8 @@ function! fugitive#RemoteUrl(...) abort
       break
     endif
   endfor
-  if index(args, 1) < 0 && index(args, get(v:, 'true', 1)) < 0 && index(args, 'noresolve') < 0
-    let url = fugitive#ResolveRemote(url)
+  if index(args, 1) < 0 && index(args, get(v:, 'true', 1)) < 0 && index(args, ':noresolve') < 0
+    let url = fugitive#ResolveRemote(url).full
   endif
   return url
 endfunction
@@ -6984,13 +6987,11 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
       endwhile
     endif
 
-    if empty(remote)
-      let remote = '.'
+    if empty(remote) || remote ==# '.'
+      let remote = s:Remote(dir)
     endif
-    let raw = fugitive#RemoteUrl(remote, dir)
-    if empty(raw)
-      let raw = remote
-    endif
+    let remote_url = fugitive#RemoteUrl(remote, dir)
+    let raw = empty(remote_url) ? remote : remote_url
 
     let opts = {
           \ 'git_dir': dir,
@@ -6998,6 +6999,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
           \ 'repo': fugitive#repo(dir),
           \ 'remote': raw,
           \ 'revision': 'No longer provided',
+          \ 'remote_name': remote,
           \ 'commit': commit,
           \ 'path': path,
           \ 'type': type,
