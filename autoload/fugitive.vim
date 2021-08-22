@@ -6966,7 +6966,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
                 let line1 = +matchstr(blame[0], blame_regex)
                 let line2 = +matchstr(blame[-1], blame_regex)
               else
-                call s:throw("Can't browse to uncommitted change")
+                throw "fugitive: can't browse to uncommitted change"
               endif
             endif
           endif
@@ -6995,10 +6995,8 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
 
     let opts = {
           \ 'git_dir': dir,
-          \ 'dir': dir,
-          \ 'repo': fugitive#repo(dir),
+          \ 'repo': {'git_dir': dir},
           \ 'remote': raw,
-          \ 'revision': 'No longer provided',
           \ 'remote_name': remote,
           \ 'commit': commit,
           \ 'path': path,
@@ -7015,7 +7013,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
     endfor
 
     if empty(url)
-      call s:throw("No GBrowse handler installed for '".raw."'")
+      throw "fugitive: no GBrowse handler installed for '".raw."'"
     endif
 
     return s:BrowserOpen(url, a:mods, a:bang)
