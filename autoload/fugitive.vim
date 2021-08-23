@@ -5317,7 +5317,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   endif
   exe s:DirCheck(a:options)
   let listnr = a:line1 == 0 ? a:line1 : a:line2
-  let cmd = ['grep', '--no-column', '--no-color', '--full-name']
+  let cmd = ['grep', '-n', '--no-color', '--full-name']
   let dir = s:Dir(a:options)
   let options = s:GrepOptions(['-n'] + args, dir)
   if listnr > 0
