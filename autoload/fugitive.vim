@@ -5198,13 +5198,13 @@ function! s:GrepParseLine(options, quiet, dir, line) abort
   endif
   let entry = {'valid': 1}
   let match = matchlist(a:line, '^\(.\{-\}\):\([1-9]\d*\):\([1-9]\d*:\)\=\(.*\)$')
-  if len(match)
+  if a:line =~# '^git: \|^usage: \|^error: \|^fatal: \|^BUG: '
+    return {'text': a:line}
+  elseif len(match)
     let entry.module = match[1]
     let entry.lnum = +match[2]
     let entry.col = +match[3]
     let entry.text = match[4]
-  elseif a:line =~# '^git: \|^usage: \|^error: \|^fatal: '
-    return {'text': a:line}
   else
     let entry.module = matchstr(a:line, '\CBinary file \zs.*\ze matches$')
     if len(entry.module)
