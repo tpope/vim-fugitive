@@ -1698,7 +1698,7 @@ function! s:BufName(var) abort
 endfunction
 
 function! s:ExpandVarLegacy(str) abort
-  if get(g:, 'fugitive_legacy_quoting', 1)
+  if get(g:, 'fugitive_legacy_quoting', 0)
     return substitute(a:str, '\\\ze[%#!]', '', 'g')
   else
     return a:str
@@ -1717,6 +1717,8 @@ function! s:ExpandVar(other, var, flags, esc, ...) abort
     let buffer = s:BufName(len(a:other) > 1 ? '#'. a:other[1:-1] : '%')
     let owner = s:Owner(buffer)
     return len(owner) ? owner : '@'
+  elseif len(a:other)
+    return expand(a:other)
   elseif a:var ==# '<cfile>'
     let bufnames = [expand('<cfile>')]
     if v:version >= 704 && get(maparg('<Plug><cfile>', 'c', 0, 1), 'expr')
@@ -1804,7 +1806,7 @@ function! s:SplitExpandChain(string, ...) abort
             \ '\=s:DotRelative(s:Slash(simplify(getcwd() . "/" . submatch(0))), cwd)', '')
     endif
     let arg = substitute(arg,
-          \ '\(' . dquote . '''\%(''''\|[^'']\)*''\|\\[' . s:fnameescape . ']\|^\\[>+-]\|!\d*\)\|' . s:expand,
+          \ '\(' . dquote . '''\%(''''\|[^'']\)*''\|\\[' . s:fnameescape . ']\|^\\[>+-]\|!\d*\|^\~\w*\|\$\w\+\)\|' . s:expand,
           \ '\=s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5), cwd)', 'g')
     call extend(list, split(arg, "\1", 1))
     if arg ==# '--'
