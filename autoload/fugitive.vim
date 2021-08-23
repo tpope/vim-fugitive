@@ -5241,8 +5241,9 @@ let s:grep_combine_flags = '[aiIrhHEGPFnlLzocpWq]\{-\}'
 function! s:GrepOptions(args, dir) abort
   let options = {'name_only': 0, 'name_count': 0, 'line_number': 0}
   let tree = s:Tree(a:dir)
-  let options.prefix = empty(tree) ? fugitive#Find(':0:', a:dir) :
+  let prefix = empty(tree) ? fugitive#Find(':0:', a:dir) :
         \ s:cpath(getcwd(), tree) ? '' : FugitiveVimPath(tree . '/')
+  let options.prefix = prefix
   for arg in a:args
     if arg ==# '--'
       break
@@ -5260,6 +5261,8 @@ function! s:GrepOptions(args, dir) abort
     endif
     if arg ==# '--cached'
       let options.prefix = fugitive#Find(':0:', a:dir)
+    elseif arg ==# '--no-cached'
+      let options.prefix = prefix
     endif
   endfor
   return options
@@ -5317,7 +5320,6 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   if !handle
     return {}
   endif
-  exe s:DirCheck(a:options)
   let listnr = a:line1 == 0 ? a:line1 : a:line2
   let cmd = ['grep', '-n', '--no-color', '--full-name']
   let dir = s:Dir(a:options)
@@ -5336,7 +5338,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
         \ 'args': cmd + args,
         \ 'dir': s:GitDir(a:options),
         \ 'git_dir': s:GitDir(a:options),
-        \ 'cwd': s:UserCommandCwd(dir),
+        \ 'cwd': s:UserCommandCwd(a:options),
         \ 'filetype': 'git',
         \ 'mods': s:Mods(a:mods),
         \ 'file': s:Resolve(tempfile)}
