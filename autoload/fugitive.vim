@@ -5210,6 +5210,13 @@ function! s:GrepParseLine(options, quiet, dir, line) abort
       let entry.valid = 0
     endif
   endif
+  if empty(entry.module) && !a:options.line_number
+    let match = matchlist(a:line, '^\(.\{-\}\):\(.*\)$')
+    if len(match)
+      let entry.module = match[1]
+      let entry.pattern = '\M' . escape(match[2], '\')
+    endif
+  endif
   if empty(entry.module) && a:options.name_count && a:line =~# ':\d\+$'
     let entry.text = matchstr(a:line, '\d\+$')
     let entry.module = strpart(a:line, 0, len(a:line) - len(entry.text) - 1)
@@ -5230,18 +5237,26 @@ endfunction
 
 let s:grep_combine_flags = '[aiIrhHEGPFnlLzocpWq]\{-\}'
 function! s:GrepOptions(args, dir) abort
-  let options = {'name_only': 0, 'name_count': 0}
+  let options = {'name_only': 0, 'name_count': 0, 'line_number': 0}
   let tree = s:Tree(a:dir)
   let options.prefix = empty(tree) ? fugitive#Find(':0:', a:dir) :
         \ s:cpath(getcwd(), tree) ? '' : FugitiveVimPath(tree . '/')
   for arg in a:args
     if arg ==# '--'
       break
-    elseif arg =~# '^\%(-' . s:grep_combine_flags . 'c\|--count\)$'
+    endif
+    if arg =~# '^\%(-' . s:grep_combine_flags . 'c\|--count\)$'
       let options.name_count = 1
-    elseif arg =~# '^\%(-' . s:grep_combine_flags . '[lL]\|--files-with-matches\|--name-only\|--files-without-match\)$'
+    endif
+    if arg =~# '^\%(-' . s:grep_combine_flags . 'n\|--line-number\)$'
+      let options.line_number = 1
+    elseif arg =~# '^\%(--no-line-number\)$'
+      let options.line_number = 0
+    endif
+    if arg =~# '^\%(-' . s:grep_combine_flags . '[lL]\|--files-with-matches\|--name-only\|--files-without-match\)$'
       let options.name_only = 1
-    elseif arg ==# '--cached'
+    endif
+    if arg ==# '--cached'
       let options.prefix = fugitive#Find(':0:', a:dir)
     endif
   endfor
@@ -5255,6 +5270,8 @@ function! s:GrepCfile(result) abort
     return [entry.filename, entry.lnum, "norm!" . entry.col . "|"]
   elseif has_key(entry, 'lnum')
     return [entry.filename, entry.lnum]
+  elseif has_key(entry, 'pattern')
+    return [entry.filename, '', 'silent /' . entry.pattern]
   elseif has_key(entry, 'filename')
     return [entry.filename]
   else
@@ -5300,9 +5317,9 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   endif
   exe s:DirCheck(a:options)
   let listnr = a:line1 == 0 ? a:line1 : a:line2
-  let cmd = ['grep', '-n', '--no-color', '--full-name']
+  let cmd = ['grep', '--no-column', '--no-color', '--full-name']
   let dir = s:Dir(a:options)
-  let options = s:GrepOptions(args, dir)
+  let options = s:GrepOptions(['-n'] + args, dir)
   if listnr > 0
     exe listnr 'wincmd w'
   else
@@ -7497,7 +7514,7 @@ function! s:GF(mode) abort
   endtry
   if len(results) > 1
     return 'G' . a:mode .
-          \ ' +' . escape(results[1], ' |') . ' ' .
+          \ (empty(results[1]) ? '' : ' +' . escape(results[1], ' |')) . ' ' .
           \ s:fnameescape(results[0]) . join(map(results[2:-1], '"|" . v:val'), '')
   elseif len(results) && len(results[0])
     return 'G' . a:mode . ' ' . s:fnameescape(results[0])
