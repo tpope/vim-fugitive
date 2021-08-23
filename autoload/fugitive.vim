@@ -493,23 +493,29 @@ function! s:HasOpt(args, ...) abort
   endfor
 endfunction
 
-function! s:PreparePathArgs(cmd, dir, literal) abort
-  if a:literal
+function! s:PreparePathArgs(cmd, dir, literal, explicit) abort
+  if !a:explicit
     call insert(a:cmd, '--literal-pathspecs')
   endif
   let split = index(a:cmd, '--')
   for i in range(split < 0 ? len(a:cmd) : split)
-    if type(a:cmd[i]) == type(0)
-      let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), './', a:dir)
-    endif
+      if a:literal
+        let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), './', a:dir)
+      else
+        let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), ':(top,literal)', a:dir)
+      endif
   endfor
   if split < 0
     return a:cmd
   endif
   for i in range(split + 1, len(a:cmd) - 1)
     if type(a:cmd[i]) == type(0)
-      let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), './', a:dir)
-    elseif a:literal
+      if a:literal
+        let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), './', a:dir)
+      else
+        let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), ':(top,literal)', a:dir)
+      endif
+    elseif !a:explicit
       let a:cmd[i] = fugitive#Path(a:cmd[i], './', a:dir)
     endif
   endfor
@@ -557,6 +563,8 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
     let env = {}
   endif
   let autoenv = {}
+  let explicit_pathspec_option = 0
+  let literal_pathspecs = 1
   let i = 0
   let arg_count = 0
   while i < len(cmd)
@@ -588,6 +596,7 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
       endif
       let i += 2
     elseif cmd[i] =~# '^--.*pathspecs$'
+      let literal_pathspecs = (cmd[i] ==# '--literal-pathspecs')
       let explicit_pathspec_option = 1
       let i += 1
     elseif cmd[i] !~# '^-'
@@ -603,7 +612,7 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
   if !has_key(env, 'GIT_INDEX_FILE')
     call s:PrepareEnv(autoenv, dir)
   endif
-  call s:PreparePathArgs(cmd, dir, !exists('explicit_pathspec_option'))
+  call s:PreparePathArgs(cmd, dir, literal_pathspecs, explicit_pathspec_option)
   return [s:GitDir(dir), env, extend(autoenv, env), git, cmd[0 : -arg_count-1], arg_count ? cmd[-arg_count : -1] : []]
 endfunction
 
