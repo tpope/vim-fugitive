@@ -5216,7 +5216,7 @@ function! s:GrepParseLine(options, quiet, dir, line) abort
     let match = matchlist(a:line, '^\(.\{-\}\):\(.*\)$')
     if len(match)
       let entry.module = match[1]
-      let entry.pattern = '\M' . escape(match[2], '\')
+      let entry.pattern = '\M^' . escape(match[2], '\.^$/') . '$'
     endif
   endif
   if empty(entry.module) && a:options.name_count && a:line =~# ':\d\+$'
