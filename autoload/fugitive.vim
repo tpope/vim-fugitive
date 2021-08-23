@@ -5317,13 +5317,18 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
     endif
     let i += 1
   endwhile
-  if !handle
+  if handle < 0 ? !quiet : !handle
     return {}
   endif
   let listnr = a:line1 == 0 ? a:line1 : a:line2
-  let cmd = ['grep', '-n', '--no-color', '--full-name']
+  if s:HasOpt(args, '--no-line-number')
+    let lc = []
+  else
+    let lc = fugitive#GitVersion(2, 19) ? ['-n', '--column'] : ['-n']
+  endif
+  let cmd = ['grep', '--no-color', '--full-name'] + lc
   let dir = s:Dir(a:options)
-  let options = s:GrepOptions(['-n'] + args, dir)
+  let options = s:GrepOptions(lc + args, dir)
   if listnr > 0
     exe listnr 'wincmd w'
   else
@@ -5384,7 +5389,7 @@ endfunction
 
 function! fugitive#GrepCommand(line1, line2, range, bang, mods, arg) abort
   return fugitive#Command(a:line1, a:line2, a:range, a:bang, a:mods,
-        \ "-c grep.column grep -O " . a:arg)
+        \ "grep -O " . a:arg)
 endfunction
 
 let s:log_diff_context = '{"filename": fugitive#Find(v:val . from, a:dir), "lnum": get(offsets, v:key), "module": strpart(v:val, 0, len(a:state.base_module)) . from}'
