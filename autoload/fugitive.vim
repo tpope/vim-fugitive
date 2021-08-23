@@ -5376,7 +5376,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   if quiet
     let bufnr = bufnr('')
     silent exe substitute(s:Mods(a:mods), '\<tab\>', '', '') (listnr < 0 ? 'c' : 'l').'open'
-    if bufnr != bufnr('')
+    if bufnr != bufnr('') && !a:bang
       wincmd p
     endif
   end
