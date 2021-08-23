@@ -55,7 +55,11 @@ endfunction
 " exists, call FooReal("foo://bar").
 function! FugitiveReal(...) abort
   let file = a:0 ? a:1 : @%
-  if file =~# '^\a\a\+:' || a:0 > 1
+  if type(file) ==# type({})
+    let dir = FugitiveGitDir(file)
+    let tree = s:Tree(dir)
+    return FugitiveVimPath(empty(tree) ? dir : tree)
+  elseif file =~# '^\a\a\+:' || a:0 > 1
     return call('fugitive#Real', [file] + a:000[1:-1])
   elseif file =~# '^/\|^\a:\|^$'
     return file
@@ -72,7 +76,7 @@ endfunction
 " An optional second argument provides the Git dir, or the buffer number of a
 " buffer with a Git dir.  The default is the current buffer.
 function! FugitiveFind(...) abort
-  if a:0 && type(a:1) ==# type({})
+  if a:0 && (type(a:1) ==# type({}) || type(a:1) ==# type(0))
     return call('fugitive#Find', a:000[1:-1] + [FugitiveGitDir(a:1)])
   else
     return fugitive#Find(a:0 ? a:1 : bufnr(''), FugitiveGitDir(a:0 > 1 ? a:2 : -1))
@@ -181,7 +185,7 @@ endfunction
 " An optional second argument provides the Git dir, or the buffer number of a
 " buffer with a Git dir.  The default is the current buffer.
 function! FugitiveHead(...) abort
-  if a:0 && type(a:1) ==# type({})
+  if a:0 && (type(a:1) ==# type({}) || type(a:1) ==# type('') && a:1 !~# '^\d\+$')
     let dir = FugitiveGitDir(a:1)
     let arg = get(a:, 2, 0)
   elseif a:0 > 1
