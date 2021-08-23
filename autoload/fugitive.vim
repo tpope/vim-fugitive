@@ -499,10 +499,12 @@ function! s:PreparePathArgs(cmd, dir, literal, explicit) abort
   endif
   let split = index(a:cmd, '--')
   for i in range(split < 0 ? len(a:cmd) : split)
-      if a:literal
-        let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), './', a:dir)
-      else
-        let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), ':(top,literal)', a:dir)
+      if type(a:cmd[i]) == type(0)
+        if a:literal
+          let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), './', a:dir)
+        else
+          let a:cmd[i] = fugitive#Path(bufname(a:cmd[i]), ':(top,literal)', a:dir)
+        endif
       endif
   endfor
   if split < 0
