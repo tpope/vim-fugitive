@@ -928,6 +928,9 @@ endfunction
 
 function! s:ConfigCallback(r, into) abort
   let dict = a:into[1]
+  if has_key(dict, 'job')
+    call remove(dict, 'job')
+  endif
   let lines = a:r.exit_status ? [] : split(tr(join(a:r.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
   for line in lines
     let key = matchstr(line, "^[^\n]*")
@@ -940,8 +943,12 @@ function! s:ConfigCallback(r, into) abort
       call add(dict[key], strpart(line, len(key) + 1))
     endif
   endfor
+  let callbacks = remove(dict, 'callbacks')
   lockvar! dict
   let a:into[0] = s:ConfigTimestamps(dict.git_dir, dict)
+  for callback in callbacks
+    call call(callback[0], [dict] + callback[1:-1])
+  endfor
 endfunction
 
 let s:config_prototype = {}
@@ -955,7 +962,11 @@ function! fugitive#Config(...) abort
     let callback = a:000
   elseif a:0 > 1 && type(a:2) == type(function('tr'))
     if type(a:1) == type({}) && has_key(a:1, 'GetAll')
-      call call(a:2, [a:1] + a:000[2:-1])
+      if has_key(a:1, 'callbacks')
+        call add(a:1.callbacks, a:000[1:-1])
+      else
+        call call(a:2, [a:1] + a:000[2:-1])
+      endif
       return a:1
     else
       let dir = s:Dir(a:1)
@@ -980,15 +991,22 @@ function! fugitive#Config(...) abort
   let git_dir = s:GitDir(dir)
   let dir_key = len(git_dir) ? git_dir : '_'
   let [ts, dict] = get(s:config, dir_key, ['new', {}])
-  if ts !=# s:ConfigTimestamps(git_dir, dict)
+  if !has_key(dict, 'job') && ts !=# s:ConfigTimestamps(git_dir, dict)
     let dict = copy(s:config_prototype)
     let dict.git_dir = git_dir
     let into = ['running', dict]
+    let dict.callbacks = []
     let exec = fugitive#Execute([dir, 'config', '--list', '-z', '--'], function('s:ConfigCallback'), into)
-    call fugitive#Wait(exec)
+    if has_key(exec, 'job')
+      let dict.job = exec.job
+    endif
     let s:config[dir_key] = into
   endif
-  if exists('callback')
+  if !exists('l:callback')
+    call fugitive#Wait(dict)
+  elseif has_key(dict, 'callbacks')
+    call add(dict.callbacks, callback)
+  else
     call call(callback[0], [dict] + callback[1:-1])
   endif
   return len(name) ? get(fugitive#ConfigGetAll(name, dict), 0, default) : dict
@@ -1003,6 +1021,7 @@ function! fugitive#ConfigGetAll(name, ...) abort
     let name = a:name
   endif
   let name = substitute(name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
+  call fugitive#Wait(config)
   return name =~# '\.' ? copy(get(config, name, [])) : []
 endfunction
 
@@ -1014,6 +1033,7 @@ function! fugitive#ConfigGetRegexp(pattern, ...) abort
     let config = fugitive#Config(a:0 ? a:1 : s:Dir())
     let pattern = a:pattern
   endif
+  call fugitive#Wait(config)
   let filtered = map(filter(copy(config), 'v:key =~# "\\." && v:key =~# pattern'), 'copy(v:val)')
   if pattern !~# '\\\@<!\%(\\\\\)*\\z[se]'
     return filtered
@@ -1030,6 +1050,7 @@ endfunction
 
 function! s:config_GetAll(name) dict abort
   let name = substitute(a:name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
+  call fugitive#Wait(self)
   return name =~# '\.' ? copy(get(self, name, [])) : []
 endfunction
 
