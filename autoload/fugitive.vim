@@ -186,13 +186,13 @@ function! s:TempScript(...) abort
   return FugitiveGitPath(temp)
 endfunction
 
-function! s:DoAutocmd(cmd) abort
+function! s:DoAutocmd(...) abort
   if v:version >= 704 || (v:version == 703 && has('patch442'))
-    return 'doautocmd <nomodeline>' . a:cmd
+    return join(map(copy(a:000), "'doautocmd <nomodeline>' . v:val"), '|')
   elseif &modelines > 0
-    return 'try|set modelines=0|doautocmd ' . a:cmd . '|finally|set modelines=' . &modelines . '|endtry'
+    return 'try|set modelines=0|' . join(map(copy(a:000), "'doautocmd ' . v:val"), '|') . '|finally|set modelines=' . &modelines . '|endtry'
   else
-    return 'doautocmd ' . a:cmd
+    return join(map(copy(a:000), "'doautocmd ' . v:val"), '|')
   endif
 endfunction
 
@@ -2270,6 +2270,11 @@ endfunction
 
 " Section: Buffer auto-commands
 
+augroup fugitive_dummy_events
+  autocmd!
+  autocmd User Fugitive* "
+augroup END
+
 function! s:ReplaceCmd(cmd) abort
   let temp = tempname()
   let [err, exec_error] = s:StdoutToFile(temp, a:cmd)
@@ -2672,7 +2677,7 @@ function! fugitive#BufReadStatus() abort
     endfor
 
     let b:fugitive_reltime = reltime()
-    return 'silent ' . s:DoAutocmd('User FugitiveIndex')
+    return s:DoAutocmd('User FugitiveIndex')
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
@@ -2784,6 +2789,8 @@ function! fugitive#BufReadCmd(...) abort
     silent keepjumps %delete_
     setlocal endofline
 
+    let events = ['User FugitiveObject', 'User Fugitive' . substitute(b:fugitive_type, '^\l', '\u&', '')]
+
     try
       if b:fugitive_type !=# 'blob'
         setlocal foldmarker=<<<<<<<<,>>>>>>>>
@@ -2835,6 +2842,9 @@ function! fugitive#BufReadCmd(...) abort
       keepjumps call setpos('.',pos)
       setlocal nomodified noswapfile
       let modifiable = rev =~# '^:.:' && b:fugitive_type !=# 'tree'
+      if modifiable
+        let events = ['User FugitiveStageBlob']
+      endif
       let &l:readonly = !modifiable || !filewritable(fugitive#Find('.git/index', dir))
       if empty(&bufhidden)
         setlocal bufhidden=delete
@@ -2851,8 +2861,8 @@ function! fugitive#BufReadCmd(...) abort
     setlocal modifiable
 
     return 'silent ' . s:DoAutocmd('BufReadPost') .
-          \ (modifiable ? '' : '|setl nomodifiable') . '|silent ' .
-          \ s:DoAutocmd('User Fugitive' . substitute(b:fugitive_type, '^\l', '\u&', ''))
+          \ (modifiable ? '' : '|setl nomodifiable') . '|' .
+          \ call('s:DoAutocmd', events)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry

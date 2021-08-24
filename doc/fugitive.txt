@@ -620,11 +620,8 @@ AUTOCOMMANDS                                    *fugitive-autocommands*
 A handful of |User| |autocommands| are provided to allow extending and
 overriding Fugitive behaviors.  Example usage:
 >
-        autocmd User FugitiveBlob call s:BlobOverrides()
+        autocmd User FugitiveBlob,FugitiveStageBlob call s:BlobOverrides()
 <
-                                                *User_FugitiveIndex*
-FugitiveIndex           After loading the |fugitive-summary| buffer.
-
                                                 *User_FugitiveTag*
 FugitiveTag             After loading a tag object.
 
@@ -635,10 +632,18 @@ FugitiveCommit          After loading a commit object.
 FugitiveTree            After loading a tree (directory) object.
 
                                                 *User_FugitiveBlob*
-FugitiveBlob            After loading a blob (file) object.  This includes
-                        both committed blobs which are read only, and staged
-                        blobs which can be edited and written.  Check
-                        &modifiable to distinguish between the two.
+FugitiveBlob            After loading a committed blob (file) object.
+
+                                                *User_FugitiveObject*
+FugitiveObject          After loading any of the 4 above buffer types.
+
+                                                *User_FugitiveStageBlob*
+FugitiveStageBlob       After loading a staged blob (file) object.  These
+                        buffers are 'modifiable' and oftentimes don't want the
+                        same behavior as the other buffer types.
+
+                                                *User_FugitiveIndex*
+FugitiveIndex           After loading the |fugitive-summary| buffer.
 
                                                 *User_FugitiveChanged*
 FugitiveChanged         After any event which can potentially change the
