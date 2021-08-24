@@ -3319,7 +3319,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     exe s:DirCheck(dir)
   endif
   let config = copy(fugitive#Config(dir))
-  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
+  let curwin = a:arg =~# '^++curwin\>' || !a:line2
+  let [args, after] = s:SplitExpandChain(substitute(a:arg, '^++curwin\>\s*', '', ''), s:Tree(dir))
   let flags = []
   let pager = -1
   let explicit_pathspec_option = 0
@@ -3369,7 +3370,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   endwhile
   let options = {'git': s:UserCommandList(), 'git_dir': s:GitDir(dir), 'flags': flags}
   if empty(args) && pager is# -1
-    let cmd = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [], options)
+    let cmd = s:StatusCommand(a:line1, a:line2, a:range, curwin ? 0 : a:line2, a:bang, a:mods, '', '', [], options)
     return (empty(cmd) ? 'exe' : cmd) . after
   endif
   let alias = FugitiveConfigGet('alias.' . get(args, 0, ''), config)
@@ -3381,7 +3382,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   let name = substitute(get(args, 0, ''), '\%(^\|-\)\(\l\)', '\u\1', 'g')
   if pager is# -1 && name =~# '^\a\+$' && exists('*s:' . name . 'Subcommand') && get(args, 1, '') !=# '--help'
     try
-      let overrides = s:{name}Subcommand(a:line1, a:line2, a:range, a:bang, a:mods, extend({'subcommand': args[0], 'subcommand_args': args[1:-1]}, options))
+      let overrides = s:{name}Subcommand(a:line1, curwin && a:line2 < 0 ? 0 : a:line2, a:range, a:bang, a:mods, extend({'subcommand': args[0], 'subcommand_args': args[1:-1]}, options))
       if type(overrides) == type('')
         return 'exe ' . string(overrides) . after
       endif
@@ -3406,10 +3407,10 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     let term_opts = len(env) ? {'env': env} : {}
     if has('nvim')
       call fugitive#Autowrite()
-      return mods . (a:line2 ? 'new' : 'enew') . '|call termopen(' . string(argv) . ', ' . string(term_opts) . ')' . assign . '|startinsert' . after
+      return mods . (curwin ? 'enew' : 'new') . '|call termopen(' . string(argv) . ', ' . string(term_opts) . ')' . assign . '|startinsert' . after
     elseif exists('*term_start')
       call fugitive#Autowrite()
-      if !a:line2
+      if curwin
         let term_opts.curwin = 1
       endif
       return mods . 'call term_start(' . string(argv) . ', ' . string(term_opts) . ')' . assign . after
@@ -3438,7 +3439,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       let [do_edit, after_edit] = s:ReadPrepare(a:line1, a:line2, a:range, a:mods)
     elseif pager is# 2 && a:bang
       let do_edit = s:Mods(a:mods) . 'pedit'
-    elseif a:line2
+    elseif !curwin
       let do_edit = s:Mods(a:mods) . 'split'
     else
       let do_edit = s:Mods(a:mods) . 'edit'
