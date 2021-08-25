@@ -4936,8 +4936,8 @@ endfunction
 
 function! s:MergeSubcommand(line1, line2, range, bang, mods, options) abort
   if empty(a:options.subcommand_args) && (
-        \ filereadable(fugitive#Find('.git/MERGE_MSG', dir)) ||
-        \ isdirectory(fugitive#Find('.git/rebase-apply', dir)) ||
+        \ filereadable(fugitive#Find('.git/MERGE_MSG', a:options)) ||
+        \ isdirectory(fugitive#Find('.git/rebase-apply', a:options)) ||
         \  !empty(s:TreeChomp([a:options.git_dir, 'diff-files', '--diff-filter=U'])))
     return 'echoerr ":Git merge for loading conflicts hase been removed in favor of :Git mergetool"'
   endif
