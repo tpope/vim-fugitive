@@ -2752,6 +2752,7 @@ function! fugitive#FileWriteCmd(...) abort
       if exists('#' . autype . 'WritePost')
         execute s:DoAutocmd(autype . 'WritePost ' . s:fnameescape(amatch))
       endif
+      exe s:DoAutocmdChanged(dir)
       return ''
     else
       return 'echoerr '.string('fugitive: '.error)
