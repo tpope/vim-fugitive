@@ -3596,7 +3596,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       let output = substitute(s:SystemError(cmd)[0], "\n$", '', '')
       if len(output)
         try
-          if &more
+          if &more && no_pager
             let more = 1
             set nomore
           endif
