@@ -2689,7 +2689,9 @@ function! fugitive#BufReadStatus() abort
     if &bufhidden ==# ''
       setlocal bufhidden=delete
     endif
-    let b:dispatch = '-dir=' . s:fnameescape(len(s:Tree()) ? s:Tree() : s:GitDir()) . ' ' . s:GitShellCmd() . ' fetch --all'
+    if !exists('b:dispatch')
+      let b:dispatch = ':Git fetch --all'
+    endif
     call fugitive#MapJumps()
     call s:Map('n', '-', ":<C-U>execute <SID>Do('Toggle',0)<CR>", '<silent>')
     call s:Map('x', '-', ":<C-U>execute <SID>Do('Toggle',1)<CR>", '<silent>')
