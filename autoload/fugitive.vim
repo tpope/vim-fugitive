@@ -954,6 +954,17 @@ endfunction
 let s:config_prototype = {}
 
 let s:config = {}
+function! fugitive#ExpireConfig(...) abort
+  if !a:0 || a:1 is# 0
+    let s:config = {}
+  else
+    let key = a:1 is# '' ? '_' : s:GitDir(a:0 ? a:1 : -1)
+    if len(key) && has_key(s:config, key)
+      call remove(s:config, key)
+    endif
+  endif
+endfunction
+
 function! fugitive#Config(...) abort
   let name = ''
   let default = get(a:, 3, '')
@@ -3897,7 +3908,7 @@ if !exists('s:last_times')
 endif
 
 function! s:ExpireStatus(bufnr) abort
-  if a:bufnr is# -2
+  if a:bufnr is# -2 || a:bufnr is# 0
     let s:head_cache = {}
     let s:last_time = reltime()
     return ''
