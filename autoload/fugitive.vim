@@ -7478,7 +7478,7 @@ function! s:cfile() abort
       if getline('.') =~# '^ref: '
         let ref = strpart(getline('.'),5)
 
-      elseif getline('.') =~# '^commit \x\{40,\}\>'
+      elseif getline('.') =~# '^\%([|/\\_ ]*\*[|/\\_ ]*\)\=commit \x\{40,\}\>'
         let ref = matchstr(getline('.'),'\x\{40,\}')
         return [ref]
 
