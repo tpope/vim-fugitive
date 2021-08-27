@@ -2946,6 +2946,22 @@ function! fugitive#Result(...) abort
   endif
 endfunction
 
+function! s:TempDotMap() abort
+  let cfile = s:cfile()
+  if empty(cfile)
+    return expand('<cword>')
+  endif
+  let name = fugitive#Find(cfile[0])
+  let [dir, commit, file] = s:DirCommitFile(name)
+  if len(commit) && empty(file)
+    return commit
+  elseif s:cpath(s:Tree(), getcwd())
+    return fugitive#Path(name, "./")
+  else
+    return fugitive#Real(name)
+  endif
+endfunction
+
 function! s:TempReadPre(file) abort
   if has_key(s:temp_files, s:cpath(a:file))
     let dict = s:temp_files[s:cpath(a:file)]
@@ -2970,6 +2986,8 @@ function! s:TempReadPost(file) abort
     endif
     if get(dict, 'filetype', '') ==# 'git'
       call fugitive#MapJumps()
+      call s:Map('n', '.', ":<C-U> <C-R>=<SID>fnameescape(<SID>TempDotMap())<CR><Home>")
+      call s:Map('x', '.', ":<C-U> <C-R>=<SID>fnameescape(<SID>TempDotMap())<CR><Home>")
     endif
     if has_key(dict, 'filetype')
       if dict.filetype ==# 'man' && has('nvim')
