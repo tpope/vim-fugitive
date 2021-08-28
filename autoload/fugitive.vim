@@ -3099,7 +3099,7 @@ function! s:RunFinished(state, ...) abort
   if !has_key(a:state, 'capture_bufnr')
     return
   endif
-  call fugitive#ReloadStatus(a:state, 1)
+  call fugitive#DidChange(a:state)
 endfunction
 
 function! s:RunEdit(state, tmp, job) abort
@@ -3112,7 +3112,7 @@ function! s:RunEdit(state, tmp, job) abort
   exe substitute(a:state.mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
   set bufhidden=wipe
   let s:edit_jobs[bufnr('')] = [a:state, a:tmp, a:job, sentinel]
-  call fugitive#ReloadStatus(a:state.git_dir, 1)
+  call fugitive#DidChange(a:state.git_dir)
   return 1
 endfunction
 
@@ -3338,7 +3338,7 @@ function! s:RunWait(state, tmp, job, ...) abort
       catch /.*/
       endtry
     elseif finished
-      call fugitive#ReloadStatus(a:state, 1)
+      call fugitive#DidChange(a:state)
     endif
   endtry
   return ''
@@ -3657,7 +3657,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     call s:RunSave(state)
     call s:RunFinished(state)
     return do_edit . ' ' . s:fnameescape(state.file) . after_edit .
-          \ '|call fugitive#ReloadStatus(fugitive#Result(' . string(state.file) . '), 1)' . after
+          \ '|call fugitive#DidChange(fugitive#Result(' . string(state.file) . '))' . after
   elseif has('win32')
     return 'echoerr ' . string('fugitive: Vim 8 with job support required to use :Git on Windows')
   elseif has('gui_running')
@@ -3667,7 +3667,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       call remove(options.flags, 0)
     endif
     let cmd = s:BuildEnvPrefix(env) . s:shellesc(s:UserCommandList(options) + args)
-    let after = '|call fugitive#ReloadStatus(' . string(dir) . ', 1)' . after
+    let after = '|call fugitive#DidChange(' . string(dir) . ')' . after
     if !wants_terminal && (no_pager || index(['add', 'clean', 'reset', 'restore', 'stage'], get(args, 0, '')) >= 0 || s:HasOpt(args, ['checkout'], '-q', '--quiet', '--no-progress'))
       let output = substitute(s:SystemError(cmd)[0], "\n$", '', '')
       if len(output)
@@ -3937,7 +3937,7 @@ function! s:DoAutocmdChanged(dir) abort
   endif
   try
     let g:fugitive_event = dir
-    if type(a:dir) == type({}) && has_key(a:dir, 'args')
+    if type(a:dir) == type({}) && has_key(a:dir, 'args') && has_key(a:dir, 'exit_status')
       let g:fugitive_result = a:dir
     endif
     exe s:DoAutocmd('User FugitiveChanged')
@@ -4029,9 +4029,9 @@ function! s:ReloadTabStatus(...) abort
   unlet! t:fugitive_reload_status
 endfunction
 
-function! fugitive#ReloadStatus(...) abort
+function! fugitive#DidChange(...) abort
   call s:ExpireStatus(a:0 ? a:1 : -1)
-  if a:0 > 1 ? a:2 : 1
+  if a:0 > 1 ? a:2 : (!a:0 || a:1 isnot# 0)
     let t = reltime()
     let t:fugitive_reload_status = t
     for tabnr in exists('*settabvar') ? range(1, tabpagenr('$')) : []
@@ -4046,6 +4046,10 @@ function! fugitive#ReloadStatus(...) abort
   return ''
 endfunction
 
+function! fugitive#ReloadStatus(...) abort
+  return call('fugitive#DidChange', a:000)
+endfunction
+
 function! fugitive#EfmDir(...) abort
   let dir = matchstr(a:0 ? a:1 : &errorformat, '\c,%\\&\%(git\|fugitive\)_\=dir=\zs\%(\\.\|[^,]\)*')
   let dir = substitute(dir, '%%', '%', 'g')
@@ -4055,21 +4059,22 @@ endfunction
 
 augroup fugitive_status
   autocmd!
-  autocmd BufWritePost         * call fugitive#ReloadStatus(-1, 0)
-  autocmd ShellCmdPost,ShellFilterPost * nested call fugitive#ReloadStatus(-2, 0)
+  autocmd BufWritePost         * call fugitive#DidChange(+expand('<abuf>'))
+  autocmd ShellCmdPost,ShellFilterPost * nested call fugitive#DidChange(0)
   autocmd BufDelete * nested
         \ if getbufvar(+expand('<abuf>'), 'buftype') ==# 'terminal' |
         \   if !empty(FugitiveGitDir(+expand('<abuf>'))) |
-        \     call fugitive#ReloadStatus(+expand('<abuf>'), 1) |
+        \     call fugitive#DidChange(+expand('<abuf>')) |
         \   else |
-        \     call fugitive#ReloadStatus(-2, 0) |
+        \     call fugitive#DidChange(0) |
         \  endif |
         \ endif
   autocmd QuickFixCmdPost make,lmake,[cl]file,[cl]getfile nested
-        \ call fugitive#ReloadStatus(fugitive#EfmDir(), 1)
-  if !has('win32')
-    autocmd FocusGained        * call fugitive#ReloadStatus(-2, 0)
-  endif
+        \ call fugitive#DidChange(fugitive#EfmDir())
+  autocmd FocusGained        *
+        \ if get(g:, 'fugitive_focus_gained', !has('win32')) |
+        \   call fugitive#DidChange(0) |
+        \ endif
   autocmd BufEnter index,index.lock
         \ call s:ReloadWinStatus()
   autocmd TabEnter *
@@ -6013,7 +6018,7 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, args) abor
       endif
     endfor
   endfor
-  call fugitive#ReloadStatus(-1, 1)
+  call fugitive#DidChange()
   return 'silent checktime' . after
 endfunction
 
@@ -6342,7 +6347,7 @@ function! s:Move(force, rename, destination) abort
   if isdirectory(destination)
     let destination = fnamemodify(s:sub(destination,'/$','').'/'.expand('%:t'),':.')
   endif
-  let reload = '|call fugitive#ReloadStatus(' . string(dir) . ', 1)'
+  let reload = '|call fugitive#DidChange(' . string(dir) . ')'
   if empty(s:DirCommitFile(@%)[1])
     if isdirectory(destination)
       return 'keepalt edit '.s:fnameescape(destination) . reload
@@ -6389,7 +6394,7 @@ function! s:Remove(after, force) abort
     let v:errmsg = 'fugitive: '.s:sub(message,'error:.*\zs\n\(.*-f.*',' (add ! to force)')
     return 'echoerr '.string(v:errmsg)
   else
-    return a:after . (a:force ? '!' : ''). '|call fugitive#ReloadStatus(' . string(dir) . ', 1)'
+    return a:after . (a:force ? '!' : ''). '|call fugitive#DidChange(' . string(dir) . ')'
   endif
 endfunction
 
@@ -6627,7 +6632,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         let temp_state.file = temp
         call s:RunSave(temp_state)
         if len(ranges + commits + files) || raw
-          let reload = '|call fugitive#ReloadStatus(fugitive#Result(' . string(temp_state.file) . '), 1)'
+          let reload = '|call fugitive#DidChange(fugitive#Result(' . string(temp_state.file) . '))'
           let mods = s:Mods(a:mods)
           if a:count != 0
             exe 'silent keepalt' mods 'split' s:fnameescape(temp)
