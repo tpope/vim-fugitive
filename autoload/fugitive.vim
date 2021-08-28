@@ -6146,6 +6146,15 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
   exe s:VersionCheck()
   let args = s:ArgSplit(a:arg)
   let post = ''
+  let autodir = a:autodir
+  while get(args, 0, '') =~# '^++'
+    if args[0] =~? '^++novertical$'
+      let autodir = 0
+    else
+      return 'echoerr ' . string('fugitive: unknown option ' . args[0])
+    endif
+    call remove(args, 0)
+  endwhile
   if get(args, 0) =~# '^+'
     let post = remove(args, 0)[1:-1]
   endif
@@ -6177,7 +6186,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
   try
     if exists('parents') && len(parents) > 1
       exe pre
-      let mods = (a:autodir ? s:diff_modifier(len(parents) + 1) : '') . s:Mods(mods, 'leftabove')
+      let mods = (autodir ? s:diff_modifier(len(parents) + 1) : '') . s:Mods(mods, 'leftabove')
       let nr = bufnr('')
       if len(parents) > 1 && !&equalalways
         let equalalways = 0
@@ -6228,7 +6237,9 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
       let file = s:Relative()
     elseif s:IsConflicted()
       let file = s:Relative(':1:')
-      let post = 'echohl WarningMsg|echo "Use :Gdiffsplit! for 3 way diff"|echohl NONE|' . post
+      if get(g:, 'fugitive_legacy_commands', 1)
+        let post = 'echohl WarningMsg|echo "Use :Gdiffsplit! for 3 way diff"|echohl NONE|' . post
+      endif
     else
       exe s:DirCheck()
       let file = s:Relative(':0:')
@@ -6245,7 +6256,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
     else
       let mods = s:Mods(mods, 'leftabove')
     endif
-    let mods = (a:autodir ? s:diff_modifier(2) : '') . mods
+    let mods = (autodir ? s:diff_modifier(2) : '') . mods
     if &diffopt =~# 'vertical'
       let diffopt = &diffopt
       set diffopt-=vertical
