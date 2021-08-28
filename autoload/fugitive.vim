@@ -2949,7 +2949,11 @@ endfunction
 function! s:TempDotMap() abort
   let cfile = s:cfile()
   if empty(cfile)
-    return expand('<cword>')
+    if getline('.') =~# '^[*+] \+\f' && col('.') < 2
+      return matchstr(getline('.'), '^. \+\zs\f\+')
+    else
+      return expand('<cfile>')
+    endif
   endif
   let name = fugitive#Find(cfile[0])
   let [dir, commit, file] = s:DirCommitFile(name)
