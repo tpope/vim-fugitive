@@ -2140,7 +2140,7 @@ function! s:buffer_repo() dict abort
 endfunction
 
 function! s:buffer_type(...) dict abort
-  return 'see b:fugitive_type'
+  return 'see per type events at :help fugitive-autocommands'
 endfunction
 
 call s:add_methods('buffer', ['repo', 'type'])
@@ -3007,7 +3007,7 @@ function! s:TempReadPost(file) abort
       call s:Map('n', 'gq', ":<C-U>bdelete<CR>", '<silent> <unique>')
     endif
   endif
-  return ''
+  return s:DoAutocmd('User FugitivePager')
 endfunction
 
 function! s:TempDelete(file) abort

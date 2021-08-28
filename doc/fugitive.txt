@@ -645,6 +645,10 @@ FugitiveStageBlob       After loading a staged blob (file) object.  These
                                                 *User_FugitiveIndex*
 FugitiveIndex           After loading the |fugitive-summary| buffer.
 
+                                                *User_FugitivePager*
+FugitivePager           After loading a temp file created by a command like
+                        :Git --paginate or :Git blame.
+
                                                 *User_FugitiveChanged*
 FugitiveChanged         After any event which can potentially change the
                         repository, for example, any invocation of |:Git|.
