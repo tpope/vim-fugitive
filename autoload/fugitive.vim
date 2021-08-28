@@ -6046,12 +6046,14 @@ function! fugitive#CanDiffoff(buf) abort
   return s:can_diffoff(bufnr(a:buf))
 endfunction
 
-function! s:diff_modifier(count) abort
+function! s:DiffModifier(count, default) abort
   let fdc = matchstr(&diffopt, 'foldcolumn:\zs\d\+')
   if &diffopt =~# 'horizontal' && &diffopt !~# 'vertical'
     return ''
   elseif &diffopt =~# 'vertical'
     return 'vertical '
+  elseif !get(g:, 'fugitive_diffsplit_directional_fit', a:default)
+    return ''
   elseif winwidth(0) <= a:count * ((&tw ? &tw : 80) + (empty(fdc) ? 2 : fdc))
     return ''
   else
@@ -6164,7 +6166,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
   try
     if exists('parents') && len(parents) > 1
       exe pre
-      let mods = (autodir ? s:diff_modifier(len(parents) + 1) : '') . s:Mods(mods, 'leftabove')
+      let mods = (autodir ? s:DiffModifier(len(parents) + 1, empty(args)) : '') . s:Mods(mods, 'leftabove')
       let nr = bufnr('')
       if len(parents) > 1 && !&equalalways
         let equalalways = 0
@@ -6238,7 +6240,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
     exe pre
     let restore = s:diff_restore()
     let w:fugitive_diff_restore = restore
-    let mods = (autodir ? s:diff_modifier(2) : '') . mods
+    let mods = (autodir ? s:DiffModifier(2, empty(args)) : '') . mods
     if &diffopt =~# 'vertical'
       let diffopt = &diffopt
       set diffopt-=vertical

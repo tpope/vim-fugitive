@@ -185,10 +185,9 @@ that are part of Git repositories).
                         commit is given, the current file in that commit.
                         With no argument, the version in the index or work
                         tree is used, and the work tree version is always
-                        placed to the right or bottom.  A vertical split is
-                        used if space permits, and if 'diffopt' does not
-                        otherwise specify.  Use Vim's |do| and |dp| to stage
-                        and unstage changes.
+                        placed to the right or bottom, depending on available
+                        width.  Use Vim's |do| and |dp| to stage and unstage
+                        changes.
 
                                                 *:Gdiffsplit!*
 :Gdiffsplit!            Diff against any and all direct ancestors, retaining
@@ -205,7 +204,10 @@ that are part of Git repositories).
 :Gvdiffsplit [object]   Like |:Gdiffsplit|, but always split vertically.
 
                                                 *:Ghdiffsplit*
-:Ghdiffsplit [object]   Like |:Gdiffsplit|, but always split horizontally.
+:Gdiffsplit ++novertical [object]
+:Ghdiffsplit [object]   Like |:Gdiffsplit|, but with "vertical" removed from
+                        'diffopt'.  The split will still be vertical if
+                        combined with |:vertical|.
 
                                                 *:GMove*
 :GMove {destination}    Wrapper around git-mv that renames the buffer
