@@ -199,33 +199,35 @@ endfunction
 let s:nowait = v:version >= 704 ? '<nowait>' : ''
 
 function! s:Map(mode, lhs, rhs, ...) abort
+  let maps = []
   for mode in split(a:mode, '\zs')
+    let skip = 0
     let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
     let head = a:lhs
     let tail = ''
     let keys = get(g:, mode.'remap', {})
     if type(keys) == type([])
-      return
+      continue
     endif
     while !empty(head)
       if has_key(keys, head)
         let head = keys[head]
-        if empty(head)
-          return
-        endif
+        let skip = empty(head)
         break
       endif
       let tail = matchstr(head, '<[^<>]*>$\|.$') . tail
       let head = substitute(head, '<[^<>]*>$\|.$', '', '')
     endwhile
-    if flags !~# '<unique>' || empty(mapcheck(head.tail, mode))
-      exe mode.'map <buffer>' s:nowait flags head.tail a:rhs
+    if !skip && flags !~# '<unique>' || empty(mapcheck(head.tail, mode))
+      call add(maps, mode.'map <buffer>' . s:nowait . flags . ' ' . head.tail . ' ' . a:rhs)
       if a:0 > 1
         let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .
               \ '|sil! exe "' . mode . 'unmap <buffer> ' . head.tail . '"'
       endif
     endif
   endfor
+  exe join(maps, '|')
+  return ''
 endfunction
 
 function! fugitive#Autowrite() abort
@@ -7210,9 +7212,12 @@ function! s:NavigateUp(count) abort
 endfunction
 
 function! s:MapMotion(lhs, rhs) abort
-  call s:Map('n', a:lhs, ":<C-U>" . a:rhs . "<CR>", "<silent>")
-  call s:Map('o', a:lhs, ":<C-U>" . a:rhs . "<CR>", "<silent>")
-  call s:Map('x', a:lhs, ":<C-U>exe 'normal! gv'<Bar>" . a:rhs . "<CR>", "<silent>")
+  let maps = [
+        \ s:Map('n', a:lhs, ":<C-U>" . a:rhs . "<CR>", "<silent>"),
+        \ s:Map('o', a:lhs, ":<C-U>" . a:rhs . "<CR>", "<silent>"),
+        \ s:Map('x', a:lhs, ":<C-U>exe 'normal! gv'<Bar>" . a:rhs . "<CR>", "<silent>")]
+  call filter(maps, '!empty(v:val)')
+  return join(maps, '|')
 endfunction
 
 function! fugitive#MapJumps(...) abort
