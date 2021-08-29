@@ -6209,7 +6209,11 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
           return 'echoerr ' . string(v:exception)
         endtry
       endif
-      let mods = s:Mods(a:mods)
+      if a:keepfocus
+        let mods = s:Mods(a:mods, 'leftabove')
+      else
+        let mods = s:Mods(a:mods)
+      endif
     elseif exists('parents')
       let file = get(parents, -1, s:Relative(repeat('0', 40). ':'))
       let mods = s:Mods(a:mods, 'leftabove')
