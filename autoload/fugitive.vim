@@ -7044,6 +7044,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, args) abo
         let branch = matchstr(path, '^\.git/refs/remotes/[^/]\+/\zs.\+')
       else
         let merge = matchstr(path, '^\.git/refs/remotes/[^/]\+/\zs.\+')
+        let branch = merge
         let path = '.git/refs/heads/'.merge
       endif
     elseif path =~# '^\.git/refs/heads/.'
