@@ -1804,14 +1804,20 @@ function! s:ExpandVar(other, var, flags, esc, ...) abort
 endfunction
 
 function! s:Expand(rev, ...) abort
-  if a:rev =~# '^:[0-3]$'
-    let file = len(expand('%')) ? a:rev . ':%' : '%'
+  if a:rev =~# '^>\=:[0-3]$'
+    let file = len(expand('%')) ? a:rev[-2:-1] . ':%' : '%'
   elseif a:rev ==# '>'
     let file = '%'
-  elseif a:rev =~# '^>[~^]'
-    let file = len(expand('%')) ? '!' . a:rev[1:-1] . ':%' : '%'
+  elseif a:rev ==# '>:'
+    let file = empty(s:DirCommitFile(@%)[0]) ? ':0:%' : '%'
   elseif a:rev =~# '^>[> ]\@!'
-    let file = len(expand('%')) ? a:rev[1:-1] . ':%' : '%'
+    let rev = (a:rev =~# '^>[~^]' ? '!' : '') . a:rev[1:-1]
+    let prefix = matchstr(rev, '^\%(\\.\|{[^{}]*}\|[^:]\)*')
+    if prefix !=# rev
+      let file = rev
+    else
+      let file = len(expand('%')) ? rev . ':%' : '%'
+    endif
   else
     let file = a:rev
   endif
@@ -5676,7 +5682,7 @@ function! s:OpenParse(string, wants_cmd) abort
       break
     endif
   endwhile
-  if len(args)
+  if len(args) && args !=# ['>:']
     let file = join(args)
     if file ==# '-'
       let result = fugitive#Result()
