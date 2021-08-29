@@ -1175,10 +1175,12 @@ function! fugitive#ResolveRemote(remote) abort
   if len(scp_authority) && !(has('win32') && scp_authority =~# '^\a:[\/]')
     let path = strpart(a:remote, len(scp_authority) + 1)
     let authority = fugitive#SshHostAlias(scp_authority)
-    if authority !~# ':'
-      return authority . ':' . path
-    elseif path =~# '^/'
+    if path =~# '^/'
       return 'ssh://' . authority . path
+    elseif path =~# '^\~'
+      return 'ssh://' . authority . '/' . path
+    elseif authority !~# ':'
+      return authority . ':' . path
     endif
   elseif a:remote =~# '^https\=://' && s:executable('curl')
     if !has_key(s:redirects, a:remote)
