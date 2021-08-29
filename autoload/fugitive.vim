@@ -6158,7 +6158,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
     let pre = ''
   endif
   let back = exists('*win_getid') ? 'call win_gotoid(' . win_getid() . ')' : 'wincmd p'
-  if (empty(args) || args[0] ==# ':') && a:keepfocus
+  if (empty(args) || args[0] =~# '^>\=:$') && a:keepfocus
     exe s:DirCheck()
     if commit =~# '^1\=$' && s:IsConflicted()
       let parents = [s:Relative(':2:'), s:Relative(':3:')]
@@ -6174,7 +6174,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
   try
     if exists('parents') && len(parents) > 1
       exe pre
-      let mods = (autodir ? s:DiffModifier(len(parents) + 1, empty(args)) : '') . s:Mods(mods, 'leftabove')
+      let mods = (autodir ? s:DiffModifier(len(parents) + 1, empty(args) || args[0] =~# '^>') : '') . s:Mods(mods, 'leftabove')
       let nr = bufnr('')
       if len(parents) > 1 && !&equalalways
         let equalalways = 0
@@ -6219,7 +6219,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
           return 'echoerr ' . string(v:exception)
         endtry
       endif
-      if a:keepfocus
+      if a:keepfocus || arg =~# '^>'
         let mods = s:Mods(a:mods, 'leftabove')
       else
         let mods = s:Mods(a:mods)
@@ -6248,7 +6248,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, args) abort
     exe pre
     let restore = s:diff_restore()
     let w:fugitive_diff_restore = restore
-    let mods = (autodir ? s:DiffModifier(2, empty(args)) : '') . mods
+    let mods = (autodir ? s:DiffModifier(2, empty(args) || args[0] =~# '^>') : '') . mods
     if &diffopt =~# 'vertical'
       let diffopt = &diffopt
       set diffopt-=vertical
@@ -7596,7 +7596,7 @@ function! s:cfile() abort
       endif
 
       if exists('dref')
-        return [ref, dcmd . ' ' . s:fnameescape(dref)] + dcmds
+        return [ref, dcmd . ' >' . s:fnameescape(dref)] + dcmds
       elseif ref != ""
         return [ref] + dcmds
       endif
