@@ -925,11 +925,15 @@ function! fugitive#Head(...) abort
     let s:head_cache[file] = [ftime, readfile(file)[0]]
   endif
   let head = s:head_cache[file][1]
+  let len = a:0 ? a:1 : 0
   if head =~# '^ref: '
-    return substitute(head, '\C^ref: \%(refs/\%(heads/\|remotes/\|tags/\)\=\)\=', '', '')
+    if len < 0
+      return strpart(head, 5)
+    else
+      return substitute(head, '\C^ref: \%(refs/\%(heads/\|remotes/\|tags/\)\=\)\=', '', '')
+    endif
   elseif head =~# '^\x\{40,\}$'
-    let len = a:0 ? a:1 : 0
-    return len < 0 ? head : len ? head[0:len-1] : ''
+    return len < 0 ? head : strpart(head, 0, len)
   else
     return ''
   endif
