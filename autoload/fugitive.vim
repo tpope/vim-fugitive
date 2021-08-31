@@ -291,6 +291,7 @@ function! s:JobNvimExit(dict, callback, job, data, type) dict abort
   let a:dict.stdout = self.stdout
   let a:dict.stderr = self.stderr
   let a:dict.exit_status = a:data
+  call remove(a:dict, 'job')
   call call(a:callback[0], [a:dict] + a:callback[1:-1])
 endfunction
 
