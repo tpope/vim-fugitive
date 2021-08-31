@@ -3481,7 +3481,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     endif
     let i += 1
   endwhile
-  let options = {'git': s:UserCommandList(), 'git_dir': s:GitDir(dir), 'flags': flags}
+  let options = {'git': s:UserCommandList(), 'git_dir': s:GitDir(dir), 'flags': flags, 'curwin': curwin}
   if empty(args) && pager is# -1
     let cmd = s:StatusCommand(a:line1, a:line2, a:range, curwin ? 0 : a:line2, a:bang, a:mods, '', '', [], options)
     return (empty(cmd) ? 'exe' : cmd) . after
@@ -6610,7 +6610,16 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
       if s:HasOpt(flags, '--reverse')
         let temp_state.blame_reverse_end = matchstr(get(commits, 0, ''), '\.\.\zs.*')
       endif
-      if (a:line1 == 0 || a:range == 1) && a:count > 0
+      if a:count == 0 && a:range == 2
+        if get(a:options, 'curwin')
+          let edit = 'edit'
+        elseif a:bang
+          let edit = 'pedit'
+        else
+          let edit = 'split'
+        endif
+        return s:BlameCommit(s:Mods(a:mods) . edit, get(readfile(temp), 0, ''), temp_state)
+      elseif (a:line1 == 0 || a:range == 1) && a:count > 0
         let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit', 'vsplit', 'tabedit'], a:count - (a:line1 ? a:line1 : 1), 'split')
         return s:BlameCommit(edit, get(readfile(temp), 0, ''), temp_state)
       else
@@ -7264,13 +7273,20 @@ endfunction
 function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
-      let blame_map = 'Git blame<C-R>=v:count ? " --reverse" : ""<CR><CR>'
-      call s:Map('n', '<2-LeftMouse>', ':<C-U>0,1' . blame_map, '<silent>')
-      call s:Map('n', '<CR>', ':<C-U>0,1' . blame_map, '<silent>')
-      call s:Map('n', 'o',    ':<C-U>0,2' . blame_map, '<silent>')
-      call s:Map('n', 'p',    ':<C-U>0,3' . blame_map, '<silent>')
-      call s:Map('n', 'gO',   ':<C-U>0,4' . blame_map, '<silent>')
-      call s:Map('n', 'O',    ':<C-U>0,5' . blame_map, '<silent>')
+      let blame_tail = '<C-R>=v:count ? " --reverse" : ""<CR><CR>'
+      exe s:Map('n', '<2-LeftMouse>', ':<C-U>0,1Git blame' . blame_tail, '<silent>')
+      exe s:Map('n', '<CR>', ':<C-U>0,1Git blame' . blame_tail, '<silent>')
+      if has('patch-8.0.1089')
+        exe s:Map('n', 'o',    ':<C-U>0,0Git blame' . blame_tail, '<silent>')
+        exe s:Map('n', 'p',    ':<C-U>0,0Git blame!' . blame_tail, '<silent>')
+        exe s:Map('n', 'gO',   ':<C-U>vertical 0,0Git blame' . blame_tail, '<silent>')
+        exe s:Map('n', 'O',    ':<C-U>tab 0,0Git blame' . blame_tail, '<silent>')
+      else
+        exe s:Map('n', 'o',    ':<C-U>0,2Git blame' . blame_tail, '<silent>')
+        exe s:Map('n', 'p',    ':<C-U>0,3Git blame' . blame_tail, '<silent>')
+        exe s:Map('n', 'gO',   ':<C-U>0,4Git blame' . blame_tail, '<silent>')
+        exe s:Map('n', 'O',    ':<C-U>0,5Git blame' . blame_tail, '<silent>')
+      endif
 
       call s:Map('n', 'D', ":echoerr 'fugitive: D has been removed in favor of dd'<CR>", '<silent><unique>')
       call s:Map('n', 'dd', ":<C-U>call fugitive#DiffClose()<Bar>Gdiffsplit!<CR>", '<silent>')

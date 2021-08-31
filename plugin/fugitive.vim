@@ -470,7 +470,7 @@ function! s:ProjectionistDetect() abort
   endif
 endfunction
 
-let s:addr_other = has('patch-8.1.560') ? '-addr=other' : ''
+let s:addr_other = has('patch-8.1.560') || has('nvim-0.4.0') ? '-addr=other' : ''
 let s:addr_tabs  = has('patch-7.4.542') ? '-addr=tabs' : ''
 let s:addr_wins  = has('patch-7.4.542') ? '-addr=windows' : ''
 
