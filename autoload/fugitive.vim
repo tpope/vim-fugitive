@@ -7541,11 +7541,18 @@ function! fugitive#MessageCfile() abort
   return empty(file) ? fugitive#Cfile() : s:fnameescape(file)
 endfunction
 
+function! s:BranchCfile(result) abort
+  return matchstr(getline('.'), '^. \zs\S\+')
+endfunction
+
 function! s:cfile() abort
   let temp_state = s:TempState()
   let name = substitute(get(get(temp_state, 'args', []), 0, ''), '\%(^\|-\)\(\l\)', '\u\1', 'g')
   if exists('*s:' . name . 'Cfile')
-    return s:{name}Cfile(temp_state)
+    let cfile = s:{name}Cfile(temp_state)
+    if !empty(cfile)
+      return type(cfile) == type('') ? [cfile] : cfile
+    endif
   endif
   if empty(FugitiveGitDir())
     return []
@@ -7719,7 +7726,7 @@ function! s:GF(mode) abort
   if len(results) > 1
     return 'G' . a:mode .
           \ (empty(results[1]) ? '' : ' +' . escape(results[1], ' |')) . ' ' .
-          \ s:fnameescape(results[0]) . join(map(results[2:-1], '"|" . v:val'), '')
+          \ fnameescape(results[0]) . join(map(results[2:-1], '"|" . v:val'), '')
   elseif len(results) && len(results[0])
     return 'G' . a:mode . ' ' . s:fnameescape(results[0])
   else
@@ -7731,6 +7738,12 @@ function! fugitive#Cfile() abort
   let pre = ''
   let results = s:cfile()
   if empty(results)
+    if !empty(s:TempState())
+      let cfile = s:TempDotMap()
+      if !empty(cfile)
+        return fnameescape(s:Generate(cfile))
+      endif
+    endif
     let cfile = expand('<cfile>')
     if &includeexpr =~# '\<v:fname\>'
       sandbox let cfile = eval(substitute(&includeexpr, '\C\<v:fname\>', '\=string(cfile)', 'g'))
@@ -7739,7 +7752,7 @@ function! fugitive#Cfile() abort
   elseif len(results) > 1
     let pre = '+' . join(map(results[1:-1], 'escape(v:val, " ")'), '\|') . ' '
   endif
-  return pre . s:fnameescape(s:Generate(results[0]))
+  return pre . fnameescape(s:Generate(results[0]))
 endfunction
 
 " Section: Statusline
