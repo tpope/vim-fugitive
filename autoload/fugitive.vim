@@ -6625,7 +6625,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         endif
         return s:BlameCommit(s:Mods(a:mods) . edit, get(readfile(temp), 0, ''), temp_state)
       elseif (a:line1 == 0 || a:range == 1) && a:count > 0
-        let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit', 'vsplit', 'tabedit'], a:count - (a:line1 ? a:line1 : 1), 'split')
+        let edit = s:Mods(a:mods) . get(['edit', 'split', 'pedit', 'vsplit', 'tabedit', 'edit'], a:count - (a:line1 ? a:line1 : 1), 'split')
         return s:BlameCommit(edit, get(readfile(temp), 0, ''), temp_state)
       else
         let temp = s:Resolve(temp)
@@ -7279,14 +7279,16 @@ function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
       let blame_tail = '<C-R>=v:count ? " --reverse" : ""<CR><CR>'
-      exe s:Map('n', '<2-LeftMouse>', ':<C-U>0,1Git blame' . blame_tail, '<silent>')
-      exe s:Map('n', '<CR>', ':<C-U>0,1Git blame' . blame_tail, '<silent>')
       if has('patch-8.0.1089')
+        exe s:Map('n', '<2-LeftMouse>', ':<C-U>0,0Git ++curwin blame' . blame_tail, '<silent>')
+        exe s:Map('n', '<CR>', ':<C-U>0,0Git ++curwin blame' . blame_tail, '<silent>')
         exe s:Map('n', 'o',    ':<C-U>0,0Git blame' . blame_tail, '<silent>')
         exe s:Map('n', 'p',    ':<C-U>0,0Git blame!' . blame_tail, '<silent>')
         exe s:Map('n', 'gO',   ':<C-U>vertical 0,0Git blame' . blame_tail, '<silent>')
         exe s:Map('n', 'O',    ':<C-U>tab 0,0Git blame' . blame_tail, '<silent>')
       else
+        exe s:Map('n', '<2-LeftMouse>', ':<C-U>0,6Git blame' . blame_tail, '<silent>')
+        exe s:Map('n', '<CR>', ':<C-U>0,6Git blame' . blame_tail, '<silent>')
         exe s:Map('n', 'o',    ':<C-U>0,2Git blame' . blame_tail, '<silent>')
         exe s:Map('n', 'p',    ':<C-U>0,3Git blame' . blame_tail, '<silent>')
         exe s:Map('n', 'gO',   ':<C-U>0,4Git blame' . blame_tail, '<silent>')
