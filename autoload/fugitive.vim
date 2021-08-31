@@ -282,6 +282,7 @@ function! s:JobVimExit(dict, callback, temp, job, status) abort
   call delete(a:temp . '.err')
   let a:dict.stdout = readfile(a:temp . '.out', 'b')
   call delete(a:temp . '.out')
+  call delete(a:temp . '.in')
   call remove(a:dict, 'job')
   call call(a:callback[0], [a:dict] + a:callback[1:-1])
 endfunction
@@ -293,7 +294,7 @@ function! s:JobNvimExit(dict, callback, job, data, type) dict abort
   call call(a:callback[0], [a:dict] + a:callback[1:-1])
 endfunction
 
-function! s:JobExecute(argv, jopts, callback, ...) abort
+function! s:JobExecute(argv, jopts, stdin, callback, ...) abort
   let dict = a:0 ? a:1 : {}
   let cb = len(a:callback) ? a:callback : [function('len')]
   if exists('*jobstart')
@@ -302,6 +303,10 @@ function! s:JobExecute(argv, jopts, callback, ...) abort
           \ 'stderr_buffered': v:true,
           \ 'on_exit': function('s:JobNvimExit', [dict, cb])})
     let dict.job = jobstart(a:argv, a:jopts)
+    if !empty(a:stdin)
+      call chansend(dict.job, a:stdin)
+      call chanclose(dict.job, 'stdin')
+    endif
   elseif exists('*job_start')
     let temp = tempname()
     call extend(a:jopts, {
@@ -310,6 +315,13 @@ function! s:JobExecute(argv, jopts, callback, ...) abort
           \ 'err_io': 'file',
           \ 'err_name': temp . '.err',
           \ 'exit_cb': function('s:JobVimExit', [dict, cb, temp])})
+    if a:stdin ==# ['']
+      let a:jopts.in_io = 'null'
+    elseif !empty(a:stdin)
+      let a:jopts.in_io = 'file'
+      let a:jopts.in_name = temp . '.in'
+      call writefile(a:stdin, a:jopts.in_name, 'b')
+    endif
     let dict.job = job_start(a:argv, a:jopts)
   elseif &shell !~# 'sh' || &shell =~# 'fish\|\%(powershell\|pwsh\)\%(\.exe\)\=$'
     throw 'fugitive: Vim 8 or higher required to use ' . &shell
@@ -317,7 +329,7 @@ function! s:JobExecute(argv, jopts, callback, ...) abort
     let cmd = s:shellesc(a:argv)
     let outfile = tempname()
     try
-      let dict.stderr = split(system(' (' . cmd . ' >' . outfile . ') '), "\n", 1)
+      let dict.stderr = split(system(' (' . cmd . ' >' . outfile . ') ', join(a:stdin, "\n")), "\n", 1)
       let dict.exit_status = v:shell_error
       let dict.stdout = readfile(outfile, 'b')
       call call(cb[0], [dict] + cb[1:-1])
@@ -422,7 +434,7 @@ let s:git_versions = {}
 function! fugitive#GitVersion(...) abort
   let git = s:GitShellCmd()
   if !has_key(s:git_versions, git)
-    let s:git_versions[git] = matchstr(get(s:JobExecute(s:GitCmd() + ['--version'], {}, [], {}).stdout, 0, ''), '\d[^[:space:]]\+')
+    let s:git_versions[git] = matchstr(get(s:JobExecute(s:GitCmd() + ['--version'], {}, [], [], {}).stdout, 0, ''), '\d[^[:space:]]\+')
   endif
   if !a:0
     return s:git_versions[git]
@@ -700,11 +712,23 @@ endfunction
 function! fugitive#Execute(...) abort
   let cb = copy(a:000)
   let cmd = []
+  let stdin = []
   while len(cb) && type(cb[0]) !=# type(function('tr'))
+    if type(cb[0]) ==# type({}) && has_key(cb[0], 'stdin')
+      if type(cb[0].stdin) == type([])
+        call extend(stdin, cb[0].stdin)
+      elseif type(cb[0].stdin) == type('')
+        call extend(stdin, readfile(cb[0].stdin, 'b'))
+      endif
+      if len(keys(cb[0])) == 1
+        call remove(cb, 0)
+        continue
+      endif
+    endif
     call add(cmd, remove(cb, 0))
   endwhile
   let [argv, jopts, dict] = call('fugitive#PrepareJob', cmd)
-  return s:JobExecute(argv, jopts, cb, dict)
+  return s:JobExecute(argv, jopts, stdin, cb, dict)
 endfunction
 
 function! s:BuildShell(dir, env, git, args) abort
@@ -1198,7 +1222,7 @@ function! fugitive#RemoteHttpHeaders(remote) abort
     let url = remote . '/info/refs?service=git-upload-pack'
     let exec = s:JobExecute(
           \ ['curl', '--disable', '--silent', '--max-time', '5', '-X', 'GET', '-I',
-          \ url], {}, [function('s:CurlResponse')], {})
+          \ url], {}, [], [function('s:CurlResponse')], {})
     call fugitive#Wait(exec)
     let s:remote_headers[remote] = exec.headers
   endif
@@ -3694,7 +3718,7 @@ let s:exec_paths = {}
 function! s:ExecPath() abort
   let git = s:GitShellCmd()
   if !has_key(s:exec_paths, git)
-    let s:exec_paths[git] = get(s:JobExecute(s:GitCmd() + ['--exec-path'], {}, [], {}).stdout, 0, '')
+    let s:exec_paths[git] = get(s:JobExecute(s:GitCmd() + ['--exec-path'], {}, [], [], {}).stdout, 0, '')
   endif
   return s:exec_paths[git]
 endfunction
