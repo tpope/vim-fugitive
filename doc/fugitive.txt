@@ -102,6 +102,10 @@ that are part of Git repositories).
 :Ggrep[!] [args]        An approximation of |:grep|[!] with git-grep as
 :Git[!] grep -O [args]  'grepprg'.
 
+:Ggrep[!] --quiet [args]
+:Ggrep[!] -q [args]     Like |:Ggrep|, but instead of displaying output, open
+                        the quickfix list.
+
                                                 *:Glgrep*
 :Glgrep[!] [args]       :Ggrep but for |:lgrep|.
 :0Git[!] grep -O [args]
