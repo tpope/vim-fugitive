@@ -2300,42 +2300,45 @@ function! fugitive#CompleteObject(base, ...) abort
   if len(tree) && s:cpath(tree . '/', cwd[0 : len(tree)])
     let subdir = strpart(cwd, len(tree) + 1) . '/'
   endif
+  let base = s:Expand(a:base)
 
-  if a:base =~# '^\.\=/\|^:(' || a:base !~# ':'
+  if a:base ==# '!' && base !=# '!'
+    return [base]
+  elseif base =~# '^\.\=/\|^:(' || base !~# ':'
     let results = []
-    if a:base =~# '^refs/'
+    if base =~# '^refs/'
       let cdir = fugitive#Find('.git/refs', dir)[0 : -5]
-      let results += map(s:GlobComplete(cdir, a:base . '*'), 's:Slash(v:val)')
+      let results += map(s:GlobComplete(cdir, base . '*'), 's:Slash(v:val)')
       call map(results, 's:fnameescape(v:val)')
-    elseif a:base !~# '^\.\=/\|^:('
+    elseif base !~# '^\.\=/\|^:('
       let heads = s:CompleteHeads(dir)
       if filereadable(fugitive#Find('.git/refs/stash', dir))
         let heads += ["stash"]
         let heads += sort(s:LinesError(["stash","list","--pretty=format:%gd"], dir)[0])
       endif
-      let results += s:FilterEscape(heads, a:base)
+      let results += s:FilterEscape(heads, base)
     endif
-    let results += a:0 == 1 || a:0 >= 3 ? fugitive#CompletePath(a:base, 0, '', dir, a:0 >= 4 ? a:4 : tree) : fugitive#CompletePath(a:base)
+    let results += a:0 == 1 || a:0 >= 3 ? fugitive#CompletePath(base, 0, '', dir, a:0 >= 4 ? a:4 : tree) : fugitive#CompletePath(base)
     return results
 
-  elseif a:base =~# '^:'
+  elseif base =~# '^:'
     let entries = s:LinesError(['ls-files','--stage'], dir)[0]
-    if a:base =~# ':\./'
+    if base =~# ':\./'
       call map(entries, 'substitute(v:val, "\\M\t\\zs" . subdir, "./", "")')
     endif
     call map(entries,'s:sub(v:val,".*(\\d)\\t(.*)",":\\1:\\2")')
-    if a:base !~# '^:[0-3]\%(:\|$\)'
+    if base !~# '^:[0-3]\%(:\|$\)'
       call filter(entries,'v:val[1] == "0"')
       call map(entries,'v:val[2:-1]')
     endif
 
   else
-    let parent = matchstr(a:base, '.*[:/]')
+    let parent = matchstr(base, '.*[:/]')
     let entries = s:LinesError(['ls-tree', substitute(parent,  ':\zs\./', '\=subdir', '')], dir)[0]
     call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
     call map(entries,'parent.s:sub(v:val,".*\t","")')
   endif
-  return s:FilterEscape(entries, a:base)
+  return s:FilterEscape(entries, base)
 endfunction
 
 function! s:CompleteSub(subcommand, A, L, P, ...) abort
