@@ -6345,34 +6345,45 @@ function! s:Move(force, rename, destination) abort
   if s:DirCommitFile(@%)[1] !~# '^0\=$' || empty(@%)
     return 'echoerr ' . string('fugitive: mv not supported for this buffer')
   endif
-  if a:destination =~# '^\a\+:\|^/'
-    let destination = a:destination
-  elseif a:destination =~# '^:/:\='
-    let destination = s:Tree(dir) . substitute(a:destination, '^:/:\=', '', '')
-  elseif a:destination =~# '^:(\%(top\|top,literal\|literal,top\))'
-    let destination = s:Tree(dir) . matchstr(a:destination, ')\zs.*')
-  elseif a:destination =~# '^:(literal)'
-    let destination = simplify(getcwd() . '/' . matchstr(a:destination, ')\zs.*'))
-  elseif a:rename
-    let destination = simplify(expand('%:p:s?[\/]$??:h') . '/' . a:destination)
-  elseif a:destination =~# '^\.\.\=\%(/\|$\)'
-    let destination = simplify(getcwd() . '/' . a:destination)
+  if a:rename
+    let default_root = expand('%:p:s?[\/]$??:h') . '/'
   else
-    let destination = s:Tree(dir) . '/' . a:destination
+    let default_root = s:Tree(dir) . '/'
+  endif
+  if a:destination =~# '^:/:\='
+    let destination = s:Tree(dir) . s:Expand(substitute(a:destination, '^:/:\=', '', ''))
+  elseif a:destination =~# '^:(top)'
+    let destination = s:Expand(matchstr(a:destination, ')\zs.*'))
+    if destination !~# '^/\|^\a\+:'
+      let destination = s:Tree(dir) . '/' . destination
+    endif
+    let destination = s:Tree(dir) .
+  elseif a:destination =~# '^:(\%(top,literal\|literal,top\))'
+    let destination = s:Tree(dir) . matchstr(a:destination, ')\zs.*')
+  elseif a:destination =~# '^:(literal)\.\.\=\%(/\|$\)'
+    let destination = simplify(getcwd() . '/' . matchstr(a:destination, ')\zs.*'))
+  elseif a:destination =~# '^:(literal)'
+    let destination = simplify(default_root . matchstr(a:destination, ')\zs.*'))
+  else
+    let destination = s:Expand(a:destination)
+    if destination =~# '^\.\.\=\%(/\|$\)'
+      let destination = simplify(getcwd() . '/' . destination)
+    elseif destination !~# '^\a\+:\|^/'
+      let destination = default_root . destination
+    endif
   endif
   let destination = s:Slash(destination)
   if isdirectory(@%)
     setlocal noswapfile
   endif
-  let message = s:ChompStderr(['mv'] + (a:force ? ['-f'] : []) + ['--', expand('%:p'), destination], dir)
-  if len(message)
-    let v:errmsg = 'fugitive: '.message
-    return 'echoerr v:errmsg'
+  let exec = fugitive#Execute(['mv'] + (a:force ? ['-f'] : []) + ['--', expand('%:p'), destination], dir)
+  if exec.exit_status && exec.stderr !=# ['']
+    return 'echoerr ' .string('fugitive: '.s:JoinChomp(exec.stderr))
   endif
   if isdirectory(destination)
     let destination = fnamemodify(s:sub(destination,'/$','').'/'.expand('%:t'),':.')
   endif
-  let reload = '|call fugitive#DidChange(' . string(dir) . ')'
+  let reload = '|call fugitive#DidChange(' . string(exec) . ')'
   if empty(s:DirCommitFile(@%)[1])
     if isdirectory(destination)
       return 'keepalt edit '.s:fnameescape(destination) . reload
