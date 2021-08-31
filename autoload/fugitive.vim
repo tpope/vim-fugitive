@@ -1901,7 +1901,7 @@ function! s:SplitExpandChain(string, ...) abort
     let string = strpart(string, len(arg))
     let arg = substitute(arg, '^\s\+', '', '')
     if !exists('seen_separator')
-      let arg = substitute(arg, '^\%([^:.][^:]*:\|^:\|^:[0-3]:\)\=\zs\.\.\=\%(/.*\)\=$',
+      let arg = substitute(arg, '^\%([^:.][^:]*:\|^:\%((literal)\)\=\|^:[0-3]:\)\=\zs\.\.\=\%(/.*\)\=$',
             \ '\=s:DotRelative(s:Slash(simplify(getcwd() . "/" . submatch(0))), cwd)', '')
     endif
     let arg = substitute(arg,
