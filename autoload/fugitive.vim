@@ -1190,18 +1190,19 @@ endfunction
 let s:remote_headers = {}
 
 function! fugitive#RemoteHttpHeaders(remote) abort
-  if a:remote !~# '^https\=://.' || !s:executable('curl')
+  let remote = type(a:remote) ==# type({}) ? get(a:remote, 'remote', '') : a:remote
+  if type(remote) !=# type('') || remote !~# '^https\=://.' || !s:executable('cremote')
     return {}
   endif
-  if !has_key(s:remote_headers, a:remote)
-    let url = a:remote . '/info/refs?service=git-upload-pack'
+  if !has_key(s:remote_headers, remote)
+    let url = remote . '/info/refs?service=git-upload-pack'
     let exec = s:JobExecute(
           \ ['curl', '--disable', '--silent', '--max-time', '5', '-X', 'GET', '-I',
           \ url], {}, [function('s:CurlResponse')], {})
     call fugitive#Wait(exec)
-    let s:remote_headers[a:remote] = exec.headers
+    let s:remote_headers[remote] = exec.headers
   endif
-  return s:remote_headers[a:remote]
+  return s:remote_headers[remote]
 endfunction
 
 function! fugitive#ResolveRemote(remote) abort
