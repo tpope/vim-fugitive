@@ -479,9 +479,12 @@ if exists(':G') != 2
 endif
 command! -bang -nargs=? -range=-1 -complete=customlist,fugitive#Complete Git exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)
 
-if exists(':Gstatus') != 2 && get(g:, 'fugitive_legacy_commands', 1)
+if exists(':Gstatus') != 2 && get(g:, 'fugitive_legacy_commands', 0)
   exe 'command! -bang -bar     -range=-1' s:addr_other 'Gstatus exe fugitive#Command(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
         \ '|echohl WarningMSG|echomsg ":Gstatus is deprecated in favor of :Git (with no arguments)"|echohl NONE'
+elseif exists(':Gstatus') != 2 && !exists('g:fugitive_legacy_commands')
+  exe 'command! -bang -bar     -range=-1' s:addr_other 'Gstatus'
+        \ ' echoerr ":Gstatus has been removed in favor of :Git (with no arguments)"'
 endif
 
 for s:cmd in ['Commit', 'Revert', 'Merge', 'Rebase', 'Pull', 'Push', 'Fetch', 'Blame']
