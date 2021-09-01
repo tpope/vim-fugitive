@@ -210,6 +210,18 @@ function! FugitiveRemoteUrl(...) abort
   return call('fugitive#RemoteUrl', a:000)
 endfunction
 
+" FugitiveDidChange() triggers a FugitiveChanged event and reloads the summary
+" buffer for the current or given buffer number's repository.  You can also
+" give the result of a FugitiveExecute() and that context will be made
+" available inside the FugitiveChanged() event.
+"
+" Passing the special argument 0 (the number zero) softly expires summary
+" buffers for all repositories.  This can be used after a call to system()
+" with unclear implications.
+function! FugitiveDidChange(...) abort
+  return call('fugitive#DidChange', a:000)
+endfunction
+
 " FugitiveHead() retrieves the name of the current branch. If the current HEAD
 " is detached, FugitiveHead() will return the empty string, unless the
 " optional argument is given, in which case the hash of the current commit
