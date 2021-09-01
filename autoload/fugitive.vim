@@ -3529,7 +3529,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   let name = substitute(get(args, 0, ''), '\%(^\|-\)\(\l\)', '\u\1', 'g')
   if pager is# -1 && name =~# '^\a\+$' && exists('*s:' . name . 'Subcommand') && get(args, 1, '') !=# '--help'
     try
-      let overrides = s:{name}Subcommand(a:line1, curwin && a:line2 < 0 ? 0 : a:line2, a:range, a:bang, a:mods, extend({'subcommand': args[0], 'subcommand_args': args[1:-1]}, options))
+      let overrides = s:{name}Subcommand(a:line1, a:line2, a:range, a:bang, a:mods, extend({'subcommand': args[0], 'subcommand_args': args[1:-1]}, options))
       if type(overrides) == type('')
         return 'exe ' . string(overrides) . after
       endif
@@ -5008,7 +5008,7 @@ endfunction
 " Section: :Git commit, :Git revert
 
 function! s:CommitInteractive(line1, line2, range, bang, mods, options, patch) abort
-  let status = s:StatusCommand(a:line1, a:line2, a:range, a:line2, a:bang, a:mods, '', '', [], a:options)
+  let status = s:StatusCommand(a:line1, a:line2, a:range, get(a:options, 'curwin') && a:line2 < 0 ? 0 : a:line2, a:bang, a:mods, '', '', [], a:options)
   let status = len(status) ? status . '|' : ''
   if a:patch
     return status . 'if search("^Unstaged")|exe "normal >"|exe "+"|endif'
@@ -5216,7 +5216,7 @@ function! s:ToolStream(line1, line2, range, bang, mods, options, args, state) ab
   let exec += a:options.flags + ['--no-pager', 'diff', '--no-ext-diff', '--no-color', '--no-prefix'] + argv
   if prompt
     let title = ':Git ' . s:fnameescape(a:options.flags + [a:options.subcommand] + a:options.subcommand_args)
-    return s:QuickfixStream(a:line2, 'difftool', title, exec, !a:bang, a:mods, s:function('s:ToolParse'), a:state)
+    return s:QuickfixStream(get(a:options, 'curwin') && a:line2 < 0 ? 0 : a:line2, 'difftool', title, exec, !a:bang, a:mods, s:function('s:ToolParse'), a:state)
   else
     let filename = ''
     let cmd = []
@@ -5475,7 +5475,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   if handle < 0 ? !quiet : !handle
     return {}
   endif
-  let listnr = a:line1 == 0 ? a:line1 : a:line2
+  let listnr = get(a:options, 'curwin') && a:line2 < 0 ? 0 : a:line2
   if s:HasOpt(args, '--no-line-number')
     let lc = []
   else
@@ -6660,7 +6660,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
       if s:HasOpt(flags, '--reverse')
         let temp_state.blame_reverse_end = matchstr(get(commits, 0, ''), '\.\.\zs.*')
       endif
-      if a:count == 0 && a:range == 2
+      if a:line1 == 0 && a:count == 1
         if get(a:options, 'curwin')
           let edit = 'edit'
         elseif a:bang
@@ -7324,18 +7324,14 @@ function! fugitive#MapJumps(...) abort
   if !&modifiable
     if get(b:, 'fugitive_type', '') ==# 'blob'
       let blame_tail = '<C-R>=v:count ? " --reverse" : ""<CR><CR>'
-      if has('patch-8.0.1089')
-        exe s:Map('n', '<2-LeftMouse>', ':<C-U>0,0Git ++curwin blame' . blame_tail, '<silent>')
-        exe s:Map('n', '<CR>', ':<C-U>0,0Git ++curwin blame' . blame_tail, '<silent>')
-        exe s:Map('n', 'o',    ':<C-U>0,0Git blame' . blame_tail, '<silent>')
-        exe s:Map('n', 'p',    ':<C-U>0,0Git blame!' . blame_tail, '<silent>')
-        exe s:Map('n', 'gO',   ':<C-U>vertical 0,0Git blame' . blame_tail, '<silent>')
-        exe s:Map('n', 'O',    ':<C-U>tab 0,0Git blame' . blame_tail, '<silent>')
+      exe s:Map('n', '<2-LeftMouse>', ':<C-U>0,1Git ++curwin blame' . blame_tail, '<silent>')
+      exe s:Map('n', '<CR>', ':<C-U>0,1Git ++curwin blame' . blame_tail, '<silent>')
+      exe s:Map('n', 'o',    ':<C-U>0,1Git blame' . blame_tail, '<silent>')
+      exe s:Map('n', 'p',    ':<C-U>0,1Git blame!' . blame_tail, '<silent>')
+      if has('patch-7.4.1898')
+        exe s:Map('n', 'gO',   ':<C-U>vertical 0,1Git blame' . blame_tail, '<silent>')
+        exe s:Map('n', 'O',    ':<C-U>tab 0,1Git blame' . blame_tail, '<silent>')
       else
-        exe s:Map('n', '<2-LeftMouse>', ':<C-U>0,6Git blame' . blame_tail, '<silent>')
-        exe s:Map('n', '<CR>', ':<C-U>0,6Git blame' . blame_tail, '<silent>')
-        exe s:Map('n', 'o',    ':<C-U>0,2Git blame' . blame_tail, '<silent>')
-        exe s:Map('n', 'p',    ':<C-U>0,3Git blame' . blame_tail, '<silent>')
         exe s:Map('n', 'gO',   ':<C-U>0,4Git blame' . blame_tail, '<silent>')
         exe s:Map('n', 'O',    ':<C-U>0,5Git blame' . blame_tail, '<silent>')
       endif
