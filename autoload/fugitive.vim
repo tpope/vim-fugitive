@@ -2302,7 +2302,7 @@ function! fugitive#CompleteObject(base, ...) abort
   endif
   let base = s:Expand(a:base)
 
-  if a:base ==# '!' && base !=# '!'
+  if a:base =~# '^!\d*$' && base !~# '^!'
     return [base]
   elseif base =~# '^\.\=/\|^:(' || base !~# ':'
     let results = []
