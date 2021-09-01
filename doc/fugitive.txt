@@ -98,7 +98,7 @@ that are part of Git repositories).
                                                 *:Git_mergetool*
 :Git mergetool [args]   Like |:Git_difftool|, but target merge conflicts.
 
-                                                *:Ggrep* *:Gcgrep* *:Git_grep*
+                                                *:Ggrep* *:Git_grep*
 :Ggrep[!] [args]        An approximation of |:grep|[!] with git-grep as
 :Git[!] grep -O [args]  'grepprg'.
 
