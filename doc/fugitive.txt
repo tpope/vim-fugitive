@@ -37,11 +37,11 @@ that are part of Git repositories).
 
                                                 *:Git_--paginate* *:Git_-p*
 :Git --paginate {args}  Run an arbitrary git command, capture output to a temp
-:Git -p {args}          file, and |:split| that temp file.  Use :0Git to
-                        |:edit| the temp file instead.  A temp file is always
-                        used for commands like diff and log that typically
-                        uses a pager, and for any command that has the
-                        pager.<cmd> Git configuration option set.
+:Git -p {args}          file, and |:split| that temp file.  Pass ++curwin as
+                        the first argument to |:edit| the temp file instead.
+                        A temp file is always used for commands like diff and
+                        log that typically uses a pager, and for any command
+                        that has the pager.<cmd> Git configuration option set.
 
 :{range}Git! --paginate {args}
 :{range}Git! -p {args}  Run an arbitrary git command, and insert the output
