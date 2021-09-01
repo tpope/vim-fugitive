@@ -5115,7 +5115,6 @@ function! s:ToolItems(state, from, to, offsets, text, ...) abort
     endif
     call add(items, item)
   endfor
-  let diff = items[0:-2]
   let items[-1].context = {'diff': items[0:-2]}
   return [items[-1]]
 endfunction
