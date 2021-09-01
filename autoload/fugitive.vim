@@ -5208,6 +5208,7 @@ function! s:ToolStream(line1, line2, range, bang, mods, options, args, state) ab
     endif
     let i += 1
   endwhile
+  call fugitive#Autowrite()
   let a:state.mode = 'init'
   let a:state.from = ''
   let a:state.to = ''
@@ -5474,6 +5475,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   if handle < 0 ? !quiet : !handle
     return {}
   endif
+  call fugitive#Autowrite()
   let listnr = get(a:options, 'curwin') && a:line2 < 0 ? 0 : a:line2
   if s:HasOpt(args, '--no-line-number')
     let lc = []
@@ -6617,6 +6619,8 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
       let cmd += ['--contents', tempname . '.in']
       silent execute 'noautocmd keepalt %write ' . s:fnameescape(tempname . '.in')
       let delete_in = 1
+    else
+      call fugitive#Autowrite()
     endif
     let basecmd = [{'git': a:options.git, 'git_dir': dir}] + ['--literal-pathspecs'] + cmd + ['--'] + (len(files) ? files : [file])
     let [err, exec_error] = s:StdoutToFile(temp, basecmd)
