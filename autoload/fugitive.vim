@@ -781,7 +781,7 @@ function! s:SystemList(cmd) abort
     endwhile
     return [lines, exit[0]]
   else
-    let [output, exec_error] = call('s:SystemError', s:shellesc(a:cmd))
+    let [output, exec_error] = s:SystemError(s:shellesc(a:cmd))
     let lines = split(output, "\n", 1)
     if empty(lines[-1])
       call remove(lines, -1)
