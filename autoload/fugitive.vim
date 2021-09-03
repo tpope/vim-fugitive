@@ -1868,7 +1868,7 @@ endfunction
 function! s:Expand(rev, ...) abort
   if a:rev =~# '^>\=:[0-3]$'
     let file = len(expand('%')) ? a:rev[-2:-1] . ':%' : '%'
-  elseif a:rev ==# '>'
+  elseif a:rev =~# '^>\%(:\=/\)\=$'
     let file = '%'
   elseif a:rev ==# '>:'
     let file = empty(s:DirCommitFile(@%)[0]) ? ':0:%' : '%'
