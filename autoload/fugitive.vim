@@ -7725,9 +7725,15 @@ function! s:GF(mode) abort
     return 'echoerr ' . string(v:exception)
   endtry
   if len(results) > 1
-    return 'G' . a:mode .
+    let cmd = 'G' . a:mode .
           \ (empty(results[1]) ? '' : ' +' . escape(results[1], ' |')) . ' ' .
-          \ fnameescape(results[0]) . join(map(results[2:-1], '"|" . v:val'), '')
+          \ fnameescape(results[0])
+    let tail = join(map(results[2:-1], '"|" . v:val'), '')
+    if a:mode ==# 'pedit' && len(tail)
+      return cmd . '|wincmd P|exe ' . string(tail[1:-1]) . '|wincmd p'
+    else
+      return cmd . tail
+    endif
   elseif len(results) && len(results[0])
     return 'G' . a:mode . ' ' . s:fnameescape(results[0])
   else
