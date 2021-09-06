@@ -656,6 +656,10 @@ FugitiveIndex           After loading the |fugitive-summary| buffer.
 FugitivePager           After loading a temp file created by a command like
                         :Git --paginate or :Git blame.
 
+                                                *User_FugitiveEditor*
+FugitiveEditor          After a :Git command (e.g., :Git commit) edits a file
+                        (e.g., the commit message).
+
                                                 *User_FugitiveChanged*
 FugitiveChanged         After any event which can potentially change the
                         repository, for example, any invocation of |:Git|.
