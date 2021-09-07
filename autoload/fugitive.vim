@@ -4982,11 +4982,11 @@ function! s:StagePatch(lnum1,lnum2) abort
   for lnum in range(a:lnum1,a:lnum2)
     let info = s:StageInfo(lnum)
     if empty(info.paths) && info.section ==# 'Staged'
-      return 'Git reset --patch'
+      return 'tab Git reset --patch'
     elseif empty(info.paths) && info.section ==# 'Unstaged'
-      return 'Git add --patch'
+      return 'tab Git add --patch'
     elseif empty(info.paths) && info.section ==# 'Untracked'
-      return 'Git add --interactive'
+      return 'tab Git add --interactive'
     elseif empty(info.paths)
       continue
     endif
@@ -5004,10 +5004,10 @@ function! s:StagePatch(lnum1,lnum2) abort
       call s:TreeChomp(['add', '--intent-to-add', '--'] + intend)
     endif
     if !empty(add)
-      execute "Git add --patch -- ".join(map(add,'s:fnameescape(v:val)'))
+      execute "tab Git add --patch -- ".join(map(add,'fnameescape(v:val)'))
     endif
     if !empty(reset)
-      execute "Git reset --patch -- ".join(map(reset,'s:fnameescape(v:val)'))
+      execute "tab Git reset --patch -- ".join(map(reset,'fnameescape(v:val)'))
     endif
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
