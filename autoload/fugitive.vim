@@ -1336,15 +1336,19 @@ function! s:QuickfixCreate(nr, opts) abort
   endif
 endfunction
 
+function! s:QuickfixOpen(nr, mods) abort
+  let mods = substitute(s:Mods(a:mods), '\<tab\>', '', '')
+  return mods . (a:nr < 0 ? 'c' : 'l').'open' . (mods =~# '\<vertical\>' ? ' 20' : '')
+endfunction
+
 function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) abort
   call s:BlurStatus()
-  let mods = s:Mods(a:mods)
   let opts = {'title': a:title, 'context': {'items': []}}
   call s:QuickfixCreate(a:nr, opts)
   let event = (a:nr < 0 ? 'c' : 'l') . 'fugitive-' . a:event
   silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
   let winnr = winnr()
-  exe a:nr < 0 ? 'copen' : 'lopen'
+  exe s:QuickfixOpen(a:nr, a:mods)
   if winnr != winnr()
     wincmd p
   endif
@@ -1359,7 +1363,7 @@ function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) ab
       call extend(opts.context.items, contexts)
       unlet contexts
       call s:QuickfixSet(a:nr, remove(buffer, 0, -1), 'a')
-      if mods !~# '\<silent\>'
+      if a:mods !~# '\<silent\>'
         redraw
       endif
     endif
@@ -1371,7 +1375,7 @@ function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) ab
 
   silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if a:first && len(s:QuickfixGet(a:nr))
-    return mods . (a:nr < 0 ? 'cfirst' : 'lfirst')
+    return (a:nr < 0 ? 'cfirst' : 'lfirst')
   else
     return 'exe'
   endif
@@ -5541,7 +5545,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
   silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if quiet
     let bufnr = bufnr('')
-    silent exe substitute(s:Mods(a:mods), '\<tab\>', '', '') (listnr < 0 ? 'c' : 'l').'open'
+    exe s:QuickfixOpen(listnr, a:mods)
     if bufnr != bufnr('') && !a:bang
       wincmd p
     endif
