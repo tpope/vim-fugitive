@@ -3214,11 +3214,7 @@ function! s:RunReceive(state, tmp, type, job, data, ...) abort
       call setbufline(a:state.capture_bufnr, line_count + 1, lines)
     endif
     call setbufvar(a:state.capture_bufnr, '&modifiable', 0)
-    if !getwinvar(bufwinid(a:state.capture_bufnr), '&previewwindow')
-      " no-op
-    elseif exists('*win_execute')
-      call win_execute(bufwinid(a:state.capture_bufnr), '$')
-    else
+    if getwinvar(bufwinid(a:state.capture_bufnr), '&previewwindow')
       let winnr = bufwinnr(a:state.capture_bufnr)
       if winnr > 0
         let old_winnr = winnr()
