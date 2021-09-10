@@ -259,7 +259,7 @@ function! FugitivePath(...) abort
 endfunction
 
 function! FugitiveStatusline(...) abort
-  if empty(FugitiveGitDir())
+  if empty(FugitiveGitDir(bufnr('')))
     return ''
   endif
   return fugitive#Statusline()
