@@ -2109,7 +2109,8 @@ function! s:BlobTemp(url) abort
   endif
   if commit =~# '^\d$' || !filereadable(tempfile)
     let rev = s:DirRev(a:url)[1]
-    let exec_error = s:StdoutToFile(tempfile, [dir, 'cat-file', 'blob', rev])[1]
+    let blob_or_filters = fugitive#GitVersion(2, 11) ? '--filters' : 'blob'
+    let exec_error = s:StdoutToFile(tempfile, [dir, 'cat-file', blob_or_filters, rev])[1]
     if exec_error
       call delete(tempfile)
       return ''
@@ -2952,7 +2953,8 @@ function! fugitive#BufReadCmd(...) abort
       elseif b:fugitive_type ==# 'stage'
         call s:ReplaceCmd([dir, 'ls-files', '--stage'])
       elseif b:fugitive_type ==# 'blob'
-        call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
+        let blob_or_filters = rev =~# ':' && fugitive#GitVersion(2, 11) ? '--filters' : 'blob'
+        call s:ReplaceCmd([dir, 'cat-file', blob_or_filters, rev])
       endif
     finally
       keepjumps call setpos('.',pos)
