@@ -7661,6 +7661,15 @@ function! s:cfile() abort
         let ref = matchstr(getline('.'),'\x\{40,\}')
         echoerr "warning: unknown context ".matchstr(getline('.'),'^\l*')
 
+      elseif getline('.') =~# '^[A-Z]\d*\t\S' && len(myhash)
+        let files = split(getline('.'), "\t")[1:-1]
+        let ref = 'b/' . files[-1]
+        if getline('.') =~# '^D'
+          let ref = 'a/' . files[0]
+        elseif getline('.') !~# '^A'
+          let dcmds = ['', 'Gdiffsplit! >' . myhash . '^:' . fnameescape(files[0])]
+        endif
+
       elseif getline('.') =~# '^[+-]\{3\} [abciow12]\=/'
         let ref = getline('.')[4:]
 
