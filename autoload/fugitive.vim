@@ -626,8 +626,10 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
   if !exists('dir')
     let dir = s:Dir()
   endif
-  if !has_key(env, 'GIT_INDEX_FILE')
-    call s:PrepareEnv(autoenv, dir)
+  call extend(autoenv, env)
+  call s:PrepareEnv(autoenv, dir)
+  if len($GPG_TTY) && !has_key(autoenv, 'GPG_TTY')
+    let autoenv.GPG_TTY = ''
   endif
   call s:PreparePathArgs(cmd, dir, literal_pathspecs, explicit_pathspec_option)
   return [s:GitDir(dir), env, extend(autoenv, env), git, cmd[0 : -arg_count-1], arg_count ? cmd[-arg_count : -1] : []]
@@ -3637,6 +3639,10 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
           \ 'GIT_SEQUENCE_EDITOR': editor,
           \ 'GIT_PAGER': 'cat',
           \ 'PAGER': 'cat'}, 'keep')
+    if len($GPG_TTY) && !has_key(env, 'GPG_TTY')
+      let env.GPG_TTY = ''
+      let did_override_gpg_tty = 1
+    endif
     if stream
       call writefile(['fugitive: aborting edit due to background operation.'], state.file . '.exit')
     elseif pager
@@ -3716,6 +3722,9 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   else
     if !explicit_pathspec_option && get(options.flags, 0, '') ==# '--no-literal-pathspecs'
       call remove(options.flags, 0)
+    endif
+    if exists('l:did_override_gpg_tty')
+      call remove(env, 'GPG_TTY')
     endif
     let cmd = s:BuildEnvPrefix(env) . s:shellesc(s:UserCommandList(options) + args)
     let after = '|call fugitive#DidChange(' . string(dir) . ')' . after
