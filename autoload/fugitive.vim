@@ -1266,19 +1266,16 @@ function! s:ConfigLengthSort(i1, i2) abort
 endfunction
 
 function! fugitive#RemoteUrl(...) abort
-  let args = a:000
-  if a:0 && (type(a:1) !=# type('') || a:1 =~# '^/\|^\a:[\\/]' && get(a:, 2, '') !~# '^/\|^\a:[\\/]')
-    let config = fugitive#Config(a:1)
-    let args = a:000[1:-1]
+  let args = copy(a:000)
+  if len(args) && (type(args[0]) !=# type('') || args[0] =~# '^/\|^\a:[\\/]' && get(args, 1, '') !~# '^/\|^\a:[\\/]')
+    let config = fugitive#Config(remote(args, 0))
     if type(a:1) ==# type({}) && has_key(a:1, 'remote_name') && (type(get(args, 0, 0)) !=# type('') || args[0] =~# '^:')
       call insert(args, a:1.remote_name)
     endif
-  elseif a:0 > 1 && type(a:2) ==# type({}) || (type(a:2) ==# type('') && a:2 !~# '^:')
-    let config = fugitive#Config(a:2)
-    let args = [a:1] + a:000[2:-1]
+  elseif len(args) > 1 && (type(args[1]) !=# type('') || args[1] !~# '^:')
+    let config = fugitive#Config(remove(args, 1))
   else
     let config = fugitive#Config()
-    let args = copy(a:000)
   endif
   if empty(args) || args[0] =~# '^:'
     let url = s:Remote(config)
