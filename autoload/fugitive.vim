@@ -1268,7 +1268,7 @@ endfunction
 function! fugitive#RemoteUrl(...) abort
   let args = copy(a:000)
   if len(args) && (type(args[0]) !=# type('') || args[0] =~# '^/\|^\a:[\\/]' && get(args, 1, '') !~# '^/\|^\a:[\\/]')
-    let config = fugitive#Config(remote(args, 0))
+    let config = fugitive#Config(remove(args, 0))
     if type(a:1) ==# type({}) && has_key(a:1, 'remote_name') && (type(get(args, 0, 0)) !=# type('') || args[0] =~# '^:')
       call insert(args, a:1.remote_name)
     endif
