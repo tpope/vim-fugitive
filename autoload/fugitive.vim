@@ -1222,7 +1222,7 @@ let s:remote_headers = {}
 
 function! fugitive#RemoteHttpHeaders(remote) abort
   let remote = type(a:remote) ==# type({}) ? get(a:remote, 'remote', '') : a:remote
-  if type(remote) !=# type('') || remote !~# '^https\=://.' || !s:executable('cremote')
+  if type(remote) !=# type('') || remote !~# '^https\=://.' || !s:executable('curl')
     return {}
   endif
   if !has_key(s:remote_headers, remote)
