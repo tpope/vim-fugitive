@@ -125,7 +125,15 @@ function! s:Mods(mods, ...) abort
   let mods = substitute(a:mods, '\C<mods>', '', '')
   let mods = mods =~# '\S$' ? mods . ' ' : mods
   if a:0 && mods !~# '\<\%(aboveleft\|belowright\|leftabove\|rightbelow\|topleft\|botright\|tab\)\>'
-    let mods = a:1 . ' ' . mods
+    if a:1 ==# 'Edge'
+      if mods =~# '\<vertical\>' ? &splitright : &splitbelow
+        let mods = 'botright ' . mods
+      else
+        let mods = 'topleft ' . mods
+      endif
+    else
+      let mods = a:1 . ' ' . mods
+    endif
   endif
   return substitute(mods, '\s\+', ' ', 'g')
 endfunction
@@ -3596,7 +3604,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   if a:bang && pager isnot# 2
     let pager = 1
     let stream = exists('*setbufline')
-    let do_edit = substitute(s:Mods(a:mods, &splitbelow ? 'botright' : 'topleft'), '\<tab\>', '-tab', 'g') . 'pedit!'
+    let do_edit = substitute(s:Mods(a:mods, 'Edge'), '\<tab\>', '-tab', 'g') . 'pedit!'
   elseif pager
     let allow_pty = 0
     if pager is# 2 && a:bang && a:line2 >= 0
@@ -3872,7 +3880,7 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
   let dir = a:0 ? s:Dir(a:1) : s:Dir()
   exe s:DirCheck(dir)
   try
-    let mods = s:Mods(a:mods, &splitbelow ? 'botright' : 'topleft')
+    let mods = s:Mods(a:mods, 'Edge')
     let file = fugitive#Find(':', dir)
     let arg = ' +setl\ foldmarker=<<<<<<<<,>>>>>>>>\|let\ w:fugitive_status=FugitiveGitDir() ' .
           \ s:fnameescape(file)
