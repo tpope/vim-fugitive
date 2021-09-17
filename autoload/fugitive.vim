@@ -428,7 +428,7 @@ function! s:UserCommandList(...) abort
     if empty(tree)
       call add(git, '--git-dir=' . FugitiveGitPath(dir))
     else
-      if !s:cpath(tree . '/.git', dir)
+      if !s:cpath(tree . '/.git', dir) || len($GIT_DIR)
         call add(git, '--git-dir=' . FugitiveGitPath(dir))
       endif
       if !s:cpath(tree, getcwd())
@@ -554,6 +554,9 @@ function! s:PrepareEnv(env, dir) abort
     if !s:cpath(index_dir, our_dir) && !s:cpath(resolve(FugitiveVimPath(index_dir)), our_dir)
       let a:env['GIT_INDEX_FILE'] = FugitiveGitPath(fugitive#Find('.git/index', a:dir))
     endif
+  endif
+  if len($GIT_WORK_TREE)
+    let a:env['GIT_WORK_TREE'] = '.'
   endif
 endfunction
 
@@ -712,7 +715,7 @@ function! fugitive#PrepareJob(...) abort
   else
     let dict.cwd = FugitiveVimPath(tree)
     call extend(cmd, ['-C', FugitiveGitPath(tree)], 'keep')
-    if !s:cpath(tree . '/.git', dir)
+    if !s:cpath(tree . '/.git', dir) || len($GIT_DIR)
       call extend(cmd, ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
     endif
   endif
@@ -750,7 +753,7 @@ function! s:BuildShell(dir, env, git, args) abort
     call insert(cmd, '--git-dir=' . FugitiveGitPath(a:dir))
   else
     call extend(cmd, ['-C', FugitiveGitPath(tree)], 'keep')
-    if !s:cpath(tree . '/.git', a:dir)
+    if !s:cpath(tree . '/.git', a:dir) || len($GIT_DIR)
       call extend(cmd, ['--git-dir=' . FugitiveGitPath(a:dir)], 'keep')
     endif
   endif
