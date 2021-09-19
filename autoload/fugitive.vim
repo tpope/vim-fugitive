@@ -1251,7 +1251,7 @@ function! s:UrlParse(url) abort
   let scp_authority = matchstr(a:url, '^[^:/]\+\ze:\%(//\)\@!')
   if len(scp_authority) && !(has('win32') && scp_authority =~# '^\a:[\/]')
     return {'scheme': 'ssh', 'authority': scp_authority,
-          \ 'path': strpart(url, len(scp_authority) + 1)}
+          \ 'path': strpart(a:url, len(scp_authority) + 1)}
   endif
   let match = matchlist(a:url, '^\([[:alnum:].+-]\+\)://\([^/]*\)\(/.*\)\=\%(#\|$\)')
   if empty(match)
