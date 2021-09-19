@@ -1247,33 +1247,35 @@ function! fugitive#RemoteHttpHeaders(remote) abort
   return s:remote_headers[remote]
 endfunction
 
-function! s:ResolveRemote(url) abort
-  let url = a:url
-  let scp_authority = matchstr(url, '^[^:/]\+\ze:\%(//\)\@!')
-  let remote = {}
+function! s:UrlParse(url) abort
+  let scp_authority = matchstr(a:url, '^[^:/]\+\ze:\%(//\)\@!')
   if len(scp_authority) && !(has('win32') && scp_authority =~# '^\a:[\/]')
-    let remote.scheme = 'ssh'
-    let remote.path = strpart(url, len(scp_authority) + 1)
-    let remote.authority = fugitive#SshHostAlias(scp_authority)
-    return remote
-  elseif empty(url)
-    return {'scheme': '', 'authority': '', 'path': ''}
-  elseif url =~# '^https\=://'
-    let headers = fugitive#RemoteHttpHeaders(url)
+    return {'scheme': 'ssh', 'authority': scp_authority,
+          \ 'path': strpart(url, len(scp_authority) + 1)}
+  endif
+  let match = matchlist(a:url, '^\([[:alnum:].+-]\+\)://\([^/]*\)\(/.*\)\=\%(#\|$\)')
+  if empty(match)
+    return {'scheme': 'file', 'authority': '', 'path': a:url}
+  endif
+  let remote = {'scheme': match[1], 'authority': match[2]}
+  let remote.path = empty(match[3]) ? '/' : match[3]
+  if (remote.scheme ==# 'ssh' || remote.scheme ==# 'git') && remote.path[0:1] ==# '/~'
+    let remote.path = strpart(remote.path, 1)
+  endif
+  return remote
+endfunction
+
+function! s:ResolveRemote(url) abort
+  let remote = s:UrlParse(a:url)
+  if remote.scheme =~# '^https\=$'
+    let headers = fugitive#RemoteHttpHeaders(remote.scheme . '://' . remote.authority . remote.path)
     let loc = matchstr(get(headers, 'location', ''), '^https\=://.\{-\}\ze/info/refs?')
     if len(loc)
-      let url = loc
+      let remote = s:UrlParse(loc)
     else
       let remote.http_headers = headers
     endif
-  endif
-  let match = matchlist(url, '^\([[:alnum:].+-]\+\)://\([^/]*\)\(/.*\)\=\%(#\|$\)')
-  if len(match)
-    let [remote.scheme, remote.authority, remote.path] = match[1:3]
-  else
-    return {'scheme': 'file', 'authority': '', 'path': url}
-  endif
-  if remote.scheme ==# 'ssh'
+  elseif remote.scheme ==# 'ssh'
     let remote.authority = fugitive#SshHostAlias(remote.authority)
   endif
   return remote
