@@ -420,7 +420,7 @@ function! FugitiveDetect(...) abort
   if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir
     unlet b:git_dir
   endif
-  if a:0 > 1 && a:2 && !exists('#User#Fugitive')
+  if a:0 > 1 && a:2 is# 0 && !exists('#User#Fugitive')
     return ''
   endif
   if !exists('b:git_dir')
@@ -604,7 +604,7 @@ augroup fugitive
   autocmd!
 
   autocmd BufNewFile,BufReadPost *
-        \    call FugitiveDetect(expand('<amatch>:p'), 1)
+        \    call FugitiveDetect(expand('<amatch>:p'), 0)
   autocmd FileType           netrw call FugitiveDetect(fnamemodify(get(b:, 'netrw_curdir', expand('<afile>:p')), ':p'), 1)
 
   autocmd FileType git
