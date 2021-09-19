@@ -1121,7 +1121,7 @@ endfunction
 
 call s:add_methods('config', ['GetAll', 'Get', 'GetRegexp'])
 
-function! s:Remote(dir) abort
+function! s:RemoteDefault(dir) abort
   let head = FugitiveHead(0, a:dir)
   let remote = len(head) ? FugitiveConfigGet('branch.' . head . '.remote', a:dir) : ''
   let i = 10
@@ -1311,10 +1311,10 @@ function! fugitive#RemoteUrl(...) abort
     let config = fugitive#Config()
   endif
   if empty(args) || args[0] =~# '^:'
-    let url = s:Remote(config)
+    let url = s:RemoteDefault(config)
   elseif args[0] =~# '^\.\=$'
     call remove(args, 0)
-    let url = s:Remote(config)
+    let url = s:RemoteDefault(config)
   else
     let url = remove(args, 0)
   endif
@@ -7177,6 +7177,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
         let type = 'blob'
       endif
     endif
+    let config = fugitive#Config(dir)
     if type ==# 'tree' && !empty(path)
       let path = s:sub(path, '/\=$', '/')
     endif
@@ -7208,13 +7209,13 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
       let branch = FugitiveHead(0, dir)
     endif
     if !empty(branch)
-      let r = FugitiveConfigGet('branch.'.branch.'.remote', dir)
-      let m = FugitiveConfigGet('branch.'.branch.'.merge', dir)[11:-1]
+      let r = FugitiveConfigGet('branch.'.branch.'.remote', config)
+      let m = FugitiveConfigGet('branch.'.branch.'.merge', config)[11:-1]
       if r ==# '.' && !empty(m)
-        let r2 = FugitiveConfigGet('branch.'.m.'.remote', dir)
+        let r2 = FugitiveConfigGet('branch.'.m.'.remote', config)
         if r2 !~# '^\.\=$'
           let r = r2
-          let m = FugitiveConfigGet('branch.'.m.'.merge', dir)[11:-1]
+          let m = FugitiveConfigGet('branch.'.m.'.merge', config)[11:-1]
         endif
       endif
       if empty(remote)
@@ -7222,7 +7223,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
       endif
       if r ==# '.' || r ==# remote
         let remote_ref = 'refs/remotes/' . remote . '/' . branch
-        if FugitiveConfigGet('push.default', dir) ==# 'upstream' ||
+        if FugitiveConfigGet('push.default', config) ==# 'upstream' ||
               \ !filereadable(FugitiveFind('.git/' . remote_ref, dir)) && empty(s:ChompDefault('', ['rev-parse', '--verify', remote_ref, '--'], dir))
           let merge = m
           if path =~# '^\.git/refs/heads/.'
@@ -7278,12 +7279,12 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
     endif
 
     if empty(remote) || remote ==# '.'
-      let remote = s:Remote(dir)
+      let remote = s:RemoteDefault(config)
     endif
     if remote =~# ':'
       let remote_url = remote
     else
-      let remote_url = fugitive#RemoteUrl(remote, dir)
+      let remote_url = fugitive#RemoteUrl(remote, config)
     endif
     let raw = empty(remote_url) ? remote : remote_url
     let git_dir = s:GitDir(dir)
