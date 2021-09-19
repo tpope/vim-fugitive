@@ -1272,15 +1272,15 @@ function! s:UrlParse(url) abort
   return url
 endfunction
 
-function! s:ResolveRemote(url) abort
+function! s:RemoteResolve(url, flags) abort
   let remote = s:UrlParse(a:url)
-  if remote.scheme =~# '^https\=$'
+  if remote.scheme =~# '^https\=$' && index(a:flags, ':nohttp') < 0
     let headers = fugitive#RemoteHttpHeaders(remote.scheme . '://' . remote.authority . remote.path)
     let loc = matchstr(get(headers, 'location', ''), '^https\=://.\{-\}\ze/info/refs?')
     if len(loc)
       let remote = s:UrlParse(loc)
     else
-      let remote.http_headers = headers
+      let remote.headers = headers
     endif
   elseif remote.scheme ==# 'ssh'
     let remote.authority = fugitive#SshHostAlias(remote.authority)
@@ -1288,23 +1288,66 @@ function! s:ResolveRemote(url) abort
   return remote
 endfunction
 
-function! fugitive#ResolveRemote(url) abort
-  let remote = s:ResolveRemote(a:url)
-  if remote.scheme ==# 'file' || remote.scheme ==# ''
-    return remote.path
-  elseif remote.path =~# '^/'
-    return remote.scheme . '://' . remote.authority . remote.path
-  elseif remote.path =~# '^\~'
-    return remote.scheme . '://' . remote.authority . '/' . remote.path
-  elseif remote.scheme ==# 'ssh' && remote.authority !~# ':'
-    return remote.authority . ':' . remote.path
+function! s:ConfigLengthSort(i1, i2) abort
+  return len(a:i2[0]) - len(a:i1[0])
+endfunction
+
+function! s:RemoteCallback(config, into, flags, cb) abort
+  if a:into.remote_name =~# '^\.\=$'
+    let a:into.remote_name = s:RemoteDefault(a:config)
+  endif
+  let url = a:into.remote_name
+
+  if url ==# '.git'
+    let url = s:GitDir(a:config)
+  elseif url !~# ':\|^/\|^\a:[\/]\|^\.\.\=/'
+    let url = FugitiveConfigGet('remote.' . url . '.url', a:config)
+  endif
+  let instead_of = []
+  for [k, vs] in items(fugitive#ConfigGetRegexp('^url\.\zs.\{-\}\ze\.insteadof$', a:config))
+    for v in vs
+      call add(instead_of, [v, k])
+    endfor
+  endfor
+  call sort(instead_of, 's:ConfigLengthSort')
+  for [orig, replacement] in instead_of
+    if strpart(url, 0, len(orig)) ==# orig
+      let url = replacement . strpart(url, len(orig))
+      break
+    endif
+  endfor
+  if index(a:flags, ':noresolve') < 0
+    call extend(a:into, s:RemoteResolve(url, a:flags))
   else
-    return a:url
+    call extend(a:into, s:UrlParse(url))
+  endif
+  let a:into.user = matchstr(a:into.authority, '.\{-\}\ze@', '', '')
+  let a:into.host = substitute(a:into.authority, '.\{-\}@', '', '')
+  let a:into.hostname = substitute(a:into.host, ':\d\+$', '', '')
+  let a:into.port = matchstr(a:into.host, ':\zs\d\+$', '', '')
+  if a:into.path =~# '^/'
+    let a:into.url = a:into.scheme . '://' . a:into.authority . a:into.path
+  elseif a:into.path =~# '^\~'
+    let a:into.url = a:into.scheme . '://' . a:into.authority . '/' . a:into.path
+  elseif a:into.scheme ==# 'ssh' && a:into.authority !~# ':'
+    let a:into.url = a:into.authority . ':' . a:into.path
+  else
+    let a:into.url = url
+  endif
+  if len(a:cb)
+    call call(a:cb[0], [a:into] + a:cb[1:-1])
   endif
 endfunction
 
-function! s:ConfigLengthSort(i1, i2) abort
-  return len(a:i2[0]) - len(a:i1[0])
+function! s:Remote(dir, remote, flags, cb) abort
+  let into = {'remote_name': a:remote, 'git_dir': s:GitDir(a:dir)}
+  let config = fugitive#Config(a:dir, function('s:RemoteCallback'), into, a:flags, a:cb)
+  if len(a:cb)
+    return config
+  else
+    call fugitive#Wait(config)
+    return into
+  endif
 endfunction
 
 function! s:RemoteParseArgs(args) abort
@@ -1344,34 +1387,22 @@ function! s:RemoteParseArgs(args) abort
   return [dir_or_config, remote, flags, cb]
 endfunction
 
+function! fugitive#Remote(...) abort
+  let [dir_or_config, remote, flags, cb] = s:RemoteParseArgs(a:000)
+  return s:Remote(dir_or_config, remote, flags, cb)
+endfunction
+
+function! s:RemoteUrlCallback(remote, callback) abort
+  return call(a:callback[0], [a:remote.url] + a:callback[1:-1])
+endfunction
+
 function! fugitive#RemoteUrl(...) abort
-  let [dir_or_config, url, flags, cb] = s:RemoteParseArgs(a:000)
-  let config = fugitive#Config(dir_or_config)
-  if url =~# '^\.\=$'
-    let url = s:RemoteDefault(config)
+  let [dir_or_config, remote, flags, cb] = s:RemoteParseArgs(a:000)
+  if len(cb)
+    let cb = [function('s:RemoteUrlCallback'), cb]
   endif
-  if url ==# '.git'
-    let url = s:GitDir(config)
-  elseif url !~# ':\|^/\|^\.\.\=/'
-    let url = FugitiveConfigGet('remote.' . url . '.url', config)
-  endif
-  let instead_of = []
-  for [k, vs] in items(fugitive#ConfigGetRegexp('^url\.\zs.\{-\}\ze\.insteadof$', config))
-    for v in vs
-      call add(instead_of, [v, k])
-    endfor
-  endfor
-  call sort(instead_of, 's:ConfigLengthSort')
-  for [orig, replacement] in instead_of
-    if strpart(url, 0, len(orig)) ==# orig
-      let url = replacement . strpart(url, len(orig))
-      break
-    endif
-  endfor
-  if index(flags, 1) < 0 && index(flags, get(v:, 'true', 1)) < 0 && index(flags, ':noresolve') < 0
-    let url = fugitive#ResolveRemote(url)
-  endif
-  return url
+  let remote = s:Remote(dir_or_config, remote, flags, cb)
+  return get(remote, 'url', remote)
 endfunction
 
 " Section: Quickfix
