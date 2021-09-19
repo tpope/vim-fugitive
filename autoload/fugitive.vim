@@ -1247,29 +1247,51 @@ function! fugitive#RemoteHttpHeaders(remote) abort
   return s:remote_headers[remote]
 endfunction
 
-function! fugitive#ResolveRemote(remote) abort
-  let scp_authority = matchstr(a:remote, '^[^:/]\+\ze:\%(//\)\@!')
+function! s:ResolveRemote(url) abort
+  let url = a:url
+  let scp_authority = matchstr(url, '^[^:/]\+\ze:\%(//\)\@!')
+  let remote = {}
   if len(scp_authority) && !(has('win32') && scp_authority =~# '^\a:[\/]')
-    let path = strpart(a:remote, len(scp_authority) + 1)
-    let authority = fugitive#SshHostAlias(scp_authority)
-    if path =~# '^/'
-      return 'ssh://' . authority . path
-    elseif path =~# '^\~'
-      return 'ssh://' . authority . '/' . path
-    elseif authority !~# ':'
-      return authority . ':' . path
-    endif
-  elseif a:remote =~# '^https\=://'
-    let headers = fugitive#RemoteHttpHeaders(a:remote)
+    let remote.scheme = 'ssh'
+    let remote.path = strpart(url, len(scp_authority) + 1)
+    let remote.authority = fugitive#SshHostAlias(scp_authority)
+    return remote
+  elseif empty(url)
+    return {'scheme': '', 'authority': '', 'path': ''}
+  elseif url =~# '^https\=://'
+    let headers = fugitive#RemoteHttpHeaders(url)
     let loc = matchstr(get(headers, 'location', ''), '^https\=://.\{-\}\ze/info/refs?')
     if len(loc)
-      return loc
+      let url = loc
+    else
+      let remote.http_headers = headers
     endif
-  elseif a:remote =~# '^ssh://'
-    let authority = matchstr(a:remote, '[^/?#]*', 6)
-    return 'ssh://' . fugitive#SshHostAlias(authority) . strpart(a:remote, 6 + len(authority))
   endif
-  return a:remote
+  let match = matchlist(url, '^\([[:alnum:].+-]\+\)://\([^/]*\)\(/.*\)\=\%(#\|$\)')
+  if len(match)
+    let [remote.scheme, remote.authority, remote.path] = match[1:3]
+  else
+    return {'scheme': 'file', 'authority': '', 'path': url}
+  endif
+  if remote.scheme ==# 'ssh'
+    let remote.authority = fugitive#SshHostAlias(remote.authority)
+  endif
+  return remote
+endfunction
+
+function! fugitive#ResolveRemote(url) abort
+  let remote = s:ResolveRemote(a:url)
+  if remote.scheme ==# 'file' || remote.scheme ==# ''
+    return remote.path
+  elseif remote.path =~# '^/'
+    return remote.scheme . '://' . remote.authority . remote.path
+  elseif remote.path =~# '^\~'
+    return remote.scheme . '://' . remote.authority . '/' . remote.path
+  elseif remote.scheme ==# 'ssh' && remote.authority !~# ':'
+    return remote.authority . ':' . remote.path
+  else
+    return a:url
+  endif
 endfunction
 
 function! s:ConfigLengthSort(i1, i2) abort
