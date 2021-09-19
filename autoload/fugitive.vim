@@ -1300,27 +1300,49 @@ function! s:ConfigLengthSort(i1, i2) abort
   return len(a:i2[0]) - len(a:i1[0])
 endfunction
 
-function! fugitive#RemoteUrl(...) abort
-  let args = copy(a:000)
-  if len(args) && (type(args[0]) !=# type('') || args[0] =~# '^/\|^\a:[\\/]' && get(args, 1, '') !~# '^/\|^\a:[\\/]')
-    let config = fugitive#Config(remove(args, 0))
-    if type(a:1) ==# type({}) && has_key(a:1, 'remote_name') && (type(get(args, 0, 0)) !=# type('') || args[0] =~# '^:')
-      call insert(args, a:1.remote_name)
+function! s:RemoteParseArgs(args) abort
+  " Extract ':noresolve' style flags and an optional callback
+  let args = []
+  let flags = []
+  let cb = copy(a:args)
+  while len(cb)
+    if type(cb[0]) ==# type(function('tr'))
+      break
+    elseif len(args) > 1 || type(cb[0]) ==# type('') && cb[0] =~# '^:'
+      call add(flags, remove(cb, 0))
+    else
+      call add(args, remove(cb, 0))
     endif
-  elseif len(args) > 1 && (type(args[1]) !=# type('') || args[1] !~# '^:')
-    let config = fugitive#Config(remove(args, 1))
+  endwhile
+
+  " From the remaining 0-2 arguments, extract the remote and Git config
+  let remote = ''
+  if empty(args)
+    let dir_or_config = s:Dir()
+  elseif len(args) == 1 && type(args[0]) ==# type('') && args[0] !~# '^/\|^\a:[\\/]'
+    let dir_or_config = s:Dir()
+    let remote = args[0]
+  elseif len(args) == 1
+    let dir_or_config = args[0]
+    if type(args[0]) ==# type({}) && has_key(args[0], 'remote_name')
+      let remote = args[0].remote_name
+    endif
+  elseif type(args[1]) !=# type('') || args[1] =~# '^/\|^\a:[\\/]'
+    let dir_or_config = args[1]
+    let remote = args[0]
   else
-    let config = fugitive#Config()
+    let dir_or_config = args[0]
+    let remote = args[1]
   endif
-  if empty(args) || args[0] =~# '^:'
+  return [dir_or_config, remote, flags, cb]
+endfunction
+
+function! fugitive#RemoteUrl(...) abort
+  let [dir_or_config, url, flags, cb] = s:RemoteParseArgs(a:000)
+  let config = fugitive#Config(dir_or_config)
+  if url =~# '^\.\=$'
     let url = s:RemoteDefault(config)
-  elseif args[0] =~# '^\.\=$'
-    call remove(args, 0)
-    let url = s:RemoteDefault(config)
-  else
-    let url = remove(args, 0)
-  endif
-  if url ==# '.git'
+  elseif url ==# '.git'
     let url = s:GitDir(config)
   elseif url !~# ':\|^/\|^\.\.\=/'
     let url = FugitiveConfigGet('remote.' . url . '.url', config)
