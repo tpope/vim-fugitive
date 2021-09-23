@@ -1338,6 +1338,7 @@ function! s:RemoteParseArgs(args) abort
 endfunction
 
 function! fugitive#RemoteUrl(...) abort
+  let args = copy(a:000)
   let [dir_or_config, url, flags, cb] = s:RemoteParseArgs(a:000)
   let config = fugitive#Config(dir_or_config)
   if url =~# '^\.\=$'
