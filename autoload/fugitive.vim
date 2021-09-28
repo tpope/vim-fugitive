@@ -1342,7 +1342,8 @@ function! fugitive#RemoteUrl(...) abort
   let config = fugitive#Config(dir_or_config)
   if url =~# '^\.\=$'
     let url = s:RemoteDefault(config)
-  elseif url ==# '.git'
+  endif
+  if url ==# '.git'
     let url = s:GitDir(config)
   elseif url !~# ':\|^/\|^\.\.\=/'
     let url = FugitiveConfigGet('remote.' . url . '.url', config)
