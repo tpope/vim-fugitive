@@ -2465,15 +2465,54 @@ function! s:ReplaceCmd(cmd) abort
   endif
 endfunction
 
-function! s:QueryLog(refspec) abort
-  let lines = s:LinesError(['log', '-n', '256', '--pretty=format:%h%x09%s', a:refspec, '--'])[0]
+function! s:IgnoreRefs(refs, refsToIgnore) abort
+  function! ShouldPreserveRef(refsToIgnore, index, ref) abort
+    return index(a:refsToIgnore, a:ref) == -1
+  endfunction
+
+  " Strip the outer parentheses
+  let refs = split(a:refs[1:-2], ", ")
+  let refs = filter(refs, function('ShouldPreserveRef', [a:refsToIgnore]))
+
+  if len(a:refs) == 0
+    return ''
+  endif
+
+  return '(' . join(refs, ", ") . ') '
+endfunction
+
+function! s:QueryLog(refspec, refToIgnore) abort
+  let lines = s:LinesError(['log', '-n', '256', '--pretty=format:%h%x09%d%x09%s', a:refspec, '--'])[0]
   call map(lines, 'split(v:val, "\t", 1)')
-  call map(lines, '{"type": "Log", "commit": v:val[0], "subject": join(v:val[1 : -1], "\t")}')
+  let refsToIgnore = [a:refToIgnore, 'HEAD']
+
+  function! HandleRefs(refsToIgnore, subject, refs) abort
+    let refs = trim(a:refs)
+    let refs = s:IgnoreRefs(refs, a:refsToIgnore)
+
+    if len(refs) == 0 && a:subject[0] == '('
+      " Add artificial (concealed) empty parentheses for refs. Helps avoid
+      " syntax highlighting false-positives (subject lines beginning with an
+      " open parenthesis).
+      return '()'
+    endif
+
+    return refs
+  endfunction
+  
+  function! CreateLineDict(refsToIgnore, index, parts) abort
+    let subject = join(a:parts[2 : -1], "\t")
+    return {"type": "Log", "commit": a:parts[0], "refs": HandleRefs(a:refsToIgnore, subject, a:parts[1]), "subject": subject}
+  endfunction
+
+  call map(lines, function('CreateLineDict', [refsToIgnore]))
   return lines
 endfunction
 
 function! s:FormatLog(dict) abort
-  return a:dict.commit . ' ' . a:dict.subject
+  setlocal conceallevel=3
+  setlocal concealcursor=nc
+  return a:dict.commit . ' ' . ((len(a:dict.refs) > 0) ? a:dict.refs : '') . a:dict.subject
 endfunction
 
 function! s:FormatRebase(dict) abort
@@ -2767,16 +2806,16 @@ function! fugitive#BufReadStatus() abort
     let staged_end = len(staged) ? line('$') : 0
 
     if len(pull) && get(props, 'branch.ab') !~# ' -0$'
-      call s:AddSection('Unpulled from ' . pull, s:QueryLog(head . '..' . pull))
+      call s:AddSection('Unpulled from ' . pull, s:QueryLog(head . '..' . pull, pull))
     endif
     if len(push) && push !=# pull
-      call s:AddSection('Unpulled from ' . push, s:QueryLog(head . '..' . push))
+      call s:AddSection('Unpulled from ' . push, s:QueryLog(head . '..' . push, push))
     endif
     if len(pull) && push !=# pull
-      call s:AddSection('Unpushed to ' . pull, s:QueryLog(pull . '..' . head))
+      call s:AddSection('Unpushed to ' . pull, s:QueryLog(pull . '..' . head, pull))
     endif
     if len(push) && !(push ==# pull && get(props, 'branch.ab') =~# '^+0 ')
-      call s:AddSection('Unpushed to ' . push, s:QueryLog(push . '..' . head))
+      call s:AddSection('Unpushed to ' . push, s:QueryLog(push . '..' . head, push))
     endif
 
     setlocal nomodified readonly noswapfile
