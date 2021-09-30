@@ -660,15 +660,12 @@ endif
 
 let s:nowait = v:version >= 704 ? '<nowait>' : ''
 
-function! s:Map(mode, lhs, rhs, ...) abort
-  for mode in split(a:mode, '\zs')
-    let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
-    let head = a:lhs
-    let tail = ''
-    let keys = get(g:, mode.'remap', {})
-    if type(keys) == type([])
-      return
-    endif
+function! s:Map(mode, lhs, rhs, flags) abort
+  let flags = a:flags . (a:rhs =~# '<Plug>' ? '' : '<script>')
+  let head = a:lhs
+  let tail = ''
+  let keys = get(g:, a:mode.'remap', {})
+  if len(keys) && type(keys) == type({})
     while !empty(head)
       if has_key(keys, head)
         let head = keys[head]
@@ -680,10 +677,10 @@ function! s:Map(mode, lhs, rhs, ...) abort
       let tail = matchstr(head, '<[^<>]*>$\|.$') . tail
       let head = substitute(head, '<[^<>]*>$\|.$', '', '')
     endwhile
-    if flags !~# '<unique>' || empty(mapcheck(head.tail, mode))
-      exe mode.'map' s:nowait flags head.tail a:rhs
-    endif
-  endfor
+  endif
+  if flags !~# '<unique>' || empty(mapcheck(head.tail, a:mode))
+    exe a:mode.'map' s:nowait flags head.tail a:rhs
+  endif
 endfunction
 
 call s:Map('c', '<C-R><C-G>', 'fnameescape(fugitive#Object(@%))', '<expr>')
