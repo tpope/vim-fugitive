@@ -2752,6 +2752,9 @@ function! fugitive#BufReadStatus() abort
           \ s:LinesError(['diff', '--color=never', '--no-ext-diff', '--no-prefix'])[0]
     endif
     let b:fugitive_diff = diff
+    if v:cmdbang
+      unlet! b:fugitive_expanded
+    endif
     let expanded = get(b:, 'fugitive_expanded', {'Staged': {}, 'Unstaged': {}})
     let b:fugitive_expanded = {'Staged': {}, 'Unstaged': {}}
 
