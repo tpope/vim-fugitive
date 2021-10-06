@@ -2669,6 +2669,16 @@ function! fugitive#BufReadStatus() abort
       endwhile
     endif
 
+    let diff = {'Staged': {'stdout': ['']}, 'Unstaged': {'stdout': ['']}}
+    if len(staged)
+      let diff['Staged'] =
+          \ fugitive#Execute(['diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'], function('len'))
+    endif
+    if len(unstaged)
+      let diff['Unstaged'] =
+          \ fugitive#Execute(['diff', '--color=never', '--no-ext-diff', '--no-prefix'], function('len'))
+    endif
+
     for dict in staged
       let b:fugitive_files['Staged'][dict.filename] = dict
     endfor
@@ -2745,15 +2755,6 @@ function! fugitive#BufReadStatus() abort
       endfor
     endif
 
-    let diff = {'Staged': {'stdout': ['']}, 'Unstaged': {'stdout': ['']}}
-    if len(staged)
-      let diff['Staged'] =
-          \ fugitive#Execute(['diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'], function('len'))
-    endif
-    if len(unstaged)
-      let diff['Unstaged'] =
-          \ fugitive#Execute(['diff', '--color=never', '--no-ext-diff', '--no-prefix'], function('len'))
-    endif
     let b:fugitive_diff = diff
     if v:cmdbang
       unlet! b:fugitive_expanded
