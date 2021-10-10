@@ -2288,8 +2288,9 @@ function! s:FilterEscape(items, ...) abort
   let items = copy(a:items)
   call map(items, 's:fnameescape(v:val)')
   if a:0 && type(a:1) == type('')
+    let match = fnameescape(a:1)
     let cmp = s:FileIgnoreCase(1) ? '==?' : '==#'
-    call filter(items, 'strpart(v:val, 0, strlen(a:1)) ' . cmp . ' a:1')
+    call filter(items, 'strpart(v:val, 0, strlen(match)) ' . cmp . ' match')
   endif
   return items
 endfunction
