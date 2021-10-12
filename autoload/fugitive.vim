@@ -1253,19 +1253,23 @@ endfunction
 function! s:UrlParse(url) abort
   let scp_authority = matchstr(a:url, '^[^:/]\+\ze:\%(//\)\@!')
   if len(scp_authority) && !(has('win32') && scp_authority =~# '^\a:[\/]')
-    return {'scheme': 'ssh', 'authority': scp_authority,
+    let url = {'scheme': 'ssh', 'authority': scp_authority,
           \ 'path': strpart(a:url, len(scp_authority) + 1)}
+  elseif empty(a:url)
+    let url = {'scheme': '', 'authority': '', 'path': ''}
+  else
+    let match = matchlist(a:url, '^\([[:alnum:].+-]\+\)://\([^/]*\)\(/.*\)\=\%(#\|$\)')
+    if empty(match)
+      let url = {'scheme': 'file', 'authority': '', 'path': a:url}
+    else
+      let url = {'scheme': match[1], 'authority': match[2]}
+      let url.path = empty(match[3]) ? '/' : match[3]
+    endif
   endif
-  let match = matchlist(a:url, '^\([[:alnum:].+-]\+\)://\([^/]*\)\(/.*\)\=\%(#\|$\)')
-  if empty(match)
-    return {'scheme': 'file', 'authority': '', 'path': a:url}
+  if (url.scheme ==# 'ssh' || url.scheme ==# 'git') && url.path[0:1] ==# '/~'
+    let url.path = strpart(url.path, 1)
   endif
-  let remote = {'scheme': match[1], 'authority': match[2]}
-  let remote.path = empty(match[3]) ? '/' : match[3]
-  if (remote.scheme ==# 'ssh' || remote.scheme ==# 'git') && remote.path[0:1] ==# '/~'
-    let remote.path = strpart(remote.path, 1)
-  endif
-  return remote
+  return url
 endfunction
 
 function! s:ResolveRemote(url) abort
