@@ -2560,7 +2560,7 @@ function! fugitive#BufReadStatus(...) abort
     let config = fugitive#Config()
 
     let cmd = [fnamemodify(amatch, ':h')]
-    setlocal noro ma nomodeline buftype=nowrite
+    setlocal noreadonly modifiable nomodeline buftype=nowrite
     if s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? FugitiveVimPath($GIT_INDEX_FILE) : fugitive#Find('.git/index'), ':p')) !=# s:cpath(amatch)
       let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
     endif
@@ -2760,7 +2760,7 @@ function! fugitive#BufReadStatus(...) abort
     endif
 
     let b:fugitive_diff = diff
-    if !a:0 && v:cmdbang
+    if get(a:, 1, v:cmdbang)
       unlet! b:fugitive_expanded
     endif
     let expanded = get(b:, 'fugitive_expanded', {'Staged': {}, 'Unstaged': {}})
@@ -4099,7 +4099,7 @@ function! s:ReloadStatusBuffer(...) abort
   endif
   let original_lnum = a:0 ? a:1 : line('.')
   let info = s:StageInfo(original_lnum)
-  call fugitive#BufReadStatus(1)
+  call fugitive#BufReadStatus(0)
   call setpos('.', [0, s:StageSeek(info, original_lnum), 1, 0])
   return ''
 endfunction
