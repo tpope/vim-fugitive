@@ -2556,6 +2556,10 @@ function! fugitive#BufReadStatus(...) abort
   let b:fugitive_type = 'index'
   unlet! b:fugitive_reltime
   try
+    if exists('b:fugitive_reloading')
+      throw 'double status reload???'
+    endif
+    let b:fugitive_reloading = 1
     silent doautocmd BufReadPre
     let config = fugitive#Config()
 
@@ -2878,6 +2882,8 @@ function! fugitive#BufReadStatus(...) abort
     return s:DoAutocmd('User FugitiveIndex')
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
+  finally
+    unlet! b:fugitive_reloading
   endtry
 endfunction
 
