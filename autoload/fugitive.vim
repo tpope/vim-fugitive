@@ -2553,8 +2553,7 @@ let s:rebase_abbrevs = {
 
 function! fugitive#BufReadStatus(...) abort
   let amatch = s:Slash(expand('%:p'))
-  let b:fugitive_type = 'index'
-  unlet! b:fugitive_reltime
+  unlet! b:fugitive_reltime b:fugitive_type
   try
     silent doautocmd BufReadPre
     let config = fugitive#Config()
@@ -2878,6 +2877,8 @@ function! fugitive#BufReadStatus(...) abort
     return s:DoAutocmd('User FugitiveIndex')
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
+  finally
+    let b:fugitive_type = 'index'
   endtry
 endfunction
 
