@@ -4540,8 +4540,8 @@ endfunction
 
 function! s:PreviousItem(count) abort
   for i in range(a:count)
-    if !search(s:item_pattern, 'Wbe') && getline('.') !~# s:item_pattern
-      call search('^commit ', 'Wbe')
+    if !search(s:item_pattern, 'Wb') && getline('.') !~# s:item_pattern
+      call search('^commit ', 'Wb')
     endif
   endfor
   call s:StageReveal()
