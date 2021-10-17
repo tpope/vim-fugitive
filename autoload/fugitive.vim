@@ -2075,8 +2075,29 @@ function! s:PathInfo(url) abort
     return [-1, '000000', '', '', -1]
   endif
   let path = substitute(file[1:-1], '/*$', '', '')
-  let [tree, ftime] = s:TreeInfo(dir, commit)
-  let entry = empty(path) ? [ftime, '040000', 'tree', '', -1] : get(tree, path, [])
+
+  if empty(path)
+    let [_, ftime] = s:TreeInfo(dir, commit)
+    let entry = [ftime, '040000', 'tree', '', -1]
+  elseif commit =~# '^:\=[0-3]$'
+    let result = fugitive#Execute(['--literal-pathspecs', 'ls-files', '--stage', '--', path])
+    let line = result.stdout[0]
+    if result.exit_status || empty(line)
+      return [-1, '000000', '', '', -1]
+    endif
+    let newftime = getftime(fugitive#Find('.git/index', dir))
+    let [info, filename] = split(line, "\t")
+    if filename ==# path
+        let [mode, sha, stage] = split(info, '\s\+')
+        let entry = [newftime, mode, 'blob', sha, -2]
+    else
+        let entry = [newftime, '040000', 'tree', '', 0]
+    endif
+  else
+    let [tree, ftime] = s:TreeInfo(dir, commit)
+    let entry = get(tree, path, [])
+  endif
+
   if empty(entry) || file =~# '/$' && entry[2] !=# 'tree'
     return [-1, '000000', '', '', -1]
   else
