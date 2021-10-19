@@ -228,7 +228,7 @@ function! s:Map(mode, lhs, rhs, ...) abort
     endwhile
     if !skip && (flags !~# '<unique>' || empty(mapcheck(head.tail, mode)))
       call add(maps, mode.'map <buffer>' . s:nowait . substitute(flags, '<unique>', '', '') . ' ' . head.tail . ' ' . a:rhs)
-      if a:0 > 1
+      if a:0 > 1 && a:2
         let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .
               \ '|sil! exe "' . mode . 'unmap <buffer> ' . head.tail . '"'
       endif
@@ -3193,6 +3193,9 @@ function! s:TempReadPost(file) abort
     if has_key(dict, 'filetype')
       if dict.filetype ==# 'man' && has('nvim')
         let b:man_sect = matchstr(getline(1), '^\w\+(\zs\d\+\ze)')
+      endif
+      if !get(g:, 'did_load_ftplugin') && dict.filetype ==# 'fugitiveblame'
+        call s:BlameMaps(0)
       endif
       let &l:filetype = dict.filetype
     endif
@@ -7094,6 +7097,33 @@ function! s:BlameRehighlight() abort
   endfor
 endfunction
 
+function! s:BlameMaps(is_ftplugin) abort
+  let ft = a:is_ftplugin
+  call s:Map('n', '<F1>', ':help :Git_blame<CR>', '<silent>', ft)
+  call s:Map('n', 'g?',   ':help :Git_blame<CR>', '<silent>', ft)
+  if empty(mapcheck('q', 'n'))
+    nnoremap <buffer> <silent> q :<C-U>echoerr "fugitive: q removed in favor of gq (or :q)"<CR>
+  endif
+  call s:Map('n', 'gq',   ':exe <SID>BlameQuit()<CR>', '<silent>', ft)
+  call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>', ft)
+  call s:Map('n', '<CR>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>', ft)
+  call s:Map('n', '-',    ':<C-U>exe <SID>BlameJump("")<CR>', '<silent>', ft)
+  call s:Map('n', 's',    ':<C-U>exe <SID>BlameJump("")<CR>', '<silent>', ft)
+  call s:Map('n', 'u',    ':<C-U>exe <SID>BlameJump("")<CR>', '<silent>', ft)
+  call s:Map('n', 'P',    ':<C-U>exe <SID>BlameJump("^".v:count1)<CR>', '<silent>', ft)
+  call s:Map('n', '~',    ':<C-U>exe <SID>BlameJump("~".v:count1)<CR>', '<silent>', ft)
+  call s:Map('n', 'i',    ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>', ft)
+  call s:Map('n', 'o',    ':<C-U>exe <SID>BlameCommit("split")<CR>', '<silent>', ft)
+  call s:Map('n', 'O',    ':<C-U>exe <SID>BlameCommit("tabedit")<CR>', '<silent>', ft)
+  call s:Map('n', 'p',    ':<C-U>exe <SID>BlameCommit("pedit")<CR>', '<silent>', ft)
+  call s:Map('n', '.',    ":<C-U> <C-R>=substitute(<SID>BlameCommitFileLnum()[0],'^$','@','')<CR><Home>", ft)
+  call s:Map('n', '(',    "-", ft)
+  call s:Map('n', ')',    "+", ft)
+  call s:Map('n', 'A',    ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze [0-9:/+-][0-9:/+ -]* \\d\\+)')+1+v:count)<CR>", '<silent>', ft)
+  call s:Map('n', 'C',    ":<C-u>exe 'vertical resize '.(<SID>linechars('^\\S\\+')+1+v:count)<CR>", '<silent>', ft)
+  call s:Map('n', 'D',    ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze\\d\\ze\\s\\+\\d\\+)')+1-v:count)<CR>", '<silent>', ft)
+endfunction
+
 function! fugitive#BlameFileType() abort
   setlocal nomodeline
   setlocal foldmethod=manual
@@ -7108,29 +7138,7 @@ function! fugitive#BlameFileType() abort
   if &modifiable
     return ''
   endif
-  call s:Map('n', '<F1>', ':help :Git_blame<CR>', '<silent>')
-  call s:Map('n', 'g?',   ':help :Git_blame<CR>', '<silent>')
-  if empty(mapcheck('q', 'n'))
-    nnoremap <buffer> <silent> q :<C-U>echoerr "fugitive: q removed in favor of gq (or :q)"<CR>
-  endif
-  call s:Map('n', 'gq',   ':exe <SID>BlameQuit()<CR>', '<silent>')
-  call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
-  call s:Map('n', '<CR>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
-  call s:Map('n', '-',    ':<C-U>exe <SID>BlameJump("")<CR>', '<silent>')
-  call s:Map('n', 's',    ':<C-U>exe <SID>BlameJump("")<CR>', '<silent>')
-  call s:Map('n', 'u',    ':<C-U>exe <SID>BlameJump("")<CR>', '<silent>')
-  call s:Map('n', 'P',    ':<C-U>exe <SID>BlameJump("^".v:count1)<CR>', '<silent>')
-  call s:Map('n', '~',    ':<C-U>exe <SID>BlameJump("~".v:count1)<CR>', '<silent>')
-  call s:Map('n', 'i',    ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
-  call s:Map('n', 'o',    ':<C-U>exe <SID>BlameCommit("split")<CR>', '<silent>')
-  call s:Map('n', 'O',    ':<C-U>exe <SID>BlameCommit("tabedit")<CR>', '<silent>')
-  call s:Map('n', 'p',    ':<C-U>exe <SID>BlameCommit("pedit")<CR>', '<silent>')
-  call s:Map('n', '.',    ":<C-U> <C-R>=substitute(<SID>BlameCommitFileLnum()[0],'^$','@','')<CR><Home>")
-  call s:Map('n', '(',    "-")
-  call s:Map('n', ')',    "+")
-  call s:Map('n', 'A',    ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze [0-9:/+-][0-9:/+ -]* \\d\\+)')+1+v:count)<CR>", '<silent>')
-  call s:Map('n', 'C',    ":<C-u>exe 'vertical resize '.(<SID>linechars('^\\S\\+')+1+v:count)<CR>", '<silent>')
-  call s:Map('n', 'D',    ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze\\d\\ze\\s\\+\\d\\+)')+1-v:count)<CR>", '<silent>')
+  call s:BlameMaps(1)
 endfunction
 
 augroup fugitive_blame
