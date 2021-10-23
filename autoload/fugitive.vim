@@ -7122,27 +7122,10 @@ function! s:BlameMaps(is_ftplugin) abort
   call s:Map('n', 'A',    ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze [0-9:/+-][0-9:/+ -]* \\d\\+)')+1+v:count)<CR>", '<silent>', ft)
   call s:Map('n', 'C',    ":<C-u>exe 'vertical resize '.(<SID>linechars('^\\S\\+')+1+v:count)<CR>", '<silent>', ft)
   call s:Map('n', 'D',    ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze\\d\\ze\\s\\+\\d\\+)')+1-v:count)<CR>", '<silent>', ft)
-
-  call s:Map('n', '<F1>', ':help :Gblame<CR>', '<silent>')
-  call s:text_edit('n', 'g?',   ':help :Gblame<CR>', '<silent>')
-  if mapcheck('q', 'n') =~# '^$\|bdelete'
-    call s:text_edit('n', 'q',  ':exe <SID>BlameQuit()<Bar>echohl WarningMsg<Bar>echo ":Gblame q is deprecated in favor of gq"<Bar>echohl NONE<CR>', '<silent>')
-  endif
-  call s:Map('n', 'gq',   ':exe <SID>BlameQuit()<CR>', '<silent>')
-  call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
-  call s:Map('n', '<CR>', ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
-  call s:Map('n', '-',    ':<C-U>exe <SID>BlameJump("")<CR>', '<silent>')
-  call s:Map('n', 'P',    ':<C-U>exe <SID>BlameJump("^".v:count1)<CR>', '<silent>')
-  call s:Map('n', '~',    ':<C-U>exe <SID>BlameJump("~".v:count1)<CR>', '<silent>')
-  call s:Map('n', 'i',    ':<C-U>exe <SID>BlameCommit("exe <SID>BlameLeave()<Bar>edit")<CR>', '<silent>')
-  call s:Map('n', 'o',    ':<C-U>exe <SID>BlameCommit("split")<CR>', '<silent>')
-  call s:Map('n', 'O',    ':<C-U>exe <SID>BlameCommit("tabedit")<CR>', '<silent>')
-  call s:Map('n', 'p',    ':<C-U>exe <SID>BlameCommit("pedit")<CR>', '<silent>')
-  call s:Map('n', 'cf',   ':<C-U>Gcommit --fixup=<C-R>=<SID>SquashArgument()<CR>', '')
-  call s:Map('n', 'cs',   ':<C-U>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>', '')
-  call s:Map('n', 'cA',   ':<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>', '')
+  call s:Map('n', 'cf',   ':<C-U>Gcommit --fixup=<C-R>=<SID>SquashArgument()<CR>', '', ft)
+  call s:Map('n', 'cs',   ':<C-U>Gcommit --squash=<C-R>=<SID>SquashArgument()<CR>', '', ft)
+  call s:Map('n', 'cA',   ':<C-U>Gcommit --edit --squash=<C-R>=<SID>SquashArgument()<CR>', '', ft)
 endfunction
-works = working["changes"]
 
 function! fugitive#BlameFileType() abort
   setlocal nomodeline
