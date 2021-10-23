@@ -15,63 +15,46 @@ COMMANDS                                        *fugitive-commands*
 These commands are local to the buffers in which they work (generally, buffers
 that are part of Git repositories).
 
-                                                *:Git* *fugitive-:G*
-:Git {args}             Run an arbitrary git command. Similar to :!git [args]
-:G {args}               but chdir to the repository tree first.  For some
-                        subcommands, a Fugitive command is called instead.
+                                                *fugitive-:G*
+:G [args]               Same as :Git, but two characters shorter.
+
+                                                *:Git*
+:Git {args}             Run an arbitrary git command and display any output.
+                        On UNIX this uses a pty and on other platforms it uses
+                        a pipe, which will cause some behavior differences
+                        such as the absence of progress bars.  Any file the
+                        command edits (for example, a commit message) will be
+                        loaded into a split window.  Closing that window will
+                        resume running the command.  A few Git subcommands
+                        have different behavior; these are documented below.
 
                                                 *:Git!*
-:Git! {args}            Like |:Git|, but capture the output into a temp file,
-:Git --no-pager {args}  and |:split| that temp file.  Use :0Git to
-:Git -P {args}          |:edit| the temp file instead.  A temp file is always
-                        used for diff and log commands.
+:Git! {args}            Run an arbitrary git command in the background and
+                        stream the output to the preview window.  Requires a
+                        Vim with |setbufline()|.  Press CTRL-D during an
+                        interactive :Git invocation to switch to this mode
+                        retroactively.
 
-                                                *:Gstatus*
-:Git                    Bring up a summary window vaguely akin to git-status.
-:G                      Press g? or see |fugitive-maps| for usage.
-:Gstatus
+                                                *:Git_--paginate* *:Git_-p*
+:Git --paginate {args}  Run an arbitrary git command, capture output to a temp
+:Git -p {args}          file, and |:split| that temp file.  Pass ++curwin as
+                        the first argument to |:edit| the temp file instead.
+                        A temp file is always used for commands like diff and
+                        log that typically uses a pager, and for any command
+                        that has the pager.<cmd> Git configuration option set.
 
-                                                *:Git-commit* *:Gcommit*
-:Git commit [args]      A wrapper around git-commit.  Unless the arguments
-:Gcommit [args]         given would skip the invocation of an editor (e.g.,
-                        -m), a split window will be used to obtain a commit
-                        message, or a new tab if -v is given.  Write and close
-                        the window (:wq) to finish the commit. To cancel, use
-                        an empty message.
+:{range}Git! --paginate {args}
+:{range}Git! -p {args}  Run an arbitrary git command, and insert the output
+                        after {range} in the current buffer.
 
-                                                *:Git-revert* *:Grevert*
-:Git revert [args]      A wrapper around git-revert.  Similar to |:Gcommit|.
-:Grevert [args]
+                                                *fugitive-summary*
+:Git                    With no arguments, bring up a summary window vaguely
+                        akin to git-status.  Press g? or see |fugitive-maps|
+                        for usage.
 
-                                                *:Git-merge* *:Gmerge*
-:Git merge [args]       Calls git-merge and loads errors and conflicted files
-:Gmerge [args]          into the |quickfix| list.  Opens a |:Gcommit| style
-                        split window for the commit message if the merge
-                        succeeds.  If called during a merge conflict, the
-                        conflicted files from the current index are loaded
-                        into the |quickfix| list.
-
-                                                *:Git-pull* *:Gpull*
-:Git pull [args]        Like |:Gmerge|, but for git-pull.
-:Gpull [args]
-
-                                                *:Git-rebase* *:Grebase*
-:Git rebase [args]      Like |:Gmerge|, but for git-rebase.  Interactive
-:Grebase [args]         rebase is experimentally supported.
-
-                                                *:Git-push* *:Gpush*
-:Git push [args]        Invoke git-push, load the results into the |quickfix|
-:Gpush [args]           list, and invoke |:cwindow| to reveal any errors.
-                        |:Dispatch| is used if available for asynchronous
-                        invocation.
-
-                                                *:Git-fetch* *:Gfetch*
-:Git fetch [args]       Like |:Gpush|, but for git-fetch.
-:Gfetch [args]
-
-                                                *:Git-blame* *:Gblame*
+                                                *:Git_blame*
 :Git blame [flags]      Run git-blame [flags] on the current file and open the
-:Gblame [flags]         results in a scroll-bound vertical split.  The
+                        results in a scroll-bound vertical split.  The
                         following maps, which work on the cursor line commit
                         where sensible, are provided:
 
@@ -101,23 +84,51 @@ that are part of Git repositories).
                               the cursor and edit the message.
 
 
-:[range]Gblame [flags]  If a range is given, just that part of the file will
-:Gblame [flags] {file}  be blamed, and a horizontal split without
-:Git blame ...          scrollbinding is used.  You can also give an arbitrary
+                                                *g:fugitive_dynamic_colors*
+                        In the GUI or a 256 color terminal, commit hashes will
+                        highlighted in different colors. To disable this:
+>
+                        let g:fugitive_dynamic_colors = 0
+<
+:[range]Git blame [...] If a range is given, just that part of the file will
+:Git blame [...] {file} be blamed, and a horizontal split without
+                        scrollbinding is used.  You can also give an arbitrary
                         filename.
 
-                                                *:Ggrep* *:Gcgrep* *:Git-grep*
-:Ggrep[!] [args]        |:grep|[!] with git-grep as 'grepprg'.
-:Git[!] grep [args]
+                                                *:Git_difftool*
+:Git[!] difftool [args] Invoke `git diff [args]` and load the changes into the
+                        quickfix list.  Each changed hunk gets a separate
+                        quickfix entry unless you pass an option like
+                        --name-only or --name-status.  Jumps to the first
+                        change unless [!] is given.
+
+:Git difftool -y [args] Invoke `git diff [args]`, open each changed file in a
+                        new tab, and invoke |:Gdiffsplit!| against the
+                        appropriate commit.
+
+                                                *:Git_mergetool*
+:Git mergetool [args]   Like |:Git_difftool|, but target merge conflicts.
+
+                                                *:Ggrep* *:Git_grep*
+:Ggrep[!] [args]        An approximation of |:grep|[!] with git-grep as
+:Git[!] grep -O [args]  'grepprg'.
+
+:Ggrep[!] --quiet [args]
+:Ggrep[!] -q [args]     Like |:Ggrep|, but instead of displaying output, open
+                        the quickfix list.
 
                                                 *:Glgrep*
-:Glgrep[!] [args]       |:lgrep|[!] with git-grep as 'grepprg'.
-:0Git[!] grep [args]
+:Glgrep[!] [args]       :Ggrep but for |:lgrep|.
+:0Git[!] grep -O [args]
 
-                                                 *:Gclog* *:Glog*
+                                                 *:Gclog*
 :Gclog[!] [args]        Use git-log [args] to load the commit history into the
-:Glog[!] [args]         |quickfix| list.  Jump to the first commit unless [!]
+                        |quickfix| list.  Jumps to the first commit unless [!]
                         is given.
+
+                        The quickfix list can be awkward for many use cases
+                        and exhibits extremely poor performance with larger
+                        data sets.  Consider using |:Git| log instead.
 
 :{range}Gclog[!] [args] Use git-log -L to load previous revisions of the given
                         range of the current file into the |quickfix| list.
@@ -149,13 +160,6 @@ that are part of Git repositories).
 
                                                 *:Gpedit*
 :Gpedit [object]        |:pedit| a |fugitive-object|.
-
-:Gsplit! [args]                                 *:Gsplit!* *:Gvsplit!*
-:Gvsplit! [args]                                *:Gtabedit!* *:Gpedit!*
-:Gtabedit! [args]       Capture the output of `git [args]` to a temp file and
-:Gpedit! [args]         open it in a split, tab, or preview window.  Use
-                        :0Gsplit! to suppress the split and open it in the
-                        current window.
 
                                                 *:Gread* *fugitive-:Gr*
 :Gread [object]         Empty the buffer and |:read| a |fugitive-object|.
@@ -195,17 +199,17 @@ that are part of Git repositories).
 :Gdiffsplit [object]    Perform a |vimdiff| against the given file, or if a
                         commit is given, the current file in that commit.
                         With no argument, the version in the index or work
-                        tree is used.  The newer of the two files is placed to
-                        the right or bottom, depending on 'diffopt' and the
-                        width of the window relative to 'textwidth'.  Use
-                        Vim's |do| and |dp| to stage and unstage changes.
+                        tree is used, and the work tree version is always
+                        placed to the right or bottom, depending on available
+                        width.  Use Vim's |do| and |dp| to stage and unstage
+                        changes.
 
                                                 *:Gdiffsplit!*
 :Gdiffsplit!            Diff against any and all direct ancestors, retaining
                         focus on the current window.  During a merge conflict,
                         this is a three-way diff against the "ours" and
                         "theirs" ancestors.  Additional d2o and d3o maps are
-                        provided to to obtain the hunk from the "ours" or
+                        provided to obtain the hunk from the "ours" or
                         "theirs" ancestor, respectively.
 
 :Gdiffsplit! {object}   Like |:Gdiffsplit|, but retain focus on the current
@@ -214,58 +218,60 @@ that are part of Git repositories).
                                                 *:Gvdiffsplit*
 :Gvdiffsplit [object]   Like |:Gdiffsplit|, but always split vertically.
 
-                                *:Ghdiffsplit* *:Gsdiff*
-:Ghdiffsplit [object]   Like |:Gdiffsplit|, but always split horizontally.
+                                                *:Ghdiffsplit*
+:Gdiffsplit ++novertical [object]
+:Ghdiffsplit [object]   Like |:Gdiffsplit|, but with "vertical" removed from
+                        'diffopt'.  The split will still be vertical if
+                        combined with |:vertical|.
 
-                                                *:Gmove*
-:Gmove {destination}    Wrapper around git-mv that renames the buffer
+                                                *:GMove*
+:GMove {destination}    Wrapper around git-mv that renames the buffer
                         afterward.  Add a ! to pass -f.
 
-                                                *:Grename*
-:Grename {destination}  Like |:Gmove| but operates relative to the parent
+                                                *:GRename*
+:GRename {destination}  Like |:GMove| but operates relative to the parent
                         directory of the current file.
 
-                                                *:Gdelete*
-:Gdelete                Wrapper around git-rm that deletes the buffer
+                                                *:GDelete*
+:GDelete                Wrapper around git-rm that deletes the buffer
                         afterward.  When invoked in an index file, --cached is
                         passed.  Add a ! to pass -f and forcefully discard the
                         buffer.
 
-                                                *:Gremove*
-:Gremove                Like :Gdelete, but keep the (now empty) buffer around.
+                                                *:GRemove*
+:GRemove                Like |:GDelete|, but keep the (now empty) buffer around.
 
-                                                *:Gbrowse*
-:Gbrowse                Open the current file, blob, tree, commit, or tag
+                                                *:GBrowse*
+:GBrowse                Open the current file, blob, tree, commit, or tag
                         in your browser at the upstream hosting provider.
-                        If a range is given, it is appropriately appended to
-                        the URL as an anchor.
-
                         Upstream providers can be added by installing an
                         appropriate Vim plugin.  For example, GitHub can be
                         supported by installing rhubarb.vim, available at
                         <https://github.com/tpope/vim-rhubarb>.
 
-:Gbrowse {object}       Like :Gbrowse, but for a given |fugitive-object|.
+:GBrowse {object}       Like :GBrowse, but for a given |fugitive-object|.
 
-:Gbrowse [...]@{remote} Force using the given remote rather than the remote
-                        for the current branch.  The remote is used to
-                        determine which upstream repository to link to.
-
-:{range}Gbrowse [args]  Appends an anchor to the URL that emphasizes the
+:{range}GBrowse [args]  Appends an anchor to the URL that emphasizes the
                         selected lines. This also forces the URL to include a
                         commit rather than a branch name so it remains valid
                         if the file changes.  You can give a range of "0" to
                         force this behavior without including an anchor.
 
-:[range]Gbrowse! [args] Like :Gbrowse, but put the URL on the clipboard rather
+:GBrowse [...]@{remote} Force using the given remote rather than the remote
+                        for the current branch.  The remote is used to
+                        determine which upstream repository to link to.
+
+:GBrowse {url}          Open an arbitrary URL in your browser.
+
+:[range]GBrowse! [args] Like :GBrowse, but put the URL on the clipboard rather
                         than opening it.
 
 MAPS                                            *fugitive-maps*
 
-These maps are available in both the |:Gstatus| buffer and Fugitive object
-buffers, although not all maps make sense in all buffers.  Mappings that
-operate on the file or hunk under the cursor are generally available in visual
-mode to operate on multiple files or partial hunks.
+These maps are available in both the |fugitive-summary| buffer and Fugitive
+object buffers, although not all maps make sense in all buffers.  Mappings
+that operate on the file or hunk under the cursor are generally available in
+visual mode to operate on multiple files or partial hunks.
 
                                                 *fugitive-staging-maps*
 Staging/unstaging maps ~
@@ -286,10 +292,9 @@ U                       Unstage everything.
 X                       Discard the change under the cursor.  This uses
                         `checkout` or `clean` under the hood.  A command is
                         echoed that shows how to undo the change.  Consult
-                        `:messages` to see it again.  You can use this during
-                        a merge conflict do discard "our" changes (--theirs)
-                        in the "Unstaged" section or discard "their" changes
-                        (--ours) in the "Staged" section.
+                        `:messages` to see it again.  During a merge conflict,
+                        use 2X to call `checkout --ours` or 3X to call
+                        `checkout --theirs` .
 
                                                 *fugitive_=*
 =                       Toggle an inline diff of the file under the cursor.
@@ -312,7 +317,7 @@ P                       under the cursor. On untracked files, this instead
                                                 *fugitive_d*
 Diff maps ~
                                                 *fugitive_dp*
-dp                      Invoke |:Git!| diff on the file under the cursor.
+dp                      Invoke |:Git| diff on the file under the cursor.
                         Deprecated in favor of inline diffs.
 
                                                 *fugitive_dd*
@@ -324,6 +329,7 @@ dv                      Perform a |:Gvdiffsplit| on the file under the cursor.
                                                 *fugitive_ds* *fugitive_dh*
 ds                      Perform a |:Ghdiffsplit| on the file under the cursor.
 dh
+
                                                 *fugitive_dq*
 dq                      Close all but one diff buffer, and |:diffoff|! the
                         last one.
@@ -336,7 +342,7 @@ Navigation maps ~
 
                                                 *fugitive_<CR>*
 <CR>                    Open the file or |fugitive-object| under the cursor.
-                        in a blob, this and similar maps jump to the patch
+                        In a blob, this and similar maps jump to the patch
                         from the diff where this was added, or where it was
                         removed if a count was given.  If the line is still in
                         the work tree version, passing a count takes you to
@@ -411,7 +417,7 @@ i                       Jump to the next file or hunk, expanding inline diffs
 ][                      Jump [count] section ends forward.
 
                                                 *fugitive_star*
-*                       One the first column of a + or - diff line, search for
+*                       On the first column of a + or - diff line, search for
                         the corresponding - or + line.  Otherwise, defer to
                         built-in |star|.
 
@@ -506,7 +512,7 @@ czz                     Push stash.  Pass a [count] of 1 to add
                         `--include-untracked` or 2 to add `--all`.
 
 czw                     Push stash of worktree.  Like `czz` with
-                        `--include-index`.
+                        `--keep-index`.
 
 czA                     Apply topmost stash, or stash@{count}.
 
@@ -615,7 +621,9 @@ Makefile        The file named Makefile in the work tree
 !:Makefile      The file named Makefile in the commit owning the current file
 !3^2            The second parent of the commit owning buffer #3
 .git/config     The repo config file
-:               Same as |:Gstatus|
+:               The |fugitive-summary| buffer
+-               A temp file containing the last |:Git| invocation's output
+<cfile>         The file or commit under the cursor
 
 STATUSLINE                                      *fugitive-statusline*
 
@@ -626,11 +634,91 @@ a statusline, this one matches the default when 'ruler' is set:
 >
         set statusline=%<%f\ %h%m%r%{FugitiveStatusline()}%=%-14.(%l,%c%V%)\ %P
 <
-                                *FugitiveHead(...)* *fugitive#head(...)*
-Use FugitiveHead() to return the name of the current branch. If the current
-HEAD is detached, FugitiveHead() will return the empty string, unless the
-optional argument is given, in which case the hash of the current commit will
-be truncated to the given number of characters.
+AUTOCOMMANDS                                    *fugitive-autocommands*
+
+A handful of |User| |autocommands| are provided to allow extending and
+overriding Fugitive behaviors.  Example usage:
+>
+        autocmd User FugitiveBlob,FugitiveStageBlob call s:BlobOverrides()
+<
+                                                *User_FugitiveTag*
+FugitiveTag             After loading a tag object.
+
+                                                *User_FugitiveCommit*
+FugitiveCommit          After loading a commit object.
+
+                                                *User_FugitiveTree*
+FugitiveTree            After loading a tree (directory) object.
+
+                                                *User_FugitiveBlob*
+FugitiveBlob            After loading a committed blob (file) object.
+
+                                                *User_FugitiveObject*
+FugitiveObject          After loading any of the 4 above buffer types.
+
+                                                *User_FugitiveStageBlob*
+FugitiveStageBlob       After loading a staged blob (file) object.  These
+                        buffers are 'modifiable' and oftentimes don't want the
+                        same behavior as the other buffer types.
+
+                                                *User_FugitiveIndex*
+FugitiveIndex           After loading the |fugitive-summary| buffer.
+
+                                                *User_FugitivePager*
+FugitivePager           After loading a temp file created by a command like
+                        :Git --paginate or :Git blame.
+
+                                                *User_FugitiveEditor*
+FugitiveEditor          After a :Git command (e.g., :Git commit) edits a file
+                        (e.g., the commit message).
+
+                                                *User_FugitiveChanged*
+FugitiveChanged         After any event which can potentially change the
+                        repository, for example, any invocation of |:Git|.
+                        Originally intended for expiring caches, but can have
+                        other uses.
+
+API                                             *fugitive-api*
+
+Officially supported functions are documented inline in plugin/fugitive.vim.
+
+DEPRECATIONS                                    *fugitive-deprecated*
+
+The following commands are deprecated in favor of replacements that adhere to
+a new naming scheme.  Remember that |:Git| can be shortened to |:G|, so
+replacements using it are just one space character longer than the legacy
+version.
+
+*:Gremove*      Superseded by |:GRemove|.
+*:Gdelete*      Superseded by |:GDelete|.
+*:Gmove*        Superseded by |:GMove|.
+*:Grename*      Superseded by |:GRename|.
+*:Gbrowse*      Superseded by |:GBrowse|.
+*:Gdiff*        Superseded by |:Gdiffsplit|
+*:Gsdiff*       Superseded by |:Ghdiffsplit|
+*:Gvdiff*       Superseded by |:Gvdiffsplit| or |:vert| |:Gdiffsplit|.
+*:Gblame*       Superseded by |:Git_blame|.
+*:Gcommit*      Superseded by |:Git| commit.
+*:Gmerge*       Superseded by |:Git| merge and |:Git_mergetool|.
+*:Gpull*        Superseded by |:Git| pull.
+*:Grebase*      Superseded by |:Git| rebase.
+*:Grevert*      Superseded by |:Git| revert.
+*:Gpush*        Superseded by |:Git| push.
+*:Gfetch*       Superseded by |:Git| fetch.
+*:Glog*         Superseded by |:Gclog|.
+*:Gstatus*      Superseded by |:Git| (with no arguments).
+*:Gsplit!*      Superseded by |:Git_--paginate|.
+*:Gvsplit!*     Superseded by :vert Git --paginate.
+*:Gtabsplit!*   Superseded by :tab Git --paginate.
+*:Gpedit!*      Superseded by :Git! --paginate.
+
+                                                *User_Fugitive*
+Fugitive used to support `:autocmd User Fugitive` to run an autocommand after
+loading any buffer belonging to a Git repository, but this is being phased
+out.  Instead, one can leverage regular autocommand events like |BufNewFile|
+and |BufReadPost|, and check !empty(FugitiveGitDir()) to confirm Fugitive has
+found a repository.  See also |fugitive-autocommands| for other, more
+selective events.
 
 ABOUT                                           *fugitive-about*
 
