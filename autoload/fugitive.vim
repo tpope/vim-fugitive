@@ -2071,18 +2071,29 @@ endfunction
 
 function! s:IndexInfo(dir, commit_stage, path) abort
   let result = fugitive#Execute(['--literal-pathspecs', 'ls-files', '--stage', '--', a:path])
-  let line = result.stdout[0]
-  if result.exit_status || empty(line)
+  if result.exit_status
     return []
   endif
   let newftime = getftime(fugitive#Find('.git/index', a:dir))
-  let [info, filename] = split(line, "\t")
-  if filename ==# a:path
+  for line in result.stdout[:2]
+    " Inspect up to the first three lines to find the correct stage
+    if empty(line)
+      break
+    endif
+    let [info, filename] = split(line, "\t")
     let [mode, sha, stage] = split(info, '\s\+')
-    return [newftime, mode, 'blob', sha, -2]
-  else
-    return [newftime, '040000', 'tree', '', 0]
-  endif
+    if filename ==# a:path
+      if stage != a:commit_stage
+        continue
+      endif
+      return [newftime, mode, 'blob', sha, -2]
+    else
+      " Not concerned about the stage of tree objects- a tree can contain
+      " blobs from many different stages simultaneously
+      return [newftime, '040000', 'tree', '', 0]
+    endif
+  endfor
+  return []
 endfunction
 
 function! s:PathInfo(url) abort
