@@ -2069,6 +2069,22 @@ function! s:TreeInfo(dir, commit) abort
   return [{}, -1]
 endfunction
 
+function! s:IndexInfo(dir, commit_stage, path) abort
+  let result = fugitive#Execute(['--literal-pathspecs', 'ls-files', '--stage', '--', a:path])
+  let line = result.stdout[0]
+  if result.exit_status || empty(line)
+    return [-1, '000000', '', '', -1]
+  endif
+  let newftime = getftime(fugitive#Find('.git/index', a:dir))
+  let [info, filename] = split(line, "\t")
+  if filename ==# a:path
+    let [mode, sha, stage] = split(info, '\s\+')
+    return [newftime, mode, 'blob', sha, -2]
+  else
+    return [newftime, '040000', 'tree', '', 0]
+  endif
+endfunction
+
 function! s:PathInfo(url) abort
   let [dir, commit, file] = s:DirCommitFile(a:url)
   if empty(dir) || !get(g:, 'fugitive_file_api', 1)
@@ -2080,19 +2096,7 @@ function! s:PathInfo(url) abort
     let [_, ftime] = s:TreeInfo(dir, commit)
     let entry = [ftime, '040000', 'tree', '', -1]
   elseif commit =~# '^:\=[0-3]$'
-    let result = fugitive#Execute(['--literal-pathspecs', 'ls-files', '--stage', '--', path])
-    let line = result.stdout[0]
-    if result.exit_status || empty(line)
-      return [-1, '000000', '', '', -1]
-    endif
-    let newftime = getftime(fugitive#Find('.git/index', dir))
-    let [info, filename] = split(line, "\t")
-    if filename ==# path
-        let [mode, sha, stage] = split(info, '\s\+')
-        let entry = [newftime, mode, 'blob', sha, -2]
-    else
-        let entry = [newftime, '040000', 'tree', '', 0]
-    endif
+    let entry = s:IndexInfo(dir, commit[-1:-1], path)
   else
     let [tree, ftime] = s:TreeInfo(dir, commit)
     let entry = get(tree, path, [])
