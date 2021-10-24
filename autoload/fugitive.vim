@@ -2073,7 +2073,7 @@ function! s:IndexInfo(dir, commit_stage, path) abort
   let result = fugitive#Execute(['--literal-pathspecs', 'ls-files', '--stage', '--', a:path])
   let line = result.stdout[0]
   if result.exit_status || empty(line)
-    return [-1, '000000', '', '', -1]
+    return []
   endif
   let newftime = getftime(fugitive#Find('.git/index', a:dir))
   let [info, filename] = split(line, "\t")
