@@ -2069,12 +2069,23 @@ function! s:TreeInfo(dir, commit) abort
   return [{}, -1]
 endfunction
 
+let s:index_info = {}
 function! s:IndexInfo(dir, commit_stage, path) abort
+  let cache_key = 'cache://' . a:dir . '//' . a:path
+  let index = get(s:index_info, cache_key, [])
+  let newftime = getftime(fugitive#Find('.git/index', a:dir))
+
+  if get(index, 0, -1) == newftime
+    return get(get(index, 1, {}), a:commit_stage, [])
+  endif
+
+  let indexes = {'0': [], '1': [], '2': [], '3': []}
+  let s:index_info[cache_key] = [newftime, indexes]
+
   let result = fugitive#Execute(['--literal-pathspecs', 'ls-files', '--stage', '--', a:path])
   if result.exit_status
     return []
   endif
-  let newftime = getftime(fugitive#Find('.git/index', a:dir))
   for line in result.stdout[:2]
     " Inspect up to the first three lines to find the correct stage
     if empty(line)
@@ -2083,17 +2094,13 @@ function! s:IndexInfo(dir, commit_stage, path) abort
     let [info, filename] = split(line, "\t")
     let [mode, sha, stage] = split(info, '\s\+')
     if filename ==# a:path
-      if stage != a:commit_stage
-        continue
-      endif
-      return [newftime, mode, 'blob', sha, -2]
+      let indexes[stage] = [newftime, mode, 'blob', sha, -2]
     else
-      " Not concerned about the stage of tree objects- a tree can contain
-      " blobs from many different stages simultaneously
-      return [newftime, '040000', 'tree', '', 0]
+      " Only support stage '0' for tree objects
+      let indexes['0'] = [newftime, '040000', 'tree', '', 0]
     endif
   endfor
-  return []
+  return get(indexes, a:commit_stage, [])
 endfunction
 
 function! s:PathInfo(url) abort
