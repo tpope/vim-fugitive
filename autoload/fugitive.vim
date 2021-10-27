@@ -4122,7 +4122,8 @@ function! s:DoAutocmdChanged(dir) abort
     exe s:DoAutocmd('User FugitiveChanged')
   finally
     unlet! g:fugitive_event g:fugitive_result
-    redrawstatus
+    " Force statusline reload with the buffer's Git dir
+    let &l:ro = &l:ro
   endtry
   return ''
 endfunction
