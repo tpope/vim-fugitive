@@ -263,7 +263,7 @@ function! fugitive#Wait(job_or_jobs, ...) abort
   if exists('*jobwait')
     call map(copy(jobs), 'chanclose(v:val, "stdin")')
     call jobwait(jobs, timeout_ms)
-    if len(jobs) && has('nvim-0.5')
+    if len(jobs)
       sleep 1m
     endif
   else
