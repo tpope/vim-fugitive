@@ -3333,7 +3333,7 @@ function! s:RunReceive(state, tmp, type, job, data, ...) abort
       call setbufline(a:state.capture_bufnr, line_count + 1, lines)
     endif
     call setbufvar(a:state.capture_bufnr, '&modifiable', 0)
-    if getwinvar(bufwinid(a:state.capture_bufnr), '&previewwindow')
+    if !a:state.pager && getwinvar(bufwinid(a:state.capture_bufnr), '&previewwindow')
       let winnr = bufwinnr(a:state.capture_bufnr)
       if winnr > 0
         let old_winnr = winnr()
@@ -3712,6 +3712,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
   let after_edit = ''
   let stream = 0
   if a:bang && pager isnot# 2
+    let state.pager = pager
     let pager = 1
     let stream = exists('*setbufline')
     let do_edit = substitute(s:Mods(a:mods, 'Edge'), '\<tab\>', '-tab', 'g') . 'pedit!'
