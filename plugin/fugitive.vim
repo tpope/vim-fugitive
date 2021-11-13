@@ -210,6 +210,23 @@ function! FugitiveRemoteUrl(...) abort
   return call('fugitive#RemoteUrl', a:000)
 endfunction
 
+" FugitiveRemote() returns a data structure parsed from the remote URL.
+" For example, for remote URL is "https://me@example.com:1234/repo.git",
+" the returned dictionary will contain the following:
+"
+" * "scheme": "https"
+" * "authority": "user@example.com:1234"
+" * "path": "/repo.git" (for SSH URLs this may be a relative path)
+" * "host": "example.com:1234"
+" * "hostname": "example.com"
+" * "port": "1234"
+" * "user": "me"
+" * "path": "/repo.git"
+" * "url": "https://me@example.com:1234/repo.git"
+function! FugitiveRemote(...) abort
+  return call('fugitive#Remote', a:000)
+endfunction
+
 " FugitiveDidChange() triggers a FugitiveChanged event and reloads the summary
 " buffer for the current or given buffer number's repository.  You can also
 " give the result of a FugitiveExecute() and that context will be made
