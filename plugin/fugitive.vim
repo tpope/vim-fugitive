@@ -506,9 +506,9 @@ function! s:buffer_path(...) dict abort
   let rev = matchstr(self.spec(),'^fugitive://.\{-\}//\zs.*')
   if rev != ''
     let rev = s:sub(rev,'\w*','')
-  elseif self.repo().bare()
+  elseif self.spec()[0 : len(self.repo().dir())] ==# self.repo().dir() . '/'
     let rev = '/.git'.self.spec()[strlen(self.repo().dir()) : -1]
-  else
+  elseif !self.repo().bare() && self.spec()[0 : len(self.repo().tree())] ==# self.repo().tree() . '/'
     let rev = self.spec()[strlen(self.repo().tree()) : -1]
   endif
   return s:sub(s:sub(rev,'.\zs/$',''),'^/',a:0 ? a:1 : '')
@@ -1066,7 +1066,7 @@ function! s:Log(cmd,...)
   let dir = getcwd()
   try
     execute cd.'`=s:repo().tree()`'
-    let &grepprg = escape(call(s:repo().git_command,cmd,s:repo()),'%')
+    let &grepprg = escape(call(s:repo().git_command,cmd,s:repo()),'%#')
     let &grepformat = '%f::%m'
     exe a:cmd
   finally
@@ -1835,7 +1835,7 @@ endfunction
 " }}}1
 " Gbrowse {{{1
 
-call s:command("-bar -bang -count=0 -nargs=? -complete=customlist,s:EditComplete Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
+call s:command("-bar -bang -range -nargs=? -complete=customlist,s:EditComplete Gbrowse :execute s:Browse(<bang>0,<line1>,<count>,<f-args>)")
 
 function! s:Browse(bang,line1,count,...) abort
   try
@@ -1917,7 +1917,7 @@ function! s:Browse(bang,line1,count,...) abort
 
     let url = s:github_url(s:repo(),raw,rev,commit,path,type,a:line1,a:count)
     if url == ''
-      let url = s:instaweb_url(s:repo(),rev,commit,path,type,a:count ? a:line1 : 0)
+      let url = s:instaweb_url(s:repo(),rev,commit,path,type,a:count > 0 ? a:line1 : 0)
     endif
 
     if url == ''
@@ -1938,14 +1938,19 @@ endfunction
 function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
   let path = a:path
   let domain_pattern = 'github\.com'
-  for domain in exists('g:fugitive_github_domains') ? g:fugitive_github_domains : []
-    let domain_pattern .= '\|' . escape(domain, '.')
+  let domains = exists('g:fugitive_github_domains') ? g:fugitive_github_domains : []
+  for domain in domains
+    let domain_pattern .= '\|' . escape(split(domain, '://')[-1], '.')
   endfor
   let repo = matchstr(a:url,'^\%(https\=://\|git://\|git@\)\zs\('.domain_pattern.'\)[/:].\{-\}\ze\%(\.git\)\=$')
   if repo ==# ''
     return ''
   endif
-  let root = 'https://' . s:sub(repo,':','/')
+  if index(domains, 'http://' . matchstr(repo, '^[^:/]*')) >= 0
+    let root = 'http://' . s:sub(repo,':','/')
+  else
+    let root = 'https://' . s:sub(repo,':','/')
+  endif
   if path =~# '^\.git/refs/heads/'
     let branch = a:repo.git_chomp('config','branch.'.path[16:-1].'.merge')[11:-1]
     if branch ==# ''
@@ -1975,9 +1980,9 @@ function! s:github_url(repo,url,rev,commit,path,type,line1,line2) abort
     let url = s:sub(root . '/tree/' . commit . '/' . path,'/$','')
   elseif a:type == 'blob'
     let url = root . '/blob/' . commit . '/' . path
-    if a:line2 && a:line1 == a:line2
+    if a:line2 > 0 && a:line1 == a:line2
       let url .= '#L' . a:line1
-    elseif a:line2
+    elseif a:line2 > 0
       let url .= '#L' . a:line1 . '-' . a:line2
     endif
   elseif a:type == 'tag'
@@ -2116,7 +2121,8 @@ function! s:BufReadIndex()
     nnoremap <buffer> <silent> cA :<C-U>Gcommit --amend --reuse-message=HEAD<CR>
     nnoremap <buffer> <silent> ca :<C-U>Gcommit --amend<CR>
     nnoremap <buffer> <silent> cc :<C-U>Gcommit<CR>
-    nnoremap <buffer> <silent> cv :<C-U>Gcommit -v<CR>
+    nnoremap <buffer> <silent> cva :<C-U>Gcommit --amend --verbose<CR>
+    nnoremap <buffer> <silent> cvc :<C-U>Gcommit --verbose<CR>
     nnoremap <buffer> <silent> D :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> dd :<C-U>execute <SID>StageDiff('Gvdiff')<CR>
     nnoremap <buffer> <silent> dh :<C-U>execute <SID>StageDiff('Gsdiff')<CR>
@@ -2554,7 +2560,7 @@ function! fugitive#foldtext() abort
     let [add, remove] = [-1, -1]
     let filename = ''
     for lnum in range(v:foldstart, v:foldend)
-      if filename ==# '' && getline(lnum) =~# '^[+-]\{3\} [ab]/'
+      if filename ==# '' && getline(lnum) =~# '^[+-]\{3\} [abciow12]/'
         let filename = getline(lnum)[6:-1]
       endif
       if getline(lnum) =~# '^+'
@@ -2567,6 +2573,9 @@ function! fugitive#foldtext() abort
     endfor
     if filename ==# ''
       let filename = matchstr(getline(v:foldstart), '^diff .\{-\} a/\zs.*\ze b/')
+    endif
+    if filename ==# ''
+      let filename = getline(v:foldstart)[5:-1]
     endif
     if exists('binary')
       return 'Binary: '.filename

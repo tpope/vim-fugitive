@@ -39,9 +39,11 @@ that are part of Git repositories).
                         <CR>  |:Gedit|
                         -     |:Git| add
                         -     |:Git| reset (staged files)
-                        C     |:Gcommit|
                         cA    |:Gcommit| --amend --reuse-message=HEAD
                         ca    |:Gcommit| --amend
+                        cc    |:Gcommit|
+                        cva   |:Gcommit| --amend --verbose
+                        cvc   |:Gcommit| --verbose
                         D     |:Gdiff|
                         ds    |:Gsdiff|
                         dp    |:Git!| diff (p for patch; use :Gw to apply)
@@ -120,7 +122,7 @@ that are part of Git repositories).
 
 :{range}Gread! [args]  |:read| the output of a Git command after {range}.
 
-                                                *fugitive-:Gwrite*
+                                        *fugitive-:Gw* *fugitive-:Gwrite*
 :Gwrite                 Write to the current file's path and stage the results.
                         When run in a work tree file, it is effectively git
                         add.  Elsewhere, it is effectively git-checkout.  A
@@ -201,7 +203,7 @@ that are part of Git repositories).
                         To use with GitHub FI, point g:fugitive_github_domains
                         at a list of domains:
 >
-                        let g:fugitive_github_domains = ['git.example.com']
+                        let g:fugitive_github_domains = ['https://example.com']
 ~
 :[range]Gbrowse!        Like :Gbrowse, but put the URL on the clipboard rather
                         than opening it.
