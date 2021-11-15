@@ -211,8 +211,8 @@ function! FugitiveRemoteUrl(...) abort
 endfunction
 
 " FugitiveRemote() returns a data structure parsed from the remote URL.
-" For example, for remote URL is "https://me@example.com:1234/repo.git",
-" the returned dictionary will contain the following:
+" For example, for remote URL "https://me@example.com:1234/repo.git", the
+" returned dictionary will contain the following:
 "
 " * "scheme": "https"
 " * "authority": "user@example.com:1234"
