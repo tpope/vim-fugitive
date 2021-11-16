@@ -341,12 +341,19 @@ function! s:JobExecute(argv, jopts, stdin, callback, ...) abort
     let cmd = s:shellesc(a:argv)
     let outfile = tempname()
     try
-      let dict.stderr = split(system(' (' . cmd . ' >' . outfile . ') ', join(a:stdin, "\n")), "\n", 1)
+      if len(a:stdin)
+        call writefile(a:stdin, outfile . '.in', 'b')
+        let cmd = ' (' . cmd . ' >' . outfile . ' <' . outfile . '.in) '
+      else
+        let cmd = ' (' . cmd . ' >' . outfile . ') '
+      endif
+      let dict.stderr = split(system(cmd), "\n", 1)
       let dict.exit_status = v:shell_error
       let dict.stdout = readfile(outfile, 'b')
       call call(cb[0], [dict] + cb[1:-1])
     finally
       call delete(outfile)
+      call delete(outfile . '.in')
     endtry
   endif
   if empty(a:callback)
