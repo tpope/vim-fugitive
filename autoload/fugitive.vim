@@ -1448,7 +1448,7 @@ function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) ab
   let opts = {'title': a:title, 'context': {'items': []}}
   call s:QuickfixCreate(a:nr, opts)
   let event = (a:nr < 0 ? 'c' : 'l') . 'fugitive-' . a:event
-  silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
+  exe s:DoAutocmd('QuickFixCmdPre ' . event)
   let winnr = winnr()
   exe s:QuickfixOpen(a:nr, a:mods)
   if winnr != winnr()
@@ -1475,7 +1475,7 @@ function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) ab
   lockvar opts.context.items
   call s:QuickfixSet(a:nr, buffer, 'a')
 
-  silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
+  exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if a:first && len(s:QuickfixGet(a:nr))
     return (a:nr < 0 ? 'cfirst' : 'lfirst')
   else
@@ -2487,6 +2487,9 @@ endfunction
 augroup fugitive_dummy_events
   autocmd!
   autocmd User Fugitive* "
+  autocmd BufWritePre,FileWritePre,FileWritePost * "
+  autocmd BufNewFile * "
+  autocmd QuickfixCmdPre,QuickfixCmdPost * "
 augroup END
 
 function! s:ReplaceCmd(cmd) abort
@@ -2593,7 +2596,7 @@ function! fugitive#BufReadStatus(...) abort
   let amatch = s:Slash(expand('%:p'))
   unlet! b:fugitive_reltime b:fugitive_type
   try
-    silent doautocmd BufReadPre
+    doautocmd BufReadPre
     let config = fugitive#Config()
 
     let cmd = [fnamemodify(amatch, ':h')]
@@ -2842,7 +2845,7 @@ function! fugitive#BufReadStatus(...) abort
     endif
 
     setlocal nomodified readonly noswapfile
-    silent doautocmd BufReadPost
+    doautocmd BufReadPost
     setlocal nomodifiable
     if &bufhidden ==# ''
       setlocal bufhidden=delete
@@ -3005,10 +3008,10 @@ function! fugitive#BufReadCmd(...) abort
         endif
         if rev =~# '^:\d:'
           let &l:readonly = !filewritable(fugitive#Find('.git/index', dir))
-          return 'silent doautocmd BufNewFile'
+          return 'doautocmd BufNewFile'
         else
           setlocal readonly nomodifiable
-          return 'silent doautocmd BufNewFile|echo ' . string(error)
+          return 'doautocmd BufNewFile|echo ' . string(error)
         endif
       elseif b:fugitive_type !~# '^\%(tag\|commit\|tree\|blob\)$'
         return "echoerr ".string("fugitive: unrecognized git type '".b:fugitive_type."'")
@@ -3033,7 +3036,7 @@ function! fugitive#BufReadCmd(...) abort
       if b:fugitive_type !=# 'blob'
         setlocal foldmarker=<<<<<<<<,>>>>>>>>
       endif
-      silent exe s:DoAutocmd('BufReadPre')
+      exe s:DoAutocmd('BufReadPre')
       if b:fugitive_type ==# 'tree'
         let b:fugitive_display_format = b:fugitive_display_format % 2
         if b:fugitive_display_format
@@ -3099,7 +3102,7 @@ function! fugitive#BufReadCmd(...) abort
 
     setlocal modifiable
 
-    return 'silent ' . s:DoAutocmd('BufReadPost') .
+    return s:DoAutocmd('BufReadPost') .
           \ (modifiable ? '' : '|setl nomodifiable') . '|' .
           \ call('s:DoAutocmd', events)
   catch /^fugitive:/
@@ -5662,7 +5665,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
         \ 'mods': s:Mods(a:mods),
         \ 'file': s:Resolve(tempfile)}
   let event = listnr < 0 ? 'grep-fugitive' : 'lgrep-fugitive'
-  silent exe s:DoAutocmd('QuickFixCmdPre ' . event)
+  exe s:DoAutocmd('QuickFixCmdPre ' . event)
   try
     if !quiet && &more
       let more = 1
@@ -5686,7 +5689,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
     endif
   endtry
   call s:RunFinished(state)
-  silent exe s:DoAutocmd('QuickFixCmdPost ' . event)
+  exe s:DoAutocmd('QuickFixCmdPost ' . event)
   if quiet
     let bufnr = bufnr('')
     exe s:QuickfixOpen(listnr, a:mods)
@@ -6182,7 +6185,7 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, ...) abort
 
   unlet! restorewinnr
   let zero = fugitive#Find(':0:'.file)
-  silent exe s:DoAutocmd('BufWritePost ' . s:fnameescape(zero))
+  exe s:DoAutocmd('BufWritePost ' . s:fnameescape(zero))
   for tab in range(1,tabpagenr('$'))
     for winnr in range(1,tabpagewinnr(tab,'$'))
       let bufnr = tabpagebuflist(tab)[winnr-1]
