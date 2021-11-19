@@ -6983,13 +6983,6 @@ function! s:BlameJump(suffix, ...) abort
   let offset = line('.') - line('w0')
   let state = s:TempState()
   let flags = get(state, 'blame_flags', [])
-  if a:0 && a:1
-    if s:HasOpt(flags, '--reverse')
-      call remove(flags, '--reverse')
-    else
-      call add(flags, '--reverse')
-    endif
-  endif
   let blame_bufnr = s:BlameBufnr()
   if blame_bufnr > 0
     let bufnr = bufnr('')
