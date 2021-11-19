@@ -5784,7 +5784,7 @@ function! s:LogParse(state, dir, prefix, line) abort
     endif
   elseif a:state.follow &&
         \ a:line =~# '^ \%(mode change \d\|\%(create\|delete\) mode \d\|\%(rename\|copy\|rewrite\) .* (\d\+%)$\)'
-    let rename = matchstr(a:line, '^ rename \zs.* => .*\ze (\d\+%)$')
+    let rename = matchstr(a:line, '^ \%(copy\|rename\) \zs.* => .*\ze (\d\+%)$')
     if len(rename)
       let rename = rename =~# '{.* => .*}' ? rename : '{' . rename . '}'
       if a:state.target ==# simplify('/' . substitute(rename, '{.* => \(.*\)}', '\1', ''))
