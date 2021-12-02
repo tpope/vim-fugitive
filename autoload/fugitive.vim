@@ -2716,11 +2716,11 @@ function! fugitive#BufReadStatus(...) abort
     let diff = {'Staged': {'stdout': ['']}, 'Unstaged': {'stdout': ['']}}
     if len(staged)
       let diff['Staged'] =
-          \ fugitive#Execute(['diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'], function('len'))
+          \ fugitive#Execute(['-c', 'diff.suppressBlankEmpty=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'], function('len'))
     endif
     if len(unstaged)
       let diff['Unstaged'] =
-          \ fugitive#Execute(['diff', '--color=never', '--no-ext-diff', '--no-prefix'], function('len'))
+          \ fugitive#Execute(['-c', 'diff.suppressBlankEmpty=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix'], function('len'))
     endif
 
     for dict in staged
