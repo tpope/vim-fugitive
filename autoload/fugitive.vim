@@ -6771,7 +6771,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
     elseif empty(files) && len(matchstr(s:DirCommitFile(@%)[1], '^\x\x\+$'))
       let cmd += [matchstr(s:DirCommitFile(@%)[1], '^\x\x\+$')]
     elseif empty(files) && !s:HasOpt(flags, '--reverse')
-      if &modified
+      if &modified || !empty(s:DirCommitFile(@%)[1])
         let cmd += ['--contents', tempname . '.in']
         silent execute 'noautocmd keepalt %write ' . s:fnameescape(tempname . '.in')
         let delete_in = 1
