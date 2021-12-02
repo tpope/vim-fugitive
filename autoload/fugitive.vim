@@ -478,9 +478,7 @@ function! fugitive#CommonDir(dir) abort
     return ''
   endif
   if !has_key(s:commondirs, a:dir)
-    if getfsize(a:dir . '/HEAD') < 10
-      let s:commondirs[a:dir] = ''
-    elseif filereadable(a:dir . '/commondir')
+    if filereadable(a:dir . '/commondir') && getfsize(a:dir . '/HEAD') >= 10
       let cdir = get(readfile(a:dir . '/commondir', '', 1), 0, '')
       if cdir =~# '^/\|^\a:/'
         let s:commondirs[a:dir] = s:Slash(FugitiveVimPath(cdir))
