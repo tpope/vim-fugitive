@@ -642,26 +642,26 @@ augroup fugitive
         \ endif |
         \ let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') . '|setl inex= inc='
 
-  autocmd BufReadCmd index{,.lock}
+  autocmd BufReadCmd index{,.lock} nested
         \ if FugitiveIsGitDir(expand('<amatch>:p:h')) |
         \   let b:git_dir = s:Slash(expand('<amatch>:p:h')) |
         \   exe fugitive#BufReadStatus(v:cmdbang) |
         \ elseif filereadable(expand('<amatch>')) |
         \   silent doautocmd BufReadPre |
-        \   keepalt read <amatch> |
-        \   1delete_ |
+        \   keepalt noautocmd read <amatch> |
+        \   silent 1delete_ |
         \   silent doautocmd BufReadPost |
         \ else |
         \   silent doautocmd BufNewFile |
         \ endif
 
-  autocmd BufReadCmd    fugitive://*//*             exe fugitive#BufReadCmd() |
+  autocmd BufReadCmd   fugitive://*//*       nested exe fugitive#BufReadCmd() |
         \ if &path =~# '^\.\%(,\|$\)' |
         \   let &l:path = substitute(&path, '^\.,\=', '', '') |
         \ endif
-  autocmd BufWriteCmd   fugitive://*//[0-3]/*       exe fugitive#BufWriteCmd()
-  autocmd FileReadCmd   fugitive://*//*             exe fugitive#FileReadCmd()
-  autocmd FileWriteCmd  fugitive://*//[0-3]/*       exe fugitive#FileWriteCmd()
+  autocmd BufWriteCmd  fugitive://*//[0-3]/* nested exe fugitive#BufWriteCmd()
+  autocmd FileReadCmd  fugitive://*//*       nested exe fugitive#FileReadCmd()
+  autocmd FileWriteCmd fugitive://*//[0-3]/* nested exe fugitive#FileWriteCmd()
   if exists('##SourceCmd')
     autocmd SourceCmd     fugitive://*//*    nested exe fugitive#SourceCmd()
   endif

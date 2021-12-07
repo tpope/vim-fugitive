@@ -2497,7 +2497,7 @@ function! s:ReplaceCmd(cmd) abort
     throw 'fugitive: ' . (len(err) ? substitute(err, "\n$", '', '') : 'unknown error running ' . string(a:cmd))
   endif
   setlocal noswapfile
-  silent exe 'lockmarks keepalt 0read ++edit' s:fnameescape(temp)
+  silent exe 'lockmarks keepalt noautocmd 0read ++edit' s:fnameescape(temp)
   if &foldenable && foldlevel('$') > 0
     set nofoldenable
     silent keepjumps $delete _
@@ -2507,7 +2507,7 @@ function! s:ReplaceCmd(cmd) abort
   endif
   call delete(temp)
   if s:cpath(fnamemodify(bufname('$'), ':p'), temp)
-    silent! execute bufnr('$') . 'bwipeout'
+    silent! noautocmd execute bufnr('$') . 'bwipeout'
   endif
 endfunction
 
