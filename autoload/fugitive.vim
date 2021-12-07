@@ -3182,6 +3182,7 @@ function! s:TempReadPre(file) abort
       call extend(b:, {'fugitive_type': 'temp'}, 'keep')
     endif
   endif
+  return ''
 endfunction
 
 function! s:TempReadPost(file) abort
