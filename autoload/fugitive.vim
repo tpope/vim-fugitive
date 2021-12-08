@@ -7221,7 +7221,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
     endif
     exe s:DirCheck(dir)
     if empty(expanded)
-      let bufname = s:BufName('%')
+      let bufname = &buftype =~# '^\%(nofile\|terminal\)$' ? '' : s:BufName('%')
       let expanded = s:DirRev(bufname)[1]
       if empty(expanded)
         let expanded = fugitive#Path(bufname, ':(top)', dir)
