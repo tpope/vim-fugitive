@@ -282,12 +282,28 @@ function! FugitiveStatusline(...) abort
   return fugitive#Statusline()
 endfunction
 
+let s:commondirs = {}
 function! FugitiveCommonDir(...) abort
   let dir = FugitiveGitDir(a:0 ? a:1 : -1)
   if empty(dir)
     return ''
   endif
-  return fugitive#Find('.git/refs/..', dir)
+  if has_key(s:commondirs, dir)
+    return s:commondirs[dir]
+  endif
+  if getfsize(dir . '/HEAD') >= 10
+    let cdir = get(s:ReadFile(dir . '/commondir', 1), 0, '')
+    if cdir =~# '^/\|^\a:/'
+      let s:commondirs[dir] = s:Slash(FugitiveVimPath(cdir))
+    elseif len(cdir)
+      let s:commondirs[dir] = simplify(dir . '/' . cdir)
+    else
+      let s:commondirs[dir] = dir
+    endif
+  else
+    let s:commondirs[dir] = dir
+  endif
+  return s:commondirs[dir]
 endfunction
 
 function! FugitiveWorkTree(...) abort

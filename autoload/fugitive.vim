@@ -474,26 +474,6 @@ function! fugitive#GitVersion(...) abort
   return a:000[i] ==# get(components, i)
 endfunction
 
-let s:commondirs = {}
-function! fugitive#CommonDir(dir) abort
-  if empty(a:dir)
-    return ''
-  endif
-  if !has_key(s:commondirs, a:dir)
-    if filereadable(a:dir . '/commondir') && getfsize(a:dir . '/HEAD') >= 10
-      let cdir = get(readfile(a:dir . '/commondir', '', 1), 0, '')
-      if cdir =~# '^/\|^\a:/'
-        let s:commondirs[a:dir] = s:Slash(FugitiveVimPath(cdir))
-      else
-        let s:commondirs[a:dir] = simplify(a:dir . '/' . cdir)
-      endif
-    else
-      let s:commondirs[a:dir] = a:dir
-    endif
-  endif
-  return s:commondirs[a:dir]
-endfunction
-
 function! s:Dir(...) abort
   return a:0 ? FugitiveGitDir(a:1) : FugitiveGitDir()
 endfunction
@@ -1748,7 +1728,7 @@ function! fugitive#Find(object, ...) abort
   elseif rev =~# '^\.git/'
     let f = strpart(rev, 5)
     let fdir = dir . '/'
-    let cdir = fugitive#CommonDir(dir) . '/'
+    let cdir = FugitiveCommonDir(dir) . '/'
     if f =~# '^\.\./\.\.\%(/\|$\)'
       let f = simplify(len(tree) ? tree . f[2:-1] : fdir . f)
     elseif f =~# '^\.\.\%(/\|$\)'
