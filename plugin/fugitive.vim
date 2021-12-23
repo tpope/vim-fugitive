@@ -616,9 +616,8 @@ let g:io_fugitive = {
 augroup fugitive
   autocmd!
 
-  autocmd BufNewFile,BufReadPost *
-        \    call FugitiveDetect(+expand('<abuf>'), 0)
-  autocmd FileType           netrw call FugitiveDetect(get(b:, 'netrw_curdir', +expand('<abuf>')), 1)
+  autocmd BufNewFile,BufReadPost *  call FugitiveDetect(+expand('<abuf>'), 0)
+  autocmd FileType           netrw  call FugitiveDetect(+expand('<abuf>'), 0)
 
   autocmd FileType git
         \ call fugitive#MapCfile()
