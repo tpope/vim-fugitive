@@ -621,8 +621,8 @@ augroup fugitive
   autocmd!
 
   autocmd BufNewFile,BufReadPost *
-        \    call FugitiveDetect(expand('<amatch>:p'), 0)
-  autocmd FileType           netrw call FugitiveDetect(fnamemodify(get(b:, 'netrw_curdir', expand('<afile>:p')), ':p'), 1)
+        \    call FugitiveDetect(+expand('<abuf>'), 0)
+  autocmd FileType           netrw call FugitiveDetect(get(b:, 'netrw_curdir', +expand('<abuf>')), 1)
 
   autocmd FileType git
         \ call fugitive#MapCfile()
