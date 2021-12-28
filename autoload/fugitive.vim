@@ -256,13 +256,15 @@ function! fugitive#Autowrite() abort
 endfunction
 
 function! fugitive#Wait(job_or_jobs, ...) abort
-  let jobs = type(a:job_or_jobs) == type([]) ? copy(a:job_or_jobs) : [a:job_or_jobs]
-  call map(jobs, 'type(v:val) ==# type({}) ? get(v:val, "job", "") : v:val')
+  let original = type(a:job_or_jobs) == type([]) ? copy(a:job_or_jobs) : [a:job_or_jobs]
+  let jobs = map(copy(original), 'type(v:val) ==# type({}) ? get(v:val, "job", "") : v:val')
   call filter(jobs, 'type(v:val) !=# type("")')
   let timeout_ms = a:0 ? a:1 : -1
   if exists('*jobwait')
     call map(copy(jobs), 'chanclose(v:val, "stdin")')
     call jobwait(jobs, timeout_ms)
+    let jobs = map(copy(original), 'type(v:val) ==# type({}) ? get(v:val, "job", "") : v:val')
+    call filter(jobs, 'type(v:val) !=# type("")')
     if len(jobs)
       sleep 1m
     endif
