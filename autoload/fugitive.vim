@@ -5139,11 +5139,14 @@ function! s:StagePatch(lnum1,lnum2) abort
   for lnum in range(a:lnum1,a:lnum2)
     let info = s:StageInfo(lnum)
     if empty(info.paths) && info.section ==# 'Staged'
-      return 'tab Git reset --patch'
+      execute 'tab Git reset --patch'
+      break
     elseif empty(info.paths) && info.section ==# 'Unstaged'
-      return 'tab Git add --patch'
+      execute 'tab Git add --patch'
+      break
     elseif empty(info.paths) && info.section ==# 'Untracked'
-      return 'tab Git add --interactive'
+      execute 'tab Git add --interactive'
+      break
     elseif empty(info.paths)
       continue
     endif
