@@ -6256,6 +6256,9 @@ function! s:CompletePush(A, L, P, ...) abort
     call map(matches, 'lead . s:sub(v:val, "^.*\t", "")')
   else
     let matches = s:CompleteHeads(dir)
+    if a:A =~# '^[\''"]\=+'
+      call map(matches, '"+" . v:val')
+    endif
   endif
   return s:FilterEscape(matches, a:A)
 endfunction
