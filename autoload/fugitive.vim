@@ -3553,7 +3553,7 @@ function! s:RunBufDelete(bufnr) abort
   if has_key(s:edit_jobs, a:bufnr) |
     call add(s:resume_queue, remove(s:edit_jobs, a:bufnr))
     call feedkeys("\<C-\>\<C-N>:redraw!|call delete(" . string(s:resume_queue[-1][0].file . '.edit') .
-          \ ")|call fugitive#Resume()|silent checktime\r", 'n')
+          \ ")|call fugitive#Resume()|checktime\r", 'n')
   endif
 endfunction
 
@@ -3828,7 +3828,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
       return (after_edit . after)[1:-1]
     endif
     call add(s:resume_queue, [state, tmp, job])
-    return 'call fugitive#Resume()|silent checktime' . after
+    return 'call fugitive#Resume()|checktime' . after
   elseif pager
     let pre = s:BuildEnvPrefix(env)
     try
@@ -3877,7 +3877,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
           endif
         endtry
       endif
-      return 'silent checktime' . after
+      return 'checktime' . after
     else
       return 'exe ' . string('noautocmd !' . escape(cmd, '!#%')) . after
     endif
@@ -6226,7 +6226,7 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, ...) abort
     endfor
   endfor
   call fugitive#DidChange()
-  return 'silent checktime' . after
+  return 'checktime' . after
 endfunction
 
 function! fugitive#WqCommand(...) abort
