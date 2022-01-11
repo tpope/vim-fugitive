@@ -103,6 +103,17 @@ it was removed.  Use `:Git! push` to use Fugitive's own asynchronous
 execution, or retroactively make `:Git push` asynchronous by pressing
 `CTRL-D`.
 
+> Why am I getting `core.worktree is required when using an external Git dir`?
+
+Git generally sets `core.worktree` for you automatically when necessary, but
+if you're doing something weird, or using a third-party tool that does
+something weird, you may need to set it manually:
+
+    git config core.worktree "$PWD"
+
+This may be necessary even when simple `git` commands seem to work fine
+without it.
+
 > So I have a symlink and...
 
 Stop.  Just stop.  If Git won't deal with your symlink, then Fugitive won't
