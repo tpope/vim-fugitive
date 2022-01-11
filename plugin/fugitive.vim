@@ -309,6 +309,14 @@ function! FugitiveIsGitDir(...) abort
         \ getftype(path.'commondir') ==# 'file')
 endfunction
 
+function! s:ReadFile(path, line_count) abort
+  try
+    return readfile(a:path, 'b', a:line_count)
+  catch
+    return []
+  endtry
+endfunction
+
 let s:worktree_for_dir = {}
 let s:dir_for_worktree = {}
 function! s:Tree(path) abort
@@ -320,9 +328,8 @@ function! s:Tree(path) abort
   endif
   if !has_key(s:worktree_for_dir, dir)
     let s:worktree_for_dir[dir] = ''
-    let config_file = dir . '/config'
-    if filereadable(config_file)
-      let config = readfile(config_file,'',10)
+    let config = s:ReadFile(dir . '/config', 10)
+    if len(config)
       let wt_config = filter(copy(config),'v:val =~# "^\\s*worktree *="')
       if len(wt_config) == 1
         let worktree = FugitiveVimPath(matchstr(wt_config[0], '= *\zs.*'))
@@ -332,8 +339,8 @@ function! s:Tree(path) abort
           let s:worktree_for_dir[dir] = 0
         endif
       endif
-    elseif filereadable(dir . '/gitdir')
-      let worktree = fnamemodify(FugitiveVimPath(readfile(dir . '/gitdir')[0]), ':h')
+    else
+      let worktree = fnamemodify(FugitiveVimPath(get(s:ReadFile(dir . '/gitdir', 1), '0', '')), ':h')
       if worktree ==# '.'
         unlet! worktree
       endif
@@ -409,10 +416,10 @@ function! FugitiveExtractGitDir(path) abort
       return dir
     elseif type ==# 'link' && FugitiveIsGitDir(dir)
       return resolve(dir)
-    elseif type !=# '' && filereadable(dir)
-      let line = get(readfile(dir, '', 1), 0, '')
+    elseif type !=# ''
+      let line = get(s:ReadFile(dir, 1), 0, '')
       let file_dir = s:Slash(FugitiveVimPath(matchstr(line, '^gitdir: \zs.*')))
-      if file_dir !~# '^/\|^\a:' && FugitiveIsGitDir(root . '/' . file_dir)
+      if file_dir !~# '^/\|^\a:\|^$' && FugitiveIsGitDir(root . '/' . file_dir)
         return simplify(root . '/' . file_dir)
       elseif len(file_dir) && FugitiveIsGitDir(file_dir)
         return file_dir
