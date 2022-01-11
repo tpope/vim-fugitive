@@ -2816,7 +2816,7 @@ function! fugitive#BufReadStatus(...) abort
       call s:AddHeader('Push', push)
     endif
     if empty(s:Tree())
-      if get(fugitive#ConfigGetAll('core.bare', config), 0, 'true') !~# '^\%(false\|no|off\|0\|\)$'
+      if get(fugitive#ConfigGetAll('core.bare', config), 0, '') !~# '^\%(false\|no|off\|0\|\)$'
         call s:AddHeader('Bare', 'yes')
       else
         call s:AddHeader('Error', s:worktree_error)

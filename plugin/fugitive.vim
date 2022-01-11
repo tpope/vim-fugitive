@@ -327,8 +327,8 @@ function! s:Tree(path) abort
       if len(wt_config) == 1
         let worktree = FugitiveVimPath(matchstr(wt_config[0], '= *\zs.*'))
       else
-        call filter(config,'v:val =~# "^\\s*bare *= *false *$"')
-        if len(config)
+        call filter(config,'v:val =~# "^\\s*bare *= *true *$"')
+        if empty(config)
           let s:worktree_for_dir[dir] = 0
         endif
       endif
