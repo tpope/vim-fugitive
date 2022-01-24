@@ -3948,7 +3948,7 @@ function! fugitive#Complete(lead, ...) abort
     let results = ['--literal-pathspecs', '--no-literal-pathspecs', '--glob-pathspecs', '--noglob-pathspecs', '--icase-pathspecs', '--no-optional-locks']
   elseif empty(subcmd)
     let results = s:CompletableSubcommands(dir)
-  elseif a:0 ==# 2 && subcmd =~# '^\%(commit\|revert\|push\|fetch\|pull\|merge\|rebase\)$'
+  elseif a:0 ==# 2 && subcmd =~# '^\%(commit\|revert\|push\|fetch\|pull\|merge\|rebase\|bisect\)$'
     let cmdline = substitute(a:1, '\u\w*\([! ] *\)' . subcmd, 'G' . subcmd, '')
     let caps_subcmd = substitute(subcmd, '\%(^\|-\)\l', '\u&', 'g')
     return fugitive#{caps_subcmd}Complete(a:lead, cmdline, a:2 + len(cmdline) - len(a:1), dir, root)
@@ -5245,6 +5245,22 @@ function! s:RebaseSubcommand(line1, line2, range, bang, mods, options) abort
     return {'env': {'GIT_SEQUENCE_EDITOR': 'true'}, 'insert_args': ['--interactive']}
   endif
   return {}
+endfunction
+
+" Section: :Git bisect
+
+function! s:CompleteBisect(A, L, P, ...) abort
+  let bisect_subcmd = matchstr(a:L, '\u\w*[! ] *.\{-\}\s\@<=\zs[^-[:space:]]\S*\ze ')
+  if empty(bisect_subcmd)
+    let subcmds = ['start', 'bad', 'new', 'good', 'old', 'terms', 'skip', 'next', 'reset', 'replay', 'log', 'run']
+    return s:FilterEscape(subcmds, a:A)
+  endif
+  let dir = a:0 ? a:1 : s:Dir()
+  return fugitive#CompleteObject(a:A, dir)
+endfunction
+
+function fugitive#BisectComplete(A, L, P, ...) abort
+  return s:CompleteSub('bisect', a:A, a:L, a:P, function('s:CompleteBisect'), a:000)
 endfunction
 
 " Section: :Git difftool, :Git mergetool
