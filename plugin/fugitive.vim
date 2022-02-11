@@ -217,6 +217,7 @@ endfunction
 " * "scheme": "https"
 " * "authority": "user@example.com:1234"
 " * "path": "/repo.git" (for SSH URLs this may be a relative path)
+" * "pathname": "/repo.git" (always coerced to absolute path)
 " * "host": "example.com:1234"
 " * "hostname": "example.com"
 " * "port": "1234"

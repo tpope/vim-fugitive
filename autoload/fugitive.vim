@@ -1254,6 +1254,14 @@ function! s:UrlParse(url) abort
       let url.path = empty(match[3]) ? '/' : match[3]
     endif
   endif
+  let url.protocol = substitute(url.scheme, '.\zs$', ':', '')
+  let url.user = matchstr(url.authority, '.\{-\}\ze@', '', '')
+  let url.host = substitute(url.authority, '.\{-\}@', '', '')
+  let url.hostname = substitute(url.host, ':\d\+$', '', '')
+  let url.port = matchstr(url.host, ':\zs\d\+$', '', '')
+  let url.origin = substitute(url.scheme, '.\zs$', '://', '') . url.host
+  let url.search = matchstr(url.path, '?.*')
+  let url.pathname = '/' . matchstr(url.path, '^/\=\zs[^?]*')
   if (url.scheme ==# 'ssh' || url.scheme ==# 'git') && url.path[0:1] ==# '/~'
     let url.path = strpart(url.path, 1)
   endif
@@ -1319,10 +1327,6 @@ function! s:RemoteCallback(config, into, flags, cb) abort
   else
     call extend(a:into, s:UrlParse(url))
   endif
-  let a:into.user = matchstr(a:into.authority, '.\{-\}\ze@', '', '')
-  let a:into.host = substitute(a:into.authority, '.\{-\}@', '', '')
-  let a:into.hostname = substitute(a:into.host, ':\d\+$', '', '')
-  let a:into.port = matchstr(a:into.host, ':\zs\d\+$', '', '')
   if len(a:cb)
     call call(a:cb[0], [a:into] + a:cb[1:-1])
   endif
