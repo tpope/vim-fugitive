@@ -4330,7 +4330,7 @@ function! s:Selection(arg1, ...) abort
   else
     let last = first
   endif
-  while getline(first) =~# '^$\|^[A-Z][a-z]'
+  while first <= line('$') && getline(first) =~# '^$\|^[A-Z][a-z]'
     let first += 1
   endwhile
   if first > last || &filetype !=# 'fugitive'
