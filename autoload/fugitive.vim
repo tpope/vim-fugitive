@@ -6629,6 +6629,10 @@ function! fugitive#RemoveCommand(line1, line2, range, bang, mods, arg, ...) abor
   return s:Remove('edit', a:bang)
 endfunction
 
+function! fugitive#UnlinkCommand(line1, line2, range, bang, mods, arg, ...) abort
+  return s:Remove('edit', a:bang)
+endfunction
+
 function! fugitive#DeleteCommand(line1, line2, range, bang, mods, arg, ...) abort
   return s:Remove('bdelete', a:bang)
 endfunction

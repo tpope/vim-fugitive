@@ -227,8 +227,9 @@ that are part of Git repositories).
                         passed.  Add a ! to pass -f and forcefully discard the
                         buffer.
 
-                                                *:GRemove*
+                                                *:GRemove* *:GUnlink*
 :GRemove                Like |:GDelete|, but keep the (now empty) buffer around.
+:GUnlink
 
                                                 *:GBrowse*
 :GBrowse                Open the current file, blob, tree, commit, or tag
