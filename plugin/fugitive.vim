@@ -725,7 +725,7 @@ function! s:Map(mode, lhs, rhs, flags) abort
       let head = substitute(head, '<[^<>]*>$\|.$', '', '')
     endwhile
   endif
-  if flags !~# '<unique>' || empty(mapcheck(head.tail, a:mode))
+  if empty(mapcheck(head.tail, a:mode))
     exe a:mode.'map' s:nowait flags head.tail a:rhs
   endif
 endfunction

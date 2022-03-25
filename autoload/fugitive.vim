@@ -208,7 +208,7 @@ let s:nowait = v:version >= 704 ? '<nowait>' : ''
 
 function! s:Map(mode, lhs, rhs, ...) abort
   let maps = []
-  let unique = a:0 && a:1 =~# '<unique>'
+  let defer = a:0 && a:1 =~# '<unique>' || get(g:, 'fugitive_defer_to_existing_maps')
   let flags = substitute(a:0 ? a:1 : '', '<unique>', '', '') . (a:rhs =~# '<Plug>' ? '' : '<script>') . s:nowait
   for mode in split(a:mode, '\zs')
     if a:0 <= 1
@@ -230,7 +230,7 @@ function! s:Map(mode, lhs, rhs, ...) abort
       let tail = matchstr(head, '<[^<>]*>$\|.$') . tail
       let head = substitute(head, '<[^<>]*>$\|.$', '', '')
     endwhile
-    if !skip && (!unique || empty(mapcheck(head.tail, mode)))
+    if !skip && (!defer || empty(mapcheck(head.tail, mode)))
       call add(maps, mode.'map <buffer>' . flags . ' ' . head.tail . ' ' . a:rhs)
       if a:0 > 1 && a:2
         let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .
