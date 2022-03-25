@@ -208,9 +208,13 @@ let s:nowait = v:version >= 704 ? '<nowait>' : ''
 
 function! s:Map(mode, lhs, rhs, ...) abort
   let maps = []
+  let unique = a:0 && a:1 =~# '<unique>'
+  let flags = substitute(a:0 ? a:1 : '', '<unique>', '', '') . (a:rhs =~# '<Plug>' ? '' : '<script>') . s:nowait
   for mode in split(a:mode, '\zs')
+    if a:0 <= 1
+      call add(maps, mode.'map <buffer>' . substitute(flags, '<unique>', '', '') . ' <Plug>fugitive:' . a:lhs . ' ' . a:rhs)
+    endif
     let skip = 0
-    let flags = (a:0 ? a:1 : '') . (a:rhs =~# '<Plug>' ? '' : '<script>')
     let head = a:lhs
     let tail = ''
     let keys = get(g:, mode.'remap', {})
@@ -226,8 +230,8 @@ function! s:Map(mode, lhs, rhs, ...) abort
       let tail = matchstr(head, '<[^<>]*>$\|.$') . tail
       let head = substitute(head, '<[^<>]*>$\|.$', '', '')
     endwhile
-    if !skip && (flags !~# '<unique>' || empty(mapcheck(head.tail, mode)))
-      call add(maps, mode.'map <buffer>' . s:nowait . substitute(flags, '<unique>', '', '') . ' ' . head.tail . ' ' . a:rhs)
+    if !skip && (!unique || empty(mapcheck(head.tail, mode)))
+      call add(maps, mode.'map <buffer>' . flags . ' ' . head.tail . ' ' . a:rhs)
       if a:0 > 1 && a:2
         let b:undo_ftplugin = get(b:, 'undo_ftplugin', 'exe') .
               \ '|sil! exe "' . mode . 'unmap <buffer> ' . head.tail . '"'
