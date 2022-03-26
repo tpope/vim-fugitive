@@ -148,6 +148,22 @@ else
   endfunction
 endif
 
+function! s:AbsoluteVimPath(...) abort
+  if a:0 && type(a:1) == type('')
+    let path = a:1
+  else
+    let path = bufname(a:0 && a:1 > 0 ? a:1 : '')
+    if getbufvar(a:0 && a:1 > 0 ? a:1 : '', '&buftype') !~# '^\%(nowrite\|acwrite\)\=$'
+      return path
+    endif
+  endif
+  if s:Slash(path) =~# '^/\|^\a\+:'
+    return path
+  else
+    return getcwd() . matchstr(getcwd(), '[\\/]') . path
+  endif
+endfunction
+
 function! s:Resolve(path) abort
   let path = resolve(a:path)
   if has('win32')
@@ -1883,7 +1899,7 @@ function! s:BufName(var) abort
   if a:var ==# '%'
     return bufname(get(s:TempState(), 'origin_bufnr', ''))
   elseif a:var =~# '^#\d*$'
-    let nr = get(s:TempState(bufname(+a:var[1:-1])), 'origin_bufnr', '')
+    let nr = get(s:TempState(+a:var[1:-1]), 'origin_bufnr', '')
     return bufname(nr ? nr : +a:var[1:-1])
   else
     return expand(a:var)
@@ -2500,7 +2516,7 @@ function! s:ReplaceCmd(cmd) abort
     silent keepjumps $delete _
   endif
   call delete(temp)
-  if s:cpath(fnamemodify(bufname('$'), ':p'), temp)
+  if s:cpath(s:AbsoluteVimPath(bufnr('$')), temp)
     silent! noautocmd execute bufnr('$') . 'bwipeout'
   endif
 endfunction
@@ -3123,7 +3139,7 @@ if !exists('s:temp_files')
 endif
 
 function! s:TempState(...) abort
-  return get(s:temp_files, s:cpath(fnamemodify(a:0 ? a:1 : @%, ':p')), {})
+  return get(s:temp_files, s:cpath(s:AbsoluteVimPath(a:0 ? a:1 : -1)), {})
 endfunction
 
 function! fugitive#Result(...) abort
@@ -3132,7 +3148,7 @@ function! fugitive#Result(...) abort
   elseif !a:0 || type(a:1) == type('') && a:1 =~# '^-\=$'
     return get(g:, '_fugitive_last_job', {})
   elseif type(a:1) == type(0)
-    return s:TempState(bufname(a:1))
+    return s:TempState(a:1)
   elseif type(a:1) == type('')
     return s:TempState(a:1)
   elseif type(a:1) == type({}) && has_key(a:1, 'file')
@@ -3163,8 +3179,9 @@ function! s:TempDotMap() abort
 endfunction
 
 function! s:TempReadPre(file) abort
-  if has_key(s:temp_files, s:cpath(a:file))
-    let dict = s:temp_files[s:cpath(a:file)]
+  let key = s:cpath(s:AbsoluteVimPath(a:file))
+  if has_key(s:temp_files, key)
+    let dict = s:temp_files[key]
     setlocal nomodeline
     if empty(&bufhidden)
       setlocal bufhidden=delete
@@ -3180,8 +3197,9 @@ function! s:TempReadPre(file) abort
 endfunction
 
 function! s:TempReadPost(file) abort
-  if has_key(s:temp_files, s:cpath(a:file))
-    let dict = s:temp_files[s:cpath(a:file)]
+  let key = s:cpath(s:AbsoluteVimPath(a:file))
+  if has_key(s:temp_files, key)
+    let dict = s:temp_files[key]
     if !has_key(dict, 'job')
       setlocal nobuflisted
     endif
@@ -3208,7 +3226,7 @@ function! s:TempReadPost(file) abort
 endfunction
 
 function! s:TempDelete(file) abort
-  let key = s:cpath(a:file)
+  let key = s:cpath(s:AbsoluteVimPath(a:file))
   if has_key(s:temp_files, key) && !has_key(s:temp_files[key], 'job') && key !=# s:cpath(get(get(g:, '_fugitive_last_job', {}), 'file', ''))
     call delete(a:file)
     call remove(s:temp_files, key)
@@ -3218,9 +3236,9 @@ endfunction
 
 augroup fugitive_temp
   autocmd!
-  autocmd BufReadPre  * exe s:TempReadPre( expand('<amatch>:p'))
-  autocmd BufReadPost * exe s:TempReadPost(expand('<amatch>:p'))
-  autocmd BufWipeout  * exe s:TempDelete(  expand('<amatch>:p'))
+  autocmd BufReadPre  * exe s:TempReadPre( +expand('<abuf>'))
+  autocmd BufReadPost * exe s:TempReadPost(+expand('<abuf>'))
+  autocmd BufWipeout  * exe s:TempDelete(  +expand('<abuf>'))
 augroup END
 
 " Section: :Git
@@ -3529,7 +3547,7 @@ function! fugitive#Resume() abort
 endfunction
 
 function! s:RunBufDelete(bufnr) abort
-  let state = s:TempState(bufname(+a:bufnr))
+  let state = s:TempState(+a:bufnr)
   if has_key(state, 'job')
     try
       if type(state.job) == type(0)
@@ -6663,7 +6681,7 @@ function! s:linechars(pattern) abort
 endfunction
 
 function! s:BlameBufnr(...) abort
-  let state = s:TempState(bufname(a:0 ? a:1 : ''))
+  let state = s:TempState(a:0 ? a:1 : bufnr(''))
   if get(state, 'filetype', '') ==# 'fugitiveblame'
     return get(state, 'origin_bufnr', -1)
   else
@@ -7243,7 +7261,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
       return s:BrowserOpen(s:Slash(expanded), a:mods, a:bang)
     endif
     if !exists('l:result')
-      let result = s:TempState(empty(expanded) ? @% : expanded)
+      let result = s:TempState(empty(expanded) ? bufnr('') : expanded)
     endif
     if !empty(result) && filereadable(get(result, 'file', ''))
       for line in readfile(result.file, '', 4096)
