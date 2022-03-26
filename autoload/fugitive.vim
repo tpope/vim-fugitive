@@ -6924,9 +6924,6 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
               call add(restore, 'call setwinvar(bufwinnr('.winbufnr(winnr).'),"&foldenable",1)')
             endif
           endif
-          if exists('+cursorbind') && !&l:cursorbind && getwinvar(winnr, '&cursorbind')
-            call setwinvar(winnr, '&cursorbind', 0)
-          endif
           if s:BlameBufnr(winbufnr(winnr)) > 0
             execute winbufnr(winnr).'bdelete'
           endif
@@ -6935,9 +6932,6 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         if !&l:scrollbind
           call add(restore, 'call setwinvar(' . restore_winnr . ',"&scrollbind",0)')
         endif
-        if exists('+cursorbind') && !&l:cursorbind
-          call add(restore, 'call setwinvar(' . restore_winnr . ',"&cursorbind",0)')
-        endif
         if &l:wrap
           call add(restore, 'call setwinvar(' . restore_winnr . ',"&wrap",1)')
         endif
@@ -6945,9 +6939,6 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
           call add(restore, 'call setwinvar(' . restore_winnr . ',"&foldenable",1)')
         endif
         setlocal scrollbind nowrap nofoldenable
-        if exists('+cursorbind')
-          setlocal cursorbind
-        endif
         let top = line('w0') + &scrolloff
         let current = line('.')
         exe 'silent keepalt' (a:bang ? s:Mods(mods) . 'split' : s:Mods(mods, 'leftabove') . 'vsplit') s:fnameescape(temp)
@@ -6955,9 +6946,6 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         execute top
         normal! zt
         execute current
-        if exists('+cursorbind')
-          setlocal cursorbind
-        endif
         setlocal nonumber scrollbind nowrap foldcolumn=0 nofoldenable winfixwidth
         if exists('+relativenumber')
           setlocal norelativenumber
@@ -7198,10 +7186,27 @@ function! fugitive#BlameFileType() abort
   call s:BlameMaps(1)
 endfunction
 
+function! s:BlameCursorSync(bufnr, line) abort
+  if a:line == line('.')
+    return
+  endif
+  if get(s:TempState(), 'origin_bufnr') == a:bufnr || get(s:TempState(a:bufnr), 'origin_bufnr') == bufnr('')
+    if &startofline
+      execute a:line
+    else
+      let pos = getpos('.')
+      let pos[1] = a:line
+      call setpos('.', pos)
+    endif
+  endif
+endfunction
+
 augroup fugitive_blame
   autocmd!
   autocmd ColorScheme,GUIEnter * call s:BlameRehighlight()
   autocmd BufWinLeave * execute getwinvar(+bufwinnr(+expand('<abuf>')), 'fugitive_leave')
+  autocmd WinLeave * let s:cursor_for_blame = [bufnr(''), line('.')]
+  autocmd WinEnter * if exists('s:cursor_for_blame') | call call('s:BlameCursorSync', s:cursor_for_blame) | endif
 augroup END
 
 " Section: :GBrowse
