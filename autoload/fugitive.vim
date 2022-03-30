@@ -1246,6 +1246,7 @@ function! fugitive#RemoteHttpHeaders(remote) abort
   if type(remote) !=# type('') || remote !~# '^https\=://.' || !s:executable('curl')
     return {}
   endif
+  let remote = substitute(remote, '#.*', '', '')
   if !has_key(s:remote_headers, remote)
     let url = remote . '/info/refs?service=git-upload-pack'
     let exec = s:JobExecute(
@@ -1274,6 +1275,11 @@ function! s:UrlParse(url) abort
       let url.path = empty(match[3]) ? '/' : match[3]
     endif
   endif
+  return url
+endfunction
+
+function! s:UrlPopulate(string, into) abort
+  let url = a:into
   let url.protocol = substitute(url.scheme, '.\zs$', ':', '')
   let url.user = matchstr(url.authority, '.\{-\}\ze@', '', '')
   let url.host = substitute(url.authority, '.\{-\}@', '', '')
@@ -1292,16 +1298,15 @@ function! s:UrlParse(url) abort
   elseif url.scheme ==# 'ssh' && url.authority !~# ':'
     let url.href = url.authority . ':' . url.path . url.hash
   else
-    let url.href = a:url
+    let url.href = a:string
   endif
   let url.url = matchstr(url.href, '^[^#]*')
-  return url
 endfunction
 
 function! s:RemoteResolve(url, flags) abort
   let remote = s:UrlParse(a:url)
   if remote.scheme =~# '^https\=$' && index(a:flags, ':nohttp') < 0
-    let headers = fugitive#RemoteHttpHeaders(remote.url)
+    let headers = fugitive#RemoteHttpHeaders(a:url)
     let loc = matchstr(get(headers, 'location', ''), '^https\=://.\{-\}\ze/info/refs?')
     if len(loc)
       let remote = s:UrlParse(loc)
@@ -1347,6 +1352,7 @@ function! s:RemoteCallback(config, into, flags, cb) abort
   else
     call extend(a:into, s:UrlParse(url))
   endif
+  call s:UrlPopulate(url, a:into)
   if len(a:cb)
     call call(a:cb[0], [a:into] + a:cb[1:-1])
   endif
