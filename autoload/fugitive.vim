@@ -6924,7 +6924,8 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
               call add(restore, 'call setwinvar(bufwinnr('.winbufnr(winnr).'),"&foldenable",1)')
             endif
           endif
-          if s:BlameBufnr(winbufnr(winnr)) > 0
+          let win_blame_bufnr = s:BlameBufnr(winbufnr(winnr))
+          if getwinvar(winnr, '&scrollbind') ? win_blame_bufnr == bufnr : win_blame_bufnr > 0
             execute winbufnr(winnr).'bdelete'
           endif
         endfor
