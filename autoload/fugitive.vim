@@ -2845,17 +2845,17 @@ function! fugitive#BufReadStatus(...) abort
     call s:AddSection('Staged', staged)
     let staged_end = len(staged) ? line('$') : 0
 
-    if len(pull) && get(props, 'branch.ab') !~# ' -0$'
-      call s:AddLogSection('Unpulled from ' . pull, head, pull)
-    endif
-    if len(push) && push !=# pull
-      call s:AddLogSection('Unpulled from ' . push, head, push)
+    if len(push) && !(push ==# pull && get(props, 'branch.ab') =~# '^+0 ')
+      call s:AddLogSection('Unpushed to ' . push, push, head)
     endif
     if len(pull) && push !=# pull
       call s:AddLogSection('Unpushed to ' . pull, pull, head)
     endif
-    if len(push) && !(push ==# pull && get(props, 'branch.ab') =~# '^+0 ')
-      call s:AddLogSection('Unpushed to ' . push, push, head)
+    if len(push) && push !=# pull
+      call s:AddLogSection('Unpulled from ' . push, head, push)
+    endif
+    if len(pull) && get(props, 'branch.ab') !~# ' -0$'
+      call s:AddLogSection('Unpulled from ' . pull, head, pull)
     endif
 
     setlocal nomodified readonly noswapfile
