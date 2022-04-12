@@ -341,7 +341,7 @@ function! s:JobExecute(argv, jopts, stdin, callback, ...) abort
       call chansend(dict.job, a:stdin)
       call chanclose(dict.job, 'stdin')
     endif
-  elseif exists('*job_start')
+  elseif exists('*ch_close_in')
     let temp = tempname()
     call extend(a:jopts, {
           \ 'out_io': 'file',
@@ -392,7 +392,7 @@ endfunction
 
 " Section: Git
 
-let s:run_jobs = (exists('*job_start') || exists('*jobstart')) && exists('*bufwinid')
+let s:run_jobs = (exists('*ch_close_in') || exists('*jobstart')) && exists('*bufwinid')
 
 function! s:GitCmd() abort
   if !exists('g:fugitive_git_executable')
@@ -790,7 +790,7 @@ function! s:SystemList(cmd) abort
       call remove(lines, -1)
     endif
     return [lines, exit[0]]
-  elseif exists('*job_start')
+  elseif exists('*ch_close_in')
     let lines = []
     let jopts = {
           \ 'out_cb': { j, str -> add(lines, str) },
@@ -904,7 +904,7 @@ function! s:StdoutToFile(out, cmd, ...) abort
       call writefile(jopts.stdout, a:out, 'b')
     endif
     return [join(jopts.stderr, "\n"), exit[0]]
-  elseif exists('*job_start')
+  elseif exists('*ch_close_in')
     try
       let err = tempname()
       call extend(jopts, {
@@ -3809,7 +3809,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg) abort
     if has_key(tmp, 'echo')
       echo ""
     endif
-    if exists('*job_start')
+    if exists('*ch_close_in')
       call extend(jobopts, {
             \ 'mode': 'raw',
             \ 'out_cb': function('s:RunReceive', [state, tmp, 'out']),
