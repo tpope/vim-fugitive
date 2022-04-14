@@ -392,13 +392,13 @@ function! s:CeilingDirectories() abort
       if empty(dir)
         let resolve = 0
       elseif resolve
-        call add(s:ceiling_directories, resolve(dir))
+        call add(s:ceiling_directories, s:Slash(resolve(dir)))
       else
-        call add(s:ceiling_directories, dir)
+        call add(s:ceiling_directories, s:Slash(dir))
       endif
     endfor
   endif
-  return s:ceiling_directories + get(g:, 'ceiling_directories', [])
+  return s:ceiling_directories + get(g:, 'ceiling_directories', [s:Slash(fnamemodify(expand('~'), ':h'))])
 endfunction
 
 function! FugitiveExtractGitDir(path) abort
@@ -428,8 +428,9 @@ function! FugitiveExtractGitDir(path) abort
   let previous = ""
   let env_git_dir = len($GIT_DIR) ? s:Slash(simplify(fnamemodify(FugitiveVimPath($GIT_DIR), ':p:s?[\/]$??'))) : ''
   call s:Tree(env_git_dir)
+  let ceiling_directories = s:CeilingDirectories()
   while root !=# previous && root !~# '^$\|^//[^/]*$'
-    if index(s:CeilingDirectories(), root) >= 0
+    if index(ceiling_directories, root) >= 0
       break
     endif
     if root ==# $GIT_WORK_TREE && FugitiveIsGitDir(env_git_dir)
