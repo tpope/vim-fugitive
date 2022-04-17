@@ -2415,6 +2415,17 @@ function! s:CompleteHeads(dir) abort
         \ sort(s:LinesError([a:dir, 'rev-parse', '--symbolic', '--branches', '--tags', '--remotes'])[0])
 endfunction
 
+function! s:SplitRevRange(base, pat)
+    let index = matchend(a:base, a:pat)
+    if index == -1
+      return ['', a:base]
+    endif
+    let pre = a:base[:index - 1]
+    let base = a:base[index:]
+    return [pre, base]
+  endif
+endfunction
+
 function! fugitive#CompleteObject(base, ...) abort
   let dir = a:0 == 1 ? a:1 : a:0 >= 3 ? a:3 : s:Dir()
   let tree = s:Tree(dir)
@@ -2424,9 +2435,10 @@ function! fugitive#CompleteObject(base, ...) abort
     let subdir = strpart(cwd, len(tree) + 1) . '/'
   endif
   let base = s:Expand(a:base)
+  let [pre, base] = s:SplitRevRange(base, '^[^:]*\/\@<!\.\.\.\=[\/\.]\@!')
 
   if a:base =~# '^!\d*$' && base !~# '^!'
-    return [base]
+    return [pre . base]
   elseif base =~# '^\.\=/\|^:(' || base !~# ':'
     let results = []
     if base =~# '^refs/'
@@ -2442,6 +2454,7 @@ function! fugitive#CompleteObject(base, ...) abort
       let results += s:FilterEscape(heads, fnameescape(base))
     endif
     let results += a:0 == 1 || a:0 >= 3 ? fugitive#CompletePath(base, 0, '', dir, a:0 >= 4 ? a:4 : tree) : fugitive#CompletePath(base)
+    let results = map(results, 'pre . v:val')
     return results
 
   elseif base =~# '^:'
@@ -2461,7 +2474,7 @@ function! fugitive#CompleteObject(base, ...) abort
     call map(entries,'s:sub(v:val,"^04.*\\zs$","/")')
     call map(entries,'parent.s:sub(v:val,".*\t","")')
   endif
-  return s:FilterEscape(entries, fnameescape(base))
+  return map(s:FilterEscape(entries, fnameescape(base)), 'pre . v:val')
 endfunction
 
 function! s:CompleteSub(subcommand, A, L, P, ...) abort
