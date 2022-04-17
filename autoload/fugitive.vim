@@ -7168,6 +7168,22 @@ function! s:BlameMaps(is_ftplugin) abort
   call s:Map('n', 'A',    ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze [0-9:/+-][0-9:/+ -]* \\d\\+)')+1+v:count)<CR>", '<silent>', ft)
   call s:Map('n', 'C',    ":<C-u>exe 'vertical resize '.(<SID>linechars('^\\S\\+')+1+v:count)<CR>", '<silent>', ft)
   call s:Map('n', 'D',    ":<C-u>exe 'vertical resize '.(<SID>linechars('.\\{-\\}\\ze\\d\\ze\\s\\+\\d\\+)')+1-v:count)<CR>", '<silent>', ft)
+  call s:Map('n', 'ca',   ':<C-U>call <SID>BlameOpenAboveEditBuffer(":Git commit --amend")<CR>', '<silent>', ft)
+  call s:Map('n', 'cc',   ':<C-U>call <SID>BlameOpenAboveEditBuffer(":Git commit")<CR>', '<silent>', ft)
+  call s:Map('n', 'ce',   ':<C-U>call <SID>BlameOpenAboveEditBuffer(":Git commit --amend --no-edit")<CR>', '<silent>', ft)
+  call s:Map('n', 'cw',   ':<C-U>call <SID>BlameOpenAboveEditBuffer(":Git commit --amend --only")<CR>', '<silent>', ft)
+  call s:Map('n', 'cva',  ':<C-U>call <SID>BlameOpenAboveEditBuffer(":tab Git commit -v --amend")<CR>', '<silent>', ft)
+  call s:Map('n', 'cvc',  ':<C-U>call <SID>BlameOpenAboveEditBuffer(":tab Git commit -v")<CR>', '<silent>', ft)
+  call s:Map('n', 'cf',   ':<C-U>call <SID>BlameOpenAboveEditBuffer(":Git commit --fixup=<C-R>=<SID>SquashArgument()<CR>")<CR>', '<silent>', ft)
+  call s:Map('n', 'cs',   ':<C-U>call <SID>BlameOpenAboveEditBuffer(":Git commit --no-edit --squash=<C-R>=<SID>SquashArgument()<CR>")<CR>', '<silent>', ft)
+endfunction
+
+function s:BlameOpenAboveEditBuffer(cmd)
+  let bufwinnr = bufwinnr(s:BlameBufnr())
+  if bufwinnr > 0
+    exe bufwinnr . 'wincmd w'
+  endif
+  call feedkeys(a:cmd) 
 endfunction
 
 function! fugitive#BlameFileType() abort
