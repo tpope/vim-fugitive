@@ -23,9 +23,9 @@ function! FugitiveGitDir(...) abort
       return g:fugitive_event
     endif
     let dir = get(b:, 'git_dir', '')
-    if empty(dir) && (empty(bufname('')) || &buftype =~# '^\%(nofile\|quickfix\|terminal\|prompt\)$')
+    if empty(dir) && (empty(bufname('')) || &buftype =~# '^\%(nofile\|acwrite\|quickfix\|terminal\|prompt\)$')
       return FugitiveExtractGitDir(getcwd())
-    elseif (!exists('b:git_dir') || b:git_dir =~# s:bad_git_dir) && &buftype =~# '^\%(nowrite\|acwrite\)\=$'
+    elseif (!exists('b:git_dir') || b:git_dir =~# s:bad_git_dir) && &buftype =~# '^\%(nowrite\)\=$'
       let b:git_dir = FugitiveExtractGitDir(bufnr(''))
       return b:git_dir
     endif
