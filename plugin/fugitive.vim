@@ -31,7 +31,7 @@ function! FugitiveGitDir(...) abort
     endif
     return dir =~# s:bad_git_dir ? '' : dir
   elseif type(a:1) == type(0) && a:1 isnot# 0
-    if a:1 == bufnr('') && (!exists('b:git_dir') || b:git_dir =~# s:bad_git_dir) && &buftype =~# '^\%(nowrite\|acwrite\)\=$'
+    if a:1 == bufnr('') && (!exists('b:git_dir') || b:git_dir =~# s:bad_git_dir) && &buftype =~# '^\%(nowrite\)\=$'
       let b:git_dir = FugitiveExtractGitDir(a:1)
     endif
     let dir = getbufvar(a:1, 'git_dir')
