@@ -2528,7 +2528,7 @@ function! s:ReplaceCmd(cmd) abort
 endfunction
 
 function! s:QueryLog(refspec, limit) abort
-  let lines = s:LinesError(['log', '-n', '' . a:limit, '--pretty=format:%h%x09%s', a:refspec, '--'])[0]
+  let lines = s:LinesError(['log', '-n', '' . a:limit, '--pretty=format:%h%x09%s'] + a:refspec + ['--'])[0]
   call map(lines, 'split(v:val, "\t", 1)')
   call map(lines, '{"type": "Log", "commit": v:val[0], "subject": join(v:val[1 : -1], "\t")}')
   return lines
@@ -2578,9 +2578,9 @@ function! s:AddSection(label, lines, ...) abort
   call append(line('$'), ['', a:label . (len(note) ? ': ' . note : ' (' . len(a:lines) . ')')] + s:Format(a:lines))
 endfunction
 
-function! s:AddLogSection(label, a, b) abort
+function! s:AddLogSection(label, refspec) abort
   let limit = 256
-  let log = s:QueryLog(a:a . '..' . a:b, limit)
+  let log = s:QueryLog(a:refspec, limit)
   if empty(log)
     return
   elseif len(log) == limit
@@ -2846,16 +2846,19 @@ function! fugitive#BufReadStatus(...) abort
     let staged_end = len(staged) ? line('$') : 0
 
     if len(push) && !(push ==# pull && get(props, 'branch.ab') =~# '^+0 ')
-      call s:AddLogSection('Unpushed to ' . push, push, head)
+      call s:AddLogSection('Unpushed to ' . push, [push . '..' . head])
     endif
     if len(pull) && push !=# pull
-      call s:AddLogSection('Unpushed to ' . pull, pull, head)
+      call s:AddLogSection('Unpushed to ' . pull, [pull . '..' . head])
+    endif
+    if empty(pull) && empty(push) && empty(rebasing)
+      call s:AddLogSection('Unpushed to *', [head, '--not', '--remotes'])
     endif
     if len(push) && push !=# pull
-      call s:AddLogSection('Unpulled from ' . push, head, push)
+      call s:AddLogSection('Unpulled from ' . push, [head . '..' . push])
     endif
     if len(pull) && get(props, 'branch.ab') !~# ' -0$'
-      call s:AddLogSection('Unpulled from ' . pull, head, pull)
+      call s:AddLogSection('Unpulled from ' . pull, [head . '..' . pull])
     endif
 
     setlocal nomodified readonly noswapfile
@@ -5036,6 +5039,9 @@ function! s:DoStageUnpushedHeading(heading) abort
     let remote = '.'
   endif
   let branch = matchstr(a:heading, 'to \%([^/]\+/\)\=\zs\S\+')
+  if branch ==# '*'
+    return
+  endif
   call feedkeys(':Git push ' . remote . ' ' . '@:' . 'refs/heads/' . branch)
 endfunction
 
@@ -5049,6 +5055,9 @@ function! s:DoStageUnpushed(record) abort
     let remote = '.'
   endif
   let branch = matchstr(a:record.heading, 'to \%([^/]\+/\)\=\zs\S\+')
+  if branch ==# '*'
+    return
+  endif
   call feedkeys(':Git push ' . remote . ' ' . a:record.commit . ':' . 'refs/heads/' . branch)
 endfunction
 
