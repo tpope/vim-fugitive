@@ -413,9 +413,10 @@ function! FugitiveExtractGitDir(path) abort
     return matchstr(path, '\C^fugitive:\%(//\)\=\zs.\{-\}\ze\%(//\|::\|$\)')
   elseif empty(path)
     return ''
-  else
-    let path = fnamemodify(path, ':p:h')
+  elseif path !~# '^/\|^\a\+:'
+    let path = s:Slash(getcwd()) . '/' . path
   endif
+  let path = fnamemodify(path, ':h')
   let pre = substitute(matchstr(path, '^\a\a\+\ze:'), '^.', '\u&', '')
   if len(pre) && exists('*' . pre . 'Real')
     let path ={pre}Real(path)
