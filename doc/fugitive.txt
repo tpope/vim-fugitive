@@ -70,8 +70,8 @@ that are part of Git repositories).
                         O     jump to patch or blob in new tab
                         p     jump to patch or blob in preview window
                         -     reblame at commit
-                        ~     reblame at [count]th first parent (like HEAD~[count])
-                        P     reblame at [count]th parent (like HEAD^[count])
+                        ~     reblame at HEAD~[count]
+                        P     reblame at HEAD^[count]
 
                                                 *g:fugitive_dynamic_colors*
                         In the GUI or a 256 color terminal, commit hashes will
