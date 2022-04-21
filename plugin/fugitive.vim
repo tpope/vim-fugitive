@@ -415,6 +415,8 @@ function! FugitiveExtractGitDir(path) abort
     return ''
   elseif path !~# '^/\|^\a\+:'
     let path = s:Slash(getcwd()) . '/' . path
+  elseif isdirectory(path) && path !~# '/$'
+    let path += '/'
   endif
   let path = fnamemodify(path, ':h')
   let pre = substitute(matchstr(path, '^\a\a\+\ze:'), '^.', '\u&', '')
