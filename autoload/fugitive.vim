@@ -6677,7 +6677,7 @@ endfunction
 " Section: :Git blame
 
 function! s:Keywordprg() abort
-  let args = ' --git-dir='.escape(s:Dir(),"\\\"' ")
+  let args = ' --git-dir=' . escape(FugitiveGitPath(s:GitDir()), "\\\"' ")
   if has('gui_running') && !has('win32')
     return s:GitShellCmd() . ' --no-pager' . args . ' log -1'
   else
@@ -7181,7 +7181,7 @@ endfunction
 function! fugitive#BlameFileType() abort
   setlocal nomodeline
   setlocal foldmethod=manual
-  if len(s:Dir())
+  if len(s:GitDir())
     let &l:keywordprg = s:Keywordprg()
   endif
   let b:undo_ftplugin = 'setl keywordprg= foldmethod<'
