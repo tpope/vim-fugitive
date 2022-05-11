@@ -962,6 +962,10 @@ function! fugitive#Head(...) abort
   endif
 endfunction
 
+function! fugitive#head(...) abort
+  throw 'Third party code is using fugitive#head() which has been removed. Change it to FugitiveHead()'
+endfunction
+
 function! fugitive#RevParse(rev, ...) abort
   let hash = s:ChompDefault('', [a:0 ? a:1 : s:Dir(), 'rev-parse', '--verify', a:rev, '--'])
   if hash =~# '^\x\{40,\}$'
@@ -8016,14 +8020,6 @@ endfunction
 
 function! fugitive#statusline(...) abort
   return fugitive#Statusline()
-endfunction
-
-function! fugitive#head(...) abort
-  if empty(s:Dir())
-    return ''
-  endif
-
-  return fugitive#Head(a:0 ? a:1 : 0)
 endfunction
 
 " Section: Folding
