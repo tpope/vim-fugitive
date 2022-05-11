@@ -4194,11 +4194,11 @@ function! s:ExpireStatus(bufnr) abort
     let s:last_time = reltime()
     return ''
   endif
-  let dir = s:Dir(a:bufnr)
-  if len(dir)
-    let s:last_times[s:cpath(dir)] = reltime()
-    if has_key(s:head_cache, dir)
-      call remove(s:head_cache, dir)
+  let head_file = fugitive#Find('.git/HEAD', a:bufnr)
+  if !empty(head_file)
+    let s:last_times[s:Tree(a:bufnr) . '/'] = reltime()
+    if has_key(s:head_cache, head_file)
+      call remove(s:head_cache, head_file)
     endif
   endif
   return ''
@@ -4214,7 +4214,7 @@ function! s:ReloadWinStatus(...) abort
   endif
   let t = b:fugitive_reltime
   if reltimestr(reltime(s:last_time, t)) =~# '-\|\d\{10\}\.' ||
-        \ reltimestr(reltime(get(s:last_times, s:cpath(s:Dir()), t), t)) =~# '-\|\d\{10\}\.'
+        \ reltimestr(reltime(get(s:last_times, s:Tree() . '/', t), t)) =~# '-\|\d\{10\}\.'
     exe s:ReloadStatusBuffer()
   endif
 endfunction
