@@ -1682,8 +1682,8 @@ function! fugitive#Path(url, ...) abort
   if empty(a:url)
     return ''
   endif
-  let dir = a:0 > 1 ? s:Dir(a:2) : s:Dir()
-  let tree = s:Tree(dir)
+  let dir = FugitiveVimPath(call('s:GitDir', a:000[1:-1]))
+  let tree = call('fugitive#Find', [':/'] + a:000[1:-1])
   if !a:0
     return fugitive#Real(a:url)
   elseif a:1 =~# '\.$'
