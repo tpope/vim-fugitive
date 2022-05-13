@@ -933,7 +933,7 @@ endfunction
 
 let s:head_cache = {}
 
-function! fugitive#Head(...) abort
+function! FugitiveHead(...) abort
   let dir = a:0 > 1 ? a:2 : s:Dir()
   if empty(dir)
     return ''
@@ -960,8 +960,8 @@ function! fugitive#Head(...) abort
   endif
 endfunction
 
-function! fugitive#head(...) abort
-  throw 'Third party code is using fugitive#head() which has been removed. Change it to FugitiveHead()'
+function! fugitive#Head(...) abort
+  throw 'Third party code is using FugitiveHead() which has been removed. Change it to FugitiveHead()'
 endfunction
 
 function! fugitive#RevParse(rev, ...) abort
@@ -1557,7 +1557,7 @@ function! s:repo_translate(rev) dict abort
 endfunction
 
 function! s:repo_head(...) dict abort
-  return fugitive#Head(a:0 ? a:1 : 0, self.git_dir)
+  return FugitiveHead(a:0 ? a:1 : 0, self.git_dir)
 endfunction
 
 call s:add_methods('repo',['dir','tree','bare','find','translate','head'])

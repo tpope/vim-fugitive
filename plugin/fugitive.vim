@@ -261,7 +261,7 @@ function! FugitiveHead(...) abort
   if empty(dir)
     return ''
   endif
-  return fugitive#Head(arg, dir)
+  return FugitiveHead(arg, dir)
 endfunction
 
 function! FugitivePath(...) abort
