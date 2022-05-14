@@ -2044,48 +2044,49 @@ endfunction
 let s:trees = {}
 let s:indexes = {}
 function! s:TreeInfo(dir, commit) abort
+  let key = s:GitDir(a:dir)
   if a:commit =~# '^:\=[0-3]$'
-    let index = get(s:indexes, a:dir, [])
+    let index = get(s:indexes, key, [])
     let newftime = getftime(fugitive#Find('.git/index', a:dir))
     if get(index, 0, -1) < newftime
       let [lines, exec_error] = s:LinesError([a:dir, 'ls-files', '--stage', '--'])
-      let s:indexes[a:dir] = [newftime, {'0': {}, '1': {}, '2': {}, '3': {}}]
+      let s:indexes[key] = [newftime, {'0': {}, '1': {}, '2': {}, '3': {}}]
       if exec_error
         return [{}, -1]
       endif
       for line in lines
         let [info, filename] = split(line, "\t")
         let [mode, sha, stage] = split(info, '\s\+')
-        let s:indexes[a:dir][1][stage][filename] = [newftime, mode, 'blob', sha, -2]
+        let s:indexes[key][1][stage][filename] = [newftime, mode, 'blob', sha, -2]
         while filename =~# '/'
           let filename = substitute(filename, '/[^/]*$', '', '')
-          let s:indexes[a:dir][1][stage][filename] = [newftime, '040000', 'tree', '', 0]
+          let s:indexes[key][1][stage][filename] = [newftime, '040000', 'tree', '', 0]
         endwhile
       endfor
     endif
-    return [get(s:indexes[a:dir][1], a:commit[-1:-1], {}), newftime]
+    return [get(s:indexes[key][1], a:commit[-1:-1], {}), newftime]
   elseif a:commit =~# '^\x\{40,\}$'
-    if !has_key(s:trees, a:dir)
-      let s:trees[a:dir] = {}
+    if !has_key(s:trees, key)
+      let s:trees[key] = {}
     endif
-    if !has_key(s:trees[a:dir], a:commit)
+    if !has_key(s:trees[key], a:commit)
       let ftime = s:ChompDefault('', [a:dir, 'log', '-1', '--pretty=format:%ct', a:commit, '--'])
       if empty(ftime)
-        let s:trees[a:dir][a:commit] = [{}, -1]
-        return s:trees[a:dir][a:commit]
+        let s:trees[key][a:commit] = [{}, -1]
+        return s:trees[key][a:commit]
       endif
-      let s:trees[a:dir][a:commit] = [{}, +ftime]
+      let s:trees[key][a:commit] = [{}, +ftime]
       let [lines, exec_error] = s:LinesError([a:dir, 'ls-tree', '-rtl', '--full-name', a:commit, '--'])
       if exec_error
-        return s:trees[a:dir][a:commit]
+        return s:trees[key][a:commit]
       endif
       for line in lines
         let [info, filename] = split(line, "\t")
         let [mode, type, sha, size] = split(info, '\s\+')
-        let s:trees[a:dir][a:commit][0][filename] = [+ftime, mode, type, sha, +size, filename]
+        let s:trees[key][a:commit][0][filename] = [+ftime, mode, type, sha, +size, filename]
       endfor
     endif
-    return s:trees[a:dir][a:commit]
+    return s:trees[key][a:commit]
   endif
   return [{}, -1]
 endfunction
@@ -2209,10 +2210,11 @@ function! s:BlobTemp(url) abort
   if empty(file)
     return ''
   endif
-  if !has_key(s:blobdirs, dir)
-    let s:blobdirs[dir] = tempname()
+  let key = s:GitDir(dir)
+  if !has_key(s:blobdirs, key)
+    let s:blobdirs[key] = tempname()
   endif
-  let tempfile = s:blobdirs[dir] . '/' . commit . file
+  let tempfile = s:blobdirs[key] . '/' . commit . file
   let tempparent = fnamemodify(tempfile, ':h')
   if !isdirectory(tempparent)
     call mkdir(tempparent, 'p')
