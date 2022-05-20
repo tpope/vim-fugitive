@@ -6939,7 +6939,7 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
             execute winbufnr(winnr).'bdelete'
           endif
         endfor
-        let restore_winnr = 'bufwinnr(' . bufnr . ')'
+        let restore_winnr = exists('*win_getid') ? win_getid() : 'bufwinnr(' . bufnr . ')'
         if !&l:scrollbind
           call add(restore, 'call setwinvar(' . restore_winnr . ',"&scrollbind",0)')
         endif
