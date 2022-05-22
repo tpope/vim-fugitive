@@ -346,19 +346,19 @@ function! s:Tree(path) abort
   if !has_key(s:worktree_for_dir, dir)
     let s:worktree_for_dir[dir] = ''
     let ext_wtc_pat = 'v:val =~# "^\\s*worktreeConfig *= *\\%(true\\|yes\\|on\\|1\\) *$"'
-    let config = s:ReadFile(dir . '/config', 10)
+    let config = s:ReadFile(dir . '/config', 50)
     if len(config)
       let ext_wtc_config = filter(copy(config), ext_wtc_pat)
       if len(ext_wtc_config) == 1 && filereadable(dir . '/config.worktree')
-         let config += s:ReadFile(dir . '/config.worktree', 10)
+         let config += s:ReadFile(dir . '/config.worktree', 50)
       endif
     else
       let worktree = fnamemodify(FugitiveVimPath(get(s:ReadFile(dir . '/gitdir', 1), '0', '')), ':h')
       if worktree ==# '.'
         unlet! worktree
       endif
-      if len(filter(s:ReadFile(FugitiveCommonDir(dir) . '/config', 10), ext_wtc_pat))
-        let config = s:ReadFile(dir . '/config.worktree', 10)
+      if len(filter(s:ReadFile(FugitiveCommonDir(dir) . '/config', 50), ext_wtc_pat))
+        let config = s:ReadFile(dir . '/config.worktree', 50)
       endif
     endif
     if len(config)
