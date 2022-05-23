@@ -1606,16 +1606,16 @@ call s:add_methods('repo',['config', 'user'])
 " Section: File API
 
 function! s:DirCommitFile(path) abort
-  let vals = matchlist(s:Slash(a:path), '\c^fugitive:\%(//\)\=\(.\{-\}\)\%(//\|::\)\(\x\{40,\}\|[0-3]\)\(/.*\)\=$')
+  let vals = matchlist(s:Slash(a:path), '\c^fugitive://\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$')
   if empty(vals)
     return ['', '', '']
   endif
-  return [s:Dir(vals[1])] + vals[2:3]
+  return [s:Dir(vals[1])] + (empty(vals[2]) ? ['', '/.git/index'] : vals[2:3])
 endfunction
 
 function! s:DirRev(url) abort
   let [dir, commit, file] = s:DirCommitFile(a:url)
-  return [dir, (commit =~# '^.$' ? ':' : '') . commit . substitute(file, '^/', ':', '')]
+  return [dir, commit . file ==# '/.git/index' ? ':' : (!empty(dir) && commit =~# '^.$' ? ':' : '') . commit . substitute(file, '^/', ':', '')]
 endfunction
 
 let s:merge_heads = ['MERGE_HEAD', 'REBASE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD']
@@ -1992,7 +1992,9 @@ function! s:ExpandVar(other, var, flags, esc, ...) abort
 endfunction
 
 function! s:Expand(rev, ...) abort
-  if a:rev =~# '^>\=:[0-3]$'
+  if a:rev =~# '^>' && s:Slash(@%) =~# '^fugitive://' && empty(s:DirCommitFile(@%)[1])
+    return s:Slash(@%)
+  elseif a:rev =~# '^>\=:[0-3]$'
     let file = len(expand('%')) ? a:rev[-2:-1] . ':%' : '%'
   elseif a:rev =~# '^>\%(:\=/\)\=$'
     let file = '%'
@@ -2624,9 +2626,9 @@ function! fugitive#BufReadStatus(...) abort
     doautocmd BufReadPre
     let config = fugitive#Config()
 
-    let cmd = [fnamemodify(amatch, ':h')]
+    let cmd = [s:Dir()]
     setlocal noreadonly modifiable nomodeline buftype=nowrite
-    if s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? FugitiveVimPath($GIT_INDEX_FILE) : fugitive#Find('.git/index'), ':p')) !=# s:cpath(amatch)
+    if amatch !~# '^fugitive:' && s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? FugitiveVimPath($GIT_INDEX_FILE) : fugitive#Find('.git/index'), ':p')) !=# s:cpath(amatch)
       let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
     endif
 
@@ -2957,6 +2959,8 @@ function! fugitive#FileReadCmd(...) abort
   endif
   if rev !~# ':' && s:ChompDefault('', [dir, 'cat-file', '-t', rev]) =~# '^\%(commit\|tag\)$'
     let cmd = [dir, 'log', '--pretty=format:%B', '-1', rev, '--']
+  elseif rev ==# ':'
+    let cmd = [dir, 'status', '--short']
   else
     let cmd = [dir, 'cat-file', '-p', rev, '--']
   endif
@@ -3014,7 +3018,9 @@ function! fugitive#BufReadCmd(...) abort
       return 'echo "Invalid Fugitive URL"'
     endif
     let b:git_dir = s:GitDir(dir)
-    if rev =~# '^:\d$'
+    if rev ==# ':'
+      return fugitive#BufReadStatus(v:cmdbang)
+    elseif rev =~# '^:\d$'
       let b:fugitive_type = 'stage'
     else
       let r = fugitive#Execute([dir, 'cat-file', '-t', rev])
