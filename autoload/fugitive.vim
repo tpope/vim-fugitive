@@ -5306,7 +5306,7 @@ function! s:CompleteBisect(A, L, P, ...) abort
   return fugitive#CompleteObject(a:A, dir)
 endfunction
 
-function fugitive#BisectComplete(A, L, P, ...) abort
+function! fugitive#BisectComplete(A, L, P, ...) abort
   return s:CompleteSub('bisect', a:A, a:L, a:P, function('s:CompleteBisect'), a:000)
 endfunction
 
