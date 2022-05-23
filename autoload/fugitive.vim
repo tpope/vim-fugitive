@@ -1711,7 +1711,7 @@ function! fugitive#Path(url, ...) abort
   if url =~# '/$' && s:Slash(a:url) !~# '/$'
     let url = url[0:-2]
   endif
-  let [argdir, commit, file] = s:DirCommitFile(a:url)
+  let [argdir, commit, file] = s:DirCommitFile(url)
   if !empty(argdir) && !s:cpath(s:GitDir(argdir), dir)
     let file = ''
   elseif len(dir) && s:cpath(url[0 : len(dir)]) ==# s:cpath(dir . '/')
