@@ -7276,8 +7276,6 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
     endif
     if rev =~? '^\a\a\+:[\/][\/]' && rev !~? '^fugitive:'
       let rev = substitute(rev, '\\\@<![#!]\|\\\@<!%\ze\w', '\\&', 'g')
-    elseif rev ==# ':'
-      let rev = ''
     endif
     let expanded = s:Expand(rev)
     if expanded =~? '^\a\a\+:[\/][\/]' && expanded !~? '^fugitive:'
