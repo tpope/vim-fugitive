@@ -139,10 +139,12 @@ function! s:Mods(mods, ...) abort
 endfunction
 
 if exists('+shellslash')
+  let s:dir_commit_file = '\c^fugitive://\%(/\a\@=\)\=\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
   function! s:Slash(path) abort
     return tr(a:path, '\', '/')
   endfunction
 else
+  let s:dir_commit_file = '\c^fugitive://\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
   function! s:Slash(path) abort
     return a:path
   endfunction
@@ -1606,7 +1608,7 @@ call s:add_methods('repo',['config', 'user'])
 " Section: File API
 
 function! s:DirCommitFile(path) abort
-  let vals = matchlist(s:Slash(a:path), '\c^fugitive://\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$')
+  let vals = matchlist(s:Slash(a:path), s:dir_commit_file)
   if empty(vals)
     return ['', '', '']
   endif

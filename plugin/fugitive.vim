@@ -88,10 +88,10 @@ endfunction
 " the inverse of FugitiveFind().
 function! FugitiveParse(...) abort
   let path = s:Slash(a:0 ? a:1 : @%)
-  if path !~# '^fugitive:'
+  if path !~# '^fugitive://'
     return ['', '']
   endif
-  let vals = matchlist(path, '\c^fugitive://\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$')
+  let vals = matchlist(path, s:dir_commit_file)
   if len(vals)
     return [(vals[2] =~# '^.\=$' ? ':' : '') . vals[2] . substitute(vals[3], '^/', ':', ''), vals[1]]
   endif
@@ -412,8 +412,8 @@ function! FugitiveExtractGitDir(path) abort
   else
     let path = s:Slash(a:path)
   endif
-  if path =~# '^fugitive:'
-    return matchstr(path, '\C^fugitive:\%(//\)\=\zs.\{-\}\ze\%(//\|::\|$\)')
+  if path =~# '^fugitive://'
+    return get(matchlist(path, s:dir_commit_file), 1, '')
   elseif empty(path)
     return ''
   else
@@ -509,10 +509,12 @@ function! FugitiveGitPath(path) abort
 endfunction
 
 if exists('+shellslash')
+  let s:dir_commit_file = '\c^fugitive://\%(/\a\@=\)\=\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
   function! s:Slash(path) abort
     return tr(a:path, '\', '/')
   endfunction
 else
+  let s:dir_commit_file = '\c^fugitive://\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
   function! s:Slash(path) abort
     return a:path
   endfunction
@@ -521,7 +523,7 @@ endif
 function! s:ProjectionistDetect() abort
   let file = s:Slash(get(g:, 'projectionist_file', ''))
   let dir = FugitiveExtractGitDir(file)
-  let base = matchstr(file, '^fugitive://.\{-\}//\x\+')
+  let base = get(matchlist(file, s:dir_commit_file), 1, '')
   if empty(base)
     let base = s:Tree(dir)
   endif
