@@ -327,6 +327,9 @@ function! FugitiveIsGitDir(...) abort
 endfunction
 
 function! s:ReadFile(path, line_count) abort
+  if v:version < 800 && !filereadable(a:path)
+    return []
+  endif
   try
     return readfile(a:path, 'b', a:line_count)
   catch
