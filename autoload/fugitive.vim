@@ -2288,8 +2288,8 @@ let s:globsubs = {
       \ '*': '[^/]*',
       \ '?': '[^/]'}
 function! fugitive#glob(url, ...) abort
-  let [dir, commit, glob] = s:DirCommitFile(a:url)
-  let dirglob = s:GitDir(dir)
+  let [repo, commit, glob] = s:DirCommitFile(a:url)
+  let dirglob = s:GitDir(repo)
   let append = matchstr(glob, '/*$')
   let glob = substitute(glob, '/*$', '', '')
   let pattern = '^' . substitute(glob, '/\=\*\*/\=\|/\=\*\|[.?\$]\|^^', '\=get(s:globsubs, submatch(0), "\\" . submatch(0))', 'g')[1:-1] . '$'
