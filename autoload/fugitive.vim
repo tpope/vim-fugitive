@@ -186,11 +186,6 @@ function! s:cpath(path, ...) abort
   return a:0 ? path ==# s:cpath(a:1) : path
 endfunction
 
-function! s:SameRepo(one, two) abort
-  let one = s:GitDir(a:one)
-  return !empty(one) && one ==# s:GitDir(a:two)
-endfunction
-
 let s:executables = {}
 
 function! s:executable(binary) abort
@@ -505,6 +500,11 @@ endfunction
 
 function! s:GitDir(...) abort
   return a:0 ? FugitiveGitDir(a:1) : FugitiveGitDir()
+endfunction
+
+function! s:SameRepo(one, two) abort
+  let one = s:GitDir(a:one)
+  return !empty(one) && one ==# s:GitDir(a:two)
 endfunction
 
 function! s:DirUrlPrefix(...) abort
