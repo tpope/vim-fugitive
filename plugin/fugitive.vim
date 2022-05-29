@@ -416,18 +416,12 @@ function! FugitiveExtractGitDir(path) abort
     return get(matchlist(path, s:dir_commit_file), 1, '')
   elseif empty(path)
     return ''
-  else
-    let path = fnamemodify(path, ':p:h')
   endif
   let pre = substitute(matchstr(path, '^\a\a\+\ze:'), '^.', '\u&', '')
   if len(pre) && exists('*' . pre . 'Real')
-    let path ={pre}Real(path)
+    let path = {pre}Real(path)
   endif
-  let path = s:Slash(path)
-  let root = resolve(path)
-  if root !=# path
-    silent! exe (haslocaldir() ? 'lcd' : exists(':tcd') && haslocaldir(-1) ? 'tcd' : 'cd') '.'
-  endif
+  let root = s:Slash(fnamemodify(path, ':p:h'))
   let previous = ""
   let env_git_dir = len($GIT_DIR) ? s:Slash(simplify(fnamemodify(FugitiveVimPath($GIT_DIR), ':p:s?[\/]$??'))) : ''
   call s:Tree(env_git_dir)
