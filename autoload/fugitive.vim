@@ -139,15 +139,29 @@ function! s:Mods(mods, ...) abort
 endfunction
 
 if exists('+shellslash')
+
   let s:dir_commit_file = '\c^fugitive://\%(/\a\@=\)\=\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
+
   function! s:Slash(path) abort
     return tr(a:path, '\', '/')
   endfunction
+
+  function! s:VimSlash(path) abort
+    return tr(a:path, '\/', &shellslash ? '//' : '\\')
+  endfunction
+
 else
+
   let s:dir_commit_file = '\c^fugitive://\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
+
   function! s:Slash(path) abort
     return a:path
   endfunction
+
+  function! s:VimSlash(path) abort
+    return a:path
+  endfunction
+
 endif
 
 function! s:AbsoluteVimPath(...) abort
@@ -169,7 +183,7 @@ endfunction
 function! s:Resolve(path) abort
   let path = resolve(a:path)
   if has('win32')
-    let path = FugitiveVimPath(fnamemodify(fnamemodify(path, ':h'), ':p') . fnamemodify(path, ':t'))
+    let path = s:VimSlash(fnamemodify(fnamemodify(path, ':h'), ':p') . fnamemodify(path, ':t'))
   endif
   return path
 endfunction
@@ -181,9 +195,9 @@ endfunction
 
 function! s:cpath(path, ...) abort
   if s:FileIgnoreCase(0)
-    let path = FugitiveVimPath(tolower(a:path))
+    let path = s:VimSlash(tolower(a:path))
   else
-    let path = FugitiveVimPath(a:path)
+    let path = s:VimSlash(a:path)
   endif
   return a:0 ? path ==# s:cpath(a:1) : path
 endfunction
@@ -433,7 +447,7 @@ endfunction
 
 function! s:UserCommandCwd(dir) abort
   let tree = s:Tree(a:dir)
-  return len(tree) ? FugitiveVimPath(tree) : getcwd()
+  return len(tree) ? s:VimSlash(tree) : getcwd()
 endfunction
 
 function! s:UserCommandList(...) abort
@@ -728,7 +742,7 @@ function! fugitive#PrepareJob(...) abort
     let dict.cwd = getcwd()
     call extend(cmd, ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
   else
-    let dict.cwd = FugitiveVimPath(tree)
+    let dict.cwd = s:VimSlash(tree)
     call extend(cmd, ['-C', FugitiveGitPath(tree)], 'keep')
     if !s:cpath(tree . '/.git', dir) || len($GIT_DIR)
       call extend(cmd, ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
@@ -1674,7 +1688,7 @@ function! fugitive#Real(url) abort
   let [dir, commit, file] = s:DirCommitFile(a:url)
   if len(dir)
     let tree = s:Tree(dir)
-    return FugitiveVimPath((len(tree) ? tree : s:GitDir(dir)) . file)
+    return s:VimSlash((len(tree) ? tree : s:GitDir(dir)) . file)
   endif
   let pre = substitute(matchstr(a:url, '^\a\a\+\ze:'), '^.', '\u&', '')
   if len(pre) && pre !=? 'fugitive' && exists('*' . pre . 'Real')
@@ -1682,7 +1696,7 @@ function! fugitive#Real(url) abort
   else
     let url = fnamemodify(a:url, ':p' . (a:url =~# '[\/]$' ? '' : ':s?[\/]$??'))
   endif
-  return FugitiveVimPath(empty(url) ? a:url : url)
+  return s:VimSlash(empty(url) ? a:url : url)
 endfunction
 
 function! fugitive#Path(url, ...) abort
@@ -1742,17 +1756,17 @@ endfunction
 function! fugitive#Find(object, ...) abort
   if type(a:object) == type(0)
     let name = bufname(a:object)
-    return FugitiveVimPath(name =~# '^$\|^/\|^\a\+:' ? name : getcwd() . '/' . name)
+    return s:VimSlash(name =~# '^$\|^/\|^\a\+:' ? name : getcwd() . '/' . name)
   elseif a:object =~# '^[~$]'
     let prefix = matchstr(a:object, '^[~$]\i*')
     let owner = expand(prefix)
-    return FugitiveVimPath((len(owner) ? owner : prefix) . strpart(a:object, len(prefix)))
+    return s:VimSlash(FugitiveVimPath((len(owner) ? owner : prefix) . strpart(a:object, len(prefix))))
   endif
   let rev = s:Slash(a:object)
   if rev =~# '^$\|^/\|^\%(\a\a\+:\).*\%(//\|::\)' . (has('win32') ? '\|^\a:/' : '')
-    return FugitiveVimPath(a:object)
+    return s:VimSlash(a:object)
   elseif rev =~# '^\.\.\=\%(/\|$\)'
-    return FugitiveVimPath(simplify(getcwd() . '/' . a:object))
+    return s:VimSlash(simplify(getcwd() . '/' . a:object))
   endif
   let dir = call('s:GitDir', a:000)
   if empty(dir)
@@ -1778,7 +1792,7 @@ function! fugitive#Find(object, ...) abort
     elseif cdir !=# fdir && (
           \ f =~# '^\%(config\|hooks\|info\|logs/refs\|objects\|refs\|worktrees\)\%(/\|$\)' ||
           \ f !~# '^\%(index$\|index\.lock$\|\w*MSG$\|\w*HEAD$\|logs/\w*HEAD$\|logs$\|rebase-\w\+\)\%(/\|$\)' &&
-          \ getftime(FugitiveVimPath(fdir . f)) < 0 && getftime(FugitiveVimPath(cdir . f)) >= 0)
+          \ getftime(fdir . f) < 0 && getftime(cdir . f) >= 0)
       let f = simplify(cdir . f)
     else
       let f = simplify(fdir . f)
@@ -1859,7 +1873,7 @@ function! fugitive#Find(object, ...) abort
       endif
     endif
   endif
-  return FugitiveVimPath(f)
+  return s:VimSlash(f)
 endfunction
 
 function! s:Generate(object, ...) abort
@@ -1868,10 +1882,10 @@ function! s:Generate(object, ...) abort
   if !empty(f)
     return f
   elseif a:object ==# ':/'
-    return len(dir) ? FugitiveVimPath(s:DirUrlPrefix(dir) . '0') : '.'
+    return len(dir) ? s:VimSlash(s:DirUrlPrefix(dir) . '0') : '.'
   endif
   let file = matchstr(a:object, '^\%(:\d:\|[^:]*:\)\zs.*')
-  return fnamemodify(FugitiveVimPath(len(file) ? file : a:object), ':p')
+  return fnamemodify(s:VimSlash(len(file) ? file : a:object), ':p')
 endfunction
 
 function! s:DotRelative(path, ...) abort
@@ -2126,11 +2140,11 @@ function! fugitive#simplify(url) abort
     if len(tree)
       let path = simplify(tree . file)
       if strpart(path . '/', 0, len(tree) + 1) !=# tree . '/'
-        return FugitiveVimPath(path)
+        return s:VimSlash(path)
       endif
     endif
   endif
-  return FugitiveVimPath('fugitive://' . simplify(dir) . '//' . commit . simplify(file))
+  return s:VimSlash('fugitive://' . simplify(dir) . '//' . commit . simplify(file))
 endfunction
 
 function! fugitive#resolve(url) abort
@@ -2308,7 +2322,7 @@ function! fugitive#glob(url, ...) abort
     call filter(files, 'v:val =~# pattern')
     let prepend = s:DirUrlPrefix(dir) . substitute(commit, '^:', '', '') . '/'
     call sort(files)
-    call map(files, 'FugitiveVimPath(prepend . v:val . append)')
+    call map(files, 's:VimSlash(prepend . v:val . append)')
     call extend(results, files)
   endfor
   if a:0 > 1 && a:2
@@ -3274,8 +3288,8 @@ augroup END
 function! s:AskPassArgs(dir) abort
   if (len($DISPLAY) || len($TERM_PROGRAM) || has('gui_running')) &&
         \ empty($GIT_ASKPASS) && empty($SSH_ASKPASS) && empty(fugitive#ConfigGetAll('core.askpass', a:dir))
-    if s:executable(FugitiveVimPath(s:ExecPath() . '/git-gui--askpass'))
-      return ['-c', 'core.askPass=' . s:ExecPath() . '/git-gui--askpass']
+    if s:executable(s:VimExecPath() . '/git-gui--askpass')
+      return ['-c', 'core.askPass=' . s:ExecPath()[0] . '/git-gui--askpass']
     elseif s:executable('ssh-askpass')
       return ['-c', 'core.askPass=ssh-askpass']
     endif
@@ -3709,8 +3723,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
     return (empty(cmd) ? 'exe' : cmd) . after
   endif
   let alias = FugitiveConfigGet('alias.' . get(args, 0, ''), config)
-  if get(args, 1, '') !=# '--help' && alias !~# '^$\|^!\|[\"'']' && !filereadable(FugitiveVimPath(s:ExecPath() . '/git-' . args[0]))
-        \ && !(has('win32') && filereadable(FugitiveVimPath(s:ExecPath() . '/git-' . args[0] . '.exe')))
+  if get(args, 1, '') !=# '--help' && alias !~# '^$\|^!\|[\"'']' && !filereadable(s:VimExecPath() . '/git-' . args[0])
+        \ && !(has('win32') && filereadable(s:VimExecPath() . '/git-' . args[0] . '.exe'))
     call remove(args, 0)
     call extend(args, split(alias, '\s\+'), 'keep')
   endif
@@ -3923,9 +3937,14 @@ let s:exec_paths = {}
 function! s:ExecPath() abort
   let git = s:GitShellCmd()
   if !has_key(s:exec_paths, git)
-    let s:exec_paths[git] = get(s:JobExecute(s:GitCmd() + ['--exec-path'], {}, [], [], {}).stdout, 0, '')
+    let path = get(s:JobExecute(s:GitCmd() + ['--exec-path'], {}, [], [], {}).stdout, 0, '')
+    let s:exec_paths[git] = [path, FugitiveVimPath(path)]
   endif
   return s:exec_paths[git]
+endfunction
+
+function! s:VimExecPath() abort
+  return s:ExecPath()[1]
 endfunction
 
 let s:subcommands_before_2_5 = [
@@ -3940,7 +3959,7 @@ let s:subcommands_before_2_5 = [
       \ ]
 let s:path_subcommands = {}
 function! s:CompletableSubcommands(dir) abort
-  let c_exec_path = s:cpath(s:ExecPath())
+  let c_exec_path = s:cpath(s:VimExecPath())
   if !has_key(s:path_subcommands, c_exec_path)
     if fugitive#GitVersion(2, 18)
       let [lines, exec_error] = s:LinesError([a:dir, '--list-cmds=list-mainporcelain,nohelpers,list-complete'])
@@ -4035,7 +4054,7 @@ function! fugitive#Cd(path, ...) abort
     exe s:DirCheck(dir)
     let path = (empty(s:Tree(dir)) ? dir : s:Tree(dir)) . '/' . path
   endif
-  return (a:0 && a:1 ? 'lcd ' : 'cd ') . s:fnameescape(FugitiveVimPath(path))
+  return (a:0 && a:1 ? 'lcd ' : 'cd ') . fnameescape(s:VimSlash(path))
 endfunction
 
 " Section: :Gstatus
@@ -4955,13 +4974,13 @@ function! s:StageDelete(lnum1, lnum2, count) abort
         call s:TreeChomp('clean', '-f', '--', info.paths[0])
       elseif a:count == 2
         if get(b:fugitive_files['Staged'], info.filename, {'status': ''}).status ==# 'D'
-          call delete(FugitiveVimPath(info.paths[0]))
+          call delete(info.paths[0])
         else
           call s:TreeChomp('checkout', '--ours', '--', info.paths[0])
         endif
       elseif a:count == 3
         if get(b:fugitive_files['Unstaged'], info.filename, {'status': ''}).status ==# 'D'
-          call delete(FugitiveVimPath(info.paths[0]))
+          call delete(info.paths[0])
         else
           call s:TreeChomp('checkout', '--theirs', '--', info.paths[0])
         endif
@@ -4977,7 +4996,7 @@ function! s:StageDelete(lnum1, lnum2, count) abort
           continue
         endif
       elseif info.status ==# 'U'
-        call delete(FugitiveVimPath(info.paths[0]))
+        call delete(info.paths[0])
       elseif info.status ==# 'A'
         call s:TreeChomp('rm', '-f', '--', info.paths[0])
       elseif info.section ==# 'Unstaged'
@@ -5336,7 +5355,7 @@ function! s:ToolItems(state, from, to, offsets, text, ...) abort
     endif
     let item = {
           \ 'valid': a:0 ? a:1 : 1,
-          \ 'filename': diff.filename . FugitiveVimPath(path),
+          \ 'filename': diff.filename . s:VimSlash(path),
           \ 'lnum': matchstr(get(a:offsets, i), '\d\+'),
           \ 'text': a:text}
     if len(get(diff, 'module', ''))
@@ -5626,7 +5645,7 @@ function! s:GrepOptions(args, dir) abort
   let options = {'name_only': 0, 'name_count': 0, 'line_number': 0}
   let tree = s:Tree(a:dir)
   let prefix = empty(tree) ? fugitive#Find(':0:', a:dir) :
-        \ s:cpath(getcwd(), tree) ? '' : FugitiveVimPath(tree . '/')
+        \ s:cpath(getcwd(), tree) ? '' : s:VimSlash(tree . '/')
   let options.prefix = prefix
   for arg in a:args
     if arg ==# '--'
@@ -5850,7 +5869,7 @@ function! s:LogParse(state, dir, prefix, line) abort
       call add(a:state.queue, {
             \ 'valid': 1,
             \ 'context': context,
-            \ 'filename': FugitiveVimPath(a:state.base . '/' . a:state.to),
+            \ 'filename': s:VimSlash(a:state.base . '/' . a:state.to),
             \ 'module': a:state.base_module . ':' . a:state.to,
             \ 'lnum': offsets[-1],
             \ 'text': a:state.message . matchstr(a:line, ' @@\+ .\+')})
@@ -6551,7 +6570,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, ...) abort
     endif
     let spec = s:Generate(file)
     if spec =~# '^fugitive:' && empty(s:DirCommitFile(spec)[2])
-      let spec = FugitiveVimPath(spec . s:Relative('/'))
+      let spec = s:VimSlash(spec . s:Relative('/'))
     endif
     exe pre
     let restore = s:diff_restore()

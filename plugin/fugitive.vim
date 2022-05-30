@@ -58,7 +58,7 @@ function! FugitiveReal(...) abort
   if type(file) ==# type({})
     let dir = FugitiveGitDir(file)
     let tree = s:Tree(dir)
-    return FugitiveVimPath(empty(tree) ? dir : tree)
+    return s:VimSlash(empty(tree) ? dir : tree)
   elseif file =~# '^\a\a\+:' || a:0 > 1
     return call('fugitive#Real', [file] + a:000[1:-1])
   elseif file =~# '^/\|^\a:\|^$'
@@ -490,28 +490,42 @@ function! FugitiveDetect(...) abort
   return ''
 endfunction
 
-function! FugitiveVimPath(path) abort
-  if exists('+shellslash') && !&shellslash
-    return tr(a:path, '/', '\')
-  else
-    return a:path
-  endif
-endfunction
-
 function! FugitiveGitPath(path) abort
   return s:Slash(a:path)
 endfunction
 
 if exists('+shellslash')
+
   let s:dir_commit_file = '\c^fugitive://\%(/\a\@=\)\=\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
+
   function! s:Slash(path) abort
     return tr(a:path, '\', '/')
   endfunction
+
+  function! s:VimSlash(path) abort
+    return tr(a:path, '\/', &shellslash ? '//' : '\\')
+  endfunction
+
+  function FugitiveVimPath(path) abort
+    return tr(a:path, '\/', &shellslash ? '//' : '\\')
+  endfunction
+
 else
+
   let s:dir_commit_file = '\c^fugitive://\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
+
   function! s:Slash(path) abort
     return a:path
   endfunction
+
+  function! s:VimSlash(path) abort
+    return a:path
+  endfunction
+
+  function! FugitiveVimPath(path) abort
+    return a:path
+  endfunction
+
 endif
 
 function! s:ProjectionistDetect() abort
