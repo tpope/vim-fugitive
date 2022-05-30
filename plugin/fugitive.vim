@@ -526,9 +526,15 @@ else
     return a:path
   endfunction
 
-  function! FugitiveVimPath(path) abort
-    return a:path
-  endfunction
+  if has('win32unix') && filereadable('/git-bash.exe')
+    function! FugitiveVimPath(path) abort
+      return substitute(a:path, '^\(\a\):', '/\l\1', '')
+    endfunction
+  else
+    function! FugitiveVimPath(path) abort
+      return a:path
+    endfunction
+  endif
 
 endif
 
