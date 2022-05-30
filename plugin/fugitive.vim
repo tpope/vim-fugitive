@@ -283,9 +283,13 @@ function! FugitiveStatusline(...) abort
   return fugitive#Statusline()
 endfunction
 
+function! FugitiveActualDir(...) abort
+  return call('FugitiveGitDir', a:000)
+endfunction
+
 let s:commondirs = {}
 function! FugitiveCommonDir(...) abort
-  let dir = FugitiveGitDir(a:0 ? a:1 : -1)
+  let dir = call('FugitiveActualDir', a:000)
   if empty(dir)
     return ''
   endif
