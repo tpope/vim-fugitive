@@ -2134,6 +2134,8 @@ function! fugitive#simplify(url) abort
   let [dir, commit, file] = s:DirCommitFile(a:url)
   if empty(dir)
     return ''
+  elseif empty(commit)
+    return s:VimSlash(s:DirUrlPrefix(simplify(s:GitDir(dir))))
   endif
   if file =~# '/\.\.\%(/\|$\)'
     let tree = s:Tree(dir)
@@ -2144,7 +2146,7 @@ function! fugitive#simplify(url) abort
       endif
     endif
   endif
-  return s:VimSlash('fugitive://' . simplify(dir) . '//' . commit . simplify(file))
+  return s:VimSlash(s:DirUrlPrefix(simplify(s:GitDir(dir))) . commit . simplify(file))
 endfunction
 
 function! fugitive#resolve(url) abort
