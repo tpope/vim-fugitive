@@ -1686,8 +1686,8 @@ function! fugitive#Find(object, ...) abort
     let f = len(tree) && len(getftype(tree . '/.git')) ? tree . '/.git' : dir
   elseif rev =~# '^\.git/'
     let f = strpart(rev, 5)
-    let fdir = dir . '/'
-    let cdir = FugitiveCommonDir(dir) . '/'
+    let fdir = simplify(FugitiveActualDir(dir) . '/')
+    let cdir = simplify(FugitiveCommonDir(dir) . '/')
     if f =~# '^\.\./\.\.\%(/\|$\)'
       let f = simplify(len(tree) ? tree . f[2:-1] : fdir . f)
     elseif f =~# '^\.\.\%(/\|$\)'
@@ -1723,7 +1723,7 @@ function! fugitive#Find(object, ...) abort
   elseif rev =~# '^:[0-3]:'
     let f = urlprefix . rev[1] . '/' . rev[3:-1]
   elseif rev ==# ':'
-    let fdir = dir . '/'
+    let fdir = simplify(FugitiveActualDir(dir) . '/')
     let f = fdir . 'index'
     if len($GIT_INDEX_FILE)
       let index_dir = substitute(s:GitIndexFileEnv(), '[^/]\+$', '', '')
