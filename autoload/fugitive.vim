@@ -578,11 +578,19 @@ function! s:PreparePathArgs(cmd, dir, literal, explicit) abort
   return a:cmd
 endfunction
 
+let s:git_index_file_env = {}
+function! s:GitIndexFileEnv() abort
+  if $GIT_INDEX_FILE =~# '^/\|^\a:' && !has_key(s:git_index_file_env, $GIT_INDEX_FILE)
+    let s:git_index_file_env[$GIT_INDEX_FILE] = s:Slash(FugitiveVimPath($GIT_INDEX_FILE))
+  endif
+  return get(s:git_index_file_env, $GIT_INDEX_FILE, '')
+endfunction
+
 function! s:PrepareEnv(env, dir) abort
   if len($GIT_INDEX_FILE) && len(s:Tree(a:dir)) && !has_key(a:env, 'GIT_INDEX_FILE')
-    let index_dir = substitute($GIT_INDEX_FILE, '[^/]\+$', '', '')
+    let index_dir = substitute(s:GitIndexFileEnv(), '[^/]\+$', '', '')
     let our_dir = fugitive#Find('.git/', a:dir)
-    if !s:cpath(index_dir, our_dir) && !s:cpath(resolve(FugitiveVimPath(index_dir)), our_dir)
+    if !s:cpath(index_dir, our_dir) && !s:cpath(resolve(index_dir), our_dir)
       let a:env['GIT_INDEX_FILE'] = FugitiveGitPath(fugitive#Find('.git/index', a:dir))
     endif
   endif
@@ -1823,11 +1831,11 @@ function! fugitive#Find(object, ...) abort
     let fdir = dir . '/'
     let f = fdir . 'index'
     if len($GIT_INDEX_FILE)
-      let index_dir = substitute($GIT_INDEX_FILE, '[^/]\+$', '', '')
+      let index_dir = substitute(s:GitIndexFileEnv(), '[^/]\+$', '', '')
       if s:cpath(index_dir, fdir)
-        let f = FugitiveVimPath($GIT_INDEX_FILE)
-      elseif s:cpath(resolve(FugitiveVimPath(index_dir)), fdir)
-        let f = resolve(FugitiveVimPath($GIT_INDEX_FILE))
+        let f = s:GitIndexFileEnv()
+      elseif s:cpath(resolve(index_dir), fdir)
+        let f = resolve(s:GitIndexFileEnv())
       endif
     endif
   elseif rev =~# '^:(\%(top\|top,literal\|literal,top\|literal\))'
@@ -2646,7 +2654,7 @@ function! fugitive#BufReadStatus(...) abort
 
     let cmd = [s:Dir()]
     setlocal noreadonly modifiable nomodeline buftype=nowrite
-    if amatch !~# '^fugitive:' && s:cpath(fnamemodify($GIT_INDEX_FILE !=# '' ? FugitiveVimPath($GIT_INDEX_FILE) : fugitive#Find('.git/index'), ':p')) !=# s:cpath(amatch)
+    if amatch !~# '^fugitive:' && s:cpath($GIT_INDEX_FILE !=# '' ? resolve(s:GitIndexFileEnv()) : fugitive#Find('.git/index')) !=# s:cpath(amatch)
       let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
     endif
 
