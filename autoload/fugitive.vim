@@ -6103,7 +6103,7 @@ function! s:BlurStatus() abort
     if len(winnrs)
       exe winnrs[0].'wincmd w'
     else
-      belowright new
+      belowright new +setl\ bufhidden=delete
     endif
     if &diff
       call fugitive#DiffClose()
