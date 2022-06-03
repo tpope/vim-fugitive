@@ -270,8 +270,16 @@ function! FugitiveStatusline(...) abort
   return fugitive#Statusline()
 endfunction
 
+let s:resolved_git_dirs = {}
 function! FugitiveActualDir(...) abort
-  return call('FugitiveGitDir', a:000)
+  let dir = call('FugitiveGitDir', a:000)
+  if empty(dir)
+    return ''
+  endif
+  if !has_key(s:resolved_git_dirs, dir)
+    let s:resolved_git_dirs[dir] = s:ResolveGitDir(dir)
+  endif
+  return empty(s:resolved_git_dirs[dir]) ? dir : s:resolved_git_dirs[dir]
 endfunction
 
 let s:commondirs = {}
@@ -331,12 +339,12 @@ endfunction
 let s:worktree_for_dir = {}
 let s:dir_for_worktree = {}
 function! s:Tree(path) abort
-  let dir = a:path
-  if dir =~# '/\.git$'
-    return len(dir) ==# 5 ? '/' : dir[0:-6]
-  elseif dir ==# ''
+  if a:path =~# '/\.git$'
+    return len(a:path) ==# 5 ? '/' : a:path[0:-6]
+  elseif a:path ==# ''
     return ''
   endif
+  let dir = FugitiveActualDir(a:path)
   if !has_key(s:worktree_for_dir, dir)
     let s:worktree_for_dir[dir] = ''
     let ext_wtc_pat = 'v:val =~# "^\\s*worktreeConfig *= *\\%(true\\|yes\\|on\\|1\\) *$"'
@@ -395,6 +403,24 @@ function! s:CeilingDirectories() abort
   return s:ceiling_directories + get(g:, 'ceiling_directories', [s:Slash(fnamemodify(expand('~'), ':h'))])
 endfunction
 
+function! s:ResolveGitDir(git_dir) abort
+  let type = getftype(a:git_dir)
+  if type ==# 'dir' && FugitiveIsGitDir(a:git_dir)
+    return a:git_dir
+  elseif type ==# 'link' && FugitiveIsGitDir(a:git_dir)
+    return resolve(a:git_dir)
+  elseif type !=# ''
+    let line = get(s:ReadFile(a:git_dir, 1), 0, '')
+    let file_dir = s:Slash(FugitiveVimPath(matchstr(line, '^gitdir: \zs.*')))
+    if file_dir !~# '^/\|^\a:\|^$' && a:git_dir =~# '/\.git$' && FugitiveIsGitDir(a:git_dir[0:-5] . file_dir)
+      return simplify(a:git_dir[0:-5] . file_dir)
+    elseif file_dir =~# '^/\|^\a:' && FugitiveIsGitDir(file_dir)
+      return file_dir
+    endif
+  endif
+  return ''
+endfunction
+
 function! FugitiveExtractGitDir(path) abort
   if type(a:path) ==# type({})
     return get(a:path, 'git_dir', '')
@@ -427,20 +453,12 @@ function! FugitiveExtractGitDir(path) abort
       return s:dir_for_worktree[root]
     endif
     let dir = substitute(root, '[\/]$', '', '') . '/.git'
-    let type = getftype(dir)
-    if type ==# 'dir' && FugitiveIsGitDir(dir)
-      return dir
-    elseif type ==# 'link' && FugitiveIsGitDir(dir)
-      return resolve(dir)
-    elseif type !=# ''
-      let line = get(s:ReadFile(dir, 1), 0, '')
-      let file_dir = s:Slash(FugitiveVimPath(matchstr(line, '^gitdir: \zs.*')))
-      if file_dir !~# '^/\|^\a:\|^$' && FugitiveIsGitDir(root . '/' . file_dir)
-        return simplify(root . '/' . file_dir)
-      elseif len(file_dir) && FugitiveIsGitDir(file_dir)
-        return file_dir
-      endif
+    let resolved = s:ResolveGitDir(dir)
+    if !empty(resolved)
+      let s:resolved_git_dirs[dir] = resolved
+      return dir is# resolved || s:Tree(resolved) is# 0 ? dir : resolved
     elseif FugitiveIsGitDir(root)
+      let s:resolved_git_dirs[root] = root
       return root
     endif
     let previous = root

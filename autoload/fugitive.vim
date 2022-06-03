@@ -1796,7 +1796,9 @@ function! fugitive#Find(object, ...) abort
   elseif rev ==# ':'
     let fdir = simplify(FugitiveActualDir(dir) . '/')
     let f = fdir . 'index'
-    if len($GIT_INDEX_FILE)
+    if !s:cpath(dir . '/', fdir)
+      let f = urlprefix
+    elseif len($GIT_INDEX_FILE)
       let index_dir = substitute(s:GitIndexFileEnv(), '[^/]\+$', '', '')
       if s:cpath(index_dir, fdir)
         let f = s:GitIndexFileEnv()
