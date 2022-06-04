@@ -690,6 +690,7 @@ augroup fugitive
 
   autocmd BufNewFile,BufReadPost *  call FugitiveDetect(+expand('<abuf>'), 0)
   autocmd FileType           netrw  call FugitiveDetect(+expand('<abuf>'), 0)
+  autocmd BufFilePost            *  unlet! b:git_dir
 
   autocmd FileType git
         \ call fugitive#MapCfile()
