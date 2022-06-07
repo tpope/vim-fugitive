@@ -670,12 +670,12 @@ augroup fugitive
   autocmd!
 
   autocmd BufNewFile,BufReadPost *
-        \ if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir
-        \   unlet b:git_dir
+        \ if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir |
+        \   unlet b:git_dir |
         \ endif
   autocmd FileType           netrw
-        \ if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir
-        \   unlet b:git_dir
+        \ if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir |
+        \   unlet b:git_dir |
         \ endif
   autocmd BufFilePost            *  unlet! b:git_dir
 
