@@ -726,6 +726,9 @@ augroup fugitive
   autocmd User ProjectionistDetect call s:ProjectionistDetect()
 augroup END
 
+nmap <script><silent> <Plug>fugitive:y<C-G> :<C-U>call setreg(v:register, fugitive#Object(@%))<CR>
+nmap <script> <Plug>fugitive: <Nop>
+
 if get(g:, 'fugitive_no_maps')
   finish
 endif
@@ -755,5 +758,3 @@ endfunction
 
 call s:Map('c', '<C-R><C-G>', 'fnameescape(fugitive#Object(@%))', '<expr>')
 call s:Map('n', 'y<C-G>', ':<C-U>call setreg(v:register, fugitive#Object(@%))<CR>', '<silent>')
-nmap <script><silent> <Plug>fugitive:y<C-G> :<C-U>call setreg(v:register, fugitive#Object(@%))<CR>
-nmap <script> <Plug>fugitive: <Nop>
