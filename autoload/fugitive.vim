@@ -507,6 +507,10 @@ function! s:GitDir(...) abort
   return a:0 ? FugitiveGitDir(a:1) : FugitiveGitDir()
 endfunction
 
+function! s:InitializeBuffer(repo) abort
+  let b:git_dir = s:GitDir(a:repo)
+endfunction
+
 function! s:SameRepo(one, two) abort
   let one = s:GitDir(a:one)
   return !empty(one) && one ==# s:GitDir(a:two)
@@ -3032,7 +3036,7 @@ function! fugitive#BufReadCmd(...) abort
     if empty(dir)
       return 'echo "Invalid Fugitive URL"'
     endif
-    let b:git_dir = s:GitDir(dir)
+    call s:InitializeBuffer(dir)
     if rev ==# ':'
       return fugitive#BufReadStatus(v:cmdbang)
     elseif rev =~# '^:\d$'
@@ -3229,7 +3233,7 @@ function! s:TempReadPre(file) abort
     endif
     setlocal buftype=nowrite
     setlocal nomodifiable
-    let b:git_dir = dict.git_dir
+    call s:InitializeBuffer(dict)
     if len(dict.git_dir)
       call extend(b:, {'fugitive_type': 'temp'}, 'keep')
     endif
@@ -3751,7 +3755,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
         \ s:HasOpt(args, ['add', 'clean', 'stage'], '-i', '--interactive')) && pager is# 0
   if wants_terminal
     let mods = substitute(s:Mods(a:mods), '\<tab\>', '-tab', 'g')
-    let assign = len(dir) ? '|let b:git_dir = ' . string(options.git_dir) : ''
+    let assign = len(dir) ? "|call FugitiveDetect({'git_dir':" . string(options.git_dir) . '})' : ''
     let argv = s:UserCommandList(options) + args
     let term_opts = len(env) ? {'env': env} : {}
     if has('nvim')
