@@ -718,7 +718,7 @@ version.
 
                                                 *User_Fugitive*
 Fugitive used to support `:autocmd User Fugitive` to run an autocommand after
-loading any buffer belonging to a Git repository, but this is being phased
+loading any buffer belonging to a Git repository, but this has been phased
 out.  Instead, one can leverage regular autocommand events like |BufNewFile|
 and |BufReadPost|, and check !empty(FugitiveGitDir()) to confirm Fugitive has
 found a repository.  See also |fugitive-autocommands| for other, more

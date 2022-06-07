@@ -469,27 +469,8 @@ function! FugitiveDetect(...) abort
   if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir
     unlet b:git_dir
   endif
-  if a:0 > 1 && a:2 is# 0 && !exists('#User#Fugitive')
-    return ''
-  endif
   if !exists('b:git_dir')
     let b:git_dir = FugitiveExtractGitDir(a:0 ? a:1 : bufnr(''))
-  endif
-  if empty(b:git_dir) || !exists('#User#Fugitive')
-    return ''
-  endif
-  if v:version >= 704 || (v:version == 703 && has('patch442'))
-    doautocmd <nomodeline> User Fugitive
-  elseif &modelines > 0
-    let modelines = &modelines
-    try
-      set modelines=0
-      doautocmd User Fugitive
-    finally
-      let &modelines = modelines
-    endtry
-  else
-    doautocmd User Fugitive
   endif
   return ''
 endfunction
@@ -688,8 +669,14 @@ let g:io_fugitive = {
 augroup fugitive
   autocmd!
 
-  autocmd BufNewFile,BufReadPost *  call FugitiveDetect(+expand('<abuf>'), 0)
-  autocmd FileType           netrw  call FugitiveDetect(+expand('<abuf>'), 0)
+  autocmd BufNewFile,BufReadPost *
+        \ if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir
+        \   unlet b:git_dir
+        \ endif
+  autocmd FileType           netrw
+        \ if exists('b:git_dir') && b:git_dir =~# '^$\|' . s:bad_git_dir
+        \   unlet b:git_dir
+        \ endif
   autocmd BufFilePost            *  unlet! b:git_dir
 
   autocmd FileType git
