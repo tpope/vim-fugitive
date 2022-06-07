@@ -838,10 +838,6 @@ function! fugitive#ShellCommand(...) abort
   return s:BuildShell(dir, env, git, flags + args)
 endfunction
 
-function! fugitive#Prepare(...) abort
-  return call('fugitive#ShellCommand', a:000)
-endfunction
-
 function! s:SystemError(cmd, ...) abort
   let cmd = type(a:cmd) == type([]) ? s:shellesc(a:cmd) : a:cmd
   try
@@ -980,10 +976,6 @@ function! fugitive#Head(...) abort
   else
     return ''
   endif
-endfunction
-
-function! fugitive#head(...) abort
-  throw 'Third party code is using fugitive#head() which has been removed. Change it to FugitiveHead()'
 endfunction
 
 function! fugitive#RevParse(rev, ...) abort
@@ -1529,96 +1521,6 @@ function! fugitive#Cwindow() abort
     endif
   endif
 endfunction
-
-" Section: Repository Object
-
-let s:repo_prototype = {}
-let s:repos = {}
-
-function! fugitive#repo(...) abort
-  let dir = a:0 ? s:GitDir(a:1) : (len(s:GitDir()) ? s:GitDir() : FugitiveExtractGitDir(expand('%:p')))
-  if dir !=# ''
-    if has_key(s:repos, dir)
-      let repo = get(s:repos, dir)
-    else
-      let repo = {'git_dir': dir}
-      let s:repos[dir] = repo
-    endif
-    return extend(repo, s:repo_prototype, 'keep')
-  endif
-  call s:throw('not a Git repository')
-endfunction
-
-function! s:repo_dir(...) dict abort
-  return join([self.git_dir]+a:000,'/')
-endfunction
-
-function! s:repo_tree(...) dict abort
-  let dir = s:Tree(self.git_dir)
-  if dir ==# ''
-    call s:throw('no work tree')
-  else
-    return join([dir]+a:000,'/')
-  endif
-endfunction
-
-function! s:repo_bare() dict abort
-  if self.dir() =~# '/\.git$'
-    return 0
-  else
-    return s:Tree(self.git_dir) ==# ''
-  endif
-endfunction
-
-function! s:repo_find(object) dict abort
-  return fugitive#Find(a:object, self.git_dir)
-endfunction
-
-function! s:repo_translate(rev) dict abort
-  return s:Slash(fugitive#Find(substitute(a:rev, '^/', ':(top)', ''), self.git_dir))
-endfunction
-
-function! s:repo_head(...) dict abort
-  return fugitive#Head(a:0 ? a:1 : 0, self.git_dir)
-endfunction
-
-call s:add_methods('repo',['dir','tree','bare','find','translate','head'])
-
-function! s:repo_git_command(...) dict abort
-  throw 'fugitive: fugitive#repo().git_command(...) has been replaced by FugitiveShellCommand(...)'
-endfunction
-
-function! s:repo_git_chomp(...) dict abort
-  return s:sub(system(fugitive#ShellCommand(a:000, self.git_dir)), '\n$', '')
-endfunction
-
-function! s:repo_git_chomp_in_tree(...) dict abort
-  return call(self.git_chomp, a:000, self)
-endfunction
-
-function! s:repo_rev_parse(rev) dict abort
-  return fugitive#RevParse(a:rev, self.git_dir)
-endfunction
-
-call s:add_methods('repo',['git_command','git_chomp','git_chomp_in_tree','rev_parse'])
-
-function! s:repo_superglob(base) dict abort
-  return map(fugitive#CompleteObject(a:base, self.git_dir), 'substitute(v:val, ''\\\(.\)'', ''\1'', "g")')
-endfunction
-
-call s:add_methods('repo',['superglob'])
-
-function! s:repo_config(name) dict abort
-  return FugitiveConfigGet(a:name, self.git_dir)
-endfunction
-
-function! s:repo_user() dict abort
-  let username = self.config('user.name')
-  let useremail = self.config('user.email')
-  return username.' <'.useremail.'>'
-endfunction
-
-call s:add_methods('repo',['config', 'user'])
 
 " Section: File API
 
@@ -2349,26 +2251,6 @@ function! fugitive#delete(url, ...) abort
   let error = s:UpdateIndex(dir, ['000000', '0000000000000000000000000000000000000000', commit, file[1:-1]])
   return len(error) ? -1 : 0
 endfunction
-
-" Section: Buffer Object
-
-let s:buffer_prototype = {}
-
-function! fugitive#buffer(...) abort
-  let buffer = {'#': bufnr(a:0 ? a:1 : '%')}
-  call extend(buffer, s:buffer_prototype, 'keep')
-  return buffer
-endfunction
-
-function! s:buffer_repo() dict abort
-  return fugitive#repo(self['#'])
-endfunction
-
-function! s:buffer_type(...) dict abort
-  return 'see per type events at :help fugitive-autocommands'
-endfunction
-
-call s:add_methods('buffer', ['repo', 'type'])
 
 " Section: Completion
 
@@ -8079,24 +7961,6 @@ endfunction
 
 function! fugitive#foldtext() abort
   return fugitive#Foldtext()
-endfunction
-
-" Section: Initialization
-
-function! fugitive#Init() abort
-  throw 'Third party code is using fugitive#Init() which has been removed. Contact the author if you have a reason to still use it'
-endfunction
-
-function! fugitive#is_git_dir(path) abort
-  throw 'Third party code is using fugitive#is_git_dir() which has been removed. Change it to FugitiveIsGitDir()'
-endfunction
-
-function! fugitive#extract_git_dir(path) abort
-  throw 'Third party code is using fugitive#extract_git_dir() which has been removed. Change it to FugitiveExtractGitDir()'
-endfunction
-
-function! fugitive#detect(path) abort
-  throw 'Third party code is using fugitive#detect() which has been removed. Contact the author if you have a reason to still use it'
 endfunction
 
 " Section: End

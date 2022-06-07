@@ -152,19 +152,6 @@ function! FugitiveShellCommand(...) abort
   return call('fugitive#ShellCommand', a:000)
 endfunction
 
-" FugitivePrepare() is a deprecated alias for FugitiveShellCommand().  If you
-" are using this in conjunction with system(), consider using
-" FugitiveExecute() instead.
-function! FugitivePrepare(...) abort
-  if !exists('s:did_prepare_warning')
-    let s:did_prepare_warning = 1
-    echohl WarningMsg
-    unsilent echomsg 'FugitivePrepare() has been superseded by FugitiveShellCommand()'
-    echohl NONE
-  endif
-  return call('fugitive#ShellCommand', a:000)
-endfunction
-
 " FugitiveConfig() get returns an opaque structure that can be passed to other
 " FugitiveConfig functions in lieu of a Git directory.  This can be faster
 " when performing multiple config queries.  Do not rely on the internal
