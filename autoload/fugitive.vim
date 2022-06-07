@@ -3338,6 +3338,7 @@ function! s:RunEdit(state, tmp, job) abort
     endif
   endtry
   set bufhidden=wipe
+  call s:InitializeBuffer(a:state)
   let bufnr = bufnr('')
   let s:edit_jobs[bufnr] = [a:state, a:tmp, a:job, sentinel]
   call fugitive#DidChange(a:state.git_dir)
