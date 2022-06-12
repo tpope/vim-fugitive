@@ -7573,6 +7573,7 @@ function! fugitive#MapJumps(...) abort
     call s:Map('n', 'ca', ':<C-U>Git commit --amend<CR>', '<silent>')
     call s:Map('n', 'cc', ':<C-U>Git commit<CR>', '<silent>')
     call s:Map('n', 'ce', ':<C-U>Git commit --amend --no-edit<CR>', '<silent>')
+    call s:Map('n', 'cd', ':<C-U>Git commit --edit --file .git/COMMIT_EDITMSG<CR>', '<silent>')
     call s:Map('n', 'cw', ':<C-U>Git commit --amend --only<CR>', '<silent>')
     call s:Map('n', 'cva', ':<C-U>tab Git commit -v --amend<CR>', '<silent>')
     call s:Map('n', 'cvc', ':<C-U>tab Git commit -v<CR>', '<silent>')

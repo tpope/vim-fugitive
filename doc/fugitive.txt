@@ -460,6 +460,8 @@ ca                      Amend the last commit and edit the message.
 
 ce                      Amend the last commit without editing the message.
 
+cd                      Recreate commit using previously failed commit message.
+
 cw                      Reword the last commit.
 
 cvc                     Create a commit with -v.
