@@ -157,6 +157,9 @@ plus |:grep|.
                                                 *:Gpedit*
 :Gpedit [object]        |:pedit| a |fugitive-object|.
 
+                                                *:Gdrop*
+:Gdrop [object]         |:drop| a |fugitive-object|.
+
                                                 *:Gread* *fugitive-:Gr*
 :Gread [object]         Empty the buffer and |:read| a |fugitive-object|.
                         When the argument is omitted, this is similar to
