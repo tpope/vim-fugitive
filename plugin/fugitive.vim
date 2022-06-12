@@ -697,15 +697,15 @@ augroup fugitive
         \   silent doautocmd BufNewFile |
         \ endif
 
-  autocmd BufReadCmd   fugitive://*//*       nested exe fugitive#BufReadCmd() |
+  autocmd BufReadCmd   fugitive://*          nested exe fugitive#BufReadCmd() |
         \ if &path =~# '^\.\%(,\|$\)' |
         \   let &l:path = substitute(&path, '^\.,\=', '', '') |
         \ endif
-  autocmd BufWriteCmd  fugitive://*//[0-3]/* nested exe fugitive#BufWriteCmd()
-  autocmd FileReadCmd  fugitive://*//*       nested exe fugitive#FileReadCmd()
-  autocmd FileWriteCmd fugitive://*//[0-3]/* nested exe fugitive#FileWriteCmd()
+  autocmd BufWriteCmd  fugitive://*          nested exe fugitive#BufWriteCmd()
+  autocmd FileReadCmd  fugitive://*          nested exe fugitive#FileReadCmd()
+  autocmd FileWriteCmd fugitive://*          nested exe fugitive#FileWriteCmd()
   if exists('##SourceCmd')
-    autocmd SourceCmd     fugitive://*//*    nested exe fugitive#SourceCmd()
+    autocmd SourceCmd     fugitive://*       nested exe fugitive#SourceCmd()
   endif
 
   autocmd User Flags call Hoist('buffer', function('FugitiveStatusline'))
