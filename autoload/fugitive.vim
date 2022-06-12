@@ -1522,6 +1522,65 @@ function! fugitive#Cwindow() abort
   endif
 endfunction
 
+" Section: Repository Object
+
+let s:repo_prototype = {}
+
+function! fugitive#repo(...) abort
+  return copy(s:repo_prototype)
+endfunction
+
+function! s:repo_dir(...) dict abort
+  throw 'fugitive: fugitive#repo().dir() has been replaced by FugitiveGitDir()'
+endfunction
+
+function! s:repo_tree(...) dict abort
+  throw 'fugitive: fugitive#repo().tree() has been replaced by FugitiveFind(":/")'
+endfunction
+
+function! s:repo_bare() dict abort
+  throw 'fugitive: fugitive#repo().bare() has been replaced by !empty(FugitiveWorkTree())'
+endfunction
+
+function! s:repo_find(object) dict abort
+  throw 'fugitive: fugitive#repo().find(...) has been replaced by FugitiveFind(...)'
+endfunction
+
+function! s:repo_translate(rev) dict abort
+  throw 'fugitive: fugitive#repo().translate(...) has been replaced by FugitiveFind(...)'
+endfunction
+
+function! s:repo_head(...) dict abort
+  throw 'fugitive: fugitive#repo().head(...) has been replaced by FugitiveHead(...)'
+endfunction
+
+call s:add_methods('repo',['dir','tree','bare','find','translate','head'])
+
+function! s:repo_git_command(...) dict abort
+  throw 'fugitive: fugitive#repo().git_command(...) has been replaced by FugitiveShellCommand(...)'
+endfunction
+
+function! s:repo_git_chomp(...) dict abort
+  throw 'fugitive: fugitive#repo().git_chomp(...) has been replaced by FugitiveExecute(...).stdout'
+endfunction
+
+function! s:repo_git_chomp_in_tree(...) dict abort
+  throw 'fugitive: fugitive#repo().git_chomp_in_tree(...) has been replaced by FugitiveExecute(...).stdout'
+endfunction
+
+function! s:repo_rev_parse(rev) dict abort
+  throw 'fugitive: fugitive#repo().rev_parse(...) has been replaced by FugitiveExecute("rev-parse", "--verify", ...).stdout'
+endfunction
+
+call s:add_methods('repo',['git_command','git_chomp','git_chomp_in_tree','rev_parse'])
+
+function! s:repo_config(name) dict abort
+  throw 'fugitive: fugitive#repo().config(...) has been replaced by FugitiveConfigGet(...).stdout'
+  return FugitiveConfigGet(a:name, self.git_dir)
+endfunction
+
+call s:add_methods('repo',['config'])
+
 " Section: File API
 
 function! s:DirCommitFile(path) abort
