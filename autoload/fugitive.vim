@@ -199,6 +199,19 @@ function! s:cpath(path, ...) abort
   return a:0 ? path ==# s:cpath(a:1) : path
 endfunction
 
+let s:quote_chars = {
+      \ "\007": 'a', "\010": 'b', "\011": 't', "\012": 'n', "\013": 'v', "\014": 'f', "\015": 'r',
+      \ '"': '"', '\': '\'}
+
+function! s:Quote(string) abort
+  let string = substitute(a:string, "[\001-\037\"\\\177]", '\="\\" . get(s:quote_chars, submatch(0), printf("%03o", char2nr(submatch(0))))', 'g')
+  if string !=# a:string
+    return '"' . string . '"'
+  else
+    return string
+  endif
+endfunction
+
 let s:executables = {}
 
 function! s:executable(binary) abort
@@ -2704,11 +2717,11 @@ function! fugitive#BufReadStatus(...) abort
     let diff = {'Staged': {'stdout': ['']}, 'Unstaged': {'stdout': ['']}}
     if len(staged)
       let diff['Staged'] =
-          \ fugitive#Execute(['-c', 'diff.suppressBlankEmpty=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'], function('len'))
+          \ fugitive#Execute(['-c', 'diff.suppressBlankEmpty=false', '-c', 'core.quotePath=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'], function('len'))
     endif
     if len(unstaged)
       let diff['Unstaged'] =
-          \ fugitive#Execute(['-c', 'diff.suppressBlankEmpty=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix'], function('len'))
+          \ fugitive#Execute(['-c', 'diff.suppressBlankEmpty=false', '-c', 'core.quotePath=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix'], function('len'))
     endif
 
     for dict in staged
@@ -4731,35 +4744,28 @@ function! s:StageInline(mode, ...) abort
     endif
     let mode = ''
     let diff = []
-    let index = 0
-    let start = -1
-    for line in fugitive#Wait(b:fugitive_diff[info.section]).stdout
-      if mode ==# 'await' && line[0] ==# '@'
-        let mode = 'capture'
-      endif
-      if mode !=# 'head' && line !~# '^[ @\+-]'
-        if len(diff)
-          break
-        endif
-        let start = index
-        let mode = 'head'
-      elseif mode ==# 'head' && line =~# '^diff '
-        let start = index
-      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '--- ' . info.relative[-1]
-        let mode = 'await'
-      elseif mode ==# 'head' && substitute(line, "\t$", '', '') ==# '+++ ' . info.relative[0]
-        let mode = 'await'
-      elseif mode ==# 'capture'
-        call add(diff, line)
-      elseif line[0] ==# '@'
-        let mode = ''
-      endif
+    if info.status ==# 'U'
+      let diff_header = 'diff --cc ' . s:Quote(info.relative[0])
+    else
+      let diff_header = 'diff --git ' . s:Quote(info.relative[-1]) . ' ' . s:Quote(info.relative[0])
+    endif
+    let stdout = fugitive#Wait(b:fugitive_diff[info.section]).stdout
+    let start = index(stdout, diff_header)
+    if start == -1
+      continue
+    endif
+    let index = start + 1
+    while get(stdout, index, '@@') !~# '^@@\|^diff '
       let index += 1
-    endfor
+    endwhile
+    while get(stdout, index, '') =~# '^[@ +-]'
+      call add(diff, stdout[index])
+      let index += 1
+    endwhile
     if len(diff)
       setlocal modifiable noreadonly
       silent call append(lnum, diff)
-      let b:fugitive_expanded[info.section][info.filename] = [start, len(diff)]
+      let b:fugitive_expanded[info.section][info.filename] = [start]
       setlocal nomodifiable readonly nomodified
       if foldclosed(lnum+1) > 0
         silent exe (lnum+1) . ',' . (lnum+len(diff)) . 'foldopen!'
