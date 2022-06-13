@@ -1988,6 +1988,8 @@ function! s:Expand(rev, ...) abort
     else
       let file = len(expand('%')) ? rev . ':%' : '%'
     endif
+  elseif s:Slash(a:rev) =~# '^\a\a\+://'
+    let file = substitute(a:rev, '\\\@<!\%(#\a\|%\x\x\)', '\\&', 'g')
   else
     let file = a:rev
   endif
