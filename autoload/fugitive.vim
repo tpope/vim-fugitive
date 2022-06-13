@@ -1575,8 +1575,7 @@ endfunction
 call s:add_methods('repo',['git_command','git_chomp','git_chomp_in_tree','rev_parse'])
 
 function! s:repo_config(name) dict abort
-  throw 'fugitive: fugitive#repo().config(...) has been replaced by FugitiveConfigGet(...).stdout'
-  return FugitiveConfigGet(a:name, self.git_dir)
+  throw 'fugitive: fugitive#repo().config(...) has been replaced by FugitiveConfigGet(...)'
 endfunction
 
 call s:add_methods('repo',['config'])
