@@ -203,10 +203,23 @@ let s:quote_chars = {
       \ "\007": 'a', "\010": 'b', "\011": 't', "\012": 'n', "\013": 'v', "\014": 'f', "\015": 'r',
       \ '"': '"', '\': '\'}
 
+let s:unquote_chars = {
+      \ 'a': "\007", 'b': "\010", 't': "\011", 'n': "\012", 'v': "\013", 'f': "\014", 'r': "\015",
+      \ '"': '"', '\': '\'}
+
 function! s:Quote(string) abort
   let string = substitute(a:string, "[\001-\037\"\\\177]", '\="\\" . get(s:quote_chars, submatch(0), printf("%03o", char2nr(submatch(0))))', 'g')
   if string !=# a:string
     return '"' . string . '"'
+  else
+    return string
+  endif
+endfunction
+
+function! fugitive#Unquote(string) abort
+  let string = substitute(a:string, "\t*$", '', '')
+  if string =~# '^".*"$'
+    return substitute(string[1:-2], '\\\(\o\o\o\|.\)', '\=get(s:unquote_chars, submatch(1), iconv(nr2char("0" . submatch(1)), "utf-8", "latin1"))', 'g')
   else
     return string
   endif
@@ -7495,6 +7508,11 @@ function! s:NavigateUp(count) abort
   return rev
 endfunction
 
+function! s:ParseDiffHeader(str) abort
+  let list = matchlist(a:str, '\Cdiff --git \("\=[^/].*\|/dev/null\) \("\=[^/].*\|/dev/null\)$')
+  return [fugitive#Unquote(get(list, 1, '')), fugitive#Unquote(get(list, 2, ''))]
+endfunction
+
 function! s:MapMotion(lhs, rhs) abort
   let maps = [
         \ s:Map('n', a:lhs, ":<C-U>" . a:rhs . "<CR>", "<silent>"),
@@ -7728,6 +7746,7 @@ function! s:BranchCfile(result) abort
   return matchstr(getline('.'), '^. \zs\S\+')
 endfunction
 
+let s:diff_header_pattern = '^diff --git \%("\=[abciow12]/.*\|/dev/null\) \%("\=[abciow12]/.*\|/dev/null\)$'
 function! s:cfile() abort
   let temp_state = s:TempState()
   let name = substitute(get(get(temp_state, 'args', []), 0, ''), '\%(^\|-\)\(\l\)', '\u\1', 'g')
@@ -7825,8 +7844,8 @@ function! s:cfile() abort
           let dcmds = ['', 'Gdiffsplit! >' . myhash . '^:' . fnameescape(files[0])]
         endif
 
-      elseif getline('.') =~# '^[+-]\{3\} [abciow12]\=/'
-        let ref = getline('.')[4:]
+      elseif getline('.') =~# '^[+-]\{3\} "\=[abciow12]\=/'
+        let ref = fugitive#Unquote(getline('.')[4:])
 
       elseif getline('.') =~# '^[+-]' && search('^@@ -\d\+\%(,\d\+\)\= +\d\+','bnW')
         let type = getline('.')[0]
@@ -7839,7 +7858,7 @@ function! s:cfile() abort
           let lnum -= 1
         endwhile
         let offset += matchstr(getline(lnum), type.'\zs\d\+')
-        let ref = getline(search('^'.type.'\{3\} [abciow12]/','bnW'))[4:-1]
+        let ref = fugitive#Unquote(getline(search('^'.type.'\{3\} "\=[abciow12]/','bnW'))[4:-1])
         let dcmds = [offset, 'normal!zv']
 
       elseif getline('.') =~# '^rename from '
@@ -7848,22 +7867,18 @@ function! s:cfile() abort
         let ref = 'b/'.getline('.')[10:]
 
       elseif getline('.') =~# '^@@ -\d\+\%(,\d\+\)\= +\d\+'
-        let diff = getline(search('^diff --git \%([abciow12]/.*\|/dev/null\) \%([abciow12]/.*\|/dev/null\)', 'bcnW'))
+        let diff = getline(search(s:diff_header_pattern, 'bcnW'))
         let offset = matchstr(getline('.'), '+\zs\d\+')
 
-        let dref = matchstr(diff, '\Cdiff --git \zs\%([abciow12]/.*\|/dev/null\)\ze \%([abciow12]/.*\|/dev/null\)')
-        let ref = matchstr(diff, '\Cdiff --git \%([abciow12]/.*\|/dev/null\) \zs\%([abciow12]/.*\|/dev/null\)')
+        let [dref, ref] = s:ParseDiffHeader(diff)
         let dcmd = 'Gdiffsplit! +'.offset
 
-      elseif getline('.') =~# '^diff --git \%([abciow12]/.*\|/dev/null\) \%([abciow12]/.*\|/dev/null\)'
-        let dref = matchstr(getline('.'),'\Cdiff --git \zs\%([abciow12]/.*\|/dev/null\)\ze \%([abciow12]/.*\|/dev/null\)')
-        let ref = matchstr(getline('.'),'\Cdiff --git \%([abciow12]/.*\|/dev/null\) \zs\%([abciow12]/.*\|/dev/null\)')
+      elseif getline('.') =~# s:diff_header_pattern
+        let [dref, ref] = s:ParseDiffHeader(getline('.'))
         let dcmd = 'Gdiffsplit!'
 
-      elseif getline('.') =~# '^index ' && getline(line('.')-1) =~# '^diff --git \%([abciow12]/.*\|/dev/null\) \%([abciow12]/.*\|/dev/null\)'
-        let line = getline(line('.')-1)
-        let dref = matchstr(line,'\Cdiff --git \zs\%([abciow12]/.*\|/dev/null\)\ze \%([abciow12]/.*\|/dev/null\)')
-        let ref = matchstr(line,'\Cdiff --git \%([abciow12]/.*\|/dev/null\) \zs\%([abciow12]/.*\|/dev/null\)')
+      elseif getline('.') =~# '^index ' && getline(line('.')-1) =~# s:diff_header_pattern
+        let [dref, ref] = s:ParseDiffHeader(getline(line('.') - '.'))
         let dcmd = 'Gdiffsplit!'
 
       elseif line('$') == 1 && getline('.') =~ '^\x\{40,\}$'
@@ -7986,8 +8001,8 @@ function! fugitive#Foldtext() abort
     let filename = ''
     for lnum in range(v:foldstart, v:foldend)
       let line = getline(lnum)
-      if filename ==# '' && line =~# '^[+-]\{3\} [abciow12]/'
-        let filename = line[6:-1]
+      if filename ==# '' && line =~# '^[+-]\{3\} "\=[abciow12]/'
+        let filename = fugitive#Unquote(line[4:-1])[2:-1]
       endif
       if line =~# '^+'
         let add += 1
@@ -7998,7 +8013,7 @@ function! fugitive#Foldtext() abort
       endif
     endfor
     if filename ==# ''
-      let filename = matchstr(line_foldstart, '^diff .\{-\} [abciow12]/\zs.*\ze [abciow12]/')
+      let filename = fugitive#Unquote(matchstr(line_foldstart, '^diff .\{-\} \zs"\=[abciow12]/\zs.*\ze "\=[abciow12]/'))[2:-1]
     endif
     if filename ==# ''
       let filename = line_foldstart[5:-1]
