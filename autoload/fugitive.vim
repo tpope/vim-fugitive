@@ -4315,14 +4315,8 @@ function! s:StageInfo(...) abort
   let sigil = matchstr(getline(lnum), '^[ @\+-]')
   let offset = -1
   if len(sigil)
-    let type = sigil ==# '-' ? '-' : '+'
-    while lnum > 0 && getline(lnum) !~# '^@'
-      if getline(lnum) =~# '^[ '.type.']'
-        let offset += 1
-      endif
-      let lnum -= 1
-    endwhile
-    let offset += matchstr(getline(lnum), type.'\zs\d\+')
+    let [lnum, old_lnum, new_lnum] = s:HunkPosition(lnum)
+    let offset = sigil ==# '-' ? old_lnum : new_lnum
     while getline(lnum) =~# '^[ @\+-]'
       let lnum -= 1
     endwhile
@@ -7513,6 +7507,25 @@ function! s:ParseDiffHeader(str) abort
   return [fugitive#Unquote(get(list, 1, '')), fugitive#Unquote(get(list, 2, ''))]
 endfunction
 
+function! s:HunkPosition(lnum) abort
+  let lnum = a:lnum + get({'@': 1, '\': -1}, getline(a:lnum)[0], 0)
+  let offsets = {' ': -1, '+': 0, '-': 0}
+  let sigil = getline(lnum)[0]
+  let line_char = sigil
+  while has_key(offsets, line_char)
+    let offsets[line_char] += 1
+    let lnum -= 1
+    let line_char = getline(lnum)[0]
+  endwhile
+  let starts = matchlist(getline(lnum), '^@@\+[ 0-9,-]* -\(\d\+\),\d\+ +\(\d\+\),')
+  if empty(starts)
+    return [0, 0, 0]
+  endif
+  return [lnum,
+        \ sigil ==# '+' ? 0 : starts[1] + offsets[' '] + offsets['-'],
+        \ sigil ==# '-' ? 0 : starts[2] + offsets[' '] + offsets['+']]
+endfunction
+
 function! s:MapMotion(lhs, rhs) abort
   let maps = [
         \ s:Map('n', a:lhs, ":<C-U>" . a:rhs . "<CR>", "<silent>"),
@@ -7844,22 +7857,17 @@ function! s:cfile() abort
           let dcmds = ['', 'Gdiffsplit! >' . myhash . '^:' . fnameescape(files[0])]
         endif
 
-      elseif getline('.') =~# '^[+-]\{3\} "\=[abciow12]\=/'
-        let ref = fugitive#Unquote(getline('.')[4:])
-
-      elseif getline('.') =~# '^[+-]' && search('^@@ -\d\+\%(,\d\+\)\= +\d\+','bnW')
-        let type = getline('.')[0]
-        let lnum = line('.') - 1
-        let offset = 0
-        while getline(lnum) !~# '^@@ -\d\+\%(,\d\+\)\= +\d\+'
-          if getline(lnum) =~# '^[ '.type.']'
-            let offset += 1
-          endif
-          let lnum -= 1
-        endwhile
-        let offset += matchstr(getline(lnum), type.'\zs\d\+')
-        let ref = fugitive#Unquote(getline(search('^'.type.'\{3\} "\=[abciow12]/','bnW'))[4:-1])
-        let dcmds = [offset, 'normal!zv']
+      elseif getline('.') =~# '^[+-]'
+        let [header_lnum, old_lnum, new_lnum] = s:HunkPosition(line('.'))
+        if new_lnum > 0
+          let ref = s:ParseDiffHeader(getline(search(s:diff_header_pattern, 'bnW')))[1]
+          let dcmds = [new_lnum, 'normal!zv']
+        elseif old_lnum > 0
+          let ref = s:ParseDiffHeader(getline(search(s:diff_header_pattern, 'bnW')))[0]
+          let dcmds = [old_lnum, 'normal!zv']
+        else
+          let ref = fugitive#Unquote(matchstr(getline('.'), '\C[+-]\{3\} \zs"\=[abciow12]/.*'))
+        endif
 
       elseif getline('.') =~# '^rename from '
         let ref = 'a/'.getline('.')[12:]
