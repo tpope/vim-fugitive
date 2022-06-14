@@ -4760,7 +4760,7 @@ function! s:StageInline(mode, ...) abort
     while get(stdout, index, '@@') !~# '^@@\|^diff '
       let index += 1
     endwhile
-    while get(stdout, index, '') =~# '^[@ +-]'
+    while get(stdout, index, '') =~# '^[@ \+-]'
       call add(diff, stdout[index])
       let index += 1
     endwhile
