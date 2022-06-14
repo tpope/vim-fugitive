@@ -425,7 +425,7 @@ function! s:GitCmd() abort
       call add(list, '/usr/bin/env')
     endif
     while string =~# '\S'
-      let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^[:space:] |]\)\+')
+      let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^' . "\t" . ' |]\)\+')
       let string = strpart(string, len(arg))
       let arg = substitute(arg, '^\s\+', '', '')
       let arg = substitute(arg,
@@ -2027,7 +2027,7 @@ function! s:SplitExpandChain(string, ...) abort
     if string =~# '^\s*|'
       return [list, substitute(string, '^\s*', '', '')]
     endif
-    let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^[:space:] |]\)\+')
+    let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^' . "\t" . ' |]\)\+')
     let string = strpart(string, len(arg))
     let arg = substitute(arg, '^\s\+', '', '')
     if !exists('seen_separator')
@@ -5935,7 +5935,7 @@ function! s:ArgSplit(string) abort
   let string = a:string
   let args = []
   while string =~# '\S'
-    let arg = matchstr(string, '^\s*\%(\\.\|[^[:space:]]\)\+')
+    let arg = matchstr(string, '^\s*\%(\\.\|\S\)\+')
     let string = strpart(string, len(arg))
     let arg = substitute(arg, '^\s\+', '', '')
     call add(args, substitute(arg, '\\\+[|" ]', '\=submatch(0)[len(submatch(0))/2 : -1]', 'g'))
