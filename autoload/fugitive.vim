@@ -7224,7 +7224,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
       let remote = matchstr(arg, '^++\%([Gg]it\)\=[Rr]emote=\zs\S\+')
       let arg = matchstr(arg, '\s\zs\S.*')
     endif
-    let validremote = '\.\%(git\)\=\|\.\=/.*\|[[:alnum:]_-]\+\%(://.\{-\}\)\='
+    let validremote = '\.\%(git\)\=\|\.\=/.*\|\a[[:alnum:]_-]*\%(://.\{-\}\)\='
     if arg ==# '-'
       let remote = ''
       let rev = ''
@@ -7235,8 +7235,8 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
         return 'echoerr ' . string('fugitive: could not find prior :Git invocation')
       endif
     elseif !exists('l:remote')
-      let remote = matchstr(arg, '@\zs\%('.validremote.'\)$')
-      let rev = substitute(arg, '@\%('.validremote.'\)$','','')
+      let remote = matchstr(arg, '\\\@<!\%(\\\\\)*[!@]\zs\%('.validremote.'\)$')
+      let rev = strpart(arg, 0, len(arg) - len(remote) - (empty(remote) ? 0 : 1))
     else
       let rev = arg
     endif
@@ -7257,6 +7257,11 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
       return 'echoerr ' . string('fugitive: no URL found in output of :Git')
     endif
     exe s:DirCheck(dir)
+    let config = fugitive#Config(dir)
+    if empty(remote) && expanded =~# '^[^-./:^~][^:^~]*$' && !empty(FugitiveConfigGet('remote.' . expanded . '.url', config))
+      let remote = expanded
+      let expanded = ''
+    endif
     if empty(expanded)
       let bufname = &buftype =~# '^\%(nofile\|terminal\)$' ? '' : s:BufName('%')
       let expanded = s:DirRev(bufname)[1]
@@ -7305,7 +7310,6 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
         let type = 'blob'
       endif
     endif
-    let config = fugitive#Config(dir)
     if type ==# 'tree' && !empty(path)
       let path = s:sub(path, '/\=$', '/')
     endif
