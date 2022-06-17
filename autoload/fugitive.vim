@@ -1553,7 +1553,11 @@ endfunction
 let s:repo_prototype = {}
 
 function! fugitive#repo(...) abort
-  return copy(s:repo_prototype)
+  let dir = a:0 ? s:GitDir(a:1) : (len(s:GitDir()) ? s:GitDir() : FugitiveExtractGitDir(expand('%:p')))
+  if dir !=# ''
+    return extend({'git_dir': dir, 'fugitive_dir': dir}, s:repo_prototype, 'keep')
+  endif
+  throw 'fugitive: not a Git repository'
 endfunction
 
 function! s:repo_dir(...) dict abort
