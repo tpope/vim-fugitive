@@ -7266,7 +7266,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
       if empty(expanded)
         let expanded = fugitive#Path(bufname, ':(top)', dir)
       endif
-      if a:count > 0 && bufname !=# bufname('')
+      if a:count > 0 && has_key(result, 'origin_bufnr') && a:range != 2
         let blame = s:BlameCommitFileLnum(getline(a:count))
         if len(blame[0])
           let expanded = blame[0]
@@ -7377,10 +7377,15 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
         if line2 > 0 && empty(arg) && commit =~# '^\x\{40,\}$'
           let blame_list = tempname()
           call writefile([commit, ''], blame_list, 'b')
-          let blame_in = tempname()
-          silent exe 'noautocmd keepalt %write' blame_in
-          let [blame, exec_error] = s:LinesError(['-c', 'blame.coloring=none', 'blame', '--contents', blame_in, '-L', line1.','.line2, '-S', blame_list, '-s', '--show-number', './' . path], dir)
-          call delete(blame_in)
+          let blame_cmd = ['-c', 'blame.coloring=none', 'blame', '-L', line1.','.line2, '-S', blame_list, '-s', '--show-number']
+          if !&l:modified || has_key(result, 'origin_bufnr')
+            let [blame, exec_error] = s:LinesError(blame_cmd + ['./' . path], dir)
+          else
+            let blame_in = tempname()
+            silent exe 'noautocmd keepalt %write' blame_in
+            let [blame, exec_error] = s:LinesError(blame_cmd + ['--contents', blame_in, './' . path], dir)
+            call delete(blame_in)
+          endif
           call delete(blame_list)
           if !exec_error
             let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
