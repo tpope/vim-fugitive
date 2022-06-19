@@ -7367,8 +7367,8 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
       endif
     endif
 
-    let line1 = a:count > 0 && type ==# 'blob' ? a:line1 : 0
-    let line2 = a:count > 0 && type ==# 'blob' ? a:count : 0
+    let line1 = a:count > 0 && type ==# 'blob' || type ==# 'commit' ? a:line1 : 0
+    let line2 = a:count > 0 && type ==# 'blob' || type ==# 'commit' ? a:count : 0
     if empty(commit) && path !~# '^\.git/'
       if a:count < 0
         let commit = merge
@@ -7436,6 +7436,21 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
           \ 'line1': line1,
           \ 'line2': line2}
 
+    if type ==# 'commit' && a:count
+      let pos1 = s:DiffLines(line1)
+      let pos2 = s:DiffLines(line2)
+      if !empty(pos1) && !empty(pos2)
+        let pattern = ' \(\/dev\/null\|[abciow12]\/\)\zs.*'
+        let opts.path = matchstr(getline(search('^+++'.pattern,'bnW')), '^+++'.pattern)
+        let opts.line1 = getline(line1)[0] == '-' ? 0 : pos1.new
+        let opts.line2 = getline(line2)[0] == '-' ? 0 : pos2.new
+        let opts.ancestor = {}
+        let opts.ancestor.path = matchstr(getline(search('^---'.pattern,'bnW')), '^---'.pattern)
+        let opts.ancestor.line1 = getline(line1)[0] == '+' ? 0 : pos1.old
+        let opts.ancestor.line2 = getline(line2)[0] == '+' ? 0 : pos2.old
+      endif
+    endif
+
     let url = ''
     for Handler in get(g:, 'fugitive_browse_handlers', [])
       let url = call(Handler, [copy(opts)])
@@ -7451,6 +7466,23 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
     return s:BrowserOpen(url, a:mods, a:bang)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
+  endtry
+endfunction
+
+function! s:DiffLines(line) abort
+  try
+    let offsets = {' ':0,'+':0,'-':0}
+    let offsets[getline(a:line)[0]] -= 0 " throw if on hunk header
+    let lnum = a:line - 1
+    while getline(lnum) !~# '^@@ -\d\+\%(,\d\+\)\= +\d\+'
+      let offsets[getline(lnum)[0]] += 1
+      let lnum -= 1
+    endwhile
+    return {
+          \ 'old': offsets['-'] + offsets[' '] + matchstr(getline(lnum), '-\zs\d\+'),
+          \ 'new': offsets['+'] + offsets[' '] + matchstr(getline(lnum), '+\zs\d\+'),
+          \}
+  catch /^Vim\%((\a\+)\)\=:E734/
   endtry
 endfunction
 
