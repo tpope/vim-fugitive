@@ -628,9 +628,9 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
     throw 'fugitive: Git 1.8.5 or higher required'
   endif
   let git = s:GitCmd()
-  if a:0 == 1 && type(a:1) == type({}) && has_key(a:1, 'git_dir') && has_key(a:1, 'flags') && has_key(a:1, 'args')
+  if a:0 == 1 && type(a:1) == type({}) && (has_key(a:1, 'fugitive_dir') || has_key(a:1, 'git_dir')) && has_key(a:1, 'flags') && has_key(a:1, 'args')
     let cmd = a:1.flags + a:1.args
-    let dir = a:1.git_dir
+    let dir = s:Dir(a:1)
     if has_key(a:1, 'git')
       let git = a:1.git
     endif
@@ -655,8 +655,8 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
   let arg_count = 0
   while i < len(cmd)
     if type(cmd[i]) == type({})
-      if has_key(cmd[i], 'git_dir')
-        let dir = cmd[i].git_dir
+      if has_key(cmd[i], 'fugitive_dir') || has_key(cmd[i], 'git_dir')
+        let dir = s:Dir(cmd[i])
       endif
       if has_key(cmd[i], 'git')
         let git = cmd[i].git
@@ -666,9 +666,9 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
       endif
       call remove(cmd, i)
     elseif cmd[i] =~# '^$\|[\/.]' && cmd[i] !~# '^-'
-      let dir = remove(cmd, i)
+      let dir = s:Dir(remove(cmd, i))
     elseif cmd[i] =~# '^--git-dir='
-      let dir = remove(cmd, i)[10:-1]
+      let dir = s:Dir(remove(cmd, i)[10:-1])
     elseif type(cmd[i]) ==# type(0)
       let dir = s:Dir(remove(cmd, i))
     elseif cmd[i] ==# '-c' && len(cmd) > i + 1
@@ -699,7 +699,7 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
     let autoenv.GPG_TTY = ''
   endif
   call s:PreparePathArgs(cmd, dir, literal_pathspecs, explicit_pathspec_option)
-  return [s:GitDir(dir), env, extend(autoenv, env), git, cmd[0 : -arg_count-1], arg_count ? cmd[-arg_count : -1] : []]
+  return [dir, env, extend(autoenv, env), git, cmd[0 : -arg_count-1], arg_count ? cmd[-arg_count : -1] : []]
 endfunction
 
 function! s:BuildEnvPrefix(env) abort
@@ -758,13 +758,14 @@ function! fugitive#PrepareJob(...) abort
   if a:0 == 1 && type(a:1) == type({}) && has_key(a:1, 'argv') && !has_key(a:1, 'args')
     return s:PrepareJob(a:1)
   endif
-  let [dir, user_env, exec_env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
+  let [repo, user_env, exec_env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
+  let dir = s:GitDir(repo)
   let dict = {'git': git, 'git_dir': dir, 'flags': flags, 'args': args}
   if len(user_env)
     let dict.env = user_env
   endif
   let cmd = flags + args
-  let tree = s:Tree(dir)
+  let tree = s:Tree(repo)
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
     let dict.cwd = getcwd()
     call extend(cmd, ['--git-dir=' . FugitiveGitPath(dir)], 'keep')
@@ -860,8 +861,8 @@ function! s:SystemList(cmd) abort
 endfunction
 
 function! fugitive#ShellCommand(...) abort
-  let [dir, _, env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
-  return s:BuildShell(dir, env, git, flags + args)
+  let [repo, _, env, git, flags, args] = call('fugitive#PrepareDirEnvGitFlagsArgs', a:000)
+  return s:BuildShell(s:GitDir(repo), env, git, flags + args)
 endfunction
 
 function! s:SystemError(cmd, ...) abort
