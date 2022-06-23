@@ -6083,7 +6083,7 @@ function! fugitive#Open(cmd, bang, mods, arg, ...) abort
   if file !~# '^\a\a\+:' && !(has('win32') && file =~# '^\a:/$')
     let file = substitute(file, '.\zs' . (has('win32') ? '[\/]' : '/') . '$', '', '')
   endif
-  if a:cmd ==# 'edit'
+  if a:cmd ==# 'edit' || a:cmd ==# 'drop'
     call s:BlurStatus()
   endif
   return mods . a:cmd . pre . ' ' . s:fnameescape(file)
