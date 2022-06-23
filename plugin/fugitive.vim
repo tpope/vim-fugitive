@@ -527,7 +527,7 @@ endif
 function! s:ProjectionistDetect() abort
   let file = s:Slash(get(g:, 'projectionist_file', ''))
   let dir = FugitiveExtractGitDir(file)
-  let base = get(matchlist(file, s:dir_commit_file), 1, '')
+  let base = matchstr(file, '^fugitive://.\{-\}//\x\+')
   if empty(base)
     let base = s:Tree(dir)
   endif
