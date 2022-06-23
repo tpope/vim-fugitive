@@ -91,12 +91,11 @@ function! FugitiveParse(...) abort
   if path !~# '^fugitive://'
     return ['', '']
   endif
-  let vals = matchlist(path, s:dir_commit_file)
-  if len(vals)
-    return [(vals[2] =~# '^.\=$' ? ':' : '') . vals[2] . substitute(vals[3], '^/', ':', ''), vals[1]]
+  let [rev, dir] = fugitive#Parse(path)
+  if !empty(dir)
+    return [rev, dir]
   endif
-  let v:errmsg = 'fugitive: invalid Fugitive URL ' . path
-  throw v:errmsg
+  throw 'fugitive: invalid Fugitive URL ' . path
 endfunction
 
 " FugitiveGitVersion() queries the version of Git in use.  Pass up to 3
@@ -430,7 +429,7 @@ function! FugitiveExtractGitDir(path) abort
     let path = s:Slash(a:path)
   endif
   if path =~# '^fugitive://'
-    return get(matchlist(path, s:dir_commit_file), 1, '')
+    return fugitive#Parse(path)[1]
   elseif empty(path)
     return ''
   endif
@@ -486,8 +485,6 @@ endfunction
 
 if exists('+shellslash')
 
-  let s:dir_commit_file = '\c^fugitive://\%(/\a\@=\)\=\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
-
   function! s:Slash(path) abort
     return tr(a:path, '\', '/')
   endfunction
@@ -501,8 +498,6 @@ if exists('+shellslash')
   endfunction
 
 else
-
-  let s:dir_commit_file = '\c^fugitive://\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
 
   function! s:Slash(path) abort
     return a:path

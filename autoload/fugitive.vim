@@ -1626,6 +1626,10 @@ function! s:DirRev(url) abort
   return [dir, commit . file ==# '/.git/index' ? ':' : (!empty(dir) && commit =~# '^.$' ? ':' : '') . commit . substitute(file, '^/', ':', '')]
 endfunction
 
+function! fugitive#Parse(url) abort
+  return reverse(s:DirRev(a:url))
+endfunction
+
 let s:merge_heads = ['MERGE_HEAD', 'REBASE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD']
 function! s:MergeHead(dir) abort
   let dir = fugitive#Find('.git/', a:dir)
