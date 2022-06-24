@@ -422,7 +422,7 @@ endfunction
 
 function! FugitiveExtractGitDir(path) abort
   if type(a:path) ==# type({})
-    return get(a:1, 'fugitive_dir', get(a:1, 'git_dir', ''))
+    return get(a:path, 'fugitive_dir', get(a:path, 'git_dir', ''))
   elseif type(a:path) == type(0)
     let path = s:Slash(a:path > 0 ? bufname(a:path) : bufname(''))
   else
