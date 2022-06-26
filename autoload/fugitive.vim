@@ -137,7 +137,7 @@ endfunction
 
 if exists('+shellslash')
 
-  let s:dir_commit_file = '\c^fugitive://\%(/\a\@=\)\=\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
+  let s:dir_commit_file = '\c^fugitive://\%(/[^/]\@=\)\=\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
 
   function! s:Slash(path) abort
     return tr(a:path, '\', '/')
@@ -542,9 +542,16 @@ function! s:SameRepo(one, two) abort
   return !empty(one) && one ==# s:GitDir(a:two)
 endfunction
 
-function! s:DirUrlPrefix(...) abort
-  return 'fugitive://' . call('s:GitDir', a:000) . '//'
-endfunction
+if exists('+shellslash')
+  function! s:DirUrlPrefix(...) abort
+    let gd = call('s:GitDir', a:000)
+    return 'fugitive://' . (gd =~# '^[^/]' ? '/' : '') . gd . '//'
+  endfunction
+else
+  function! s:DirUrlPrefix(...) abort
+    return 'fugitive://' . call('s:GitDir', a:000) . '//'
+  endfunction
+endif
 
 function! s:Tree(...) abort
   return a:0 ? FugitiveWorkTree(a:1) : FugitiveWorkTree()
