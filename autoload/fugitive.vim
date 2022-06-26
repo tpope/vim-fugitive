@@ -543,15 +543,19 @@ function! s:SameRepo(one, two) abort
 endfunction
 
 if exists('+shellslash')
-  function! s:DirUrlPrefix(...) abort
-    let gd = call('s:GitDir', a:000)
+  function! s:DirUrlPrefix(dir) abort
+    let gd = s:GitDir(a:dir)
     return 'fugitive://' . (gd =~# '^[^/]' ? '/' : '') . gd . '//'
   endfunction
 else
-  function! s:DirUrlPrefix(...) abort
-    return 'fugitive://' . call('s:GitDir', a:000) . '//'
+  function! s:DirUrlPrefix(dir) abort
+    return 'fugitive://' . s:GitDir(a:dir) . '//'
   endfunction
 endif
+
+function! s:PathJoin(prefix, str) dict abort
+  return a:prefix . a:str
+endfunction
 
 function! s:Tree(...) abort
   return a:0 ? FugitiveWorkTree(a:1) : FugitiveWorkTree()
@@ -1791,7 +1795,7 @@ function! fugitive#Find(object, ...) abort
     if f =~# '^\.\./\.\.\%(/\|$\)'
       let f = simplify(len(tree) ? tree . f[2:-1] : fdir . f)
     elseif f =~# '^\.\.\%(/\|$\)'
-      let f = base . f[2:-1]
+      let f = s:PathJoin(base, f[2:-1])
     elseif cdir !=# fdir && (
           \ f =~# '^\%(config\|hooks\|info\|logs/refs\|objects\|refs\|worktrees\)\%(/\|$\)' ||
           \ f !~# '^\%(index$\|index\.lock$\|\w*MSG$\|\w*HEAD$\|logs/\w*HEAD$\|logs$\|rebase-\w\+\)\%(/\|$\)' &&
@@ -1803,17 +1807,17 @@ function! fugitive#Find(object, ...) abort
   elseif rev ==# ':/'
     let f = tree
   elseif rev =~# '^\.\%(/\|$\)'
-    let f = base . rev[1:-1]
+    let f = s:PathJoin(base, rev[1:-1])
   elseif rev =~# '^::\%(/\|\a\+\:\)'
     let f = rev[2:-1]
   elseif rev =~# '^::\.\.\=\%(/\|$\)'
     let f = simplify(getcwd() . '/' . rev[2:-1])
   elseif rev =~# '^::'
-    let f = base . '/' . rev[2:-1]
+    let f = s:PathJoin(base, '/' . rev[2:-1])
   elseif rev =~# '^:\%([0-3]:\)\=\.\.\=\%(/\|$\)\|^:[0-3]:\%(/\|\a\+:\)'
     let f = rev =~# '^:\%([0-3]:\)\=\.' ? simplify(getcwd() . '/' . matchstr(rev, '\..*')) : rev[3:-1]
     if s:cpath(base . '/', (f . '/')[0 : len(base)])
-      let f = urlprefix . +matchstr(rev, '^:\zs\d\ze:') . '/' . strpart(f, len(base) + 1)
+      let f = s:PathJoin(urlprefix, +matchstr(rev, '^:\zs\d\ze:') . '/' . strpart(f, len(base) + 1))
     else
       let altdir = FugitiveExtractGitDir(f)
       if len(altdir) && !s:cpath(dir, altdir)
@@ -1821,7 +1825,7 @@ function! fugitive#Find(object, ...) abort
       endif
     endif
   elseif rev =~# '^:[0-3]:'
-    let f = urlprefix . rev[1] . '/' . rev[3:-1]
+    let f = s:PathJoin(urlprefix, rev[1] . '/' . rev[3:-1])
   elseif rev ==# ':'
     let fdir = simplify(FugitiveActualDir(dir) . '/')
     let f = fdir . 'index'
@@ -1840,10 +1844,10 @@ function! fugitive#Find(object, ...) abort
     if f=~# '^\.\.\=\%(/\|$\)'
       let f = simplify(getcwd() . '/' . f)
     elseif f !~# '^/\|^\%(\a\a\+:\).*\%(//\|::\)' . (has('win32') ? '\|^\a:/' : '')
-      let f = base . '/' . f
+      let f = s:PathJoin(base, '/' . f)
     endif
   elseif rev =~# '^:/\@!'
-    let f = urlprefix . '0/' . rev[1:-1]
+    let f = s:PathJoin(urlprefix, '0/' . rev[1:-1])
   else
     if !exists('f')
       let commit = matchstr(rev, '^\%([^:.-]\|\.\.[^/:]\)[^:]*\|^:.*')
@@ -1872,9 +1876,9 @@ function! fugitive#Find(object, ...) abort
         endif
       endif
       if len(commit)
-        let f = urlprefix . commit . file
+        let f = s:PathJoin(urlprefix, commit . file)
       else
-        let f = base . '/' . substitute(rev, '^:/:\=\|^[^:]\+:', '', '')
+        let f = s:PathJoin(base, '/' . substitute(rev, '^:/:\=\|^[^:]\+:', '', ''))
       endif
     endif
   endif
@@ -2155,7 +2159,7 @@ function! fugitive#simplify(url) abort
       endif
     endif
   endif
-  return s:VimSlash(s:DirUrlPrefix(simplify(s:GitDir(dir))) . commit . simplify(file))
+  return s:VimSlash(s:PathJoin(s:DirUrlPrefix(simplify(s:GitDir(dir))), commit . simplify(file)))
 endfunction
 
 function! fugitive#resolve(url) abort
@@ -2333,7 +2337,7 @@ function! fugitive#glob(url, ...) abort
     call filter(files, 'v:val =~# pattern')
     let prepend = s:DirUrlPrefix(dir) . substitute(commit, '^:', '', '') . '/'
     call sort(files)
-    call map(files, 's:VimSlash(prepend . v:val . append)')
+    call map(files, 's:VimSlash(s:PathJoin(prepend, v:val . append))')
     call extend(results, files)
   endfor
   if a:0 > 1 && a:2
@@ -5610,7 +5614,7 @@ function! s:GrepParseLine(options, quiet, dir, line) abort
     return {'text': a:line}
   endif
   if entry.module !~# ':'
-    let entry.filename = a:options.prefix . entry.module
+    let entry.filename = s:PathJoin(a:options.prefix, entry.module)
   else
     let entry.filename = fugitive#Find(entry.module, a:dir)
   endif
@@ -5811,7 +5815,7 @@ function! s:LogParse(state, dir, prefix, line) abort
     let a:state.queue = [{
           \ 'valid': 1,
           \ 'context': context,
-          \ 'filename': a:state.base . a:state.target,
+          \ 'filename': s:PathJoin(a:state.base, a:state.target),
           \ 'module': a:state.base_module . substitute(a:state.target, '^/', ':', ''),
           \ 'text': a:state.message}]
     let a:state.child_found = 0
