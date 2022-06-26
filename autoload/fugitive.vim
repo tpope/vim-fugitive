@@ -649,7 +649,7 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
   else
     let list_args = []
     let cmd = []
-    for arg in a:000
+    for l:.arg in a:000
       if type(arg) ==# type([])
         call extend(list_args, arg)
       else
@@ -1226,7 +1226,7 @@ function! s:SshParseConfig(into, root, file, ...) abort
     elseif key ==# 'include'
       call s:SshParseInclude(a:into, a:root, host, value)
     elseif len(key) && len(host)
-      call extend(a:into, {key: []}, 'keep')
+      call extend(a:into, {key : []}, 'keep')
       call add(a:into[key], [host, value])
     endif
   endfor
@@ -1470,12 +1470,12 @@ function! s:RemoteUrlCallback(remote, callback) abort
 endfunction
 
 function! fugitive#RemoteUrl(...) abort
-  let [dir_or_config, remote, flags, cb] = s:RemoteParseArgs(a:000)
+  let [dir_or_config, remote_url, flags, cb] = s:RemoteParseArgs(a:000)
   if len(cb)
     let cb = [function('s:RemoteUrlCallback'), cb]
   endif
-  let remote = s:Remote(dir_or_config, remote, flags, cb)
-  return get(remote, 'url', remote)
+  let remote = s:Remote(dir_or_config, remote_url, flags, cb)
+  return get(remote, 'url', remote_url)
 endfunction
 
 " Section: Quickfix
