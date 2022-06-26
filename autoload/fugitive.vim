@@ -7243,7 +7243,9 @@ augroup END
 " Section: :GBrowse
 
 function! s:BrowserOpen(url, mods, echo_copy) abort
-  let url = substitute(a:url, '[ <>\|"]', '\="%".printf("%02X",char2nr(submatch(0)))', 'g')
+  let [_, main, query, anchor; __] = matchlist(a:url, '^\([^#?]*\)\(?[^#]*\)\=\(#.*\)\=')
+  let url = main . tr(query, ' ', '+') . anchor
+  let url = substitute(url, '[ <>\|"]', '\="%".printf("%02X",char2nr(submatch(0)))', 'g')
   let mods = s:Mods(a:mods)
   if a:echo_copy
     if has('clipboard')
@@ -7476,28 +7478,30 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
           \ 'repo': {'git_dir': git_dir},
           \ 'remote': raw,
           \ 'remote_name': remote,
-          \ 'commit': commit,
-          \ 'path': path,
+          \ 'commit': s:UrlEncode(commit),
+          \ 'path': substitute(s:UrlEncode(path), '%20', ' ', 'g'),
           \ 'type': type,
           \ 'line1': line1,
           \ 'line2': line2}
 
     if empty(path)
       if type ==# 'ref' && ref =~# '^refs/'
-        let opts.path = '.git/' . ref
+        let opts.path = '.git/' . s:UrlEncode(ref)
         let opts.type = ''
       elseif type ==# 'root'
         let opts.path ='.git/index'
         let opts.type = ''
       endif
     elseif type ==# 'tree' && !empty(path)
-      let opts.path = s:sub(path, '/\=$', '/')
+      let opts.path = s:sub(opts.path, '/\=$', '/')
     endif
+    let opts.path = tr(substitute(opts.path, '\~', '%7E', 'g'), '%', '~')
+    let opts.commit = tr(substitute(opts.commit, '\~', '%7E', 'g'), '%', '~')
 
     for l:.Handler in get(g:, 'fugitive_browse_handlers', [])
       let l:.url = call(Handler, [copy(opts)])
       if type(url) == type('') && url =~# '://'
-        return s:BrowserOpen(url, a:mods, a:bang)
+        return s:BrowserOpen(substitute(tr(url, '~', '%'), '\C%7E', '\~', 'g'), a:mods, a:bang)
       endif
     endfor
 
