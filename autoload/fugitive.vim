@@ -7457,19 +7457,14 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
       let opts.path = s:sub(path, '/\=$', '/')
     endif
 
-    let url = ''
-    for Handler in get(g:, 'fugitive_browse_handlers', [])
-      let url = call(Handler, [copy(opts)])
-      if !empty(url)
-        break
+    for l:.Handler in get(g:, 'fugitive_browse_handlers', [])
+      let l:.url = call(Handler, [copy(opts)])
+      if type(url) == type('') && url =~# '://'
+        return s:BrowserOpen(url, a:mods, a:bang)
       endif
     endfor
 
-    if empty(url)
-      throw "fugitive: no GBrowse handler installed for '".raw."'"
-    endif
-
-    return s:BrowserOpen(url, a:mods, a:bang)
+    throw "fugitive: no GBrowse handler installed for '".raw."'"
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
