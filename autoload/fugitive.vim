@@ -88,6 +88,18 @@ function! s:UrlEncode(str) abort
   return substitute(a:str, '[%#?&;+\<> [:cntrl:]]', '\=printf("%%%02X", char2nr(submatch(0)))', 'g')
 endfunction
 
+function! s:PathUrlEncode(str) abort
+  return substitute(a:str, '[%#?[:cntrl:]]', '\=printf("%%%02X", char2nr(submatch(0)))', 'g')
+endfunction
+
+function! s:PathJoin(prefix, str) abort
+  if a:prefix =~# '://'
+    return a:prefix . s:PathUrlEncode(a:str)
+  else
+    return a:prefix . a:str
+  endif
+endfunction
+
 function! s:throw(string) abort
   throw 'fugitive: '.a:string
 endfunction
@@ -553,17 +565,13 @@ endfunction
 if exists('+shellslash')
   function! s:DirUrlPrefix(dir) abort
     let gd = s:GitDir(a:dir)
-    return 'fugitive://' . (gd =~# '^[^/]' ? '/' : '') . gd . '//'
+    return 'fugitive://' . (gd =~# '^[^/]' ? '/' : '') . s:PathUrlEncode(gd) . '//'
   endfunction
 else
   function! s:DirUrlPrefix(dir) abort
-    return 'fugitive://' . s:GitDir(a:dir) . '//'
+    return 'fugitive://' . s:PathUrlEncode(s:GitDir(a:dir)) . '//'
   endfunction
 endif
-
-function! s:PathJoin(prefix, str) abort
-  return a:prefix . a:str
-endfunction
 
 function! s:Tree(...) abort
   return a:0 ? FugitiveWorkTree(a:1) : FugitiveWorkTree()
@@ -1638,7 +1646,7 @@ function! s:DirCommitFile(path) abort
   if empty(vals)
     return ['', '', '']
   endif
-  return [s:Dir(vals[1])] + (empty(vals[2]) ? ['', '/.git/index'] : vals[2:3])
+  return [s:Dir(fugitive#UrlDecode(vals[1])), vals[2], empty(vals[2]) ? '/.git/index' : fugitive#UrlDecode(vals[3])]
 endfunction
 
 function! s:DirRev(url) abort
