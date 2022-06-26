@@ -553,7 +553,7 @@ else
   endfunction
 endif
 
-function! s:PathJoin(prefix, str) dict abort
+function! s:PathJoin(prefix, str) abort
   return a:prefix . a:str
 endfunction
 
