@@ -6112,6 +6112,10 @@ function! s:OpenExpand(dir, file, wants_cmd) abort
   else
     let efile = s:Expand(a:file)
   endif
+  if efile =~# '^https\=://'
+    let [url, lnum] = s:ResolveUrl(efile, dir)
+    return [url, a:wants_cmd ? lnum : 0]
+  endif
   let url = s:Generate(efile, a:dir)
   if a:wants_cmd && a:file[0] ==# '>' && efile[0] !=# '>' && get(b:, 'fugitive_type', '') isnot# 'tree' && &filetype !=# 'netrw'
     let line = line('.')
@@ -7606,6 +7610,115 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
+endfunction
+
+function! s:RemoteRefToLocalRef(repo, remote_url, ref_path) abort
+  let ref_path = substitute(a:ref_path, ':', '/', '')
+  let rev = ''
+  if ref_path =~# '^\x\{40,\}\%(/\|$\)'
+    let rev = substitute(ref_path, '/', ':', '')
+  elseif ref_path =~# '^[^:/^~]\+'
+    let first_component = matchstr(ref_path, '^[^:/^~]\+')
+    let lines = fugitive#Execute(['ls-remote', a:remote_url, first_component, first_component . '/*'], a:repo).stdout[0:-2]
+    for line in lines
+      let full = matchstr(line, "\t\\zs.*")
+      for candidate in [full, matchstr(full, '^refs/\w\+/\zs.*')]
+        if candidate ==# first_component || strpart(ref_path . '/', 0, len(candidate) + 1) ==# candidate . '/'
+          let rev = matchstr(line, '^\x\+') . substitute(strpart(ref_path, len(candidate)), '/', ':', '')
+        endif
+      endfor
+    endfor
+  endif
+  if empty(rev)
+    return ''
+  endif
+  let commitish = matchstr(rev, '^[^:^~]*')
+  let rev_parse = fugitive#Execute(['rev-parse', '--verify', commitish], a:repo)
+  if rev_parse.exit_status
+    if fugitive#Execute(['fetch', remote_url, commitish], a:repo).exit_status
+      return ''
+    endif
+    let rev_parse = fugitive#Execute(['rev-parse', '--verify', commitish], a:repo)
+  endif
+  if rev_parse.exit_status
+    return ''
+  endif
+  return rev_parse.stdout[0] . matchstr(rev, ':.*')
+endfunction
+
+function! fugitive#ResolveUrl(target, ...) abort
+  let repo = call('s:Dir', a:000)
+  let origins = get(g:, 'fugitive_url_origins', {})
+  let prefix = substitute(s:Slash(a:target), '#.*', '', '')
+  while prefix =~# '://'
+    let extracted = FugitiveExtractGitDir(expand(get(origins, prefix, '')))
+    if !empty(extracted)
+      let repo = s:Dir(extracted)
+      break
+    endif
+    let prefix = matchstr(prefix, '.*\ze/')
+  endwhile
+  let git_dir = s:GitDir(repo)
+  for remote_name in keys(FugitiveConfigGetRegexp('^remote\.\zs.*\ze\.url$', repo))
+    let remote_url = fugitive#RemoteUrl(remote_name, repo)
+    for [no_anchor; variant] in [[1, 'commit'], [1, 'tree'], [1, 'tree', 1], [1, 'blob', 1], [0, 'blob', 1, '1`line1`', '1`line1`'], [0, 'blob', 1, '1`line1`', '2`line2`']]
+      let handler_opts = {
+            \ 'git_dir': git_dir,
+            \ 'repo': {'git_dir': git_dir},
+            \ 'remote': remote_url,
+            \ 'remote_name': remote_name,
+            \ 'commit': '1`commit`',
+            \ 'type': get(variant, 0),
+            \ 'path': get(variant, 1) ? '1`path`' : '',
+            \ 'line1': get(variant, 2),
+            \ 'line2': get(variant, 3)}
+      let url = ''
+      for l:.Handler in get(g:, 'fugitive_browse_handlers', [])
+        let l:.url = call(Handler, [copy(handler_opts)])
+        if type(url) == type('') && url =~# '://'
+          break
+        endif
+      endfor
+      if type(url) != type('') || url !~# '://'
+        continue
+      endif
+      let keys = split(substitute(url, '\d`\(\w\+`\)\|.', '\1', 'g'), '`')
+      let pattern = substitute(url, '\d`\w\+`\|[][^$.*\~]', '\=len(submatch(0)) == 1 ? "\\" . submatch(0) : "\\([^#?&;]\\{-\\}\\)"', 'g')
+      let pattern = '^' . substitute(pattern, '^https\=:', 'https\\=:', '') . '$'
+      let target = s:Slash(no_anchor ? substitute(a:target, '#.*', '', '') : a:target)
+      let values = matchlist(s:Slash(a:target), pattern)[1:-1]
+      if empty(values)
+        continue
+      endif
+      let kvs = {}
+      for i in range(len(keys))
+        let kvs[keys[i]] = values[i]
+      endfor
+      if has_key(kvs, 'commit') && has_key(kvs, 'path')
+        let ref_path = kvs.commit . '/' . kvs.path
+      elseif has_key(kvs, 'commit') && variant[0] ==# 'tree'
+        let ref_path = kvs.commit . '/'
+      elseif has_key(kvs, 'commit')
+        let ref_path = kvs.commit
+      else
+        continue
+      endif
+      let rev = s:RemoteRefToLocalRef(repo, remote_url, fugitive#UrlDecode(ref_path))
+      return [fugitive#Find(rev, repo), empty(rev) ? 0 : +get(kvs, 'line1')]
+    endfor
+  endfor
+  return ['', 0]
+endfunction
+
+function! s:ResolveUrl(target, ...) abort
+  try
+    let [url, lnum] = call('fugitive#ResolveUrl', [a:target] + a:000)
+    if !empty(url)
+      return [url, lnum]
+    endif
+  catch
+  endtry
+  return [substitute(a:target, '#.*', '', ''), 0]
 endfunction
 
 " Section: Maps
