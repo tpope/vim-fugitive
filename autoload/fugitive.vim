@@ -2025,6 +2025,8 @@ function! s:Expand(rev, ...) abort
     let file = len(expand('%')) ? a:rev[-2:-1] . ':%' : '%'
   elseif a:rev =~# '^>\%(:\=/\)\=$'
     let file = '%'
+  elseif a:rev =~# '^>[> ]\@!' && @% !~# '^fugitive:' && s:Slash(@%) =~# '://'
+    let file = '%'
   elseif a:rev ==# '>:'
     let file = empty(s:DirCommitFile(@%)[0]) ? ':0:%' : '%'
   elseif a:rev =~# '^>[> ]\@!'
@@ -5990,28 +5992,37 @@ function! s:OpenParse(string, wants_cmd) abort
       break
     endif
   endwhile
-  if len(args) && args !=# ['>:']
-    let file = join(args)
-    if file ==# '-'
-      let result = fugitive#Result()
-      if has_key(result, 'file')
-        let file = s:fnameescape(result.file)
-      else
-        throw 'fugitive: no previous command output'
-      endif
-    endif
-  elseif empty(expand('%'))
-    let file = ''
-  elseif empty(s:DirCommitFile(@%)[1]) && s:Relative('./') !~# '^\./\.git\>'
-    let file = '>:0'
-  else
-    let file = '>'
+  if empty(args) && !empty(@%)
+    let args = ['>:']
   endif
   let dir = s:Dir()
-  let efile = s:Expand(file)
-  let url = s:Generate(efile, dir)
+  let [url, lnum] = s:OpenExpand(dir, join(args), a:wants_cmd)
+  if lnum
+    call insert(cmds, lnum)
+  endif
 
-  if a:wants_cmd && file[0] ==# '>' && efile[0] !=# '>' && get(b:, 'fugitive_type', '') isnot# 'tree' && &filetype !=# 'netrw'
+  let pre = join(opts, '')
+  if len(cmds) > 1
+    let pre .= ' +' . s:PlusEscape(join(map(cmds, '"exe ".string(v:val)'), '|'))
+  elseif len(cmds)
+    let pre .= ' +' . s:PlusEscape(cmds[0])
+  endif
+  return [url, pre]
+endfunction
+
+function! s:OpenExpand(dir, file, wants_cmd) abort
+  if a:file ==# '-'
+    let result = fugitive#Result()
+    if has_key(result, 'file')
+      let efile = result.file
+    else
+      throw 'fugitive: no previous command output'
+    endif
+  else
+    let efile = s:Expand(a:file)
+  endif
+  let url = s:Generate(efile, a:dir)
+  if a:wants_cmd && a:file[0] ==# '>' && efile[0] !=# '>' && get(b:, 'fugitive_type', '') isnot# 'tree' && &filetype !=# 'netrw'
     let line = line('.')
     if expand('%:p') !=# url
       let diffcmd = 'diff'
@@ -6028,7 +6039,7 @@ function! s:OpenParse(string, wants_cmd) abort
       else
         let args = [from, to]
       endif
-      let [res, exec_error] = s:LinesError([dir, diffcmd, '-U0'] + args)
+      let [res, exec_error] = s:LinesError([a:dir, diffcmd, '-U0'] + args)
       if !exec_error
         call filter(res, 'v:val =~# "^@@ "')
         call map(res, 'substitute(v:val, ''[-+]\d\+\zs '', ",1 ", "g")')
@@ -6045,16 +6056,9 @@ function! s:OpenParse(string, wants_cmd) abort
         endif
       endif
     endif
-    call insert(cmds, line)
+    return [url, line]
   endif
-
-  let pre = join(opts, '')
-  if len(cmds) > 1
-    let pre .= ' +' . s:PlusEscape(join(map(cmds, '"exe ".string(v:val)'), '|'))
-  elseif len(cmds)
-    let pre .= ' +' . s:PlusEscape(cmds[0])
-  endif
-  return [url, pre]
+  return [url, 0]
 endfunction
 
 function! fugitive#DiffClose() abort
