@@ -5981,6 +5981,9 @@ function! s:OpenParse(string, wants_cmd) abort
   while !empty(args)
     if args[0] =~# '^++'
       call add(opts, ' ' . s:PlusEscape(remove(args, 0)))
+    elseif a:wants_cmd && args[0] ==# '+'
+      call remove(args, 0)
+      call add(cmds, '$')
     elseif a:wants_cmd && args[0] =~# '^+'
       call add(cmds, remove(args, 0)[1:-1])
     else
