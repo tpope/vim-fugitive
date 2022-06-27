@@ -1770,7 +1770,9 @@ function! fugitive#Find(object, ...) abort
     return s:VimSlash(FugitiveVimPath((len(owner) ? owner : prefix) . strpart(a:object, len(prefix))))
   endif
   let rev = s:Slash(a:object)
-  if rev =~# '^$\|^/\|^\%(\a\a\+:\).*\%(//\|::\)' . (has('win32') ? '\|^\a:/' : '')
+  if rev =~# '^\a\+://' && rev !~# '^fugitive:'
+    return rev
+  elseif rev =~# '^$\|^/\|^\%(\a\a\+:\).*\%(//\|::\)' . (has('win32') ? '\|^\a:/' : '')
     return s:VimSlash(a:object)
   elseif rev =~# '^\.\.\=\%(/\|$\)'
     return s:VimSlash(simplify(getcwd() . '/' . a:object))
@@ -6024,7 +6026,7 @@ function! s:OpenExpand(dir, file, wants_cmd) abort
   let url = s:Generate(efile, a:dir)
   if a:wants_cmd && a:file[0] ==# '>' && efile[0] !=# '>' && get(b:, 'fugitive_type', '') isnot# 'tree' && &filetype !=# 'netrw'
     let line = line('.')
-    if expand('%:p') !=# url
+    if s:Slash(expand('%:p')) !=# s:Slash(url)
       let diffcmd = 'diff'
       let from = s:DirRev(@%)[1]
       let to = s:DirRev(url)[1]
