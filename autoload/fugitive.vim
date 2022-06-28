@@ -1895,8 +1895,8 @@ function! s:Generate(object, ...) abort
   elseif a:object ==# ':/'
     return len(dir) ? s:VimSlash(s:DirUrlPrefix(dir) . '0') : '.'
   endif
-  let file = matchstr(a:object, '^\%(:\d:\|[^:]*:\)\zs.*')
-  return fnamemodify(s:VimSlash(len(file) ? file : a:object), ':p')
+  let file = matchstr(a:object, '^\%(:\d:\|[^:]*:\)\=\zs.*')
+  return empty(file) ? '' : fnamemodify(s:VimSlash(file), ':p')
 endfunction
 
 function! s:DotRelative(path, ...) abort
@@ -2027,7 +2027,7 @@ function! s:Expand(rev, ...) abort
     let file = len(expand('%')) ? a:rev[-2:-1] . ':%' : '%'
   elseif a:rev =~# '^>\%(:\=/\)\=$'
     let file = '%'
-  elseif a:rev =~# '^>[> ]\@!' && @% !~# '^fugitive:' && s:Slash(@%) =~# '://'
+  elseif a:rev =~# '^>[> ]\@!' && @% !~# '^fugitive:' && s:Slash(@%) =~# '://\|^$'
     let file = '%'
   elseif a:rev ==# '>:'
     let file = empty(s:DirCommitFile(@%)[0]) ? ':0:%' : '%'
@@ -5994,7 +5994,7 @@ function! s:OpenParse(string, wants_cmd) abort
       break
     endif
   endwhile
-  if empty(args) && !empty(@%)
+  if empty(args)
     let args = ['>:']
   endif
   let dir = s:Dir()
@@ -6099,17 +6099,14 @@ function! fugitive#Open(cmd, bang, mods, arg, ...) abort
   endif
 
   let mods = s:Mods(a:mods)
+  if a:cmd ==# 'edit' || a:cmd ==# 'drop'
+    call s:BlurStatus()
+  endif
   try
     let [file, pre] = s:OpenParse(a:arg, 1)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
-  if file !~# '^\a\a\+:' && !(has('win32') && file =~# '^\a:/$')
-    let file = substitute(file, '.\zs' . (has('win32') ? '[\/]' : '/') . '$', '', '')
-  endif
-  if a:cmd ==# 'edit' || a:cmd ==# 'drop'
-    call s:BlurStatus()
-  endif
   return mods . a:cmd . pre . ' ' . s:fnameescape(file)
 endfunction
 
