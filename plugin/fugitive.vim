@@ -577,7 +577,7 @@ exe 'command! -bar -bang -nargs=*                          -complete=customlist,
 exe 'command! -bar -bang -nargs=* -range=-1' s:addr_other '-complete=customlist,fugitive#EditComplete   Gsplit   exe fugitive#Open((<count> > 0 ? <count> : "").(<count> ? "split" : "edit"), <bang>0, "<mods>", <q-args>)'
 exe 'command! -bar -bang -nargs=* -range=-1' s:addr_other '-complete=customlist,fugitive#EditComplete   Gvsplit  exe fugitive#Open((<count> > 0 ? <count> : "").(<count> ? "vsplit" : "edit!"), <bang>0, "<mods>", <q-args>)'
 exe 'command! -bar -bang -nargs=* -range=-1' s:addr_tabs  '-complete=customlist,fugitive#EditComplete   Gtabedit exe fugitive#Open((<count> >= 0 ? <count> : "")."tabedit", <bang>0, "<mods>", <q-args>)'
-exe 'command! -bar -bang -nargs=*                          -complete=customlist,fugitive#EditComplete   Gdrop    exe fugitive#Open("drop", <bang>0, "<mods>", <q-args>)'
+exe 'command! -bar -bang -nargs=*                          -complete=customlist,fugitive#EditComplete   Gdrop    exe fugitive#DropCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
 
 if exists(':Gr') != 2
   exe 'command! -bar -bang -nargs=* -range=-1                -complete=customlist,fugitive#ReadComplete   Gr     exe fugitive#ReadCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
