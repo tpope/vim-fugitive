@@ -85,7 +85,7 @@ function! fugitive#UrlDecode(str) abort
 endfunction
 
 function! s:UrlEncode(str) abort
-  return substitute(a:str, '[%#?&;+\<> [:cntrl:]]', '\=printf("%%%02X", char2nr(submatch(0)))', 'g')
+  return substitute(a:str, '[%#?&;+=\<> [:cntrl:]]', '\=printf("%%%02X", char2nr(submatch(0)))', 'g')
 endfunction
 
 function! s:PathUrlEncode(str) abort
