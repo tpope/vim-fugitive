@@ -4343,7 +4343,7 @@ augroup fugitive_status
         \ if get(g:, 'fugitive_focus_gained', !has('win32')) |
         \   call fugitive#DidChange(0) |
         \ endif
-  autocmd BufEnter index,index.lock
+  autocmd BufEnter index,index.lock,fugitive://*//
         \ call s:ReloadWinStatus()
   autocmd TabEnter *
         \ if exists('t:fugitive_reload_status') |
