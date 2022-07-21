@@ -4609,6 +4609,7 @@ function! s:NextHunk(count) abort
 endfunction
 
 function! s:PreviousHunk(count) abort
+  normal! 0
   for i in range(a:count)
     if &filetype ==# 'fugitive'
       if getline('.') =~# '^@' && getline(line('.') - 1) =~# s:file_pattern
@@ -4638,6 +4639,7 @@ endfunction
 
 function! s:PreviousFile(count) abort
   exe s:StageInline('hide')
+  normal! 0
   for i in range(a:count)
     if !search(s:file_pattern, 'Wb')
       break
@@ -4658,6 +4660,7 @@ function! s:NextItem(count) abort
 endfunction
 
 function! s:PreviousItem(count) abort
+  normal! 0
   for i in range(a:count)
     if !search(s:item_pattern, 'Wb') && getline('.') !~# s:item_pattern
       call search('^commit ', 'Wb')
@@ -4693,6 +4696,7 @@ function! s:PreviousSection(count) abort
   if getline('.') !~# '^commit '
     -
   endif
+  normal! 0
   for i in range(a:count)
     if !search(s:section_commit_pattern . '\|\%^', 'bW')
       break
