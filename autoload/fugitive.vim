@@ -4611,6 +4611,9 @@ endfunction
 function! s:PreviousHunk(count) abort
   for i in range(a:count)
     if &filetype ==# 'fugitive'
+      if getline('.') =~# '^@' && getline(line('.') - 1) =~# s:file_pattern
+        -
+      endif
       let lnum = search(s:file_pattern . '\|^@','Wbn')
       call s:StageInline('show', lnum)
       call search('^? .\|^@','Wb')
