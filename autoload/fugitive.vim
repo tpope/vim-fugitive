@@ -342,13 +342,13 @@ function! fugitive#Wait(job_or_jobs, ...) abort
   else
     let sleep = has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
     for job in jobs
-      if ch_status(job) !=# 'closed'
+      if ch_status(job) ==# 'open'
         call ch_close_in(job)
       endif
     endfor
     let i = 0
     for job in jobs
-      while ch_status(job) !=# 'closed' || job_status(job) ==# 'run'
+      while ch_status(job) !~# '^closed$\|^fail$' || job_status(job) ==# 'run'
         if i == timeout_ms
           break
         endif
@@ -873,7 +873,7 @@ function! s:SystemList(cmd) abort
     let job = job_start(a:cmd, jopts)
     call ch_close_in(job)
     let sleep = has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
-    while ch_status(job) !=# 'closed' || job_status(job) ==# 'run'
+    while ch_status(job) !~# '^closed$\|^fail$' || job_status(job) ==# 'run'
       exe sleep
     endwhile
     return [lines, exit[0]]
@@ -988,7 +988,7 @@ function! s:StdoutToFile(out, cmd, ...) abort
         call ch_sendraw(job, a:1)
       endif
       call ch_close_in(job)
-      while ch_status(job) !=# 'closed' || job_status(job) ==# 'run'
+      while ch_status(job) !~# '^closed$\|^fail$' || job_status(job) ==# 'run'
         exe has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
       endwhile
       return [join(readfile(err, 'b'), "\n"), exit[0]]
@@ -3493,7 +3493,7 @@ function! s:RunTick(job) abort
   if type(a:job) == v:t_number
     return jobwait([a:job], 1)[0] == -1
   elseif type(a:job) == 8
-    let running = ch_status(a:job) !~# '^closed$\|^failed$' || job_status(a:job) ==# 'run'
+    let running = ch_status(a:job) !~# '^closed$\|^fail$' || job_status(a:job) ==# 'run'
     sleep 1m
     return running
   endif
