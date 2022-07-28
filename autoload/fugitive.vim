@@ -387,11 +387,15 @@ function! s:JobExecute(argv, jopts, stdin, callback, ...) abort
           \ 'stdout_buffered': v:true,
           \ 'stderr_buffered': v:true,
           \ 'on_exit': function('s:JobNvimExit', [dict, cb])})
-    let dict.job = jobstart(a:argv, a:jopts)
-    if !empty(a:stdin)
-      call chansend(dict.job, a:stdin)
-      call chanclose(dict.job, 'stdin')
-    endif
+    try
+      let dict.job = jobstart(a:argv, a:jopts)
+      if !empty(a:stdin)
+        call chansend(dict.job, a:stdin)
+        call chanclose(dict.job, 'stdin')
+      endif
+    catch /^Vim\%((\a\+)\)\=:E475:/
+      let [dict.exit_status, dict.stdout, dict.stderr] = [122, [''], ['']]
+    endtry
   elseif exists('*ch_close_in')
     let temp = tempname()
     call extend(a:jopts, {
@@ -408,6 +412,10 @@ function! s:JobExecute(argv, jopts, stdin, callback, ...) abort
       call writefile(a:stdin, a:jopts.in_name, 'b')
     endif
     let dict.job = job_start(a:argv, a:jopts)
+    if job_status(dict.job) ==# 'fail'
+      let [dict.exit_status, dict.stdout, dict.stderr] = [122, [''], ['']]
+      unlet dict.job
+    endif
   elseif &shell !~# 'sh' || &shell =~# 'fish\|\%(powershell\|pwsh\)\%(\.exe\)\=$'
     throw 'fugitive: Vim 8 or higher required to use ' . &shell
   else
