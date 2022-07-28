@@ -1953,22 +1953,14 @@ function! s:BufName(var) abort
   endif
 endfunction
 
-function! s:ExpandVarLegacy(str) abort
-  if get(g:, 'fugitive_legacy_quoting', 0)
-    return substitute(a:str, '\\\ze[%#!]', '', 'g')
-  else
-    return a:str
-  endif
-endfunction
-
 function! s:ExpandVar(other, var, flags, esc, ...) abort
   let cwd = a:0 ? a:1 : getcwd()
   if a:other =~# '^\'
     return a:other[1:-1]
   elseif a:other =~# '^'''
-    return s:ExpandVarLegacy(substitute(a:other[1:-2], "''", "'", "g"))
+    return substitute(a:other[1:-2], "''", "'", "g")
   elseif a:other =~# '^"'
-    return s:ExpandVarLegacy(substitute(a:other[1:-2], '""', '"', "g"))
+    return substitute(a:other[1:-2], '""', '"', "g")
   elseif a:other =~# '^!'
     let buffer = s:BufName(len(a:other) > 1 ? '#'. a:other[1:-1] : '%')
     let owner = s:Owner(buffer)
