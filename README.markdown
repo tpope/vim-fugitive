@@ -78,11 +78,11 @@ For more information, see `:help fugitive`.
 
 ## Screencasts
 
-* [A complement to command line git](http://vimcasts.org/e/31)
-* [Working with the git index](http://vimcasts.org/e/32)
-* [Resolving merge conflicts with vimdiff](http://vimcasts.org/e/33)
-* [Browsing the git object database](http://vimcasts.org/e/34)
-* [Exploring the history of a git repository](http://vimcasts.org/e/35)
+* [A complement to command line git](https://archive.org/details/podcast_vimcasts_fugitivevim-complement-to_1000093365508)
+* [Working with the git index](https://archive.org/details/podcast_vimcasts_fugitivevim-working-with-th_1000093567817)
+* [Resolving merge conflicts with vimdiff](https://archive.org/details/podcast_vimcasts_fugitivevim-resolving-merge_1000093776432)
+* [Browsing the git object database](https://archive.org/details/podcast_vimcasts_fugitivevim-browsing-gi_1000093979744)
+* [Exploring the history of a git repository](https://archive.org/details/podcast_vimcasts_fugitivevim-exploring-h_1000094112306)
 
 ## Installation
 
