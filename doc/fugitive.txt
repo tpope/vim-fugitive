@@ -285,6 +285,9 @@ u                       Unstage (reset) the file or hunk under the cursor.
 
                                                 *fugitive_-*
 -                       Stage or unstage the file or hunk under the cursor.
+                        When used un the unpushed segment, it enters the
+                        command to push from the earliest unpushed commit, to
+                        the commit under the cursor, up to the remote.
 
                                                 *fugitive_U*
 U                       Unstage everything.
