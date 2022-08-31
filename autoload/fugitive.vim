@@ -7463,7 +7463,7 @@ function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abor
           endif
           call delete(blame_list)
           if !exec_error
-            let blame_regex = '^\^\x\+\s\+\zs\d\+\ze\s'
+            let blame_regex = '^.\x\+\s\+\zs\d\+\ze\s'
             if get(blame, 0) =~# blame_regex && get(blame, -1) =~# blame_regex
               let line1 = +matchstr(blame[0], blame_regex)
               let line2 = +matchstr(blame[-1], blame_regex)
