@@ -2397,7 +2397,7 @@ function! s:GlobComplete(lead, pattern, ...) abort
   if a:lead ==# '/'
     return []
   else
-    let results = glob(a:lead . a:pattern, a:0 ? a:1 : 0, 1)
+    let results = glob(substitute(a:lead . a:pattern, '[\{}]', '\\&', 'g'), a:0 ? a:1 : 0, 1)
   endif
   call map(results, 'v:val !~# "/$" && isdirectory(v:val) ? v:val."/" : v:val')
   call map(results, 'v:val[ strlen(a:lead) : -1 ]')
