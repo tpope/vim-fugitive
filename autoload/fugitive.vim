@@ -4949,7 +4949,22 @@ function! s:StageDelete(lnum1, lnum2, count) abort
   let did_conflict_err = 0
   let reset_commit = matchstr(getline(a:lnum1), '^Un\w\+ \%(to\| from\) \zs\S\+')
   try
-    for info in s:Selection(a:lnum1, a:lnum2)
+    let selection=s:Selection(a:lnum1, a:lnum2)
+    if empty(selection)
+      let first_line = getline(a:lnum1)
+      if first_line =~# '^Unstaged ([0-9]*)$'
+        call s:TreeChomp('checkout', '--', FugitiveWorkTree())
+        " redraw
+        exe s:ReloadStatus()
+        call s:StageReveal()
+      elseif first_line =~# '^Untracked ([0-9]*)$'
+        call s:TreeChomp('clean', '-f')
+        " redraw
+        exe s:ReloadStatus()
+        call s:StageReveal()
+      endif
+    endif
+    for info in selection
       if empty(info.paths)
         if len(info.commit)
           let reset_commit = info.commit . '^'
