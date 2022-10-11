@@ -4949,7 +4949,17 @@ function! s:StageDelete(lnum1, lnum2, count) abort
   let did_conflict_err = 0
   let reset_commit = matchstr(getline(a:lnum1), '^Un\w\+ \%(to\| from\) \zs\S\+')
   try
-    for info in s:Selection(a:lnum1, a:lnum2)
+    let selection=s:Selection(a:lnum1, a:lnum2)
+    if empty(selection)
+      " if empty, check if we were on a section header
+      let first_line = getline(a:lnum1)
+      if first_line =~# '^\(\|Staged\|Unstaged\|Untracked\) ([0-9]*)$'
+        let end_of_section = search('^$', 'n')
+        " if so, select the whole section
+        let selection=s:Selection(a:lnum1+1, end_of_section)
+      endif
+    endif
+    for info in selection
       if empty(info.paths)
         if len(info.commit)
           let reset_commit = info.commit . '^'
