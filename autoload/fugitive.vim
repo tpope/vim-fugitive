@@ -2550,6 +2550,13 @@ augroup END
 function! s:ReplaceCmd(cmd) abort
   let temp = tempname()
   let [err, exec_error] = s:StdoutToFile(temp, a:cmd)
+  if has('win32')
+    " on win32, we might get a short 8.3 path, which will have a ~ which will
+    " blow up on the read command further down. The following call to
+    " fnamemodify will expand the 8.3 paths *if* the file exists, so we only
+    " call it after writing the file in the line above
+    let temp = fnamemodify(temp, ':p')
+  endif
   if exec_error
     throw 'fugitive: ' . (len(err) ? substitute(err, "\n$", '', '') : 'unknown error running ' . string(a:cmd))
   endif
