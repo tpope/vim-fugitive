@@ -7682,6 +7682,7 @@ function! fugitive#MapJumps(...) abort
     call s:Map('x', 'gi',    ":<C-U>exe 'Gsplit' (v:count ? '.gitignore' : '.git/info/exclude')<CR>", '<silent>')
 
     call s:Map('n', 'c<Space>', ':Git commit<Space>')
+    call s:Map('n', 'cn<Space>', ':Git commit --no-verify<CR>')
     call s:Map('n', 'c<CR>', ':Git commit<CR>')
     call s:Map('n', 'cv<Space>', ':tab Git commit -v<Space>')
     call s:Map('n', 'cv<CR>', ':tab Git commit -v<CR>')
