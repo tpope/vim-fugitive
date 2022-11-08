@@ -478,6 +478,8 @@ cA                      Create a `squash!` commit for the commit under the
 
 c<Space>                Populate command line with ":Git commit ".
 
+cn<Space>               Create a commit without running git hooks.
+
                                                 *fugitive_cr*
 crc                     Revert the commit under the cursor.
 
