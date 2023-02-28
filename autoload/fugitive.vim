@@ -157,7 +157,7 @@ endfunction
 
 if exists('+shellslash')
 
-  let s:dir_commit_file = '\c^fugitive://\%(/[^/]\@=\)\=\(.\{-1,\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
+  let s:dir_commit_file = '\c^fugitive://\%(/[^/]\@=\)\=\([^?#]\{-1,\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/[^?#]*\)\=\)\=$'
 
   function! s:Slash(path) abort
     return tr(a:path, '\', '/')
@@ -169,7 +169,7 @@ if exists('+shellslash')
 
 else
 
-  let s:dir_commit_file = '\c^fugitive://\(.\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/.*\)\=\)\=$'
+  let s:dir_commit_file = '\c^fugitive://\([^?#]\{-\}\)//\%(\(\x\{40,\}\|[0-3]\)\(/[^?#]*\)\=\)\=$'
 
   function! s:Slash(path) abort
     return a:path
