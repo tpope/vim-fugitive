@@ -6134,15 +6134,15 @@ function! fugitive#Open(cmd, bang, mods, arg, ...) abort
     return 'echoerr ' . string(':G' . a:cmd . '! for temp buffer output has been replaced by :' . get(s:bang_edits, a:cmd, 'Git') . ' --paginate')
   endif
 
-  let mods = s:Mods(a:mods)
-  if a:cmd ==# 'edit'
-    call s:BlurStatus()
-  endif
   try
     let [file, pre] = s:OpenParse(a:arg, 1, 0)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
+  let mods = s:Mods(a:mods)
+  if a:cmd ==# 'edit'
+    call s:BlurStatus()
+  endif
   return mods . a:cmd . pre . ' ' . s:fnameescape(file)
 endfunction
 
