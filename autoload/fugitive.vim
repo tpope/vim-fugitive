@@ -2906,7 +2906,8 @@ function! fugitive#BufReadStatus(...) abort
     if len(pull) && push !=# pull
       call s:AddLogSection('Unpushed to ' . pull, [pull . '..' . head])
     endif
-    if empty(pull) && empty(push) && empty(rebasing)
+    if empty(pull) && empty(push) && empty(rebasing) &&
+          \ !empty(fugitive#ConfigGetRegexp('^remote\..*\.url$', config))
       call s:AddLogSection('Unpushed to *', [head, '--not', '--remotes'])
     endif
     if len(push) && push !=# pull
