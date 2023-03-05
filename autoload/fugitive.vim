@@ -2582,13 +2582,6 @@ function! s:ReplaceCmd(cmd) abort
   endif
 endfunction
 
-function! s:QueryLog(refspec, limit) abort
-  let lines = s:LinesError(['log', '-n', '' . a:limit, '--pretty=format:%h%x09%s'] + a:refspec + ['--'])[0]
-  call map(lines, 'split(v:val, "\t", 1)')
-  call map(lines, '{"type": "Log", "commit": v:val[0], "subject": join(v:val[1 : -1], "\t")}')
-  return lines
-endfunction
-
 function! s:FormatLog(dict) abort
   return a:dict.commit . ' ' . a:dict.subject
 endfunction
@@ -2635,9 +2628,14 @@ endfunction
 
 function! s:AddLogSection(label, refspec) abort
   let limit = 256
-  let log = s:QueryLog(a:refspec, limit)
+  let [log, exec_error] = s:LinesError(['log', '-n', '' . limit, '--pretty=format:%h%x09%s'] + a:refspec + ['--'])
+  if exec_error
+    return 0
+  endif
+  call map(log, 'split(v:val, "\t", 1)')
+  call map(log, '{"type": "Log", "commit": v:val[0], "subject": join(v:val[1 : -1], "\t")}')
   if empty(log)
-    return
+    return 1
   elseif len(log) == limit
     call remove(log, -1)
     let label = a:label . ' (' . (limit - 1). '+)'
@@ -2645,6 +2643,7 @@ function! s:AddLogSection(label, refspec) abort
     let label = a:label . ' (' . len(log) . ')'
   endif
   call append(line('$'), ['', label] + s:Format(log))
+  return 1
 endfunction
 
 let s:rebase_abbrevs = {
@@ -2797,16 +2796,18 @@ function! fugitive#BufReadStatus(...) abort
       let b:fugitive_files['Unstaged'][dict.filename] = dict
     endfor
 
+    let fetch_remote = FugitiveConfigGet('branch.' . branch . '.remote', config)
+    if empty(fetch_remote) && !empty(FugitiveConfigGet('remote.origin.url', config))
+      let fetch_remote = 'origin'
+    endif
     let push_remote = FugitiveConfigGet('branch.' . branch . '.pushRemote', config)
     if empty(push_remote)
       let push_remote = FugitiveConfigGet('remote.pushDefault', config)
-    endif
-    let fetch_remote = FugitiveConfigGet('branch.' . branch . '.remote', config)
-    if empty(fetch_remote)
-      let fetch_remote = 'origin'
-    endif
-    if empty(push_remote)
-      let push_remote = fetch_remote
+      if empty(push_remote)
+        let push_remote = fetch_remote
+      elseif empty(FugitiveConfigGet('remote.' . push_remote . '.url', config))
+        let push_remote = ''
+      endif
     endif
 
     let pull_type = 'Pull'
@@ -2912,17 +2913,24 @@ function! fugitive#BufReadStatus(...) abort
     call s:AddSection('Staged', staged)
     let staged_end = len(staged) ? line('$') : 0
 
-    if len(push_ref) && push_ref !=# pull_ref
-      call s:AddLogSection('Unpushed to ' . push_short, [push_ref . '..' . head])
+    if push_ref ==# pull_ref
+      let push_ref = ''
+    endif
+    if len(push_ref)
+      if !s:AddLogSection('Unpushed to ' . push_short, [push_ref . '..' . head])
+        let push_ref = ''
+      endif
     endif
     if len(pull_ref) && get(props, 'branch.ab') !~# '^+0 '
-      call s:AddLogSection('Unpushed to ' . pull_short, [pull_ref . '..' . head])
+      if !s:AddLogSection('Unpushed to ' . pull_short, [pull_ref . '..' . head])
+        let pull_ref = ''
+      endif
     endif
     if empty(pull_ref) && empty(push_ref) && empty(rebasing) &&
-          \ !empty(fugitive#ConfigGetRegexp('^remote\..*\.url$', config))
+          \ !empty(push_remote . fetch_remote)
       call s:AddLogSection('Unpushed to *', [head, '--not', '--remotes'])
     endif
-    if len(push_ref) && push_ref !=# pull_ref
+    if len(push_ref)
       call s:AddLogSection('Unpulled from ' . push_short, [head . '..' . push_ref])
     endif
     if len(pull_ref) && get(props, 'branch.ab') !~# ' -0$'
