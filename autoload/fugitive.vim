@@ -2626,24 +2626,31 @@ function! s:AddSection(label, lines, ...) abort
   call append(line('$'), ['', a:label . (len(note) ? ': ' . note : ' (' . len(a:lines) . ')')] + s:Format(a:lines))
 endfunction
 
-function! s:AddLogSection(label, refspec) abort
-  let limit = 256
-  let [log, exec_error] = s:LinesError(['log', '-n', '' . limit, '--pretty=format:%h%x09%s'] + a:refspec + ['--'])
-  if exec_error
-    return 0
-  endif
+function! s:QueryLog(refspec, limit) abort
+  let [log, exec_error] = s:LinesError(['log', '-n', '' . a:limit, '--pretty=format:%h%x09%s'] + a:refspec + ['--'])
   call map(log, 'split(v:val, "\t", 1)')
   call map(log, '{"type": "Log", "commit": v:val[0], "subject": join(v:val[1 : -1], "\t")}')
-  if empty(log)
-    return 1
-  elseif len(log) == limit
+  let result = {'error': exec_error ? 1 : 0, 'overflow': 0, 'entries': log}
+  if len(log) == a:limit
     call remove(log, -1)
-    let label = a:label . ' (' . (limit - 1). '+)'
-  else
-    let label = a:label . ' (' . len(log) . ')'
+    let result.overflow = 1
   endif
-  call append(line('$'), ['', label] + s:Format(log))
-  return 1
+  return result
+endfunction
+
+function! s:QueryLogRange(old, new) abort
+  if empty(a:old) || empty(a:new)
+    return {'error': 2, 'overflow': 0, 'entries': []}
+  endif
+  return s:QueryLog([a:old . '..' . a:new], 256)
+endfunction
+
+function! s:AddLogSection(label, log) abort
+  if empty(a:log.entries)
+    return
+  endif
+  let label = a:label . ' (' . len(a:log.entries) . (a:log.overflow ? '+' : '') . ')'
+  call append(line('$'), ['', label] + s:Format(a:log.entries))
 endfunction
 
 let s:rebase_abbrevs = {
@@ -2913,28 +2920,21 @@ function! fugitive#BufReadStatus(...) abort
     call s:AddSection('Staged', staged)
     let staged_end = len(staged) ? line('$') : 0
 
-    if push_ref ==# pull_ref
-      let push_ref = ''
+    let unpushed_push = s:QueryLogRange(push_ref ==# pull_ref ? '' : push_ref, head)
+    if get(props, 'branch.ab') =~# '^+0 '
+      let unpushed_pull = {'error': 0, 'overflow': 0, entries: []}
+    else
+      let unpushed_pull = s:QueryLogRange(pull_ref, head)
     endif
-    if len(push_ref)
-      if !s:AddLogSection('Unpushed to ' . push_short, [push_ref . '..' . head])
-        let push_ref = ''
-      endif
-    endif
-    if len(pull_ref) && get(props, 'branch.ab') !~# '^+0 '
-      if !s:AddLogSection('Unpushed to ' . pull_short, [pull_ref . '..' . head])
-        let pull_ref = ''
-      endif
-    endif
-    if empty(pull_ref) && empty(push_ref) && empty(rebasing) &&
+    call s:AddLogSection('Unpushed to ' . push_short, unpushed_push)
+    call s:AddLogSection('Unpushed to ' . pull_short, unpushed_pull)
+    if unpushed_push.error && unpushed_pull.error && empty(rebasing) &&
           \ !empty(push_remote . fetch_remote)
-      call s:AddLogSection('Unpushed to *', [head, '--not', '--remotes'])
+      call s:AddLogSection('Unpushed to *', s:QueryLog([head, '--not', '--remotes'], 256))
     endif
-    if len(push_ref)
-      call s:AddLogSection('Unpulled from ' . push_short, [head . '..' . push_ref])
-    endif
+    call s:AddLogSection('Unpulled from ' . push_short, s:QueryLogRange(head, push_ref))
     if len(pull_ref) && get(props, 'branch.ab') !~# ' -0$'
-      call s:AddLogSection('Unpulled from ' . pull_short, [head . '..' . pull_ref])
+      call s:AddLogSection('Unpulled from ' . pull_short, s:QueryLogRange(head, pull_ref))
     endif
 
     setlocal nomodified readonly noswapfile
