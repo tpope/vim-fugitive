@@ -2926,6 +2926,11 @@ function! fugitive#BufReadStatus(...) abort
     else
       let unpushed_pull = s:QueryLogRange(pull_ref, head)
     endif
+    " If the push ref is defined but nowhere to be found at the remote,
+    " pretend it's the same as the pull ref
+    if unpushed_push.error == 1
+      let unpushed_push = unpushed_pull
+    endif
     call s:AddLogSection('Unpushed to ' . push_short, unpushed_push)
     call s:AddLogSection('Unpushed to ' . pull_short, unpushed_pull)
     if unpushed_push.error && unpushed_pull.error && empty(rebasing) &&
