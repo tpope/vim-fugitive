@@ -2922,7 +2922,7 @@ function! fugitive#BufReadStatus(...) abort
 
     let unpushed_push = s:QueryLogRange(push_ref ==# pull_ref ? '' : push_ref, head)
     if get(props, 'branch.ab') =~# '^+0 '
-      let unpushed_pull = {'error': 0, 'overflow': 0, entries: []}
+      let unpushed_pull = {'error': 0, 'overflow': 0, 'entries': []}
     else
       let unpushed_pull = s:QueryLogRange(pull_ref, head)
     endif
