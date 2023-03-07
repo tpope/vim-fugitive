@@ -2804,7 +2804,7 @@ function! fugitive#BufReadStatus(...) abort
     endfor
 
     let fetch_remote = FugitiveConfigGet('branch.' . branch . '.remote', config)
-    if empty(fetch_remote) && !empty(FugitiveConfigGet('remote.origin.url', config))
+    if empty(fetch_remote) && !empty(s:Tree()) && !empty(FugitiveConfigGet('remote.origin.url', config))
       let fetch_remote = 'origin'
     endif
     let push_remote = FugitiveConfigGet('branch.' . branch . '.pushRemote', config)
