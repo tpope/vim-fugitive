@@ -2803,18 +2803,14 @@ function! fugitive#BufReadStatus(...) abort
       let b:fugitive_files['Unstaged'][dict.filename] = dict
     endfor
 
-    let fetch_remote = FugitiveConfigGet('branch.' . branch . '.remote', config)
-    if empty(fetch_remote) && !empty(s:Tree()) && !empty(FugitiveConfigGet('remote.origin.url', config))
-      let fetch_remote = 'origin'
+    let fetch_remote = config.Get('branch.' . branch . '.remote', 'origin')
+    let push_remote = config.Get('branch.' . branch . '.pushRemote',
+          \ config.Get('remote.pushDefault', fetch_remote))
+    if empty(config.Get('remote.' . fetch_remote . '.fetch'))
+      let fetch_remote = ''
     endif
-    let push_remote = FugitiveConfigGet('branch.' . branch . '.pushRemote', config)
-    if empty(push_remote)
-      let push_remote = FugitiveConfigGet('remote.pushDefault', config)
-      if empty(push_remote)
-        let push_remote = fetch_remote
-      elseif empty(FugitiveConfigGet('remote.' . push_remote . '.url', config))
-        let push_remote = ''
-      endif
+    if empty(config.Get('remote.' . push_remote . '.push', config.Get('remote.' . push_remote . '.fetch')))
+      let push_remote = ''
     endif
 
     let pull_type = 'Pull'
