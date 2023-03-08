@@ -2920,7 +2920,8 @@ function! fugitive#BufReadStatus(...) abort
     call s:AddSection('Staged', staged)
     let staged_end = len(staged) ? line('$') : 0
 
-    let unpushed_push = s:QueryLogRange(push_ref ==# pull_ref ? '' : push_ref, head)
+    let unique_push_ref = push_ref ==# pull_ref ? '' : push_ref
+    let unpushed_push = s:QueryLogRange(unique_push_ref, head)
     if get(props, 'branch.ab') =~# '^+0 '
       let unpushed_pull = {'error': 0, 'overflow': 0, 'entries': []}
     else
@@ -2937,7 +2938,7 @@ function! fugitive#BufReadStatus(...) abort
           \ !empty(push_remote . fetch_remote)
       call s:AddLogSection('Unpushed to *', s:QueryLog([head, '--not', '--remotes'], 256))
     endif
-    call s:AddLogSection('Unpulled from ' . push_short, s:QueryLogRange(head, push_ref))
+    call s:AddLogSection('Unpulled from ' . push_short, s:QueryLogRange(head, unique_push_ref))
     if len(pull_ref) && get(props, 'branch.ab') !~# ' -0$'
       call s:AddLogSection('Unpulled from ' . pull_short, s:QueryLogRange(head, pull_ref))
     endif
