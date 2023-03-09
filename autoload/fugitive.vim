@@ -2817,7 +2817,7 @@ function! fugitive#BufReadStatus(...) abort
     if empty(fetch_remote) || empty(branch)
       let pull_ref = ''
     elseif fetch_remote ==# '.'
-      let pull_ref = FugitiveConfigGet('branch.' . branch . '.merge', config)
+      let pull_ref = config.Get('branch.' . branch . '.merge', 'refs/heads/' . branch)
     else
       let pull_ref = substitute(config.Get('branch.' . branch . '.merge', 'refs/heads/' . branch), '^refs/heads/', 'refs/remotes/' . fetch_remote . '/', '')
     endif
