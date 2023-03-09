@@ -1027,7 +1027,7 @@ function! fugitive#Head(...) abort
   if empty(dir)
     return ''
   endif
-  let file = FugitiveActualDir() . '/HEAD'
+  let file = FugitiveActualDir(dir) . '/HEAD'
   let ftime = getftime(file)
   if ftime == -1
     return ''
