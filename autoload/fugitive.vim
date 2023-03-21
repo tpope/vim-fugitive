@@ -6806,7 +6806,7 @@ endfunction
 
 function! s:BlameLeave() abort
   let state = s:TempState()
-  let bufwinnr = win_id2win(get(state, 'origin_winid'))
+  let bufwinnr = exists('*win_id2win') ? win_id2win(get(state, 'origin_winid')) : 0
   if bufwinnr == 0
     let bufwinnr = bufwinnr(get(state, 'origin_bufnr', -1))
   endif
