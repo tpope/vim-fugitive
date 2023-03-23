@@ -2806,10 +2806,10 @@ function! fugitive#BufReadStatus(...) abort
     let fetch_remote = config.Get('branch.' . branch . '.remote', 'origin')
     let push_remote = config.Get('branch.' . branch . '.pushRemote',
           \ config.Get('remote.pushDefault', fetch_remote))
-    if empty(config.Get('remote.' . fetch_remote . '.fetch'))
+    if fetch_remote !=# '.' && empty(config.Get('remote.' . fetch_remote . '.fetch'))
       let fetch_remote = ''
     endif
-    if empty(config.Get('remote.' . push_remote . '.push', config.Get('remote.' . push_remote . '.fetch')))
+    if push_remote !=# '.' && empty(config.Get('remote.' . push_remote . '.push', config.Get('remote.' . push_remote . '.fetch')))
       let push_remote = ''
     endif
 
