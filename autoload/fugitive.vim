@@ -7639,7 +7639,10 @@ function! s:NavigateUp(count) abort
 endfunction
 
 function! s:ParseDiffHeader(str) abort
-  let list = matchlist(a:str, '\Cdiff --git \("\=[^/].*\|/dev/null\) \("\=[^/].*\|/dev/null\)$')
+  let list = matchlist(a:str, '\Cdiff --git \("\=\w/.*\|/dev/null\) \("\=\w/.*\|/dev/null\)$')
+  if empty(list)
+    let list = matchlist(a:str, '\Cdiff --git \("\=[^/].*\|/dev/null\) \("\=[^/].*\|/dev/null\)$')
+  endif
   return [fugitive#Unquote(get(list, 1, '')), fugitive#Unquote(get(list, 2, ''))]
 endfunction
 
