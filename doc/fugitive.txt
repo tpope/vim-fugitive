@@ -123,6 +123,13 @@ plus |:grep|.
                         and exhibits extremely poor performance with larger
                         data sets.  Consider using |:Git| log --oneline
                         instead.
+                        
+                        In order to see datetime and author - you can add this to
+                        your config:
+                        
+                        `let g:fugitive_summary_format = "%cs || %<(20,trunc)%an || %s"`
+                        
+                        Default value is "%s".
 
 :{range}Gclog[!] [args] Use git-log -L to load previous revisions of the given
                         range of the current file into the |quickfix| list.
