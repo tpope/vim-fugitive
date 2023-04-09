@@ -8143,8 +8143,12 @@ function! fugitive#Statusline(...) abort
   if len(commit)
     let status .= ':' . commit[0:6]
   endif
-  let status .= '('.fugitive#Head(7, dir).')'
-  return '[Git'.status.']'
+  let statusfmt = '[Git(%s)]'
+  if exists('g:statusline_fmt')
+      let statusfmt = g:statusline_fmt
+  endif
+  let status .= fugitive#Head(7, dir)
+  return printf(statusfmt, status)
 endfunction
 
 function! fugitive#statusline(...) abort
