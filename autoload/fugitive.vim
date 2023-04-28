@@ -7782,7 +7782,11 @@ function! fugitive#MapJumps(...) abort
       call s:Map('n', 'd?', ":<C-U>help fugitive_d<CR>", '<silent>')
 
     else
-      call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>GF("edit")<CR>', '<silent>')
+      if exists('g:fugitive_doubleclick_diff') && g:fugitive_doubleclick_diff == 1
+        call s:Map('n', '<2-LeftMouse>', ":<C-U>execute <SID>StageDiff('Gvdiffsplit')<CR>", '<silent>')
+      else
+        call s:Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>GF("edit")<CR>', '<silent>')
+      endif
       call s:Map('n', '<CR>', ':<C-U>exe <SID>GF("edit")<CR>', '<silent>')
       call s:Map('n', 'o',    ':<C-U>exe <SID>GF("split")<CR>', '<silent>')
       call s:Map('n', 'gO',   ':<C-U>exe <SID>GF("vsplit")<CR>', '<silent>')
