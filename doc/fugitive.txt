@@ -302,7 +302,7 @@ X                       Discard the change under the cursor.  This uses
 >                       Insert an inline diff of the file under the cursor.
 
                                                 *fugitive_<*
-<                       Remove the inline diff of the file under the cursor.
+<<                       Remove the inline diff of the file under the cursor.
 
                                                 *fugitive_gI*
 gI                      Open .git/info/exclude in a split and add the file
