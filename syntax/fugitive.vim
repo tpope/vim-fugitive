@@ -5,8 +5,6 @@ endif
 syn sync fromstart
 syn spell notoplevel
 
-syn include @fugitiveDiff syntax/diff.vim
-
 syn match fugitiveHeader /^[A-Z][a-z][^:]*:/
 syn match fugitiveHeader /^Head:/ nextgroup=fugitiveHash,fugitiveSymbolicRef skipwhite
 syn match fugitiveHeader /^Pull:\|^Rebase:\|^Merge:\|^Push:/ nextgroup=fugitiveSymbolicRef skipwhite
