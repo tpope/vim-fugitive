@@ -86,7 +86,14 @@ For more information, see `:help fugitive`.
 
 ## Installation
 
-Install using your favorite package manager, or use Vim's built-in package
+Install using your favorite package manager:
+
+i.e [packer.nvim](https://github.com/wbthomason/packer.nvim)
+```lua
+use('tpope/vim-fugitive')
+```
+
+or use Vim's built-in package
 support:
 
     mkdir -p ~/.vim/pack/tpope/start
