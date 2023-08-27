@@ -1576,11 +1576,15 @@ function! s:QuickfixStream(nr, event, title, cmd, first, mods, callback, ...) ab
   call s:QuickfixSet(a:nr, buffer, 'a')
 
   exe s:DoAutocmd('QuickFixCmdPost ' . event)
-  if a:first && len(s:QuickfixGet(a:nr))
-    return (a:nr < 0 ? 'cfirst' : 'lfirst')
-  else
-    return 'exe'
+  if a:first
+    let list = s:QuickfixGet(a:nr)
+    for index in range(len(list))
+      if list[index].valid
+        return (index+1) . (a:nr < 0 ? 'cfirst' : 'lfirst')
+      endif
+    endfor
   endif
+  return 'exe'
 endfunction
 
 function! fugitive#Cwindow() abort
