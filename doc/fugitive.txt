@@ -49,8 +49,9 @@ that are part of Git repositories).
 
                                                 *fugitive-summary*
 :Git                    With no arguments, bring up a summary window vaguely
-                        akin to git-status.  Press g? or see |fugitive-maps|
-                        for usage.
+                        akin to git-status.  If a summary window is already
+                        open for the current repository, it is focused
+                        instead.  Press g?  or see |fugitive-maps| for usage.
 
                                                 *:Git_blame*
 :Git blame [flags]      Run git-blame [flags] on the current file and open the
