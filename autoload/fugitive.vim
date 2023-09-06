@@ -4341,7 +4341,7 @@ function! s:ReloadTabStatus() abort
   while winnr <= winnr('$')
     if getbufvar(winbufnr(winnr), 'fugitive_type') ==# 'index'
       if winnr != winnr()
-        execute winnr.'wincmd w'
+        execute 'noautocmd' winnr.'wincmd w'
         let restorewinnr = 1
       endif
       try
@@ -4349,7 +4349,7 @@ function! s:ReloadTabStatus() abort
       finally
         if exists('restorewinnr')
           unlet restorewinnr
-          wincmd p
+          noautocmd wincmd p
         endif
       endtry
     endif
