@@ -2671,7 +2671,7 @@ let s:rebase_abbrevs = {
       \ 'b': 'break',
       \ }
 
-function! fugitive#BufReadStatus(...) abort
+function! fugitive#BufReadStatus(cmdbang) abort
   let amatch = s:Slash(expand('%:p'))
   unlet! b:fugitive_reltime b:fugitive_type
   try
@@ -2907,7 +2907,7 @@ function! fugitive#BufReadStatus(...) abort
     endif
 
     let b:fugitive_diff = diff
-    if get(a:, 1, v:cmdbang)
+    if a:cmdbang
       unlet! b:fugitive_expanded
     endif
     let expanded = get(b:, 'fugitive_expanded', {'Staged': {}, 'Unstaged': {}})
@@ -4282,20 +4282,20 @@ function! s:DoAutocmdChanged(dir) abort
   return ''
 endfunction
 
-function! s:ReloadStatusBuffer(...) abort
+function! s:ReloadStatusBuffer() abort
   if get(b:, 'fugitive_type', '') !=# 'index'
     return ''
   endif
-  let original_lnum = a:0 ? a:1 : line('.')
+  let original_lnum = line('.')
   let info = s:StageInfo(original_lnum)
   exe fugitive#BufReadStatus(0)
   call setpos('.', [0, s:StageSeek(info, original_lnum), 1, 0])
   return ''
 endfunction
 
-function! s:ReloadStatus(...) abort
+function! s:ReloadStatus() abort
   call s:ExpireStatus(-1)
-  call s:ReloadStatusBuffer(a:0 ? a:1 : line('.'))
+  call s:ReloadStatusBuffer()
   exe s:DoAutocmdChanged(-1)
   return ''
 endfunction
@@ -4326,23 +4326,20 @@ function! s:ReloadWinStatus(...) abort
     return
   endif
   if !exists('b:fugitive_reltime')
-    exe s:ReloadStatusBuffer()
+    exe call('s:ReloadStatusBuffer', a:000)
     return
   endif
   let t = b:fugitive_reltime
   if reltimestr(reltime(s:last_time, t)) =~# '-\|\d\{10\}\.' ||
         \ reltimestr(reltime(get(s:last_times, s:Tree() . '/', t), t)) =~# '-\|\d\{10\}\.'
-    exe s:ReloadStatusBuffer()
+    exe call('s:ReloadStatusBuffer', a:000)
   endif
 endfunction
 
-function! s:ReloadTabStatus(...) abort
-  let mytab = tabpagenr()
-  let tab = a:0 ? a:1 : mytab
+function! s:ReloadTabStatus() abort
   let winnr = 1
-  while winnr <= tabpagewinnr(tab, '$')
-    if getbufvar(tabpagebuflist(tab)[winnr-1], 'fugitive_type') ==# 'index'
-      execute 'tabnext '.tab
+  while winnr <= winnr('$')
+    if getbufvar(winbufnr(winnr), 'fugitive_type') ==# 'index'
       if winnr != winnr()
         execute winnr.'wincmd w'
         let restorewinnr = 1
@@ -4354,7 +4351,6 @@ function! s:ReloadTabStatus(...) abort
           unlet restorewinnr
           wincmd p
         endif
-        execute 'tabnext '.mytab
       endtry
     endif
     let winnr += 1
