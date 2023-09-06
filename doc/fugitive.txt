@@ -72,6 +72,16 @@ that are part of Git repositories).
                         p     jump to patch or blob in preview window
                         -     reblame at commit
 
+                        The maps |fugitive_P| and |fugitive_~| are also
+                        supported to reblame on a parent commit, but this is
+                        inherently fragile, as the line being blamed will no
+                        longer exist.  The preferred alternative is to use
+                        <CR> to open up the commit, select the corresponding
+                        `-` line that you care about, and press <CR> twice
+                        more to reblame at that line.  Viewing the commit also
+                        gives you additional context as to why the line
+                        changed.
+
                                                 *g:fugitive_dynamic_colors*
                         In the GUI or a 256 color terminal, commit hashes will
                         be highlighted in different colors. To disable this:
