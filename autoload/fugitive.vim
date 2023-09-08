@@ -7784,7 +7784,7 @@ function! fugitive#MapJumps(...) abort
       exe s:Map('n', '<2-LeftMouse>', ':<C-U>0,1Git ++curwin blame' . blame_tail, '<silent>')
       exe s:Map('n', '<CR>', ':<C-U>0,1Git ++curwin blame' . blame_tail, '<silent>')
       exe s:Map('n', 'o',    ':<C-U>0,1Git blame' . blame_tail, '<silent>')
-      exe s:Map('n', 'p',    ':<C-U>0,1Git blame!' . blame_tail, '<silent>')
+      exe s:Map('n', 'p',    ':<C-U>0,1Git! blame' . blame_tail, '<silent>')
       if has('patch-7.4.1898')
         exe s:Map('n', 'gO',   ':<C-U>vertical 0,1Git blame' . blame_tail, '<silent>')
         exe s:Map('n', 'O',    ':<C-U>tab 0,1Git blame' . blame_tail, '<silent>')
