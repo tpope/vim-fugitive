@@ -349,7 +349,6 @@ function! fugitive#Wait(job_or_jobs, ...) abort
       sleep 1m
     endif
   else
-    let sleep = has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
     for job in jobs
       if ch_status(job) ==# 'open'
         call ch_close_in(job)
@@ -362,7 +361,7 @@ function! fugitive#Wait(job_or_jobs, ...) abort
           break
         endif
         let i += 1
-        exe sleep
+        sleep 1m
       endwhile
     endfor
   endif
@@ -889,9 +888,8 @@ function! s:SystemList(cmd) abort
           \ 'exit_cb': { j, code -> add(exit, code) }}
     let job = job_start(a:cmd, jopts)
     call ch_close_in(job)
-    let sleep = has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
     while ch_status(job) !~# '^closed$\|^fail$' || job_status(job) ==# 'run'
-      exe sleep
+      sleep 1m
     endwhile
     return [lines, exit[0]]
   else
@@ -1006,7 +1004,7 @@ function! s:StdoutToFile(out, cmd, ...) abort
       endif
       call ch_close_in(job)
       while ch_status(job) !~# '^closed$\|^fail$' || job_status(job) ==# 'run'
-        exe has('patch-8.2.2366') ? 'sleep! 1m' : 'sleep 1m'
+        sleep 1m
       endwhile
       return [join(readfile(err, 'b'), "\n"), exit[0]]
     finally
