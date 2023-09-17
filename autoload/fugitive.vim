@@ -2693,8 +2693,8 @@ function! fugitive#BufReadStatus(cmdbang) abort
       let branch = FugitiveHead(0)
       let head = FugitiveHead(11)
     elseif fugitive#GitVersion(2, 11)
-      let cmd += ['status', '--porcelain=v2', '-bz']
-      let [output, message, exec_error] = s:NullError(cmd)
+      let status_cmd = cmd + ['status', '--porcelain=v2', '-bz']
+      let [output, message, exec_error] = s:NullError(status_cmd)
       if exec_error
         throw 'fugitive: ' . message
       endif
@@ -2741,8 +2741,8 @@ function! fugitive#BufReadStatus(cmdbang) abort
         let head = FugitiveHead(11)
       endif
     else " git < 2.11
-      let cmd += ['status', '--porcelain', '-bz']
-      let [output, message, exec_error] = s:NullError(cmd)
+      let status_cmd = cmd + ['status', '--porcelain', '-bz']
+      let [output, message, exec_error] = s:NullError(status_cmd)
       if exec_error
         throw 'fugitive: ' . message
       endif
@@ -2787,14 +2787,13 @@ function! fugitive#BufReadStatus(cmdbang) abort
       endwhile
     endif
 
+    let diff_cmd = cmd + ['-c', 'diff.suppressBlankEmpty=false', '-c', 'core.quotePath=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix']
     let diff = {'Staged': {'stdout': ['']}, 'Unstaged': {'stdout': ['']}}
     if len(staged)
-      let diff['Staged'] =
-          \ fugitive#Execute(['-c', 'diff.suppressBlankEmpty=false', '-c', 'core.quotePath=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix', '--cached'], function('len'))
+      let diff['Staged'] = fugitive#Execute(diff_cmd + ['--cached'], function('len'))
     endif
     if len(unstaged)
-      let diff['Unstaged'] =
-          \ fugitive#Execute(['-c', 'diff.suppressBlankEmpty=false', '-c', 'core.quotePath=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix'], function('len'))
+      let diff['Unstaged'] = fugitive#Execute(diff_cmd, function('len'))
     endif
 
     for dict in staged
