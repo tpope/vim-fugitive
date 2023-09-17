@@ -116,6 +116,9 @@ function! s:VersionCheck() abort
   elseif !fugitive#GitVersion(1, 8, 5)
     return 'return ' . string('echoerr "fugitive: Git 1.8.5 or newer required"')
   else
+    if exists('b:git_dir') && empty(b:git_dir)
+      unlet! b:git_dir
+    endif
     return ''
   endif
 endfunction
