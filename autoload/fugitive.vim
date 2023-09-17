@@ -122,10 +122,6 @@ endfunction
 
 let s:worktree_error = "core.worktree is required when using an external Git dir"
 function! s:DirCheck(...) abort
-  let vcheck = s:VersionCheck()
-  if !empty(vcheck)
-    return vcheck
-  endif
   let dir = call('FugitiveGitDir', a:000)
   if !empty(dir) && FugitiveWorkTree(dir, 1) is# 0
     return 'return ' . string('echoerr "fugitive: ' . s:worktree_error . '"')
@@ -4125,6 +4121,7 @@ function! fugitive#CdComplete(A, L, P) abort
 endfunction
 
 function! fugitive#Cd(path, ...) abort
+  exe s:VersionCheck()
   let path = substitute(a:path, '^:/:\=\|^:(\%(top\|top,literal\|literal,top\|literal\))', '', '')
   if path !~# '^/\|^\a\+:\|^\.\.\=\%(/\|$\)'
     let dir = s:Dir()
@@ -5962,6 +5959,7 @@ function! s:LogParse(state, dir, prefix, line) abort
 endfunction
 
 function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
+  exe s:VersionCheck()
   let dir = s:Dir()
   exe s:DirCheck(dir)
   let listnr = a:type =~# '^l' ? 0 : -1
@@ -6665,6 +6663,7 @@ endfunction
 " Section: :GMove, :GRemove
 
 function! s:Move(force, rename, destination) abort
+  exe s:VersionCheck()
   let dir = s:Dir()
   exe s:DirCheck(dir)
   if s:DirCommitFile(@%)[1] !~# '^0\=$' || empty(@%)
@@ -6738,6 +6737,7 @@ function! fugitive#RenameCommand(line1, line2, range, bang, mods, arg, ...) abor
 endfunction
 
 function! s:Remove(after, force) abort
+  exe s:VersionCheck()
   let dir = s:Dir()
   exe s:DirCheck(dir)
   if len(@%) && s:DirCommitFile(@%)[1] ==# ''
