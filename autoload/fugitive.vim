@@ -400,8 +400,8 @@ function! s:JobExecute(argv, jopts, stdin, callback, ...) abort
       let dict.job = jobstart(a:argv, a:jopts)
       if !empty(a:stdin)
         call chansend(dict.job, a:stdin)
-        call chanclose(dict.job, 'stdin')
       endif
+      call chanclose(dict.job, 'stdin')
     catch /^Vim\%((\a\+)\)\=:E475:/
       let [dict.exit_status, dict.stdout, dict.stderr] = [122, [''], ['']]
     endtry
