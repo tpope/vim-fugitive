@@ -2793,7 +2793,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
       let diff['Staged'] = fugitive#Execute(diff_cmd + ['--cached'], function('len'))
     endif
     if len(unstaged)
-      let diff['Unstaged'] = fugitive#Execute(diff_cmd, function('len'))
+      let diff['Unstaged'] = fugitive#Execute(diff_cmd + map(copy(unstaged), 'v:val.relative[0]'), function('len'))
     endif
 
     for dict in staged
