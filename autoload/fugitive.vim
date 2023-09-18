@@ -2627,8 +2627,8 @@ function! s:AddSection(label, lines, ...) abort
   call append(line('$'), ['', a:label . (len(note) ? ': ' . note : ' (' . len(a:lines) . ')')] + s:Format(a:lines))
 endfunction
 
-function! s:QueryLog(refspec, limit) abort
-  let [log, exec_error] = s:LinesError(['log', '-n', '' . a:limit, '--pretty=format:%h%x09%s'] + a:refspec + ['--'])
+function! s:QueryLog(refspec, limit, dir) abort
+  let [log, exec_error] = s:LinesError(['log', '-n', '' . a:limit, '--pretty=format:%h%x09%s'] + a:refspec + ['--'], a:dir)
   call map(log, 'split(v:val, "\t", 1)')
   call map(log, '{"type": "Log", "commit": v:val[0], "subject": join(v:val[1 : -1], "\t")}')
   let result = {'error': exec_error ? 1 : 0, 'overflow': 0, 'entries': log}
@@ -2639,11 +2639,11 @@ function! s:QueryLog(refspec, limit) abort
   return result
 endfunction
 
-function! s:QueryLogRange(old, new) abort
+function! s:QueryLogRange(old, new, dir) abort
   if empty(a:old) || empty(a:new)
     return {'error': 2, 'overflow': 0, 'entries': []}
   endif
-  return s:QueryLog([a:old . '..' . a:new], 256)
+  return s:QueryLog([a:old . '..' . a:new], 256, a:dir)
 endfunction
 
 function! s:AddLogSection(label, log) abort
@@ -2675,9 +2675,10 @@ function! fugitive#BufReadStatus(cmdbang) abort
     doautocmd BufReadPre
     let config = fugitive#Config()
 
-    let cmd = [s:Dir()]
+    let dir = s:Dir()
+    let cmd = [dir]
     setlocal noreadonly modifiable nomodeline buftype=nowrite
-    if amatch !~# '^fugitive:' && s:cpath($GIT_INDEX_FILE !=# '' ? resolve(s:GitIndexFileEnv()) : fugitive#Find('.git/index')) !=# s:cpath(amatch)
+    if amatch !~# '^fugitive:' && s:cpath($GIT_INDEX_FILE !=# '' ? resolve(s:GitIndexFileEnv()) : fugitive#Find('.git/index', dir)) !=# s:cpath(amatch)
       let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
     endif
 
@@ -2689,9 +2690,10 @@ function! fugitive#BufReadStatus(cmdbang) abort
     let [staged, unstaged, untracked] = [[], [], []]
     let props = {}
 
-    if empty(s:Tree())
-      let branch = FugitiveHead(0)
-      let head = FugitiveHead(11)
+    let tree = s:Tree()
+    if empty(tree)
+      let branch = FugitiveHead(0, dir)
+      let head = FugitiveHead(11, dir)
     elseif fugitive#GitVersion(2, 11)
       let status_cmd = cmd + ['status', '--porcelain=v2', '-bz']
       let [output, message, exec_error] = s:NullError(status_cmd)
@@ -2738,7 +2740,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
       elseif has_key(props, 'branch.oid')
         let head = props['branch.oid'][0:10]
       else
-        let head = FugitiveHead(11)
+        let head = FugitiveHead(11, dir)
       endif
     else " git < 2.11
       let status_cmd = cmd + ['status', '--porcelain', '-bz']
@@ -2755,7 +2757,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
         let head = split(head, '\.\.\.')[0]
         let branch = head
       elseif head ==# 'HEAD' || empty(head)
-        let head = FugitiveHead(11)
+        let head = FugitiveHead(11, dir)
         let branch = ''
       else
         let branch = head
@@ -2850,10 +2852,10 @@ function! fugitive#BufReadStatus(cmdbang) abort
     let push_short = substitute(push_ref, '^refs/\w\+/', '', '')
     let pull_short = substitute(pull_ref, '^refs/\w\+/', '', '')
 
-    if isdirectory(fugitive#Find('.git/rebase-merge/'))
-      let rebasing_dir = fugitive#Find('.git/rebase-merge/')
-    elseif isdirectory(fugitive#Find('.git/rebase-apply/'))
-      let rebasing_dir = fugitive#Find('.git/rebase-apply/')
+    if isdirectory(fugitive#Find('.git/rebase-merge/', dir))
+      let rebasing_dir = fugitive#Find('.git/rebase-merge/', dir)
+    elseif isdirectory(fugitive#Find('.git/rebase-apply/', dir))
+      let rebasing_dir = fugitive#Find('.git/rebase-apply/', dir)
     endif
 
     let rebasing = []
@@ -2885,20 +2887,20 @@ function! fugitive#BufReadStatus(cmdbang) abort
     endif
 
     let sequencing = []
-    if filereadable(fugitive#Find('.git/sequencer/todo'))
-      for line in reverse(readfile(fugitive#Find('.git/sequencer/todo')))
+    if filereadable(fugitive#Find('.git/sequencer/todo', dir))
+      for line in reverse(readfile(fugitive#Find('.git/sequencer/todo', dir)))
         let match = matchlist(line, '^\(\l\+\)\s\+\(\x\{4,\}\)\s\+\(.*\)')
         if len(match) && match[1] !~# 'exec\|merge\|label'
           call add(sequencing, {'type': 'Rebase', 'status': get(s:rebase_abbrevs, match[1], match[1]), 'commit': match[2], 'subject': match[3]})
         endif
       endfor
-    elseif filereadable(fugitive#Find('.git/MERGE_MSG'))
-      if filereadable(fugitive#Find('.git/CHERRY_PICK_HEAD'))
-        let pick_head = fugitive#Execute(['rev-parse', '--short', 'CHERRY_PICK_HEAD', '--']).stdout[0]
-        call add(sequencing, {'type': 'Rebase', 'status': 'pick', 'commit': pick_head, 'subject': get(readfile(fugitive#Find('.git/MERGE_MSG')), 0, '')})
-      elseif filereadable(fugitive#Find('.git/REVERT_HEAD'))
-        let pick_head = fugitive#Execute(['rev-parse', '--short', 'REVERT_HEAD', '--']).stdout[0]
-        call add(sequencing, {'type': 'Rebase', 'status': 'revert', 'commit': pick_head, 'subject': get(readfile(fugitive#Find('.git/MERGE_MSG')), 0, '')})
+    elseif filereadable(fugitive#Find('.git/MERGE_MSG', dir))
+      if filereadable(fugitive#Find('.git/CHERRY_PICK_HEAD', dir))
+        let pick_head = fugitive#Execute(['rev-parse', '--short', 'CHERRY_PICK_HEAD', '--'], dir).stdout[0]
+        call add(sequencing, {'type': 'Rebase', 'status': 'pick', 'commit': pick_head, 'subject': get(readfile(fugitive#Find('.git/MERGE_MSG', dir)), 0, '')})
+      elseif filereadable(fugitive#Find('.git/REVERT_HEAD', dir))
+        let pick_head = fugitive#Execute(['rev-parse', '--short', 'REVERT_HEAD', '--'], dir).stdout[0]
+        call add(sequencing, {'type': 'Rebase', 'status': 'revert', 'commit': pick_head, 'subject': get(readfile(fugitive#Find('.git/MERGE_MSG', dir)), 0, '')})
       endif
     endif
 
@@ -2916,7 +2918,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
     if push_ref !=# pull_ref
       call s:AddHeader('Push', push_short)
     endif
-    if empty(s:Tree())
+    if empty(tree)
       if get(fugitive#ConfigGetAll('core.bare', config), 0, '') !~# '^\%(false\|no|off\|0\|\)$'
         call s:AddHeader('Bare', 'yes')
       else
@@ -2936,11 +2938,11 @@ function! fugitive#BufReadStatus(cmdbang) abort
     let staged_end = len(staged) ? line('$') : 0
 
     let unique_push_ref = push_ref ==# pull_ref ? '' : push_ref
-    let unpushed_push = s:QueryLogRange(unique_push_ref, head)
+    let unpushed_push = s:QueryLogRange(unique_push_ref, head, dir)
     if get(props, 'branch.ab') =~# '^+0 '
       let unpushed_pull = {'error': 0, 'overflow': 0, 'entries': []}
     else
-      let unpushed_pull = s:QueryLogRange(pull_ref, head)
+      let unpushed_pull = s:QueryLogRange(pull_ref, head, dir)
     endif
     " If the push ref is defined but nowhere to be found at the remote,
     " pretend it's the same as the pull ref
@@ -2951,11 +2953,11 @@ function! fugitive#BufReadStatus(cmdbang) abort
     call s:AddLogSection('Unpushed to ' . pull_short, unpushed_pull)
     if unpushed_push.error && unpushed_pull.error && empty(rebasing) &&
           \ !empty(push_remote . fetch_remote)
-      call s:AddLogSection('Unpushed to *', s:QueryLog([head, '--not', '--remotes'], 256))
+      call s:AddLogSection('Unpushed to *', s:QueryLog([head, '--not', '--remotes'], 256, dir))
     endif
-    call s:AddLogSection('Unpulled from ' . push_short, s:QueryLogRange(head, unique_push_ref))
+    call s:AddLogSection('Unpulled from ' . push_short, s:QueryLogRange(head, unique_push_ref, dir))
     if len(pull_ref) && get(props, 'branch.ab') !~# ' -0$'
-      call s:AddLogSection('Unpulled from ' . pull_short, s:QueryLogRange(head, pull_ref))
+      call s:AddLogSection('Unpulled from ' . pull_short, s:QueryLogRange(head, pull_ref, dir))
     endif
 
     setlocal nomodified readonly noswapfile
