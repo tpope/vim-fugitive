@@ -956,12 +956,6 @@ function! s:LinesError(...) abort
   return [r.exit_status ? [] : r.stdout, r.exit_status]
 endfunction
 
-function! s:NullError(cmd) abort
-  let r = fugitive#Execute(a:cmd)
-  let list = r.exit_status ? [] : split(tr(join(r.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
-  return [list, s:JoinChomp(r.stderr), r.exit_status]
-endfunction
-
 function! s:TreeChomp(...) abort
   let r = call('fugitive#Execute', a:000)
   if !r.exit_status
@@ -2672,12 +2666,10 @@ function! fugitive#BufReadStatus(cmdbang) abort
   let amatch = s:Slash(expand('%:p'))
   unlet! b:fugitive_reltime b:fugitive_type
   try
-    doautocmd BufReadPre
     let config = fugitive#Config()
 
     let dir = s:Dir()
     let cmd = [dir]
-    setlocal noreadonly modifiable nomodeline buftype=nowrite
     if amatch !~# '^fugitive:' && s:cpath($GIT_INDEX_FILE !=# '' ? resolve(s:GitIndexFileEnv()) : fugitive#Find('.git/index', dir)) !=# s:cpath(amatch)
       let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
     endif
@@ -2686,21 +2678,29 @@ function! fugitive#BufReadStatus(cmdbang) abort
       call add(cmd, '--no-optional-locks')
     endif
 
+    let tree = s:Tree(dir)
+    if !empty(tree)
+      let status_cmd = cmd + ['status', '-bz']
+      call add(status_cmd, fugitive#GitVersion(2, 11) ? '--porcelain=v2' : '--porcelain')
+      let status = fugitive#Execute(status_cmd, function('len'))
+    endif
+
+    doautocmd BufReadPre
+    setlocal noreadonly modifiable nomodeline buftype=nowrite
     let b:fugitive_files = {'Staged': {}, 'Unstaged': {}}
+
     let [staged, unstaged, untracked] = [[], [], []]
     let props = {}
 
-    let tree = s:Tree()
-    if empty(tree)
+    if !exists('status')
       let branch = FugitiveHead(0, dir)
       let head = FugitiveHead(11, dir)
-    elseif fugitive#GitVersion(2, 11)
-      let status_cmd = cmd + ['status', '--porcelain=v2', '-bz']
-      let [output, message, exec_error] = s:NullError(status_cmd)
-      if exec_error
-        throw 'fugitive: ' . message
-      endif
 
+    elseif fugitive#Wait(status).exit_status
+      throw 'fugitive: ' . s:JoinChomp(status.stderr)
+
+    elseif status.args[-1] ==# '--porcelain=v2'
+      let output = split(tr(join(status.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
       let i = 0
       while i < len(output)
         let line = output[i]
@@ -2742,13 +2742,9 @@ function! fugitive#BufReadStatus(cmdbang) abort
       else
         let head = FugitiveHead(11, dir)
       endif
-    else " git < 2.11
-      let status_cmd = cmd + ['status', '--porcelain', '-bz']
-      let [output, message, exec_error] = s:NullError(status_cmd)
-      if exec_error
-        throw 'fugitive: ' . message
-      endif
 
+    else
+      let output = split(tr(join(status.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
       while get(output, 0, '') =~# '^\l\+:'
         call remove(output, 0)
       endwhile
