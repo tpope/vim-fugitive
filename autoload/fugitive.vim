@@ -5701,7 +5701,8 @@ function! s:GrepParseLine(options, quiet, dir, line) abort
   if entry.module !~# ':'
     let entry.filename = s:PathJoin(a:options.prefix, entry.module)
   else
-    let entry.filename = fugitive#Find(entry.module, a:dir)
+    let entry.filename = fugitive#Find(matchstr(entry.module, '^[^:]*:') .
+          \ substitute(matchstr(entry.module, ':\zs.*'), '/\=:', '/', 'g'), a:dir)
   endif
   return entry
 endfunction
