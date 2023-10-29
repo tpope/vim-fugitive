@@ -6113,7 +6113,7 @@ function! s:OpenExpand(dir, file, wants_cmd) abort
     let efile = s:Expand(a:file)
   endif
   if efile =~# '^https\=://'
-    let [url, lnum] = s:ResolveUrl(efile, dir)
+    let [url, lnum] = s:ResolveUrl(efile, a:dir)
     return [url, a:wants_cmd ? lnum : 0]
   endif
   let url = s:Generate(efile, a:dir)
