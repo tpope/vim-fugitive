@@ -1118,7 +1118,7 @@ function! fugitive#Config(...) abort
       let callback = a:000[1:-1]
     endif
   elseif a:0 >= 2 && type(a:2) == type({}) && has_key(a:2, 'GetAll')
-    return get(fugitive#ConfigGetAll(a:1, a:2), 0, default)
+    return get(fugitive#ConfigGetAll(a:1, a:2), -1, default)
   elseif a:0 >= 2
     let dir = s:Dir(a:2)
     let name = a:1
@@ -1200,7 +1200,7 @@ function! s:config_GetAll(name) dict abort
 endfunction
 
 function! s:config_Get(name, ...) dict abort
-  return get(self.GetAll(a:name), 0, a:0 ? a:1 : '')
+  return get(self.GetAll(a:name), -1, a:0 ? a:1 : '')
 endfunction
 
 function! s:config_GetRegexp(pattern) dict abort
