@@ -376,7 +376,7 @@ p                       Open the file or |fugitive-object| under the cursor in
                         required to bypass the legacy usage instructions.
 
                                                 *fugitive_~*
-~                       Open the current file in the [count]th first ancestor.
+~                       Open the current file in the [count]th ancestor.
 
                                                 *fugitive_P*
 P                       Open the current file in the [count]th parent.
