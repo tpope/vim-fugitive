@@ -3933,6 +3933,8 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
       let job = jobstart(argv, extend(jobopts, {
             \ 'pty': state.pty,
             \ 'TERM': 'dumb',
+            \ 'stdout_buffered': pager,
+            \ 'stderr_buffered': pager,
             \ 'on_stdout': function('s:RunReceive', [state, tmp, 'out']),
             \ 'on_stderr': function('s:RunReceive', [state, tmp, 'err']),
             \ 'on_exit': function('s:RunClose', [state, tmp]),
