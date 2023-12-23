@@ -1235,12 +1235,15 @@ function! s:SshParseHost(value) abort
   return '^\%(' . join(patterns, '\|') . '\)$' . join(negates, '')
 endfunction
 
-function! s:SshParseConfig(into, root, file, ...) abort
-  if !filereadable(a:file)
+function! s:SshParseConfig(into, root, file) abort
+  try
+    let lines = readfile(a:file)
+  catch
     return a:into
-  endif
-  let host = a:0 ? a:1 : '^\%(.*\)$'
-  for line in readfile(a:file)
+  endtry
+  let host = '^\%(.*\)$'
+  while !empty(lines)
+    let line = remove(lines, 0)
     let key = tolower(matchstr(line, '^\s*\zs\w\+\ze\s'))
     let value = matchstr(line, '^\s*\w\+\s\+\zs.*\S')
     if key ==# 'match'
@@ -1248,24 +1251,20 @@ function! s:SshParseConfig(into, root, file, ...) abort
     elseif key ==# 'host'
       let host = s:SshParseHost(value)
     elseif key ==# 'include'
-      call s:SshParseInclude(a:into, a:root, host, value)
+      for glob in split(value)
+        if glob !~# '^/'
+          let glob = a:root . glob
+        endif
+        for included in reverse(split(glob(glob), "\n"))
+          call extend(lines, readfile(included), 'keep')
+        endfor
+      endfor
     elseif len(key) && len(host)
       call extend(a:into, {key : []}, 'keep')
       call add(a:into[key], [host, value])
     endif
-  endfor
+  endwhile
   return a:into
-endfunction
-
-function! s:SshParseInclude(into, root, host, value) abort
-  for glob in split(a:value)
-    if glob !~# '^/'
-      let glob = a:root . glob
-    endif
-    for file in split(glob(glob), "\n")
-      call s:SshParseConfig(a:into, a:root, file, a:host)
-    endfor
-  endfor
 endfunction
 
 unlet! s:ssh_config
