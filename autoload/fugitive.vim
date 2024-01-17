@@ -1007,7 +1007,7 @@ function! s:StdoutToFile(out, cmd, ...) abort
     throw 'fugitive: Vim 8 or higher required to use ' . &shell
   else
     let cmd = fugitive#ShellCommand(a:cmd)
-    return s:SystemError(' (' . cmd . ' >' . a:out . ') ')
+    return s:SystemError(' (' . cmd . ' >' . (len(a:out) ? a:out : '/dev/null') . ') ')
   endif
 endfunction
 
