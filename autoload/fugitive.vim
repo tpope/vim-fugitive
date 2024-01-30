@@ -2714,6 +2714,7 @@ function! s:MapStatus() abort
 endfunction
 
 function! fugitive#BufReadStatus(cmdbang) abort
+  exe s:VersionCheck()
   let amatch = s:Slash(expand('%:p'))
   if a:cmdbang
     unlet! b:fugitive_expanded
@@ -2752,7 +2753,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
       let head = FugitiveHead(11, dir)
 
     elseif fugitive#Wait(status).exit_status
-      throw 'fugitive: ' . s:JoinChomp(status.stderr)
+      return 'echoerr ' . string('fugitive: ' . s:JoinChomp(status.stderr))
 
     elseif status.args[-1] ==# '--porcelain=v2'
       let output = split(tr(join(status.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
@@ -3033,8 +3034,6 @@ function! fugitive#BufReadStatus(cmdbang) abort
 
     let b:fugitive_reltime = reltime()
     return s:DoAutocmd('User FugitiveIndex')
-  catch /^fugitive:/
-    return 'echoerr ' . string(v:exception)
   finally
     let b:fugitive_type = 'index'
   endtry
@@ -3102,15 +3101,16 @@ endfunction
 
 function! fugitive#BufReadCmd(...) abort
   let amatch = a:0 ? a:1 : expand('<amatch>')
+  let [dir, rev] = s:DirRev(amatch)
+  if empty(dir)
+    return 'echo "Invalid Fugitive URL"'
+  endif
+  call s:InitializeBuffer(dir)
+  if rev ==# ':'
+    return fugitive#BufReadStatus(v:cmdbang)
+  endif
   try
-    let [dir, rev] = s:DirRev(amatch)
-    if empty(dir)
-      return 'echo "Invalid Fugitive URL"'
-    endif
-    call s:InitializeBuffer(dir)
-    if rev ==# ':'
-      return fugitive#BufReadStatus(v:cmdbang)
-    elseif rev =~# '^:\d$'
+    if rev =~# '^:\d$'
       let b:fugitive_type = 'stage'
     else
       let r = fugitive#Execute([dir, 'cat-file', '-t', rev])
