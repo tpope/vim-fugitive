@@ -2666,6 +2666,9 @@ let s:rebase_abbrevs = {
 
 function! fugitive#BufReadStatus(cmdbang) abort
   let amatch = s:Slash(expand('%:p'))
+  if a:cmdbang
+    unlet! b:fugitive_expanded
+  endif
   unlet! b:fugitive_reltime b:fugitive_type
   try
     let config = fugitive#Config()
@@ -2689,7 +2692,6 @@ function! fugitive#BufReadStatus(cmdbang) abort
 
     doautocmd BufReadPre
     setlocal noreadonly modifiable nomodeline buftype=nowrite
-    let b:fugitive_files = {'Staged': {}, 'Unstaged': {}}
 
     let [staged, unstaged, untracked] = [[], [], []]
     let props = {}
@@ -2796,11 +2798,12 @@ function! fugitive#BufReadStatus(cmdbang) abort
       let diff['Unstaged'] = fugitive#Execute(diff_cmd + ['--'] + map(copy(unstaged), 'tree . "/" . v:val.relative[0]'), function('len'))
     endif
 
+    let section_files = {'Staged': {}, 'Unstaged': {}}
     for dict in staged
-      let b:fugitive_files['Staged'][dict.filename] = dict
+      let section_files['Staged'][dict.filename] = dict
     endfor
     for dict in unstaged
-      let b:fugitive_files['Unstaged'][dict.filename] = dict
+      let section_files['Unstaged'][dict.filename] = dict
     endfor
 
     let fetch_remote = config.Get('branch.' . branch . '.remote', 'origin')
@@ -2902,10 +2905,8 @@ function! fugitive#BufReadStatus(cmdbang) abort
       endif
     endif
 
+    let b:fugitive_files = section_files
     let b:fugitive_diff = diff
-    if a:cmdbang
-      unlet! b:fugitive_expanded
-    endif
     let expanded = get(b:, 'fugitive_expanded', {'Staged': {}, 'Unstaged': {}})
     let b:fugitive_expanded = {'Staged': {}, 'Unstaged': {}}
 
@@ -4416,6 +4417,10 @@ augroup fugitive_status
         \ endif
 augroup END
 
+function! s:StatusSectionFile(heading, filename) abort
+  return get(get(get(b:, 'fugitive_files', {}), a:heading, {}), a:filename, {})
+endfunction
+
 function! s:StageInfo(...) abort
   let lnum = a:0 ? a:1 : line('.')
   let sigil = matchstr(getline(lnum), '^[ @\+-]')
@@ -4438,7 +4443,7 @@ function! s:StageInfo(...) abort
     endif
   endwhile
   let text = matchstr(getline(lnum), '^[A-Z?] \zs.*')
-  let file = get(get(b:fugitive_files, heading, {}), text, {})
+  let file = s:StatusSectionFile(heading, text)
   let relative = get(file, 'relative', len(text) ? [text] : [])
   return {'section': matchstr(heading, '^\u\l\+'),
         \ 'heading': heading,
@@ -4520,7 +4525,7 @@ function! s:Selection(arg1, ...) abort
       let results[-1].lnum = lnum
     elseif line =~# '^[A-Z?] '
       let text = matchstr(line, '^[A-Z?] \zs.*')
-      let file = get(get(b:fugitive_files, template.heading, {}), text, {})
+      let file = s:StatusSectionFile(template.heading, text)
       let relative = get(file, 'relative', len(text) ? [text] : [])
       call add(results, extend(deepcopy(template), {
             \ 'lnum': lnum,
@@ -4845,7 +4850,8 @@ function! s:StageInline(mode, ...) abort
       let lnum -= 1
     endwhile
     let info = s:StageInfo(lnum)
-    if !has_key(b:fugitive_diff, info.section)
+    let diff_section = get(get(b:, 'fugitive_diff', {}), info.section, {})
+    if empty(diff_section)
       continue
     endif
     if getline(lnum + 1) =~# '^[ @\+-]'
@@ -4861,7 +4867,7 @@ function! s:StageInline(mode, ...) abort
       endif
       continue
     endif
-    if !has_key(b:fugitive_diff, info.section) || info.status !~# '^[ADMRU]$' || a:mode ==# 'hide'
+    if info.status !~# '^[ADMRU]$' || a:mode ==# 'hide'
       continue
     endif
     let mode = ''
@@ -4871,7 +4877,7 @@ function! s:StageInline(mode, ...) abort
     else
       let diff_header = 'diff --git ' . s:Quote(info.relative[-1]) . ' ' . s:Quote(info.relative[0])
     endif
-    let stdout = fugitive#Wait(b:fugitive_diff[info.section]).stdout
+    let stdout = fugitive#Wait(diff_section).stdout
     let start = index(stdout, diff_header)
     if start == -1
       continue
@@ -5023,7 +5029,7 @@ function! s:StageDelete(lnum1, lnum2, count) abort
         endif
         continue
       endif
-      let sub = get(get(get(b:fugitive_files, info.section, {}), info.filename, {}), 'submodule')
+      let sub = get(s:StatusSectionFile(info.section, info.filename), 'submodule', '')
       if sub =~# '^S' && info.status ==# 'M'
         let undo = 'Git checkout ' . fugitive#RevParse('HEAD', FugitiveExtractGitDir(info.paths[0]))[0:10] . ' --'
       elseif sub =~# '^S'
@@ -5047,19 +5053,19 @@ function! s:StageDelete(lnum1, lnum2, count) abort
       elseif info.status ==# '?'
         call s:TreeChomp('clean', '-f', '--', info.paths[0])
       elseif a:count == 2
-        if get(b:fugitive_files['Staged'], info.filename, {'status': ''}).status ==# 'D'
+        if get(s:StatusSectionFile('Staged', info.filename), 'status', '') ==# 'D'
           call delete(info.paths[0])
         else
           call s:TreeChomp('checkout', '--ours', '--', info.paths[0])
         endif
       elseif a:count == 3
-        if get(b:fugitive_files['Unstaged'], info.filename, {'status': ''}).status ==# 'D'
+        if get(s:StatusSectionFile('Unstaged', info.filename), 'status', '') ==# 'D'
           call delete(info.paths[0])
         else
           call s:TreeChomp('checkout', '--theirs', '--', info.paths[0])
         endif
       elseif info.status =~# '[ADU]' &&
-            \ get(b:fugitive_files[info.section ==# 'Staged' ? 'Unstaged' : 'Staged'], info.filename, {'status': ''}).status =~# '[AU]'
+            \ get(s:StatusSectionFile(info.section ==# 'Staged' ? 'Unstaged' : 'Staged', info.filename), 'status', '') =~# '[AU]'
         if get(g:, 'fugitive_conflict_x', 0)
           call s:TreeChomp('checkout', info.section ==# 'Unstaged' ? '--ours' : '--theirs', '--', info.paths[0])
         else
