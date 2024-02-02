@@ -2601,26 +2601,39 @@ function! s:Format(val) abort
   endif
 endfunction
 
-function! s:AddHeader(key, value) abort
+function! s:AddHeader(to, key, value) abort
   if empty(a:value)
     return
   endif
-  let before = 1
-  while !empty(getline(before))
-    let before += 1
-  endwhile
-  call append(before - 1, [a:key . ':' . (len(a:value) ? ' ' . a:value : '')])
-  if before == 1 && line('$') == 2
-    silent keepjumps 2delete _
-  endif
+  call add(a:to.lines, a:key . ':' . (len(a:value) ? ' ' . a:value : ''))
 endfunction
 
-function! s:AddSection(label, lines, ...) abort
+function! s:AddSection(to, label, lines, ...) abort
   let note = a:0 ? a:1 : ''
   if empty(a:lines) && empty(note)
     return
   endif
-  call append(line('$'), ['', a:label . (len(note) ? ': ' . note : ' (' . len(a:lines) . ')')] + s:Format(a:lines))
+  call extend(a:to.lines, ['', a:label . (len(note) ? ': ' . note : ' (' . len(a:lines) . ')')] + s:Format(a:lines))
+endfunction
+
+function! s:AddDiffSection(to, stat, label, files) abort
+  if empty(a:files)
+    return
+  endif
+  let diff_section = a:stat.diff[a:label]
+  let expanded = a:stat.expanded[a:label]
+  let was_expanded = get(getbufvar(a:stat.bufnr, 'fugitive_expanded', {}), a:label, {})
+  call extend(a:to.lines, ['', a:label . ' (' . len(a:files) . ')'])
+  for file in a:files
+    call add(a:to.lines, s:Format(file))
+    if has_key(was_expanded, file.filename)
+      let [diff, start] = s:StageInlineGetDiff(diff_section, file)
+      if len(diff)
+        let expanded[file.filename] = [start]
+        call extend(a:to.lines, diff)
+      endif
+    endif
+  endfor
 endfunction
 
 function! s:QueryLog(refspec, limit, dir) abort
@@ -2642,12 +2655,12 @@ function! s:QueryLogRange(old, new, dir) abort
   return s:QueryLog([a:old . '..' . a:new], 256, a:dir)
 endfunction
 
-function! s:AddLogSection(label, log) abort
+function! s:AddLogSection(to, label, log) abort
   if empty(a:log.entries)
     return
   endif
   let label = a:label . ' (' . len(a:log.entries) . (a:log.overflow ? '+' : '') . ')'
-  call append(line('$'), ['', label] + s:Format(a:log.entries))
+  call extend(a:to.lines, ['', label] + s:Format(a:log.entries))
 endfunction
 
 let s:rebase_abbrevs = {
@@ -2720,10 +2733,11 @@ function! fugitive#BufReadStatus(cmdbang) abort
     unlet! b:fugitive_expanded
   endif
   unlet! b:fugitive_reltime b:fugitive_type
+  let dir = s:Dir()
+  let stat = {'bufnr': bufnr(''), 'reltime': reltime(), 'work_tree': s:Tree(dir)}
   try
-    let config = fugitive#Config()
+    let config = fugitive#Config(dir)
 
-    let dir = s:Dir()
     let cmd = [dir]
     if amatch !~# '^fugitive:' && s:cpath($GIT_INDEX_FILE !=# '' ? resolve(s:GitIndexFileEnv()) : fugitive#Find('.git/index', dir)) !=# s:cpath(amatch)
       let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
@@ -2733,8 +2747,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
       call add(cmd, '--no-optional-locks')
     endif
 
-    let tree = s:Tree(dir)
-    if !empty(tree)
+    if !empty(stat.work_tree)
       let status_cmd = cmd + ['status', '-bz']
       call add(status_cmd, fugitive#GitVersion(2, 11) ? '--porcelain=v2' : '--porcelain')
       let status_exec = fugitive#Execute(status_cmd, function('len'))
@@ -2842,20 +2855,20 @@ function! fugitive#BufReadStatus(cmdbang) abort
     endif
 
     let diff_cmd = cmd + ['-c', 'diff.suppressBlankEmpty=false', '-c', 'core.quotePath=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix']
-    let diff = {'Staged': {'stdout': ['']}, 'Unstaged': {'stdout': ['']}}
+    let stat.diff = {'Staged': {'stdout': ['']}, 'Unstaged': {'stdout': ['']}}
     if len(staged)
-      let diff['Staged'] = fugitive#Execute(diff_cmd + ['--cached'], function('len'))
+      let stat.diff['Staged'] = fugitive#Execute(diff_cmd + ['--cached'], function('len'))
     endif
     if len(unstaged)
-      let diff['Unstaged'] = fugitive#Execute(diff_cmd + ['--'] + map(copy(unstaged), 'tree . "/" . v:val.relative[0]'), function('len'))
+      let stat.diff['Unstaged'] = fugitive#Execute(diff_cmd + ['--'] + map(copy(unstaged), 'stat.work_tree . "/" . v:val.relative[0]'), function('len'))
     endif
 
-    let section_files = {'Staged': {}, 'Unstaged': {}}
+    let stat.files = {'Staged': {}, 'Unstaged': {}}
     for dict in staged
-      let section_files['Staged'][dict.filename] = dict
+      let stat.files['Staged'][dict.filename] = dict
     endfor
     for dict in unstaged
-      let section_files['Unstaged'][dict.filename] = dict
+      let stat.files['Unstaged'][dict.filename] = dict
     endfor
 
     let fetch_remote = config.Get('branch.' . branch . '.remote', 'origin')
@@ -2957,37 +2970,29 @@ function! fugitive#BufReadStatus(cmdbang) abort
       endif
     endif
 
-    let b:fugitive_files = section_files
-    let b:fugitive_diff = diff
-    let expanded = get(b:, 'fugitive_expanded', {'Staged': {}, 'Unstaged': {}})
-    let b:fugitive_expanded = {'Staged': {}, 'Unstaged': {}}
-
-    setlocal noreadonly modifiable
-    silent keepjumps %delete_
-
-    call s:AddHeader('Head', head)
-    call s:AddHeader(pull_type, pull_short)
+    let stat.expanded = {'Staged': {}, 'Unstaged': {}}
+    let to = {'lines': []}
+    call s:AddHeader(to, 'Head', head)
+    call s:AddHeader(to, pull_type, pull_short)
     if push_ref !=# pull_ref
-      call s:AddHeader('Push', push_short)
+      call s:AddHeader(to, 'Push', push_short)
     endif
-    if empty(tree)
+    if empty(stat.work_tree)
       if get(fugitive#ConfigGetAll('core.bare', config), 0, '') !~# '^\%(false\|no|off\|0\|\)$'
-        call s:AddHeader('Bare', 'yes')
+        call s:AddHeader(to, 'Bare', 'yes')
       else
-        call s:AddHeader('Error', s:worktree_error)
+        call s:AddHeader(to, 'Error', s:worktree_error)
       endif
     endif
-    if get(fugitive#ConfigGetAll('advice.statusHints', config), 0, 'true') !~# '^\%(false\|no|off\|0\|\)$'
-      call s:AddHeader('Help', 'g?')
+    if get(fugitive#ConfigGetAll('advice.tousHints', config), 0, 'true') !~# '^\%(false\|no|off\|0\|\)$'
+      call s:AddHeader(to, 'Help', 'g?')
     endif
 
-    call s:AddSection('Rebasing ' . rebasing_head, rebasing)
-    call s:AddSection(get(get(sequencing, 0, {}), 'status', '') ==# 'revert' ? 'Reverting' : 'Cherry Picking', sequencing)
-    call s:AddSection('Untracked', untracked)
-    call s:AddSection('Unstaged', unstaged)
-    let unstaged_end = len(unstaged) ? line('$') : 0
-    call s:AddSection('Staged', staged)
-    let staged_end = len(staged) ? line('$') : 0
+    call s:AddSection(to, 'Rebasing ' . rebasing_head, rebasing)
+    call s:AddSection(to, get(get(sequencing, 0, {}), 'tous', '') ==# 'revert' ? 'Reverting' : 'Cherry Picking', sequencing)
+    call s:AddSection(to, 'Untracked', untracked)
+    call s:AddDiffSection(to, stat, 'Unstaged', unstaged)
+    call s:AddDiffSection(to, stat, 'Staged', staged)
 
     let unique_push_ref = push_ref ==# pull_ref ? '' : push_ref
     let unpushed_push = s:QueryLogRange(unique_push_ref, head, dir)
@@ -3001,27 +3006,27 @@ function! fugitive#BufReadStatus(cmdbang) abort
     if unpushed_push.error == 1
       let unpushed_push = unpushed_pull
     endif
-    call s:AddLogSection('Unpushed to ' . push_short, unpushed_push)
-    call s:AddLogSection('Unpushed to ' . pull_short, unpushed_pull)
+    call s:AddLogSection(to, 'Unpushed to ' . push_short, unpushed_push)
+    call s:AddLogSection(to, 'Unpushed to ' . pull_short, unpushed_pull)
     if unpushed_push.error && unpushed_pull.error && empty(rebasing) &&
           \ !empty(push_remote . fetch_remote)
-      call s:AddLogSection('Unpushed to *', s:QueryLog([head, '--not', '--remotes'], 256, dir))
+      call s:AddLogSection(to, 'Unpushed to *', s:QueryLog([head, '--not', '--remotes'], 256, dir))
     endif
-    call s:AddLogSection('Unpulled from ' . push_short, s:QueryLogRange(head, unique_push_ref, dir))
+    call s:AddLogSection(to, 'Unpulled from ' . push_short, s:QueryLogRange(head, unique_push_ref, dir))
     if len(pull_ref) && get(props, 'branch.ab') !~# ' -0$'
-      call s:AddLogSection('Unpulled from ' . pull_short, s:QueryLogRange(head, pull_ref, dir))
+      call s:AddLogSection(to, 'Unpulled from ' . pull_short, s:QueryLogRange(head, pull_ref, dir))
     endif
 
+    let b:fugitive_files = stat.files
+    let b:fugitive_diff = stat.diff
+    let b:fugitive_expanded = stat.expanded
+    let b:fugitive_reltime = stat.reltime
+    setlocal noreadonly modifiable
+    if len(to.lines) < line('$')
+      silent keepjumps execute (len(to.lines)+1) . ',$delete_'
+    endif
+    call setline(1, to.lines)
     setlocal nomodified readonly nomodifiable
-    for [lnum, section] in [[staged_end, 'Staged'], [unstaged_end, 'Unstaged']]
-      while len(getline(lnum))
-        let filename = matchstr(getline(lnum), '^[A-Z?] \zs.*')
-        if has_key(expanded[section], filename)
-          call s:StageInline('show', lnum)
-        endif
-        let lnum -= 1
-      endwhile
-    endfor
 
     doautocmd <nomodeline> BufReadPost
     if &bufhidden ==# ''
@@ -3032,7 +3037,6 @@ function! fugitive#BufReadStatus(cmdbang) abort
     endif
     setlocal filetype=fugitive
 
-    let b:fugitive_reltime = reltime()
     return s:DoAutocmd('User FugitiveIndex')
   finally
     let b:fugitive_type = 'index'
@@ -4833,6 +4837,29 @@ function! s:PatchSearchExpr(reverse) abort
   return a:reverse ? '#' : '*'
 endfunction
 
+function! s:StageInlineGetDiff(diff_section, info) abort
+  let diff = []
+  if a:info.status ==# 'U'
+    let diff_header = 'diff --cc ' . s:Quote(a:info.relative[0])
+  else
+    let diff_header = 'diff --git ' . s:Quote(a:info.relative[-1]) . ' ' . s:Quote(a:info.relative[0])
+  endif
+  let stdout = fugitive#Wait(a:diff_section).stdout
+  let start = index(stdout, diff_header)
+  if start == -1
+    return [[], -1]
+  endif
+  let index = start + 1
+  while get(stdout, index, '@@') !~# '^@@\|^diff '
+    let index += 1
+  endwhile
+  while get(stdout, index, '') =~# '^[@ \+-]'
+    call add(diff, stdout[index])
+    let index += 1
+  endwhile
+  return [diff, start]
+endfunction
+
 function! s:StageInline(mode, ...) abort
   if &filetype !=# 'fugitive'
     return ''
@@ -4877,26 +4904,7 @@ function! s:StageInline(mode, ...) abort
     if info.status !~# '^[ADMRU]$' || a:mode ==# 'hide'
       continue
     endif
-    let mode = ''
-    let diff = []
-    if info.status ==# 'U'
-      let diff_header = 'diff --cc ' . s:Quote(info.relative[0])
-    else
-      let diff_header = 'diff --git ' . s:Quote(info.relative[-1]) . ' ' . s:Quote(info.relative[0])
-    endif
-    let stdout = fugitive#Wait(diff_section).stdout
-    let start = index(stdout, diff_header)
-    if start == -1
-      continue
-    endif
-    let index = start + 1
-    while get(stdout, index, '@@') !~# '^@@\|^diff '
-      let index += 1
-    endwhile
-    while get(stdout, index, '') =~# '^[@ \+-]'
-      call add(diff, stdout[index])
-      let index += 1
-    endwhile
+    let [diff, start] = s:StageInlineGetDiff(diff_section, info)
     if len(diff)
       setlocal modifiable noreadonly
       silent call append(lnum, diff)
