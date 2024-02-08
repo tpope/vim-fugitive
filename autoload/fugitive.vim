@@ -5720,7 +5720,7 @@ function! s:GrepOptions(args, dir) abort
   let options = {'name_only': 0, 'name_count': 0, 'line_number': 0}
   let tree = s:Tree(a:dir)
   let prefix = empty(tree) ? fugitive#Find(':0:', a:dir) :
-        \ s:cpath(getcwd(), tree) ? '' : s:VimSlash(tree . '/')
+        \ s:VimSlash(tree . '/')
   let options.prefix = prefix
   for arg in a:args
     if arg ==# '--'
