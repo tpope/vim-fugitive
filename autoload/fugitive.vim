@@ -2752,6 +2752,9 @@ function! fugitive#BufReadStatus(cmdbang) abort
       call add(cmd, '--no-optional-locks')
     endif
 
+    let rev_parse_cmd = cmd + ['rev-parse', '--short', 'HEAD', '--']
+    let stat.rev_parse = fugitive#Execute(rev_parse_cmd, function('len'))
+
     if !empty(stat.work_tree)
       let status_cmd = cmd + ['status', '-bz']
       call add(status_cmd, fugitive#GitVersion(2, 11) ? '--porcelain=v2' : '--porcelain')
@@ -2767,8 +2770,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
     let stat.props = {}
 
     if !exists('status_exec')
-      let branch = FugitiveHead(0, dir)
-      let head = FugitiveHead(11, dir)
+      let stat.branch = FugitiveHead(0, config)
 
     elseif fugitive#Wait(status_exec).exit_status
       return 'echoerr ' . string('fugitive: ' . s:JoinChomp(status_exec.stderr))
@@ -2808,29 +2810,18 @@ function! fugitive#BufReadStatus(cmdbang) abort
         endif
         let i += 1
       endwhile
-      let branch = substitute(get(stat.props, 'branch.head', '(unknown)'), '\C^(\%(detached\|unknown\))$', '', '')
-      if len(branch)
-        let head = branch
-      elseif has_key(stat.props, 'branch.oid')
-        let head = stat.props['branch.oid'][0:10]
-      else
-        let head = FugitiveHead(11, dir)
-      endif
+      let stat.branch = substitute(get(stat.props, 'branch.head', '(unknown)'), '\C^(\%(detached\|unknown\))$', '', '')
 
     else
       let output = split(tr(join(status_exec.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
       while get(output, 0, '') =~# '^\l\+:'
         call remove(output, 0)
       endwhile
-      let head = matchstr(output[0], '^## \zs\S\+\ze\%($\| \[\)')
-      if head =~# '\.\.\.'
-        let head = split(head, '\.\.\.')[0]
-        let branch = head
-      elseif head ==# 'HEAD' || empty(head)
-        let head = FugitiveHead(11, dir)
-        let branch = ''
+      let branch = matchstr(output[0], '^## \zs\S\+\ze\%($\| \[\)')
+      if branch =~# '\.\.\.'
+        let stat.branch = split(branch, '\.\.\.')[0]
       else
-        let branch = head
+        let stat.branch = branch ==# 'HEAD' ? '' : branch
       endif
 
       let i = 0
@@ -2876,6 +2867,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
       let stat.files['Unstaged'][dict.filename] = dict
     endfor
 
+    let branch = stat.branch
     let fetch_remote = config.Get('branch.' . branch . '.remote', 'origin')
     let push_remote = config.Get('branch.' . branch . '.pushRemote',
           \ config.Get('remote.pushDefault', fetch_remote))
@@ -2938,19 +2930,15 @@ function! fugitive#BufReadStatus(cmdbang) abort
       let rebasing_dir = fugitive#Find('.git/rebase-apply/', dir)
     endif
 
+    call fugitive#Wait(stat.rev_parse)
+    let head = empty(stat.branch) ? stat.rev_parse.stdout[0] : stat.branch
+
     let rebasing = []
     let rebasing_head = 'detached HEAD'
     if exists('rebasing_dir') && filereadable(rebasing_dir . 'git-rebase-todo')
       let rebasing_head = substitute(readfile(rebasing_dir . 'head-name')[0], '\C^refs/heads/', '', '')
-      let len = 11
+      let len = len(stat.rev_parse.stdout[0])
       let lines = readfile(rebasing_dir . 'git-rebase-todo')
-      for line in lines
-        let hash = matchstr(line, '^[^a-z].*\s\zs[0-9a-f]\{4,\}\ze\.\.')
-        if len(hash)
-          let len = len(hash)
-          break
-        endif
-      endfor
       if getfsize(rebasing_dir . 'done') > 0
         let done = readfile(rebasing_dir . 'done')
         call map(done, 'substitute(v:val, ''^\l\+\>'', "done", "")')
