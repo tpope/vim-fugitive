@@ -2730,50 +2730,21 @@ function! s:MapStatus() abort
   call s:Map('x', '.', ':<C-U> <C-R>=<SID>StageArgs(1)<CR><Home>')
 endfunction
 
-function! fugitive#BufReadStatus(cmdbang) abort
-  exe s:VersionCheck()
-  let amatch = s:Slash(expand('%:p'))
-  if a:cmdbang
-    unlet! b:fugitive_expanded
-  endif
-  let b:fugitive_type = 'index'
-  let dir = s:Dir()
-  let stat = {'bufnr': bufnr(''), 'reltime': reltime(), 'work_tree': s:Tree(dir)}
+function! s:StatusProcess(result, stat) abort
+  let stat = a:stat
+  let status_exec = a:stat.status
+  let config = a:stat.config
+  let dir = s:Dir(config)
   try
-    let b:fugitive_loading = stat
-    let config = fugitive#Config(dir)
-
-    let cmd = [dir]
-    if amatch !~# '^fugitive:' && s:cpath($GIT_INDEX_FILE !=# '' ? resolve(s:GitIndexFileEnv()) : fugitive#Find('.git/index', dir)) !=# s:cpath(amatch)
-      let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
-    endif
-
-    if fugitive#GitVersion(2, 15)
-      call add(cmd, '--no-optional-locks')
-    endif
-
-    let rev_parse_cmd = cmd + ['rev-parse', '--short', 'HEAD', '--']
-    let stat.rev_parse = fugitive#Execute(rev_parse_cmd, function('len'))
-
-    if !empty(stat.work_tree)
-      let status_cmd = cmd + ['status', '-bz']
-      call add(status_cmd, fugitive#GitVersion(2, 11) ? '--porcelain=v2' : '--porcelain')
-      let status_exec = fugitive#Execute(status_cmd, function('len'))
-    endif
-
-    doautocmd <nomodeline> BufReadPre
-
-    setlocal readonly nomodifiable noswapfile nomodeline buftype=nowrite
-    call s:MapStatus()
-
     let [staged, unstaged, untracked] = [[], [], []]
     let stat.props = {}
 
-    if !exists('status_exec')
+    if empty(status_exec)
       let stat.branch = FugitiveHead(0, config)
 
-    elseif fugitive#Wait(status_exec).exit_status
-      return 'echoerr ' . string('fugitive: ' . s:JoinChomp(status_exec.stderr))
+    elseif status_exec.exit_status
+      let stat.error = s:JoinChomp(status_exec.stderr)
+      return
 
     elseif status_exec.args[-1] ==# '--porcelain=v2'
       let output = split(tr(join(status_exec.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
@@ -2850,7 +2821,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
       endwhile
     endif
 
-    let diff_cmd = cmd + ['-c', 'diff.suppressBlankEmpty=false', '-c', 'core.quotePath=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix']
+    let diff_cmd = stat.cmd + ['-c', 'diff.suppressBlankEmpty=false', '-c', 'core.quotePath=false', 'diff', '--color=never', '--no-ext-diff', '--no-prefix']
     let stat.diff = {'Staged': {'stdout': ['']}, 'Unstaged': {'stdout': ['']}}
     if len(staged)
       let stat.diff['Staged'] = fugitive#Execute(diff_cmd + ['--cached'], function('len'))
@@ -2858,6 +2829,8 @@ function! fugitive#BufReadStatus(cmdbang) abort
     if len(unstaged)
       let stat.diff['Unstaged'] = fugitive#Execute(diff_cmd + ['--'] + map(copy(unstaged), 'stat.work_tree . "/" . v:val.relative[0]'), function('len'))
     endif
+
+    let [stat.staged, stat.unstaged, stat.untracked] = [staged, unstaged, untracked]
 
     let stat.files = {'Staged': {}, 'Unstaged': {}}
     for dict in staged
@@ -2910,6 +2883,18 @@ function! fugitive#BufReadStatus(cmdbang) abort
         let stat.pull_type = 'Merge'
       endif
     endif
+  endtry
+endfunction
+
+function! s:StatusRender(stat) abort
+  try
+    let stat = a:stat
+    call fugitive#Wait(stat.running)
+    if has_key(stat, 'error')
+      return 'echoerr ' . string('fugitive: ' . stat.error)
+    endif
+    let [staged, unstaged, untracked, config] = [stat.staged, stat.unstaged, stat.untracked, stat.config]
+    let dir = s:Dir(config)
 
     let pull_ref = stat.merge
     if stat.fetch_remote !=# '.'
@@ -3028,6 +3013,57 @@ function! fugitive#BufReadStatus(cmdbang) abort
     call setbufvar(bufnr, 'fugitive_status', stat)
     call setbufvar(bufnr, 'fugitive_expanded', stat.expanded)
     setlocal nomodified readonly nomodifiable
+    return ''
+  finally
+    let b:fugitive_type = 'index'
+  endtry
+endfunction
+
+function! s:StatusRetrieve(bufnr, ...) abort
+  let amatch = s:Slash(fnamemodify(bufname(a:bufnr), ':p'))
+  let dir = s:Dir(a:bufnr)
+  let config = fugitive#Config(dir, function('len'))
+
+  let cmd = [dir]
+  if amatch !~# '^fugitive:' && s:cpath($GIT_INDEX_FILE !=# '' ? resolve(s:GitIndexFileEnv()) : fugitive#Find('.git/index', dir)) !=# s:cpath(amatch)
+    let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
+  endif
+
+  if fugitive#GitVersion(2, 15)
+    call add(cmd, '--no-optional-locks')
+  endif
+
+  let rev_parse_cmd = cmd + ['rev-parse', '--short', 'HEAD', '--']
+
+  let stat = {'bufnr': a:bufnr, 'reltime': reltime(), 'work_tree': s:Tree(dir), 'cmd': cmd, 'config': config}
+  if empty(stat.work_tree)
+    let stat.rev_parse = call('fugitive#Execute', [rev_parse_cmd, function('s:StatusProcess'), stat] + a:000)
+    let stat.status = {}
+    let stat.running = stat.rev_parse
+  else
+    let stat.rev_parse = fugitive#Execute(rev_parse_cmd)
+    let status_cmd = cmd + ['status', '-bz', fugitive#GitVersion(2, 11) ? '--porcelain=v2' : '--porcelain']
+    let stat.status = call('fugitive#Execute', [status_cmd, function('s:StatusProcess'), stat] + a:000)
+    let stat.running = stat.status
+  endif
+  return stat
+endfunction
+
+function! fugitive#BufReadStatus(cmdbang) abort
+  exe s:VersionCheck()
+  if a:cmdbang
+    unlet! b:fugitive_expanded
+  endif
+  let b:fugitive_type = 'index'
+  let stat = s:StatusRetrieve(bufnr(''))
+  try
+    let b:fugitive_loading = stat
+    doautocmd <nomodeline> BufReadPre
+
+    setlocal readonly nomodifiable noswapfile nomodifiable buftype=nowrite
+    call s:MapStatus()
+
+    call s:StatusRender(stat)
 
     doautocmd <nomodeline> BufReadPost
     if &bufhidden ==# ''
