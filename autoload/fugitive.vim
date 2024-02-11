@@ -4368,7 +4368,7 @@ function! fugitive#DidChange(...) abort
   if a:0 > 1 ? a:2 : (!a:0 || a:1 isnot# 0)
     let t = reltime()
     let t:fugitive_reload_status = t
-    let prevnr = has('patch-8.2.1401') ? tabpagenr('#') : 0
+    let prevnr = has('patch-8.2.1401') || has('nvim-0.7') ? tabpagenr('#') : 0
     for tabnr in range(1, tabpagenr('$'))
       if tabnr != prevnr
         call settabvar(tabnr, 'fugitive_reload_status', t)
