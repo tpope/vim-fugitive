@@ -4368,13 +4368,15 @@ function! fugitive#DidChange(...) abort
   if a:0 > 1 ? a:2 : (!a:0 || a:1 isnot# 0)
     let t = reltime()
     let t:fugitive_reload_status = t
-    let prevnr = tabpagenr('#')
+    let prevnr = has('patch-8.2.1401') ? tabpagenr('#') : 0
     for tabnr in range(1, tabpagenr('$'))
       if tabnr != prevnr
         call settabvar(tabnr, 'fugitive_reload_status', t)
       endif
     endfor
-    call settabvar(prevnr, 'fugitive_reload_status', t)
+    if prevnr
+      call settabvar(prevnr, 'fugitive_reload_status', t)
+    endif
     call s:ReloadTabStatus()
   else
     call s:ReloadWinStatus()
