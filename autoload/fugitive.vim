@@ -2759,7 +2759,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
     call s:MapStatus()
 
     let [staged, unstaged, untracked] = [[], [], []]
-    let props = {}
+    let stat.props = {}
 
     if !exists('status_exec')
       let branch = FugitiveHead(0, dir)
@@ -2775,7 +2775,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
         let line = output[i]
         let prop = matchlist(line, '# \(\S\+\) \(.*\)')
         if len(prop)
-          let props[prop[1]] = prop[2]
+          let stat.props[prop[1]] = prop[2]
         elseif line[0] ==# '?'
           call add(untracked, {'type': 'File', 'status': line[0], 'filename': line[2:-1], 'relative': [line[2:-1]]})
         elseif line[0] !=# '#'
@@ -2803,11 +2803,11 @@ function! fugitive#BufReadStatus(cmdbang) abort
         endif
         let i += 1
       endwhile
-      let branch = substitute(get(props, 'branch.head', '(unknown)'), '\C^(\%(detached\|unknown\))$', '', '')
+      let branch = substitute(get(stat.props, 'branch.head', '(unknown)'), '\C^(\%(detached\|unknown\))$', '', '')
       if len(branch)
         let head = branch
-      elseif has_key(props, 'branch.oid')
-        let head = props['branch.oid'][0:10]
+      elseif has_key(stat.props, 'branch.oid')
+        let head = stat.props['branch.oid'][0:10]
       else
         let head = FugitiveHead(11, dir)
       endif
@@ -2996,7 +2996,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
 
     let unique_push_ref = push_ref ==# pull_ref ? '' : push_ref
     let unpushed_push = s:QueryLogRange(unique_push_ref, head, dir)
-    if get(props, 'branch.ab') =~# '^+0 '
+    if get(stat.props, 'branch.ab') =~# '^+0 '
       let unpushed_pull = {'error': 0, 'overflow': 0, 'entries': []}
     else
       let unpushed_pull = s:QueryLogRange(pull_ref, head, dir)
@@ -3013,7 +3013,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
       call s:AddLogSection(to, 'Unpushed to *', s:QueryLog([head, '--not', '--remotes'], 256, dir))
     endif
     call s:AddLogSection(to, 'Unpulled from ' . push_short, s:QueryLogRange(head, unique_push_ref, dir))
-    if len(pull_ref) && get(props, 'branch.ab') !~# ' -0$'
+    if len(pull_ref) && get(stat.props, 'branch.ab') !~# ' -0$'
       call s:AddLogSection(to, 'Unpulled from ' . pull_short, s:QueryLogRange(head, pull_ref, dir))
     endif
 
