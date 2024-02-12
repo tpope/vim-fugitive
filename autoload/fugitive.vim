@@ -140,7 +140,7 @@ endfunction
 function! s:Mods(mods, ...) abort
   let mods = substitute(a:mods, '\C<mods>', '', '')
   let mods = mods =~# '\S$' ? mods . ' ' : mods
-  if a:0 && mods !~# '\<\%(aboveleft\|belowright\|leftabove\|rightbelow\|topleft\|botright\|tab\)\>'
+  if a:0 && mods !~# '\<\d*\%(aboveleft\|belowright\|leftabove\|rightbelow\|topleft\|botright\|tab\)\>'
     let default = a:1
     if default ==# 'SpanOrigin'
       if s:OriginBufnr() > 0 && (mods =~# '\<vertical\>' ? &winfixheight : &winfixwidth)
@@ -1532,7 +1532,7 @@ function! s:QuickfixCreate(nr, opts) abort
 endfunction
 
 function! s:QuickfixOpen(nr, mods) abort
-  let mods = substitute(s:Mods(a:mods), '\<tab\>', '', '')
+  let mods = substitute(s:Mods(a:mods), '\<\d*tab\>', '', '')
   return mods . (a:nr < 0 ? 'c' : 'l').'open' . (mods =~# '\<vertical\>' ? ' 20' : '')
 endfunction
 
@@ -3403,7 +3403,7 @@ function! s:RunEdit(state, tmp, job) abort
   let sentinel = a:state.file . '.edit'
   let file = FugitiveVimPath(readfile(sentinel, '', 1)[0])
   try
-    if !&equalalways && a:state.mods !~# '\<tab\>' && 3 > (a:state.mods =~# '\<vert' ? winwidth(0) : winheight(0))
+    if !&equalalways && a:state.mods !~# '\<\d*tab\>' && 3 > (a:state.mods =~# '\<vert' ? winwidth(0) : winheight(0))
       let noequalalways = 1
       setglobal equalalways
     endif
@@ -6563,9 +6563,9 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, ...) abort
     return s:Mods(a:mods) . 'DiffGitCached' . (len(post) ? '|' . post : '')
   endif
   let commit = s:DirCommitFile(@%)[1]
-  if a:mods =~# '\<tab\>'
-    let mods = substitute(a:mods, '\<tab\>', '', 'g')
-    let pre = 'tab split'
+  if a:mods =~# '\<\d*tab\>'
+    let mods = substitute(a:mods, '\<\d*tab\>', '', 'g')
+    let pre = matchstr(a:mods, '\<\d*tab\>') . 'edit'
   else
     let mods = 'keepalt ' . a:mods
     let pre = ''
@@ -7043,15 +7043,16 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
           endif
           return reload[1 : -1]
         endif
-        if a:mods =~# '\<tab\>'
-          silent tabedit %
+        let tabmod = matchstr(a:mods, '\<\d*tab\>')
+        let mods = substitute(a:mods, '\<\d*tab\>', '', 'g')
+        if !empty(tabmod)
+          silent execute tabmod . 'edit %'
         endif
         let temp_state.origin_bufnr = bufnr('')
         if exists('*win_getid')
           let temp_state.origin_winid = win_getid()
         endif
         let restore = []
-        let mods = substitute(a:mods, '\<tab\>', '', 'g')
         for winnr in range(winnr('$'),1,-1)
           if getwinvar(winnr, '&scrollbind')
             if !&l:scrollbind
