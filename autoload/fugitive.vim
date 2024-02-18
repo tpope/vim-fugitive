@@ -2732,10 +2732,11 @@ function! fugitive#BufReadStatus(cmdbang) abort
   if a:cmdbang
     unlet! b:fugitive_expanded
   endif
-  unlet! b:fugitive_reltime b:fugitive_type
+  let b:fugitive_type = 'index'
   let dir = s:Dir()
   let stat = {'bufnr': bufnr(''), 'reltime': reltime(), 'work_tree': s:Tree(dir)}
   try
+    let b:fugitive_loading = stat
     let config = fugitive#Config(dir)
 
     let cmd = [dir]
@@ -3026,15 +3027,14 @@ function! fugitive#BufReadStatus(cmdbang) abort
       call s:AddLogSection(to, 'Unpulled from ' . pull_short, s:QueryLogRange(head, pull_ref, dir))
     endif
 
-    let b:fugitive_files = stat.files
-    let b:fugitive_diff = stat.diff
-    let b:fugitive_expanded = stat.expanded
-    let b:fugitive_reltime = stat.reltime
+    let bufnr = stat.bufnr
     setlocal noreadonly modifiable
     if len(to.lines) < line('$')
       silent keepjumps execute (len(to.lines)+1) . ',$delete_'
     endif
     call setline(1, to.lines)
+    call setbufvar(bufnr, 'fugitive_status', stat)
+    call setbufvar(bufnr, 'fugitive_expanded', stat.expanded)
     setlocal nomodified readonly nomodifiable
 
     doautocmd <nomodeline> BufReadPost
@@ -3048,7 +3048,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
 
     return s:DoAutocmd('User FugitiveIndex')
   finally
-    let b:fugitive_type = 'index'
+    call setbufvar(stat.bufnr, 'fugitive_loading', {})
   endtry
 endfunction
 
@@ -4301,7 +4301,7 @@ function! s:DoAutocmdChanged(dir) abort
 endfunction
 
 function! s:ReloadStatusBuffer() abort
-  if get(b:, 'fugitive_type', '') !=# 'index'
+  if get(b:, 'fugitive_type', '') !=# 'index' || !empty(get(b:, 'fugitive_loading'))
     return ''
   endif
   let original_lnum = line('.')
@@ -4340,14 +4340,14 @@ function! s:ExpireStatus(bufnr) abort
 endfunction
 
 function! s:ReloadWinStatus(...) abort
-  if get(b:, 'fugitive_type', '') !=# 'index' || &modified
+  if get(b:, 'fugitive_type', '') !=# 'index' || !empty(get(b:, 'fugitive_loading')) || &modified
     return
   endif
-  if !exists('b:fugitive_reltime')
+  if !exists('b:fugitive_status.reltime')
     exe call('s:ReloadStatusBuffer', a:000)
     return
   endif
-  let t = b:fugitive_reltime
+  let t = b:fugitive_status.reltime
   if reltimestr(reltime(s:last_time, t)) =~# '-\|\d\{10\}\.' ||
         \ reltimestr(reltime(get(s:last_times, s:Tree() . '/', t), t)) =~# '-\|\d\{10\}\.'
     exe call('s:ReloadStatusBuffer', a:000)
@@ -4434,7 +4434,7 @@ augroup fugitive_status
 augroup END
 
 function! s:StatusSectionFile(heading, filename) abort
-  return get(get(get(b:, 'fugitive_files', {}), a:heading, {}), a:filename, {})
+  return get(get(get(get(b:, 'fugitive_status', {}), 'files', {}), a:heading, {}), a:filename, {})
 endfunction
 
 function! s:StageInfo(...) abort
@@ -4889,7 +4889,7 @@ function! s:StageInline(mode, ...) abort
       let lnum -= 1
     endwhile
     let info = s:StageInfo(lnum)
-    let diff_section = get(get(b:, 'fugitive_diff', {}), info.section, {})
+    let diff_section = get(get(get(b:, 'fugitive_status', {}), 'diff', {}), info.section, {})
     if empty(diff_section)
       continue
     endif
@@ -5011,7 +5011,7 @@ function! s:StageApply(info, reverse, extra) abort
   endif
   let i = b:fugitive_expanded[info.section][info.filename][0]
   let head = []
-  let diff_lines = fugitive#Wait(b:fugitive_diff[info.section]).stdout
+  let diff_lines = fugitive#Wait(b:fugitive_status.diff[info.section]).stdout
   while get(diff_lines, i, '@') !~# '^@'
     let line = diff_lines[i]
     if line ==# '--- /dev/null'
