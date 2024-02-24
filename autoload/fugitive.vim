@@ -4346,6 +4346,15 @@ function! s:ReloadWinStatus(...) abort
 endfunction
 
 function! s:ReloadTabStatus() abort
+  if !exists('g:fugitive_did_change_at')
+    return
+  elseif exists('t:fugitive_reloaded_at')
+    let time_ahead = reltime(g:fugitive_did_change_at, t:fugitive_reloaded_at)
+    if reltimefloat(time_ahead) >= 0
+      return
+    endif
+  endif
+  let t:fugitive_reloaded_at = reltime()
   let winnr = 1
   while winnr <= winnr('$')
     if getbufvar(winbufnr(winnr), 'fugitive_type') ==# 'index'
@@ -4364,23 +4373,12 @@ function! s:ReloadTabStatus() abort
     endif
     let winnr += 1
   endwhile
-  unlet! t:fugitive_reload_status
 endfunction
 
 function! fugitive#DidChange(...) abort
   call s:ExpireStatus(a:0 ? a:1 : -1)
   if a:0 > 1 ? a:2 : (!a:0 || a:1 isnot# 0)
-    let t = reltime()
-    let t:fugitive_reload_status = t
-    let prevnr = has('patch-9.0.1362') || has('nvim-0.9') ? tabpagenr('#') : 0
-    for tabnr in range(1, tabpagenr('$'))
-      if tabnr != prevnr
-        call settabvar(tabnr, 'fugitive_reload_status', t)
-      endif
-    endfor
-    if prevnr
-      call settabvar(prevnr, 'fugitive_reload_status', t)
-    endif
+    let g:fugitive_did_change_at = reltime()
     call s:ReloadTabStatus()
   else
     call s:ReloadWinStatus()
@@ -4423,9 +4421,7 @@ augroup fugitive_status
   autocmd BufEnter index,index.lock,fugitive://*//
         \ call s:ReloadWinStatus()
   autocmd TabEnter *
-        \ if exists('t:fugitive_reload_status') |
-        \    call s:ReloadTabStatus() |
-        \ endif
+        \ call s:ReloadTabStatus()
 augroup END
 
 function! s:StatusSectionFile(heading, filename) abort
