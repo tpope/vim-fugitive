@@ -5158,11 +5158,12 @@ function! s:DoToggleHelpHeader(value) abort
 endfunction
 
 function! s:DoStagePushHeader(value) abort
-  let remote = matchstr(a:value, '\zs[^/]\+\ze/')
-  if empty(remote)
-    let remote = '.'
+  let stat = get(b:, 'fugitive_status', {})
+  let remote = get(stat, 'push_remote', '')
+  let branch = substitute(get(stat, 'push', ''), '^ref/heads/', '', '')
+  if empty(remote) || empty(branch)
+    return
   endif
-  let branch = matchstr(a:value, '\%([^/]\+/\)\=\zs\S\+')
   call feedkeys(':Git push ' . remote . ' ' . branch)
 endfunction
 
@@ -5171,15 +5172,13 @@ function! s:DoTogglePushHeader(value) abort
 endfunction
 
 function! s:DoStageUnpushedHeading(heading) abort
-  let remote = matchstr(a:heading, 'to \zs[^/]\+\ze/')
-  if empty(remote)
-    let remote = '.'
-  endif
-  let branch = matchstr(a:heading, 'to \%([^/]\+/\)\=\zs\S\+')
-  if branch ==# '*'
+  let stat = get(b:, 'fugitive_status', {})
+  let remote = get(stat, 'push_remote', '')
+  let push = get(stat, 'push', '')
+  if empty(remote) || empty(push)
     return
   endif
-  call feedkeys(':Git push ' . remote . ' ' . '@:' . 'refs/heads/' . branch)
+  call feedkeys(':Git push ' . remote . ' ' . '@:' . push)
 endfunction
 
 function! s:DoToggleUnpushedHeading(heading) abort
@@ -5187,15 +5186,13 @@ function! s:DoToggleUnpushedHeading(heading) abort
 endfunction
 
 function! s:DoStageUnpushed(record) abort
-  let remote = matchstr(a:record.heading, 'to \zs[^/]\+\ze/')
-  if empty(remote)
-    let remote = '.'
-  endif
-  let branch = matchstr(a:record.heading, 'to \%([^/]\+/\)\=\zs\S\+')
-  if branch ==# '*'
+  let stat = get(b:, 'fugitive_status', {})
+  let remote = get(stat, 'push_remote', '')
+  let push = get(stat, 'push', '')
+  if empty(remote) || empty(push)
     return
   endif
-  call feedkeys(':Git push ' . remote . ' ' . a:record.commit . ':' . 'refs/heads/' . branch)
+  call feedkeys(':Git push ' . remote . ' ' . a:record.commit . ':' . push)
 endfunction
 
 function! s:DoToggleUnpushed(record) abort
