@@ -2884,15 +2884,25 @@ function! fugitive#BufReadStatus(cmdbang) abort
     let stat.push_remote = push_remote
 
     if empty(stat.fetch_remote) || empty(branch)
-      let pull_ref = ''
-    elseif stat.fetch_remote ==# '.'
-      let pull_ref = config.Get('branch.' . branch . '.merge', '')
+      let stat.merge = ''
     else
-      let pull_ref = substitute(config.Get('branch.' . branch . '.merge', ''), '^refs/heads/', 'refs/remotes/' . stat.fetch_remote . '/', '')
+      let stat.merge = config.Get('branch.' . branch . '.merge')
+    endif
+
+    let push_default = FugitiveConfigGet('push.default', config)
+    if empty(push_default)
+      let push_default = fugitive#GitVersion(2) ? 'simple' : 'matching'
+    endif
+    if push_default ==# 'upstream'
+      let stat.push = stat.merge
+    elseif empty(stat.push_remote) || empty(branch)
+      let stat.push = ''
+    else
+      let stat.push = 'refs/heads/' . branch
     endif
 
     let stat.pull_type = 'Pull'
-    if len(pull_ref)
+    if len(stat.merge)
       let rebase = FugitiveConfigGet('branch.' . branch . '.rebase', config)
       if empty(rebase)
         let rebase = FugitiveConfigGet('pull.rebase', config)
@@ -2904,18 +2914,14 @@ function! fugitive#BufReadStatus(cmdbang) abort
       endif
     endif
 
-    let push_default = FugitiveConfigGet('push.default', config)
-    if empty(push_default)
-      let push_default = fugitive#GitVersion(2) ? 'simple' : 'matching'
+    let pull_ref = stat.merge
+    if stat.fetch_remote !=# '.'
+      let pull_ref = substitute(pull_ref, '^refs/heads/', 'refs/remotes/' . stat.fetch_remote . '/', '')
     endif
-    if push_default ==# 'upstream'
-      let push_ref = pull_ref
-    elseif empty(stat.push_remote) || empty(branch)
-      let push_ref = ''
-    elseif stat.push_remote ==# '.'
-      let push_ref = 'refs/heads/' . branch
-    else
-      let push_ref = 'refs/remotes/' . stat.push_remote . '/' . branch
+
+    let push_ref = stat.push
+    if stat.push_remote !=# '.'
+      let push_ref = substitute(push_ref, '^refs/heads/', 'refs/remotes/' . stat.push_remote . '/', '')
     endif
 
     let push_short = substitute(push_ref, '^refs/\w\+/', '', '')
