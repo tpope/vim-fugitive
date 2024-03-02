@@ -2880,13 +2880,15 @@ function! fugitive#BufReadStatus(cmdbang) abort
     if push_remote !=# '.' && empty(config.Get('remote.' . push_remote . '.push', config.Get('remote.' . push_remote . '.fetch')))
       let push_remote = ''
     endif
+    let stat.fetch_remote = fetch_remote
+    let stat.push_remote = push_remote
 
-    if empty(fetch_remote) || empty(branch)
+    if empty(stat.fetch_remote) || empty(branch)
       let pull_ref = ''
-    elseif fetch_remote ==# '.'
+    elseif stat.fetch_remote ==# '.'
       let pull_ref = config.Get('branch.' . branch . '.merge', '')
     else
-      let pull_ref = substitute(config.Get('branch.' . branch . '.merge', ''), '^refs/heads/', 'refs/remotes/' . fetch_remote . '/', '')
+      let pull_ref = substitute(config.Get('branch.' . branch . '.merge', ''), '^refs/heads/', 'refs/remotes/' . stat.fetch_remote . '/', '')
     endif
 
     let stat.pull_type = 'Pull'
@@ -2908,12 +2910,12 @@ function! fugitive#BufReadStatus(cmdbang) abort
     endif
     if push_default ==# 'upstream'
       let push_ref = pull_ref
-    elseif empty(push_remote) || empty(branch)
+    elseif empty(stat.push_remote) || empty(branch)
       let push_ref = ''
-    elseif push_remote ==# '.'
+    elseif stat.push_remote ==# '.'
       let push_ref = 'refs/heads/' . branch
     else
-      let push_ref = 'refs/remotes/' . push_remote . '/' . branch
+      let push_ref = 'refs/remotes/' . stat.push_remote . '/' . branch
     endif
 
     let push_short = substitute(push_ref, '^refs/\w\+/', '', '')
@@ -3010,7 +3012,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
     call s:AddLogSection(to, 'Unpushed to ' . push_short, unpushed_push)
     call s:AddLogSection(to, 'Unpushed to ' . pull_short, unpushed_pull)
     if unpushed_push.error && unpushed_pull.error && empty(rebasing) &&
-          \ !empty(push_remote . fetch_remote)
+          \ !empty(stat.push_remote . stat.fetch_remote)
       call s:AddLogSection(to, 'Unpushed to *', s:QueryLog([head, '--not', '--remotes'], 256, dir))
     endif
     call s:AddLogSection(to, 'Unpulled from ' . push_short, s:QueryLogRange(head, unique_push_ref, dir))
