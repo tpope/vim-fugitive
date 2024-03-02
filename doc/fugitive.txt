@@ -380,6 +380,9 @@ p                       Open the file or |fugitive-object| under the cursor in
 
                                                 *fugitive_P*
 P                       Open the current file in the [count]th parent.
+                        Experimental:  In the "Unpushed" section of the status
+                        buffer, this will populate the command line with a
+                        ":Git push" command for the commit under the cursor.
 
                                                 *fugitive_C*
 C                       Open the commit containing the current file.
