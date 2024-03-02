@@ -2881,7 +2881,6 @@ function! fugitive#BufReadStatus(cmdbang) abort
       let push_remote = ''
     endif
 
-    let pull_type = 'Pull'
     if empty(fetch_remote) || empty(branch)
       let pull_ref = ''
     elseif fetch_remote ==# '.'
@@ -2889,15 +2888,17 @@ function! fugitive#BufReadStatus(cmdbang) abort
     else
       let pull_ref = substitute(config.Get('branch.' . branch . '.merge', ''), '^refs/heads/', 'refs/remotes/' . fetch_remote . '/', '')
     endif
+
+    let stat.pull_type = 'Pull'
     if len(pull_ref)
       let rebase = FugitiveConfigGet('branch.' . branch . '.rebase', config)
       if empty(rebase)
         let rebase = FugitiveConfigGet('pull.rebase', config)
       endif
       if rebase =~# '^\%(true\|yes\|on\|1\|interactive\|merges\|preserve\)$'
-        let pull_type = 'Rebase'
+        let stat.pull_type = 'Rebase'
       elseif rebase =~# '^\%(false\|no|off\|0\|\)$'
-        let pull_type = 'Merge'
+        let stat.pull_type = 'Merge'
       endif
     endif
 
@@ -2973,7 +2974,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
     let stat.expanded = {'Staged': {}, 'Unstaged': {}}
     let to = {'lines': []}
     call s:AddHeader(to, 'Head', head)
-    call s:AddHeader(to, pull_type, pull_short)
+    call s:AddHeader(to, stat.pull_type, pull_short)
     if push_ref !=# pull_ref
       call s:AddHeader(to, 'Push', push_short)
     endif
