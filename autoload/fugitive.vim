@@ -7097,6 +7097,9 @@ function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
         normal! zt
         execute current
         setlocal nonumber scrollbind nowrap foldcolumn=0 nofoldenable winfixwidth
+        if exists('&winfixbuf')
+          setlocal winfixbuf
+        endif
         if exists('+relativenumber')
           setlocal norelativenumber
         endif
