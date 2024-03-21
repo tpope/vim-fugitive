@@ -2994,7 +2994,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
         call s:AddHeader(to, 'Error', s:worktree_error)
       endif
     endif
-    if get(fugitive#ConfigGetAll('advice.tousHints', config), 0, 'true') !~# '^\%(false\|no|off\|0\|\)$'
+    if get(fugitive#ConfigGetAll('advice.statusHints', config), 0, 'true') !~# '^\%(false\|no|off\|0\|\)$'
       call s:AddHeader(to, 'Help', 'g?')
     endif
 
