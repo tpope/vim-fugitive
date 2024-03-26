@@ -3350,8 +3350,8 @@ function! s:TempReadPost(file) abort
     if !&modifiable
       call s:Map('n', 'gq', ":<C-U>bdelete<CR>", '<silent> <unique>')
     endif
+    return 'doautocmd <nomodeline> User FugitivePager'
   endif
-  return s:DoAutocmd('User FugitivePager')
 endfunction
 
 function! s:TempDelete(file) abort
