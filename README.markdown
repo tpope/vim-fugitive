@@ -86,7 +86,15 @@ For more information, see `:help fugitive`.
 
 ## Installation
 
-Install using your favorite package manager, or use Vim's built-in package
+
+Install using your favorite package manager...:
+
+installation via vim_plug:
+```
+Plug 'tpope/vim-fugitive'
+```
+
+...or use Vim's built-in package
 support:
 
     mkdir -p ~/.vim/pack/tpope/start
