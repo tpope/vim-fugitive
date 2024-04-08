@@ -3352,6 +3352,7 @@ function! s:TempReadPost(file) abort
     endif
     return 'doautocmd <nomodeline> User FugitivePager'
   endif
+  return ''
 endfunction
 
 function! s:TempDelete(file) abort
