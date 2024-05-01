@@ -3768,6 +3768,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
   let flags = []
   let pager = -1
   let explicit_pathspec_option = 0
+  let did_expand_alias = 0
   while len(args)
     if args[0] ==# '-c' && len(args) > 1
       call extend(flags, remove(args, 0, 1))
@@ -3784,8 +3785,18 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
       call add(flags, remove(args, 0))
     elseif args[0] =~# '^-C$\|^--\%(exec-path=\|git-dir=\|work-tree=\|bare$\)'
       return 'echoerr ' . string('fugitive: ' . args[0] . ' is not supported')
-    else
+    elseif did_expand_alias
       break
+    else
+      let alias = FugitiveConfigGet('alias.' . get(args, 0, ''), config)
+      if get(args, 1, '') !=# '--help' && alias !~# '^$\|^!\|[\"'']' && !filereadable(s:VimExecPath() . '/git-' . args[0])
+            \ && !(has('win32') && filereadable(s:VimExecPath() . '/git-' . args[0] . '.exe'))
+        call remove(args, 0)
+        call extend(args, split(alias, '\s\+'), 'keep')
+        let did_expand_alias = 1
+      else
+        break
+      endif
     endif
   endwhile
   if !explicit_pathspec_option
@@ -3816,12 +3827,6 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
   if empty(args) && pager is# -1
     let cmd = s:StatusCommand(a:line1, a:line2, a:range, curwin ? 0 : a:line2, a:bang, a:mods, '', '', [], options)
     return (empty(cmd) ? 'exe' : cmd) . after
-  endif
-  let alias = FugitiveConfigGet('alias.' . get(args, 0, ''), config)
-  if get(args, 1, '') !=# '--help' && alias !~# '^$\|^!\|[\"'']' && !filereadable(s:VimExecPath() . '/git-' . args[0])
-        \ && !(has('win32') && filereadable(s:VimExecPath() . '/git-' . args[0] . '.exe'))
-    call remove(args, 0)
-    call extend(args, split(alias, '\s\+'), 'keep')
   endif
   let name = substitute(get(args, 0, ''), '\%(^\|-\)\(\l\)', '\u\1', 'g')
   if pager is# -1 && name =~# '^\a\+$' && exists('*s:' . name . 'Subcommand') && get(args, 1, '') !=# '--help'
