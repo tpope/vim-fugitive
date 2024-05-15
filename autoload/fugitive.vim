@@ -1259,7 +1259,10 @@ function! s:SshParseConfig(into, root, file) abort
           let glob = a:root . glob
         endif
         for included in reverse(split(glob(glob), "\n"))
-          call extend(lines, readfile(included), 'keep')
+          try
+            call extend(lines, readfile(included), 'keep')
+          catch
+          endtry
         endfor
       endfor
     elseif len(key) && len(host)
