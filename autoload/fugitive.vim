@@ -5466,7 +5466,9 @@ function! s:ToolItems(state, from, to, offsets, text, ...) abort
     endif
     call add(items, item)
   endfor
-  let items[-1].context = {'diff': items[0:-2]}
+  if get(offsets, 0, 0) >= 0
+    let items[-1].context = {'diff': items[0:-2]}
+  endif
   return [items[-1]]
 endfunction
 
@@ -5522,6 +5524,10 @@ function! s:ToolParse(state, line) abort
     let [_, add, remove, to; __] = matchlist(a:line, '^\(\d\+\|-\)\t\(\d\+\|-\)\t\(.*\)')
     let [to, from] = s:ToolToFrom(to)
     return s:ToolItems(a:state, from, to, [], add ==# '-' ? 'Binary file' : '+' . add . ' -' . remove, add !=# '-')
+  elseif a:line =~# '^\f\+:\d\+: \D'
+    " --check
+    let [_, to, line, text; __] = matchlist(a:line, '^\(\f\+\):\(\d\+\):\s*\(.*\)$')
+    return s:ToolItems(a:state, to, to, [-1, line], text)
   elseif a:state.mode !=# 'diffhead' && a:state.mode !=# 'hunk' && len(a:line) || a:line =~# '^git: \|^usage: \|^error: \|^fatal: '
     return [{'text': a:line}]
   endif
