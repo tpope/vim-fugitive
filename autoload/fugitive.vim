@@ -1255,7 +1255,7 @@ function! s:SshParseConfig(into, root, file) abort
       let host = s:SshParseHost(value)
     elseif key ==# 'include'
       for glob in split(value)
-        if glob !~# '^/'
+        if glob !~# '^[~/]'
           let glob = a:root . glob
         endif
         for included in reverse(split(glob(glob), "\n"))
