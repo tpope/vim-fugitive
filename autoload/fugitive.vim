@@ -273,10 +273,11 @@ function! s:TempScript(...) abort
   if !filereadable(temp)
     call writefile(['#!/bin/sh'] + a:000, temp)
   endif
+  let temp = FugitiveGitPath(temp)
   if temp =~# '\s'
     let temp = '"' . temp . '"'
   endif
-  return FugitiveGitPath(temp)
+  return temp
 endfunction
 
 function! s:DoAutocmd(...) abort
