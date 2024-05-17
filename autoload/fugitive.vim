@@ -3925,6 +3925,9 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
           \ 'GIT_SEQUENCE_EDITOR': editor,
           \ 'GIT_PAGER': 'cat',
           \ 'PAGER': 'cat'}, 'keep')
+    if s:executable('col')
+      let env.MANPAGER = 'col -b'
+    endif
     if len($GPG_TTY) && !has_key(env, 'GPG_TTY')
       let env.GPG_TTY = ''
       let did_override_gpg_tty = 1
