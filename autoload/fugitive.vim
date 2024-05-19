@@ -5481,10 +5481,8 @@ function! s:ToolItems(state, from, to, offsets, text, ...) abort
     endif
     call add(items, item)
   endfor
-  if get(a:offsets, 0, 0) >= 0
+  if get(a:offsets, 0, '') isnot# 'none'
     let items[-1].context = {'diff': items[0:-2]}
-  else
-    let item[-1].context = {}
   endif
   return [items[-1]]
 endfunction
@@ -5544,7 +5542,7 @@ function! s:ToolParse(state, line) abort
   elseif a:line =~# '^\f\+:\d\+: \D'
     " --check
     let [_, to, line, text; __] = matchlist(a:line, '^\(\f\+\):\(\d\+\):\s*\(.*\)$')
-    return s:ToolItems(a:state, to, to, [-1, line], text)
+    return s:ToolItems(a:state, to, to, ['none', line], text)
   elseif a:state.mode !=# 'diffhead' && a:state.mode !=# 'hunk' && len(a:line) || a:line =~# '^git: \|^usage: \|^error: \|^fatal: '
     return [{'text': a:line}]
   endif
@@ -5599,7 +5597,7 @@ function! s:ToolStream(line1, line2, range, bang, mods, options, args, state) ab
       for item in s:ToolParse(a:state, line)
         if len(get(item, 'filename', '')) && item.filename != filename
           call add(cmd, 'tabedit ' . s:fnameescape(item.filename))
-          for i in reverse(range(len(get(item.context, 'diff', []))))
+          for i in reverse(range(len(get(get(item, 'context', {}), 'diff', []))))
             call add(cmd, (i ? 'rightbelow' : 'leftabove') . ' vertical Gdiffsplit! ' . s:fnameescape(item.context.diff[i].filename))
           endfor
           call add(cmd, 'wincmd =')
