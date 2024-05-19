@@ -5483,6 +5483,8 @@ function! s:ToolItems(state, from, to, offsets, text, ...) abort
   endfor
   if get(a:offsets, 0, 0) >= 0
     let items[-1].context = {'diff': items[0:-2]}
+  else
+    let item[-1].context = {}
   endif
   return [items[-1]]
 endfunction
