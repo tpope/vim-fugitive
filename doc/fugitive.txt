@@ -341,8 +341,8 @@ ds                      Perform a |:Ghdiffsplit| on the file under the cursor.
 dh
 
                                                 *fugitive_dq*
-dq                      Close all but one diff buffer, and |:diffoff|! the
-                        last one.
+dq                      Close all but the currently focused diff buffer, and
+                        invoke |:diffoff|!.
 
                                                 *fugitive_d?*
 d?                      Show this help.
