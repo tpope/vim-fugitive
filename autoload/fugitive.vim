@@ -3185,7 +3185,19 @@ function! fugitive#BufReadCmd(...) abort
         if b:fugitive_display_format
           call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
         else
-          call s:ReplaceCmd([dir, '-c', 'diff.noprefix=false', '-c', 'log.showRoot=false', 'show', '--no-color', '-m', '--first-parent', '--pretty=format:tree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%s%n%n%b', rev])
+          let s:format = substitute(join([
+                \ 'commit %H',
+                \ 'tree   %T',
+                \ 'parent %P',
+                \ 'author %an <%ae> %ad',
+                \ 'committer %cn <%ce> %cd',
+                \ 'encoding %e',
+                \ '',
+                \ '%s',
+                \ '',
+                \ '%b'
+                \], '%n'), ' ', '%x20', 'g')
+          call s:ReplaceCmd([dir, '-c', 'diff.noprefix=false', '-c', 'log.showRoot=false', 'show', '--no-color', '-m', '--first-parent', '--pretty=' . s:format, rev])
           keepjumps 1
           keepjumps call search('^parent ')
           if getline('.') ==# 'parent '
