@@ -5191,7 +5191,7 @@ function! s:DoToggleHeadHeader(value) abort
 endfunction
 
 function! s:DoToggleHelpHeader(value) abort
-  exe 'help fugitive-map'
+  exe 'help fugitive-maps'
 endfunction
 
 function! s:DoStagePushHeader(value) abort
@@ -8045,8 +8045,8 @@ function! fugitive#MapJumps(...) abort
 
     call s:Map('n', '.',     ":<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>")
     call s:Map('x', '.',     ":<C-U> <C-R>=<SID>fnameescape(fugitive#Real(@%))<CR><Home>")
-    call s:Map('n', 'g?',    ":<C-U>help fugitive-map<CR>", '<silent>')
-    call s:Map('n', '<F1>',  ":<C-U>help fugitive-map<CR>", '<silent>')
+    call s:Map('n', 'g?',    ":<C-U>help fugitive-maps<CR>", '<silent>')
+    call s:Map('n', '<F1>',  ":<C-U>help fugitive-maps<CR>", '<silent>')
   endif
 
   let old_browsex = maparg('<Plug>NetrwBrowseX', 'n')
