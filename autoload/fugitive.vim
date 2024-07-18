@@ -7441,6 +7441,8 @@ function! s:BrowserOpen(url, mods, echo_copy) abort
       return 'echo '.string(url).'|' . mods . 'call netrw#BrowseX('.string(url).', 0)'
     elseif exists('*netrw#NetrwBrowseX')
       return 'echo '.string(url).'|' . mods . 'call netrw#NetrwBrowseX('.string(url).', 0)'
+    elseif has('nvim-0.10')
+      return mods . 'echo luaeval("({vim.ui.open(_A)})[2] or _A", ' . string(url) . ')'
     else
       return 'echoerr ' . string('Netrw not found. Define your own :Browse to use :GBrowse')
     endif
