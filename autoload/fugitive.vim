@@ -7433,6 +7433,8 @@ function! s:BrowserOpen(url, mods, echo_copy) abort
     return 'echo '.string(url).'|' . mods . 'Browse '.url
   elseif exists(':OpenBrowser') == 2
     return 'echo '.string(url).'|' . mods . 'OpenBrowser '.url
+  elseif has('nvim-0.10')
+    return 'echo '.string(url).'|' . mods . 'lua vim.ui.open('.string(url).')'
   else
     if !exists('g:loaded_netrw')
       runtime! autoload/netrw.vim
