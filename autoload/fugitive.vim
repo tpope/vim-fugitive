@@ -3060,7 +3060,7 @@ function! fugitive#BufReadStatus(cmdbang) abort
     let b:fugitive_loading = stat
     doautocmd <nomodeline> BufReadPre
 
-    setlocal readonly nomodifiable noswapfile nomodifiable buftype=nowrite
+    setlocal readonly nomodifiable noswapfile nomodeline buftype=nowrite
     call s:MapStatus()
 
     call s:StatusRender(stat)
