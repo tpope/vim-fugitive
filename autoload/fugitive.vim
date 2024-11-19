@@ -6627,7 +6627,7 @@ function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, ...) abort
   let commit = s:DirCommitFile(@%)[1]
   if a:mods =~# '\<\d*tab\>'
     let mods = substitute(a:mods, '\<\d*tab\>', '', 'g')
-    let pre = matchstr(a:mods, '\<\d*tab\>') . 'edit'
+    let pre = matchstr(a:mods, '\<\d*tab\>') . ' split'
   else
     let mods = 'keepalt ' . a:mods
     let pre = ''
