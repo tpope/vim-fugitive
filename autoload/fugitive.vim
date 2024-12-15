@@ -7437,7 +7437,9 @@ function! s:BrowserOpen(url, mods, echo_copy) abort
     if !exists('g:loaded_netrw')
       runtime! autoload/netrw.vim
     endif
-    if exists('*netrw#BrowseX')
+    if exists('*netrw#Open')
+      return 'echo '.string(url).'|' . mods . 'call netrw#Open('.string(url).')'
+    elseif exists('*netrw#BrowseX')
       return 'echo '.string(url).'|' . mods . 'call netrw#BrowseX('.string(url).', 0)'
     elseif exists('*netrw#NetrwBrowseX')
       return 'echo '.string(url).'|' . mods . 'call netrw#NetrwBrowseX('.string(url).', 0)'
