@@ -6769,7 +6769,6 @@ function! s:Move(force, rename, destination) abort
     if destination !~# '^/\|^\a\+:'
       let destination = s:Tree(dir) . '/' . destination
     endif
-    let destination = s:Tree(dir) .
   elseif a:destination =~# '^:(\%(top,literal\|literal,top\))'
     let destination = s:Tree(dir) . matchstr(a:destination, ')\zs.*')
   elseif a:destination =~# '^:(literal)\.\.\=\%(/\|$\)'
@@ -6778,8 +6777,8 @@ function! s:Move(force, rename, destination) abort
     let destination = simplify(default_root . matchstr(a:destination, ')\zs.*'))
   else
     let destination = s:Expand(a:destination)
-    if destination =~# '^\.\.\=\%(/\|$\)'
-      let destination = simplify(getcwd() . '/' . destination)
+    if destination =~# '^\.\.\=\%(/\|$\)' && !a:rename
+      let destination = simplify((a:rename ? default_root : getcwd() . '/') . destination)
     elseif destination !~# '^\a\+:\|^/'
       let destination = default_root . destination
     endif
