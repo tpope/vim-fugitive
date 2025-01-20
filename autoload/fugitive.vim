@@ -7917,6 +7917,7 @@ function! s:MapGitOps(is_ftplugin) abort
   exe s:Map('n', 'cc', ':<C-U>Git commit<CR>', '<silent>', ft)
   exe s:Map('n', 'ce', ':<C-U>Git commit --amend --no-edit<CR>', '<silent>', ft)
   exe s:Map('n', 'cw', ':<C-U>Git commit --amend --only<CR>', '<silent>', ft)
+  exe s:Map('n', 'cW', ':<C-U>Git commit --fixup=reword:<C-R>=<SID>SquashArgument()<CR>', '', ft)
   exe s:Map('n', 'cva', ':<C-U>tab Git commit -v --amend<CR>', '<silent>', ft)
   exe s:Map('n', 'cvc', ':<C-U>tab Git commit -v<CR>', '<silent>', ft)
   exe s:Map('n', 'cRa', ':<C-U>Git commit --reset-author --amend<CR>', '<silent>', ft)

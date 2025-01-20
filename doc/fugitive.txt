@@ -465,15 +465,18 @@ Commit maps ~
 
 cc                      Create a commit.
 
+cvc                     Create a commit with -v.
+
 ca                      Amend the last commit and edit the message.
+
+cva                     Amend the last commit with -v.
 
 ce                      Amend the last commit without editing the message.
 
 cw                      Reword the last commit.
 
-cvc                     Create a commit with -v.
-
-cva                     Amend the last commit with -v
+cW                      Create an `amend!` commit that rewords the commit
+                        under the cursor.
 
 cf                      Create a `fixup!` commit for the commit under the
                         cursor.
