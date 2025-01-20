@@ -475,13 +475,13 @@ cvc                     Create a commit with -v.
 
 cva                     Amend the last commit with -v
 
-cf / cff                Create a `fixup!` commit for the commit under the
+cf                      Create a `fixup!` commit for the commit under the
                         cursor.
 
-cfa                     Create an `amend!` (`--fixup=amend:`) commit for
+cA                      Create an `amend!` (`--fixup=amend:`) commit for
                         the commit under the cursor.
 
-cfr                     Create an `amend!` (`--fixup=reword:`) commit for
+cW                      Create an `amend!` (`--fixup=reword:`) commit for
                         the commit under the cursor.
 
 cF                      Create a `fixup!` commit for the commit under the
@@ -493,7 +493,7 @@ cs                      Create a `squash!` commit for the commit under the
 cS                      Create a `squash!` commit for the commit under the
                         cursor and immediately rebase it.
 
-cA                      Create a `squash!` commit for the commit under the
+cn                      Create a `squash!` commit for the commit under the
                         cursor and edit the message.
 
 c<Space>                Populate command line with ":Git commit ".
