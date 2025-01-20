@@ -475,8 +475,14 @@ cvc                     Create a commit with -v.
 
 cva                     Amend the last commit with -v
 
-cf                      Create a `fixup!` commit for the commit under the
+cf / cff                Create a `fixup!` commit for the commit under the
                         cursor.
+
+cfa                     Create an `amend!` (`--fixup=amend:`) commit for
+                        the commit under the cursor.
+
+cfr                     Create an `amend!` (`--fixup=reword:`) commit for
+                        the commit under the cursor.
 
 cF                      Create a `fixup!` commit for the commit under the
                         cursor and immediately rebase it.
