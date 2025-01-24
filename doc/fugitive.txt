@@ -18,6 +18,12 @@ that are part of Git repositories).
                                                 *fugitive-:G*
 :G [args]               Same as :Git, but two characters shorter.
 
+                                                *fugitive-summary*
+:Git                    With no arguments, bring up a summary window vaguely
+                        akin to git-status.  If a summary window is already
+                        open for the current repository, it is focused
+                        instead.  Press g?  or see |fugitive-maps| for usage.
+
                                                 *:Git*
 :Git {args}             Run an arbitrary git command and display any output.
                         On UNIX this uses a pty and on other platforms it uses
@@ -46,12 +52,6 @@ that are part of Git repositories).
 :{range}Git! --paginate {args}
 :{range}Git! -p {args}  Run an arbitrary git command, and insert the output
                         after {range} in the current buffer.
-
-                                                *fugitive-summary*
-:Git                    With no arguments, bring up a summary window vaguely
-                        akin to git-status.  If a summary window is already
-                        open for the current repository, it is focused
-                        instead.  Press g?  or see |fugitive-maps| for usage.
 
                                                 *:Git_blame*
 :Git blame [flags]      Run git-blame [flags] on the current file and open the
@@ -341,8 +341,8 @@ ds                      Perform a |:Ghdiffsplit| on the file under the cursor.
 dh
 
                                                 *fugitive_dq*
-dq                      Close all but one diff buffer, and |:diffoff|! the
-                        last one.
+dq                      Close all but the currently focused diff buffer, and
+                        invoke |:diffoff|!.
 
                                                 *fugitive_d?*
 d?                      Show this help.
@@ -380,6 +380,9 @@ p                       Open the file or |fugitive-object| under the cursor in
 
                                                 *fugitive_P*
 P                       Open the current file in the [count]th parent.
+                        Experimental:  In the "Unpushed" section of the status
+                        buffer, this will populate the command line with a
+                        ":Git push" command for the commit under the cursor.
 
                                                 *fugitive_C*
 C                       Open the commit containing the current file.
@@ -462,15 +465,18 @@ Commit maps ~
 
 cc                      Create a commit.
 
+cvc                     Create a commit with -v.
+
 ca                      Amend the last commit and edit the message.
+
+cva                     Amend the last commit with -v.
 
 ce                      Amend the last commit without editing the message.
 
 cw                      Reword the last commit.
 
-cvc                     Create a commit with -v.
-
-cva                     Amend the last commit with -v
+cW                      Create an `amend!` commit that rewords the commit
+                        under the cursor.
 
 cf                      Create a `fixup!` commit for the commit under the
                         cursor.
@@ -484,8 +490,8 @@ cs                      Create a `squash!` commit for the commit under the
 cS                      Create a `squash!` commit for the commit under the
                         cursor and immediately rebase it.
 
-cA                      Create a `squash!` commit for the commit under the
-                        cursor and edit the message.
+cn                      Create a `squash!` commit for the commit under the
+(formerly cA)           cursor and edit the message.
 
 c<Space>                Populate command line with ":Git commit ".
 
