@@ -8030,8 +8030,8 @@ function! fugitive#MapJumps(...) abort
       call s:MapMotion(']]', 'exe <SID>NextSection(v:count1)')
       call s:MapMotion('[]', 'exe <SID>PreviousSectionEnd(v:count1)')
       call s:MapMotion('][', 'exe <SID>NextSectionEnd(v:count1)')
-      call s:Map('nxo', '*', '<SID>PatchSearchExpr(0)', '<expr>')
-      call s:Map('nxo', '#', '<SID>PatchSearchExpr(1)', '<expr>')
+      call s:Map('no', '*', '<SID>PatchSearchExpr(0)', '<expr>')
+      call s:Map('no', '#', '<SID>PatchSearchExpr(1)', '<expr>')
     endif
     call s:Map('n', 'S',    ':<C-U>echoerr "Use gO"<CR>', '<silent><unique>')
     call s:Map('n', 'dq', ":<C-U>call fugitive#DiffClose()<CR>", '<silent>')
