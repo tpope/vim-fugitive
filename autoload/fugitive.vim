@@ -3443,9 +3443,9 @@ function! s:RunEdit(state, tmp, job) abort
   endif
   call remove(a:state, 'request')
   let sentinel = a:state.file . '.edit'
-  let files = readfile(sentinel, '')
-  call writefile([len(files)], sentinel)
-  for file in reverse(files)
+  let active_buffers = {}
+  let buf_sequence = []
+  for file in readfile(sentinel, '')
     let file = FugitiveVimPath(file)
     try
       if !&equalalways && a:state.mods !~# '\<\d*tab\>' && 3 > (a:state.mods =~# '\<vert' ? winwidth(0) : winheight(0))
@@ -3462,6 +3462,8 @@ function! s:RunEdit(state, tmp, job) abort
     set bufhidden=wipe
     call s:InitializeBuffer(a:state)
     let bufnr = bufnr('')
+    call add(buf_sequence, bufnr)
+    let active_buffers[bufnr] = file
     let s:edit_jobs[bufnr] = [a:state, a:tmp, a:job, sentinel]
     call fugitive#DidChange(a:state.git_dir)
     if bufnr == bufnr('') && !exists('g:fugitive_event')
@@ -3474,6 +3476,8 @@ function! s:RunEdit(state, tmp, job) abort
       endtry
     endif
   endfor
+  let a:state['active_buffers'] = active_buffers
+  call win_gotoid(bufwinid(buf_sequence[0]))
   return 1
 endfunction
 
@@ -3626,10 +3630,10 @@ if !exists('s:edit_jobs')
   let s:edit_jobs = {}
 endif
 function! s:RunWait(state, tmp, job, ...) abort
+  if has_key(a:state, 'active_buffers')
+    return ''
+  endif
   if a:0 && filereadable(a:1)
-    if a:0 > 1 && a:2 > 0
-      return ''
-    endif
     call delete(a:1)
   endif
   try
@@ -3732,15 +3736,18 @@ function! s:RunBufDelete(bufnr) abort
   endif
   if has_key(s:edit_jobs, a:bufnr) |
     call add(s:resume_queue, remove(s:edit_jobs, a:bufnr))
-    let sentinel = s:resume_queue[-1][0].file . '.edit'
-    let active_buffers = str2nr(readfile(sentinel, '', 1)[0]) - 1
-    call add(s:resume_queue[-1], active_buffers)
-    if active_buffers < 1
-      call feedkeys("\<C-\>\<C-N>:redraw!|call delete(" . string(sentinel) .
-            \ ")|call fugitive#Resume()|checktime\r", 'n')
-    else
-      call writefile([active_buffers], sentinel)
+    let state = s:resume_queue[-1][0]
+    if has_key(state, 'active_buffers')
+        call remove(state.active_buffers, a:bufnr)
+        if !len(state.active_buffers)
+            call remove(state, 'active_buffers')
+        endif
+    endif
+    if has_key(state, 'active_buffers')
       call fugitive#Resume()
+    else
+      call feedkeys("\<C-\>\<C-N>:redraw!|call delete(" . string(state.file . '.edit') .
+            \ ")|call fugitive#Resume()|checktime\r", 'n')
     endif
   endif
 endfunction
