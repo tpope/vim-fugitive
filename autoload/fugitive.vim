@@ -4,11 +4,6 @@
 " The functions contained within this file are for internal use only.  For the
 " official API, see the commented functions in plugin/fugitive.vim.
 
-if exists('g:autoloaded_fugitive')
-  finish
-endif
-let g:autoloaded_fugitive = 1
-
 " Section: Utility
 
 function! s:function(name) abort
