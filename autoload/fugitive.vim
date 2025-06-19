@@ -2071,6 +2071,8 @@ function! s:Expand(rev, ...) abort
     endif
   elseif s:Slash(a:rev) =~# '^\a\a\+://'
     let file = substitute(a:rev, '\\\@<!\%(#\a\|%\x\x\)', '\\&', 'g')
+  elseif a:rev =~# '^:[!#%$]'
+    let file = ':0' . a:rev
   else
     let file = a:rev
   endif
