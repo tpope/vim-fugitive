@@ -3793,14 +3793,17 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
     exe s:DirCheck(dir)
   endif
   let config = copy(fugitive#Config(dir))
-  let curwin = a:arg =~# '^++curwin\>' || !a:line2
-  let [args, after] = s:SplitExpandChain(substitute(a:arg, '^++curwin\>\s*', '', ''), s:Tree(dir))
+  let curwin = !a:line2
+  let [args, after] = s:SplitExpandChain(a:arg, s:Tree(dir))
   let flags = []
   let pager = -1
   let explicit_pathspec_option = 0
   let did_expand_alias = 0
   while len(args)
-    if args[0] ==# '-c' && len(args) > 1
+    if args[0] ==# '++curwin'
+        let curwin = curwin || v:true
+        call remove(args, 0)
+    elseif args[0] ==# '-c' && len(args) > 1
       call extend(flags, remove(args, 0, 1))
     elseif args[0] =~# '^-p$\|^--paginate$'
       let pager = 2
