@@ -3221,9 +3221,9 @@ function! fugitive#BufReadCmd(...) abort
       elseif b:fugitive_type ==# 'commit'
         let b:fugitive_display_format = b:fugitive_display_format % 2
         if b:fugitive_display_format
-          call s:ReplaceCmd([dir, 'cat-file', b:fugitive_type, rev])
+          call s:ReplaceCmd([dir, '-c', 'diff.noprefix=false', '-c', 'log.showRoot=false', 'show', '--no-color', '-m', '--first-parent', '--no-patch', '--pretty=format:commit%x20%H%d%ntree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%n%n%s%n%n%b', rev])
         else
-          call s:ReplaceCmd([dir, '-c', 'diff.noprefix=false', '-c', 'log.showRoot=false', 'show', '--no-color', '-m', '--first-parent', '--pretty=format:tree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%B', rev])
+          call s:ReplaceCmd([dir, '-c', 'diff.noprefix=false', '-c', 'log.showRoot=false', 'show', '--no-color', '-m', '--first-parent', '--pretty=format:commit%x20%H%d%ntree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%B', rev])
           keepjumps 1
           keepjumps call search('^parent ')
           if getline('.') ==# 'parent '
