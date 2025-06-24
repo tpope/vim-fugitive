@@ -8140,6 +8140,9 @@ function! s:BranchCfile(result) abort
 endfunction
 
 let s:diff_header_pattern = '^diff --git \%("\=[abciow12]/.*\|/dev/null\) \%("\=[abciow12]/.*\|/dev/null\)$'
+let s:rdiff_hash_or_missing = '\(\x\{7,40\}\|-\{7,40\}\)'
+let s:rdiff_side = '\%(-\|\d\+\):\s\+' . s:rdiff_hash_or_missing
+let s:rdiff_header_pattern = '^' . s:rdiff_side . '\s\+[=!<>]\s\+' . s:rdiff_side . '\s\+'
 function! s:cfile() abort
   let temp_state = s:TempState()
   let name = substitute(get(get(temp_state, 'args', []), 0, ''), '\%(^\|-\)\(\l\)', '\u\1', 'g')
@@ -8235,6 +8238,19 @@ function! s:cfile() abort
           let ref = 'a/' . files[0]
         elseif getline('.') !~# '^A'
           let dcmds = ['', 'Gdiffsplit! >' . myhash . '^:' . fnameescape(files[0])]
+        endif
+
+      elseif getline('.') =~# s:rdiff_header_pattern
+        let ref = ''
+        let matches = matchlist(getline('.'), s:rdiff_header_pattern)
+        if matches[1] =~# '^-\+$' && matches[2] =~# '^\x\{7,40\}$'
+          let ref = matches[2]
+        elseif matches[2] =~# '^-\+$' && matches[1] =~# '^\x\{7,40\}$'
+          let ref = matches[1]
+        elseif matches[1] =~# '^\x\{7,40\}$' && matches[1] == matches[2]
+          let ref = matches[1]
+        elseif expand('<cword>') =~# '^\x\{7,40\}$'
+          let ref = expand('<cword>')
         endif
 
       elseif getline('.') =~# '^[+-]'
