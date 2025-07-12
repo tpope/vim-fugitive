@@ -1016,6 +1016,7 @@ function! s:StdoutToFile(out, cmd, ...) abort
 endfunction
 
 let s:head_cache = {}
+let s:head_reftable_cache = {}
 
 function! fugitive#Head(...) abort
   let dir = a:0 > 1 ? a:2 : s:Dir()
@@ -1031,11 +1032,45 @@ function! fugitive#Head(...) abort
   endif
   let head = s:head_cache[file][1]
   let len = a:0 ? a:1 : 0
-  if head =~# '^ref: '
+  let ref_pattern = '\%(refs/\%(heads/\|remotes/\|tags/\)\=\)\='
+  if head =~# '^ref: refs/heads/.invalid$'
+    " reftable
+    let file = FugitiveActualDir(dir) . '/reftable/tables.list'
+    let ftime = getftime(file)
+    if ftime == -1
+      return ''
+    elseif ftime != get(s:head_reftable_cache, file, [-1])[0]
+      let res = s:ChompDefault('', [dir, 'rev-parse', 'HEAD', '--symbolic-full-name', 'HEAD'])
+      if res ==# ''
+        " unborn branch
+        let oid = ''
+        let head = s:ChompDefault('', [dir, 'symbolic-ref', 'HEAD'])
+      else
+        let lines = split(res, '\n')
+        let oid = lines[0]
+        let head = lines[1]
+      endif
+      let s:head_reftable_cache[file] = [ftime, oid, head]
+    endif
+    let oid = s:head_reftable_cache[file][1]
+    let head = s:head_reftable_cache[file][2]
+    let len = a:0 ? a:1 : 0
+    if head !=# 'HEAD'
+      if len < 0
+        return head
+      else
+        return substitute(head, '\C^' . ref_pattern, '', '')
+      endif
+    elseif oid =~# '^\x\{40,\}$'
+      return len < 0 ? oid : strpart(oid, 0, len)
+    else
+      return ''
+    endif
+  elseif head =~# '^ref: '
     if len < 0
       return strpart(head, 5)
     else
-      return substitute(head, '\C^ref: \%(refs/\%(heads/\|remotes/\|tags/\)\=\)\=', '', '')
+      return substitute(head, '\C^ref: ' . ref_pattern, '', '')
     endif
   elseif head =~# '^\x\{40,\}$'
     return len < 0 ? head : strpart(head, 0, len)
