@@ -29,10 +29,13 @@ that are part of Git repositories).
                         On UNIX this uses a pty and on other platforms it uses
                         a pipe, which will cause some behavior differences
                         such as the absence of progress bars.  Any file the
-                        command edits (for example, a commit message) will be
-                        loaded into a split window.  Closing that window will
-                        resume running the command.  A few Git subcommands
-                        have different behavior; these are documented below.
+                        command edits (for example, a commit message or email
+                        drafts for multiple patches) will be loaded into a
+                        split window for each file to edit.  Closing that
+                        window (or the last remaining window for multifile
+                        edits) will resume running the command.  A few Git
+                        subcommands have different behavior; these are
+                        documented below.
 
                                                 *:Git!*
 :Git! {args}            Run an arbitrary git command in the background and
