@@ -2937,20 +2937,34 @@ function! s:StatusRender(stat) abort
     endif
 
     let sequencing = []
-    if filereadable(fugitive#Find('.git/sequencer/todo', dir))
-      for line in reverse(readfile(fugitive#Find('.git/sequencer/todo', dir)))
+    try
+      let sequencer_todo = reverse(readfile(fugitive#Find('.git/sequencer/todo', dir)))
+    catch
+    endtry
+    if exists('sequencer_todo')
+      for line in sequencer_todo
         let match = matchlist(line, '^\(\l\+\)\s\+\(\x\{4,\}\)\s\+\(.*\)')
         if len(match) && match[1] !~# 'exec\|merge\|label'
           call add(sequencing, {'type': 'Rebase', 'status': get(s:rebase_abbrevs, match[1], match[1]), 'commit': match[2], 'subject': match[3]})
         endif
       endfor
-    elseif filereadable(fugitive#Find('.git/MERGE_MSG', dir))
+    else
+      try
+        let merge_msg = get(readfile(fugitive#Find('.git/MERGE_MSG', dir)), 0, '')
+      catch
+      endtry
+    endif
+    if exists('merge_msg')
       if filereadable(fugitive#Find('.git/CHERRY_PICK_HEAD', dir))
         let pick_head = fugitive#Execute(['rev-parse', '--short', 'CHERRY_PICK_HEAD', '--'], dir).stdout[0]
-        call add(sequencing, {'type': 'Rebase', 'status': 'pick', 'commit': pick_head, 'subject': get(readfile(fugitive#Find('.git/MERGE_MSG', dir)), 0, '')})
+        if !empty(pick_head)
+          call add(sequencing, {'type': 'Rebase', 'status': 'pick', 'commit': pick_head, 'subject': merge_msg})
+        endif
       elseif filereadable(fugitive#Find('.git/REVERT_HEAD', dir))
         let pick_head = fugitive#Execute(['rev-parse', '--short', 'REVERT_HEAD', '--'], dir).stdout[0]
-        call add(sequencing, {'type': 'Rebase', 'status': 'revert', 'commit': pick_head, 'subject': get(readfile(fugitive#Find('.git/MERGE_MSG', dir)), 0, '')})
+        if !empty(pick_head)
+          call add(sequencing, {'type': 'Rebase', 'status': 'revert', 'commit': pick_head, 'subject': merge_msg})
+        endif
       endif
     endif
 
