@@ -2973,7 +2973,7 @@ function! s:StatusRender(stat) abort
     endif
 
     call s:AddSection(to, 'Rebasing ' . rebasing_head, rebasing)
-    call s:AddSection(to, get(get(sequencing, 0, {}), 'tous', '') ==# 'revert' ? 'Reverting' : 'Cherry Picking', sequencing)
+    call s:AddSection(to, get(get(sequencing, 0, {}), 'status', '') ==# 'revert' ? 'Reverting' : 'Cherry Picking', sequencing)
     call s:AddSection(to, 'Untracked', untracked)
     call s:AddDiffSection(to, stat, 'Unstaged', unstaged)
     call s:AddDiffSection(to, stat, 'Staged', staged)
