@@ -68,6 +68,7 @@ that are part of Git repositories).
                         <CR>  close blame, and jump to patch that added line
                               (or directly to blob for boundary commit)
                         o     jump to patch or blob in horizontal split
+                        gO    jump to patch or blob in vertical split
                         O     jump to patch or blob in new tab
                         p     jump to patch or blob in preview window
                         -     reblame at commit
