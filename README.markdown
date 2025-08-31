@@ -94,6 +94,21 @@ support:
     git clone https://tpope.io/vim/fugitive.git
     vim -u NONE -c "helptags fugitive/doc" -c q
 
+Here's an example setup for `lazy` 
+```lua
+return {
+  "tpope/vim-fugitive",
+  cmd = { "Git", "Gdiffsplit", "Gread", "Gwrite", "Ggrep", "GMove", "GDelete", "GBrowse" },
+  keys = {
+    { "<leader>g", "<cmd>Git<cr>", desc = "Fugitive Git status" },
+    { "<leader>gw", "<cmd>Git write<cr>", desc = "Fugitive Git status" },
+    { "<leader>gc", "<cmd>Git commit<cr>", desc = "Fugitive Git status" },
+    { "<leader>gf", "<cmd>Git pull<cr>", desc = "Fugitive Git status" },
+    { "<leader>gp", "<cmd>Git push<cr>", desc = "Fugitive Git status" },
+  },
+}
+```
+
 ## FAQ
 
 > What happened to the dispatch.vim backed asynchronous `:Gpush` and
