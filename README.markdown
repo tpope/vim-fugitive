@@ -60,7 +60,7 @@ Additional commands are provided for higher level operations:
   [GitLab][fugitive-gitlab.vim], [Bitbucket][fubitive.vim],
   [Gitee][fugitive-gitee.vim], [Pagure][pagure],
   [Phabricator][vim-phabricator], [Azure DevOps][fugitive-azure-devops.vim],
-  and [sourcehut][srht.vim].
+  [sourcehut][srht.vim], and [Codeberg][codeberg.vim].
 
 [rhubarb.vim]: https://github.com/tpope/vim-rhubarb
 [fugitive-gitlab.vim]: https://github.com/shumphrey/fugitive-gitlab.vim
@@ -70,6 +70,7 @@ Additional commands are provided for higher level operations:
 [vim-phabricator]: https://github.com/jparise/vim-phabricator
 [fugitive-azure-devops.vim]: https://github.com/cedarbaum/fugitive-azure-devops.vim
 [srht.vim]: https://git.sr.ht/~willdurand/srht.vim
+[codeberg.vim]: https://codeberg.org/seantuttle/vim-codeberg
 
 Add `%{FugitiveStatusline()}` to `'statusline'` to get an indicator
 with the current branch in your statusline.
