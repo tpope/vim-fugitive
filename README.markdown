@@ -94,6 +94,42 @@ support:
     git clone https://tpope.io/vim/fugitive.git
     vim -u NONE -c "helptags fugitive/doc" -c q
 
+## Shortcuts
+
+For example, you can `:wmp` (mean *Write*, *Message*, *Push*) for faster commiting (it will ask for a message) and pushing of the current buffer, put this into `~/.config/vim/plugin/fugitive.vim`:
+
+```vim
+function! s:GwriteCommit() abort
+  try
+    Gwrite
+  catch
+    echohl ErrorMsg
+    echom '[fugitive] Gwrite failed: ' . v:exception
+    echohl None
+    return
+  endtry
+ 
+  let l:message = input('Commit message: ')
+  if empty(l:message)
+    echom '[fugitive] Commit canceled: empty message'
+    return
+  endif
+ 
+  try
+    execute 'G commit -m ' . shellescape(l:message)
+    G push
+  catch
+    echohl ErrorMsg
+    echom '[fugitive] Commit or push failed: ' . v:exception
+    echohl None
+  endtry
+endfunction
+ 
+command! Wmp call <SID>GwriteCommit()
+" User commands must start with uppercase, so allow lowercase :wmp via abbrev.
+cnoreabbrev <expr> wmp (getcmdtype() ==# ':' && getcmdline() ==# 'wmp' ? 'Wmp' : 'wmp')
+```
+
 ## FAQ
 
 > What happened to the dispatch.vim backed asynchronous `:Gpush` and
