@@ -7443,7 +7443,11 @@ function! s:BrowserOpen(url, mods, echo_copy) abort
     elseif exists('*netrw#os#Open')
       return 'echo '.string(url).'|' . mods . 'call netrw#os#Open('.string(url).')'
     elseif exists('*netrw#BrowseX')
-      return 'echo '.string(url).'|' . mods . 'call netrw#BrowseX('.string(url).', 0)'
+      if has('patch-9.1.1485')
+        return 'echo '.string(url).'|' . mods . 'call netrw#BrowseX('.string(url).')'
+      else
+        return 'echo '.string(url).'|' . mods . 'call netrw#BrowseX('.string(url).', 0)'
+      endif
     elseif exists('*netrw#NetrwBrowseX')
       return 'echo '.string(url).'|' . mods . 'call netrw#NetrwBrowseX('.string(url).', 0)'
     elseif has('nvim-0.10')
