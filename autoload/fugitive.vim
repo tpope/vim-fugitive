@@ -3781,7 +3781,7 @@ function! fugitive#PagerFor(argv, ...) abort
   elseif type(value) == type('')
     return value
   elseif args[0] =~# '^\%(branch\|config\|diff\|grep\|log\|range-diff\|shortlog\|show\|tag\|whatchanged\)$' ||
-        \ (args[0] ==# 'stash' && get(args, 1, '') ==# 'show') ||
+        \ (args[0] ==# 'stash' && get(args, 1, '') =~# '\(show\|list\)') ||
         \ (args[0] ==# 'reflog' && get(args, 1, '') !~# '^\%(expire\|delete\|exists\)$') ||
         \ (args[0] ==# 'am' && s:HasOpt(args, '--show-current-patch'))
     return 1
