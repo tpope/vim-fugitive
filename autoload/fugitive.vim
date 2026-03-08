@@ -3759,10 +3759,29 @@ endfunction
 
 function! fugitive#PagerFor(argv, ...) abort
   let args = a:argv
+  let config = a:0 ? a:1 : fugitive#Config()
   if empty(args)
     return 0
-  elseif (args[0] ==# 'help' || get(args, 1, '') ==# '--help') && !s:HasOpt(args, '--web')
+  elseif len(args) == 1 && args[0] =~# '\v^(--help|help|-h)$'
     return 1
+  elseif len(args) == 2 && args[0] ==# 'help' && args[1] =~# '\v^(-[ag]|--man)$'
+    return 1
+  elseif len(args) == 2 && args[1] ==# '-h'
+    return 1
+  elseif (args[0] ==# 'help' || get(args, 1, '') ==# '--help') && !s:HasOpt(args, '--web')
+    let helpFormat = get(fugitive#ConfigGetAll('help.format', config), 0, '')
+    if helpFormat ==# 'man' || helpFormat ==# 'info'
+      return 1
+    elseif helpFormat ==# 'web' || helpFormat ==# 'html'
+      return 0
+    elseif helpFormat ==# ''
+      " let isWinGit = has('win32')
+      let isWinGit = fugitive#GitVersion() =~# '\.\(windows\|msysgit\)\>'
+      return isWinGit ? 0 : 1
+    else
+      " unknown help format, assume pager
+      return 1
+    endif
   endif
   if args[0] ==# 'config' && (s:HasOpt(args, '-e', '--edit') ||
         \   !s:HasOpt(args, '--list', '--get-all', '--get-regexp', '--get-urlmatch')) ||
@@ -3772,7 +3791,6 @@ function! fugitive#PagerFor(argv, ...) abort
         \   !s:HasOpt(args, '--contains', '--no-contains', '--merged', '--no-merged', '--points-at'))
     return 0
   endif
-  let config = a:0 ? a:1 : fugitive#Config()
   let value = get(fugitive#ConfigGetAll('pager.' . args[0], config), 0, -1)
   if value =~# '^\%(true\|yes\|on\|1\)$'
     return 1
