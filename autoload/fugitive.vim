@@ -3454,33 +3454,41 @@ function! s:RunEdit(state, tmp, job) abort
   endif
   call remove(a:state, 'request')
   let sentinel = a:state.file . '.edit'
-  let file = FugitiveVimPath(readfile(sentinel, '', 1)[0])
-  try
-    if !&equalalways && a:state.mods !~# '\<\d*tab\>' && 3 > (a:state.mods =~# '\<vert' ? winwidth(0) : winheight(0))
-      let noequalalways = 1
-      setglobal equalalways
-    endif
-    let mods = s:Mods(a:state.mods, 'SpanOrigin')
-    exe substitute(mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
-  finally
-    if exists('l:noequalalways')
-      setglobal noequalalways
-    endif
-  endtry
-  set bufhidden=wipe
-  call s:InitializeBuffer(a:state)
-  let bufnr = bufnr('')
-  let s:edit_jobs[bufnr] = [a:state, a:tmp, a:job, sentinel]
-  call fugitive#DidChange(a:state.git_dir)
-  if bufnr == bufnr('') && !exists('g:fugitive_event')
+  let active_buffers = {}
+  let buf_sequence = []
+  for file in readfile(sentinel, '')
+    let file = FugitiveVimPath(file)
     try
-      let g:fugitive_event = a:state.git_dir
-      let g:fugitive_result = a:state
-      exe s:DoAutocmd('User FugitiveEditor')
+      if !&equalalways && a:state.mods !~# '\<\d*tab\>' && 3 > (a:state.mods =~# '\<vert' ? winwidth(0) : winheight(0))
+        let noequalalways = 1
+        setglobal equalalways
+      endif
+      let mods = s:Mods(a:state.mods, 'SpanOrigin')
+      exe substitute(mods, '\<tab\>', '-tab', 'g') 'keepalt split' s:fnameescape(file)
     finally
-      unlet! g:fugitive_event g:fugitive_result
+      if exists('l:noequalalways')
+        setglobal noequalalways
+      endif
     endtry
-  endif
+    set bufhidden=wipe
+    call s:InitializeBuffer(a:state)
+    let bufnr = bufnr('')
+    call add(buf_sequence, bufnr)
+    let active_buffers[bufnr] = file
+    let s:edit_jobs[bufnr] = [a:state, a:tmp, a:job, sentinel]
+    call fugitive#DidChange(a:state.git_dir)
+    if bufnr == bufnr('') && !exists('g:fugitive_event')
+      try
+        let g:fugitive_event = a:state.git_dir
+        let g:fugitive_result = a:state
+        exe s:DoAutocmd('User FugitiveEditor')
+      finally
+        unlet! g:fugitive_event g:fugitive_result
+      endtry
+    endif
+  endfor
+  let a:state['active_buffers'] = active_buffers
+  call win_gotoid(bufwinid(buf_sequence[0]))
   return 1
 endfunction
 
@@ -3633,6 +3641,9 @@ if !exists('s:edit_jobs')
   let s:edit_jobs = {}
 endif
 function! s:RunWait(state, tmp, job, ...) abort
+  if has_key(a:state, 'active_buffers')
+    return ''
+  endif
   if a:0 && filereadable(a:1)
     call delete(a:1)
   endif
@@ -3736,8 +3747,19 @@ function! s:RunBufDelete(bufnr) abort
   endif
   if has_key(s:edit_jobs, a:bufnr) |
     call add(s:resume_queue, remove(s:edit_jobs, a:bufnr))
-    call feedkeys("\<C-\>\<C-N>:redraw!|call delete(" . string(s:resume_queue[-1][0].file . '.edit') .
-          \ ")|call fugitive#Resume()|checktime\r", 'n')
+    let state = s:resume_queue[-1][0]
+    if has_key(state, 'active_buffers')
+        call remove(state.active_buffers, a:bufnr)
+        if !len(state.active_buffers)
+            call remove(state, 'active_buffers')
+        endif
+    endif
+    if has_key(state, 'active_buffers')
+      call fugitive#Resume()
+    else
+      call feedkeys("\<C-\>\<C-N>:redraw!|call delete(" . string(state.file . '.edit') .
+            \ ")|call fugitive#Resume()|checktime\r", 'n')
+    endif
   endif
 endfunction
 
@@ -3951,7 +3973,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
     let env.FUGITIVE = state.file
     let editor = 'sh ' . s:TempScript(
           \ '[ -f "$FUGITIVE.exit" ] && cat "$FUGITIVE.exit" >&2 && exit 1',
-          \ 'echo "$1" > "$FUGITIVE.edit"',
+          \ 'for arg; do echo "$arg" >> "$FUGITIVE.edit"; done',
           \ 'printf "\033]51;fugitive:edit\007" >&2',
           \ 'while [ -f "$FUGITIVE.edit" -a ! -f "$FUGITIVE.exit" ]; do sleep 0.05 2>/dev/null || sleep 1; done',
           \ 'exit 0')
