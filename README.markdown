@@ -55,10 +55,10 @@ Additional commands are provided for higher level operations:
   the buffer.  `:GRemove` does the same but leaves the (now empty) buffer
   open.
 * `:GBrowse` to open the current file on the web front-end of your favorite
-  hosting provider, with optional line range (try it in visual mode).  Plugins
-  are available for popular providers such as [GitHub][rhubarb.vim],
-  [GitLab][fugitive-gitlab.vim], [Bitbucket][fubitive.vim],
-  [Gitee][fugitive-gitee.vim], [Pagure][pagure],
+  hosting provider or copy a link, with optional line range (try it in visual
+  mode). Plugins are available for popular providers such as
+  [GitHub][rhubarb.vim], [GitLab][fugitive-gitlab.vim],
+  [Bitbucket][fubitive.vim], [Gitee][fugitive-gitee.vim], [Pagure][pagure],
   [Phabricator][vim-phabricator], [Azure DevOps][fugitive-azure-devops.vim],
   and [sourcehut][srht.vim].
 
