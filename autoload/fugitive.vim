@@ -7425,7 +7425,7 @@ function! s:BrowserOpen(url, mods, echo_copy) abort
   let url = substitute(url, '[ <>\|"]', '\="%".printf("%02X",char2nr(submatch(0)))', 'g')
   let mods = s:Mods(a:mods)
   if a:echo_copy
-    if has('clipboard')
+    if has('clipboard') || has('clipboard_provider')
       let @+ = url
     endif
     return 'echo '.string(url)
