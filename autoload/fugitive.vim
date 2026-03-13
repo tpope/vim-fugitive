@@ -4202,7 +4202,7 @@ function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args
     let file = fugitive#Find(':', dir)
     let arg = ' +setl\ foldmarker=<<<<<<<<,>>>>>>>>\|let\ w:fugitive_status=FugitiveGitDir() ' .
           \ s:fnameescape(file)
-    for tabnr in [tabpagenr()] + (mods =~# '\<tab\>' ? range(1, tabpagenr('$')) : [])
+    for tabnr in [tabpagenr()] + (mods =~# '\<\d*tab\>' ? range(1, tabpagenr('$')) : [])
       let bufs = tabpagebuflist(tabnr)
       for winnr in range(1, tabpagewinnr(tabnr, '$'))
         if s:cpath(file, fnamemodify(bufname(bufs[winnr-1]), ':p'))
