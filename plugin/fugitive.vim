@@ -338,9 +338,7 @@ endfunction
 let s:worktree_for_dir = {}
 let s:dir_for_worktree = {}
 function! s:Tree(path) abort
-  if a:path =~# '/\.git$'
-    return len(a:path) ==# 5 ? '/' : a:path[0:-6]
-  elseif a:path ==# ''
+  if a:path ==# ''
     return ''
   endif
   let dir = FugitiveActualDir(a:path)
@@ -366,6 +364,9 @@ function! s:Tree(path) abort
       let wt_config = filter(copy(config), 'v:val =~# "^\\s*worktree *="')
       if len(wt_config)
         let worktree = FugitiveVimPath(matchstr(wt_config[0], '= *\zs.*'))
+      elseif a:path =~# '/\.git$'
+        let s:worktree_for_dir[dir] = len(a:path) ==# 5 ? '/' : a:path[0:-6]
+        return s:worktree_for_dir[dir]
       elseif !exists('worktree')
         call filter(config,'v:val =~# "^\\s*bare *= *true *$"')
         if empty(config)
