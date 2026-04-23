@@ -5574,6 +5574,100 @@ function! s:ToolParse(state, line) abort
   return []
 endfunction
 
+function! s:DiffParseArgs(args, dir) abort
+  let i = 0
+  let argv = copy(a:args)
+  let commits = []
+  let cached = 0
+  let merge_base = 0
+  let name_only = 0
+  let merge_base_against = {}
+  let dash = (index(argv, '--') > i ? ['--'] : [])
+  while i < len(argv)
+    let match = matchlist(argv[i], '^\(-[a-zABDFH-KN-RT-Z]\)\ze\(.*\)')
+    if len(match) && len(match[2])
+      call insert(argv, match[1])
+      let argv[i+1] = '-' . match[2]
+      continue
+    endif
+    let arg = argv[i]
+    if arg ==# '--cached' || arg ==# '--staged'
+      let cached = 1
+    elseif arg ==# '--merge-base'
+      let merge_base = 1
+    elseif arg ==# '--name-only'
+      let name_only = 1
+      let argv[0] = '--name-status'
+    elseif arg ==# '--'
+      break
+    elseif index(['-S', '-G', '-O', '-l', '-I', '-U'], arg) >= 0 ||
+          \ arg =~# '^--\%(anchored\|diff-filter\|dst-prefix\|find-object\|inter-hunk-context\|line-prefix\|output\|src-prefix\|unified\|word-diff-regex\)$'
+      let i += 2
+      continue
+    elseif arg !~# '^-\|^\.\.\=\%(/\|$\)'
+      let parsed = s:LinesError([a:dir, 'rev-parse', '--revs-only', substitute(arg, ':.*', '', '')] + dash)[0]
+      call map(parsed, '{"uninteresting": v:val =~# "^\\^", "prefix": substitute(v:val, "^\\^", "", "") . ":"}')
+      let merge_base_against = {}
+      if arg =~# '\.\.\.' && len(parsed) > 2
+        let display = map(split(arg, '\.\.\.', 1), 'empty(v:val) ? "@" : v:val')
+        if len(display) == 2
+          let parsed[0].module = display[1] . ':'
+          let parsed[1].module = display[0] . ':'
+        endif
+        let parsed[2].module = arg . ':'
+        if empty(commits)
+          let merge_base_against = parsed[0]
+          let parsed = [parsed[2]]
+        endif
+      elseif arg =~# '\.\.' && len(parsed) == 2
+        let display = map(split(arg, '\.\.', 1), 'empty(v:val) ? "@" : v:val')
+        if len(display) == 2
+          let parsed[0].module = display[0] . ':'
+          let parsed[1].module = display[1] . ':'
+        endif
+      elseif len(parsed) == 1
+        let parsed[0].module = arg . ':'
+      endif
+      call extend(commits, parsed)
+    endif
+    let i += 1
+  endwhile
+  if len(merge_base_against)
+    call add(commits, merge_base_against)
+  endif
+  let commits = filter(copy(commits), 'v:val.uninteresting') + filter(commits, '!v:val.uninteresting')
+  if merge_base
+    if cached && empty(commits)
+      call add(commits, {'prefix': '@:', 'module': '@:'})
+    endif
+    if len(commits)
+      let bases = map(copy(commits), 'substitute(v:val.prefix, ":$", "", "")')
+      let modules = map(copy(commits), 'substitute(get(v:val, "module", v:val.prefix), ":$", "", "")')
+      if len(bases) == 1
+        call add(bases, '@')
+        call add(modules, '@')
+      endif
+      let base = get(s:LinesError([a:dir, 'merge-base'] + bases)[0], 0, '')
+      if len(base)
+        let commits[0].prefix = base . ':'
+        let commits[0].module = join(modules, '...') . ':'
+      endif
+    endif
+  endif
+  if cached
+    if empty(commits)
+      call add(commits, {'prefix': '@:', 'module': '@:'})
+    endif
+    call add(commits, {'prefix': ':0:', 'module': ':0:'})
+  elseif len(commits) < 2
+    call add(commits, {'prefix': ':(top)'})
+    if len(commits) < 2
+      call insert(commits, {'prefix': ':0:', 'module': ':0:'})
+    endif
+  endif
+  return {'argv': argv, 'commits': commits, 'name_only': name_only}
+endfunction
+
 function! s:ToolStream(line1, line2, range, bang, mods, options, args, state) abort
   let i = 0
   let argv = copy(a:args)
@@ -5649,79 +5743,11 @@ endfunction
 function! s:DifftoolSubcommand(line1, line2, range, bang, mods, options) abort
   let dir = s:Dir(a:options)
   exe s:DirCheck(dir)
-  let i = 0
-  let argv = copy(a:options.subcommand_args)
-  let commits = []
-  let cached = 0
-  let reverse = 1
-  let prompt = 1
-  let state = {'name_only': 0}
-  let merge_base_against = {}
-  let dash = (index(argv, '--') > i ? ['--'] : [])
-  while i < len(argv)
-    let match = matchlist(argv[i], '^\(-[a-zABDFH-KN-RT-Z]\)\ze\(.*\)')
-    if len(match) && len(match[2])
-      call insert(argv, match[1])
-      let argv[i+1] = '-' . match[2]
-      continue
-    endif
-    let arg = argv[i]
-    if arg ==# '--cached'
-      let cached = 1
-    elseif arg ==# '-R'
-      let reverse = 1
-    elseif arg ==# '--name-only'
-      let state.name_only = 1
-      let argv[0] = '--name-status'
-    elseif arg ==# '--'
-      break
-    elseif arg !~# '^-\|^\.\.\=\%(/\|$\)'
-      let parsed = s:LinesError(['rev-parse', '--revs-only', substitute(arg, ':.*', '', '')] + dash)[0]
-      call map(parsed, '{"uninteresting": v:val =~# "^\\^", "prefix": substitute(v:val, "^\\^", "", "") . ":"}')
-      let merge_base_against = {}
-      if arg =~# '\.\.\.' && len(parsed) > 2
-        let display = map(split(arg, '\.\.\.', 1), 'empty(v:val) ? "@" : v:val')
-        if len(display) == 2
-          let parsed[0].module = display[1] . ':'
-          let parsed[1].module = display[0] . ':'
-        endif
-        let parsed[2].module = arg . ':'
-        if empty(commits)
-          let merge_base_against = parsed[0]
-          let parsed = [parsed[2]]
-        endif
-      elseif arg =~# '\.\.' && len(parsed) == 2
-        let display = map(split(arg, '\.\.', 1), 'empty(v:val) ? "@" : v:val')
-        if len(display) == 2
-          let parsed[0].module = display[0] . ':'
-          let parsed[1].module = display[1] . ':'
-        endif
-      elseif len(parsed) == 1
-        let parsed[0].module = arg . ':'
-      endif
-      call extend(commits, parsed)
-    endif
-    let i += 1
-  endwhile
-  if len(merge_base_against)
-    call add(commits, merge_base_against)
-  endif
-  let commits = filter(copy(commits), 'v:val.uninteresting') + filter(commits, '!v:val.uninteresting')
-  if cached
-    if empty(commits)
-      call add(commits, {'prefix': '@:', 'module': '@:'})
-    endif
-    call add(commits, {'prefix': ':0:', 'module': ':0:'})
-  elseif len(commits) < 2
-    call add(commits, {'prefix': ':(top)'})
-    if len(commits) < 2
-      call insert(commits, {'prefix': ':0:', 'module': ':0:'})
-    endif
-  endif
-  if reverse
-    let commits = [commits[-1]] + repeat([commits[0]], len(commits) - 1)
-    call reverse(commits)
-  endif
+  let diff_args = s:DiffParseArgs(a:options.subcommand_args, dir)
+  let argv = diff_args.argv
+  let state = {'name_only': diff_args.name_only}
+  let commits = [diff_args.commits[-1]] + repeat([diff_args.commits[0]], len(diff_args.commits) - 1)
+  call reverse(commits)
   if len(commits) > 2
     call add(commits, remove(commits, 0))
   endif
@@ -7880,6 +7906,20 @@ function! s:ParseDiffHeader(str) abort
   return [fugitive#Unquote(get(list, 1, '')), fugitive#Unquote(get(list, 2, ''))]
 endfunction
 
+" Infer a/ and b/ from :Git diff arguments for patch header navigation.
+function! s:DiffPrefixes(args, dir) abort
+  if get(a:args, 0, '') !=# 'diff' || index(a:args, '--no-index') >= 0
+    return {}
+  endif
+  let commits = s:DiffParseArgs(a:args[1:-1], a:dir).commits
+  if len(commits) < 2
+    return {}
+  elseif len(commits) > 2
+    call add(commits, remove(commits, 0))
+  endif
+  return {'a': commits[0].prefix, 'b': commits[-1].prefix}
+endfunction
+
 function! s:HunkPosition(lnum) abort
   let lnum = a:lnum + get({'@': 1, '\': -1}, getline(a:lnum)[0], 0)
   let offsets = {' ': -1, '+': 0, '-': 0}
@@ -8292,6 +8332,8 @@ function! s:cfile() abort
       if len(myhash)
         let prefixes.a = myhash.'^:'
         let prefixes.b = myhash.':'
+      elseif get(temp_state, 'filetype', '') ==# 'git'
+        call extend(prefixes, s:DiffPrefixes(get(temp_state, 'args', []), get(temp_state, 'git_dir', '')), 'force')
       endif
       let ref = substitute(ref, '^\(\w\)/', '\=get(prefixes, submatch(1), "@:")', '')
       if exists('dref')
