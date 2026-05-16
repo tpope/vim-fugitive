@@ -2397,12 +2397,18 @@ function! s:FilterEscape(items, ...) abort
   let items = copy(a:items)
   call map(items, 'fnameescape(v:val)')
   if !a:0 || type(a:1) != type('')
-    let match = ''
-  else
-    let match = substitute(a:1, '^[+>]\|\\\@<![' . substitute(s:fnameescape, '\\', '', '') . ']', '\\&', 'g')
+    return items
   endif
-  let cmp = s:FileIgnoreCase(1) ? '==?' : '==#'
-  return filter(items, 'strpart(v:val, 0, strlen(match)) ' . cmp . ' match')
+  let match = substitute(a:1, '^[+>]\|\\\@<![' . substitute(s:fnameescape, '\\', '', '') . ']', '\\&', 'g')
+
+  let use_fuzzy = a:0 >= 2 && a:2 && !empty(match) && exists('*matchfuzzy') && &wildoptions =~# '\cfuzzy'
+
+  if use_fuzzy
+    return matchfuzzy(items, match)
+  else
+    let cmp = s:FileIgnoreCase(1) ? '==?' : '==#'
+    return filter(items, 'strpart(v:val, 0, strlen(match)) ' . cmp . ' match')
+  endif
 endfunction
 
 function! s:GlobComplete(lead, pattern, ...) abort
@@ -2492,7 +2498,7 @@ function! fugitive#CompleteObject(base, ...) abort
         let heads += ["stash"]
         let heads += sort(s:LinesError(["stash","list","--pretty=format:%gd"], dir)[0])
       endif
-      let results += s:FilterEscape(heads, fnameescape(base))
+      let results += s:FilterEscape(heads, fnameescape(base), 1)
     endif
     let results += a:0 == 1 || a:0 >= 3 ? fugitive#CompletePath(base, 0, '', dir, a:0 >= 4 ? a:4 : tree) : fugitive#CompletePath(base)
     return results
@@ -2533,7 +2539,7 @@ function! s:CompleteSub(subcommand, A, L, P, ...) abort
 endfunction
 
 function! s:CompleteRevision(A, L, P, ...) abort
-  return s:FilterEscape(s:CompleteHeads(a:0 ? a:1 : s:Dir()), a:A)
+  return s:FilterEscape(s:CompleteHeads(a:0 ? a:1 : s:Dir()), a:A, 1)
 endfunction
 
 function! s:CompleteRemote(A, L, P, ...) abort
@@ -2546,7 +2552,7 @@ function! s:CompleteRemote(A, L, P, ...) abort
   else
     let matches = s:LinesError([dir, 'remote'])[0]
   endif
-  return s:FilterEscape(matches, a:A)
+  return s:FilterEscape(matches, a:A, 1)
 endfunction
 
 " Section: Buffer auto-commands
@@ -5426,7 +5432,7 @@ function! fugitive#CommitComplete(A, L, P, ...) abort
       call filter(commits, 'strpart(v:val, 0, strlen(a:A)) ==# a:A')
       return commits
     else
-      return s:FilterEscape(map(commits, 'pre . tr(v:val, "\\ !^$*?[]()''\"`&;<>|#", "....................")'), a:A)
+      return s:FilterEscape(map(commits, 'pre . tr(v:val, "\\ !^$*?[]()''\"`&;<>|#", "....................")'), a:A, 1)
     endif
   else
     return s:CompleteSub('commit', a:A, a:L, a:P, function('fugitive#CompletePath'), a:000)
@@ -6338,7 +6344,7 @@ endfunction
 
 function! fugitive#EditComplete(A, L, P) abort
   if a:A =~# '^>'
-    return map(s:FilterEscape(s:CompleteHeads(s:Dir()), a:A[1:-1]), "'>' . v:val")
+    return map(s:FilterEscape(s:CompleteHeads(s:Dir()), a:A[1:-1], 1), "'>' . v:val")
   else
     return fugitive#CompleteObject(a:A, a:L, a:P)
   endif
@@ -6501,18 +6507,21 @@ function! s:CompletePush(A, L, P, ...) abort
   let remote = matchstr(a:L, '\u\w*[! ] *.\{-\}\s\@<=\zs[^-[:space:]]\S*\ze ')
   if empty(remote)
     let matches = s:LinesError([dir, 'remote'])[0]
+    let use_fuzzy = 0
   elseif a:A =~# ':'
     let lead = matchstr(a:A, '^[^:]*:')
     let matches = s:LinesError([dir, 'ls-remote', remote])[0]
     call filter(matches, 'v:val =~# "\t" && v:val !~# "{"')
     call map(matches, 'lead . s:sub(v:val, "^.*\t", "")')
+    let use_fuzzy = 1
   else
     let matches = s:CompleteHeads(dir)
     if a:A =~# '^[\''"]\=+'
       call map(matches, '"+" . v:val')
     endif
+    let use_fuzzy = 1
   endif
-  return s:FilterEscape(matches, a:A)
+  return s:FilterEscape(matches, a:A, use_fuzzy)
 endfunction
 
 function! fugitive#PushComplete(A, L, P, ...) abort
