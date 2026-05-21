@@ -1,21 +1,29 @@
 " autoload/ghostgit/blame.vim — Blame buffer, annotations, commit metadata
 " Migrated from autoload/fugitive.vim Section: :Git blame (lines 6862–7420)
 
-" ── Rebase abbrevs ──────────────────────────────────────────────────
-
-let s:rebase_abbrevs = {
-      \ 'p': 'pick', 'r': 'reword', 'e': 'edit', 's': 'squash', 'f': 'fixup',
-      \ 'd': 'drop', 'x': 'exec', 'b': 'break'}
-
 " ── Blame helpers ───────────────────────────────────────────────────
 
+let s:linechars_cache = {}
+
 function! s:linechars(pattern) abort
-  let chars = strlen(ghostgit#util#Gsub(matchstr(getline('.'), a:pattern), '.', '.'))
-  if &conceallevel > 1
-    for col in range(1, chars)
-      let chars -= synconcealed(line('.'), col)[0]
-    endfor
+  let lnum = line('.')
+  let bnr = bufnr('')
+  let key = bnr . ':' . lnum
+  if &conceallevel < 2
+    let chars = strlen(ghostgit#util#Gsub(matchstr(getline('.'), a:pattern), '.', '.'))
+    let s:linechars_cache[key] = chars
+    return chars
   endif
+  if has_key(s:linechars_cache, key)
+    return s:linechars_cache[key]
+  endif
+  let chars = strlen(ghostgit#util#Gsub(matchstr(getline('.'), a:pattern), '.', '.'))
+  let concealed = 0
+  for col in range(1, chars)
+    let concealed += synconcealed(lnum, col)[0]
+  endfor
+  let chars -= concealed
+  let s:linechars_cache[key] = chars
   return chars
 endfunction
 
@@ -28,20 +36,31 @@ function! ghostgit#blame#Bufnr(...) abort
   endif
 endfunction
 
+function! s:ParseBlameLine(line) abort
+  let commit = matchstr(a:line, '^\^\=[?*]*\zs\x\+')
+  let lnum = +matchstr(a:line, ' \zs\d\+\ze \%((\| *\d\+)\)')
+  let path = matchstr(a:line, '^\^\=[?*]*\x* \+\%(\d\+ \+\d\+ \+\)\=\zs.\{-\}\ze\s*\d\+ \%((\| *\d\+)\)')
+  return [commit, lnum, path]
+endfunction
+
+function! s:ResolveCommit(commit, state) abort
+  if a:commit =~# '^0\+$'
+    return ''
+  endif
+  if has_key(a:state, 'blame_reverse_end')
+    return get(ghostgit#git#LinesError([a:state.git_dir, 'rev-list', '--ancestry-path', '--reverse', a:commit . '..' . a:state.blame_reverse_end])[0], 0, '')
+  endif
+  return a:commit
+endfunction
+
 function! ghostgit#blame#CommitFileLnum(...) abort
   let line = a:0 ? a:1 : getline('.')
   let state = a:0 > 1 ? a:2 : ghostgit#job#TempState()
   if get(state, 'filetype', '') !=# 'ghostgitblame'
     return ['', '', 0]
   endif
-  let commit = matchstr(line, '^\^\=[?*]*\zs\x\+')
-  if commit =~# '^0\+$'
-    let commit = ''
-  elseif has_key(state, 'blame_reverse_end')
-    let commit = get(ghostgit#git#LinesError([state.git_dir, 'rev-list', '--ancestry-path', '--reverse', commit . '..' . state.blame_reverse_end])[0], 0, '')
-  endif
-  let lnum = +matchstr(line, ' \zs\d\+\ze \%((\| *\d\+)\)')
-  let path = matchstr(line, '^\^\=[?*]*\x* \+\%(\d\+ \+\d\+ \+\)\=\zs.\{-\}\ze\s*\d\+ \%((\| *\d\+)\)')
+  let [commit, lnum, path] = s:ParseBlameLine(line)
+  let commit = s:ResolveCommit(commit, state)
   if empty(path) && lnum
     let path = get(state, 'blame_file', '')
   endif
@@ -63,14 +82,19 @@ function! ghostgit#blame#Leave() abort
 endfunction
 
 function! ghostgit#blame#Quit() abort
-  let cmd = ghostgit#blame#Leave()
-  if empty(cmd)
-    return 'bdelete'
-  elseif len(ghostgit#core#DirCommitFile(@%)[1])
-    return cmd . '|Gedit'
-  else
-    return cmd
-  endif
+  try
+    let cmd = ghostgit#blame#Leave()
+    if empty(cmd)
+      execute 'bdelete'
+    else
+      execute cmd
+      if len(ghostgit#core#DirCommitFile(@%)[1])
+        execute 'Gedit'
+      endif
+    endif
+  catch
+    call ghostgit#util#Warn('Failed to quit blame buffer: ' . v:exception)
+  endtry
 endfunction
 
 " ── Keywordprg ──────────────────────────────────────────────────────
@@ -88,13 +112,12 @@ endfunction
 
 function! ghostgit#blame#Syntax() abort
   let hash_colors = ghostgit#state#GetHashColors()
-  for line in getline(1, '$')
-    let hash = matchstr(line, '^\^\=[?*]*\zs\x\{6\}')
-    if !empty(hash) && !has_key(hash_colors, hash)
-      let hash_colors[hash] = printf('GhostgitHash_%s', hash)
-      execute 'syntax match ' . hash_colors[hash] . " '" . hash . "' containedin=ALL"
-      execute 'highlight link ' . hash_colors[hash] . ' Label'
-    endif
+  let lines = getline(1, '$')
+  let hashes = filter(map(lines, {_, l -> matchstr(l, '^\^\=[?*]*\zs\x\{6\}')}), {_, h -> !empty(h) && !has_key(hash_colors, h)})
+  for hash in hashes
+    let hash_colors[hash] = printf('GhostgitHash_%s', hash)
+    execute 'syntax match ' . hash_colors[hash] . " '" . hash . "' containedin=ALL"
+    execute 'highlight link ' . hash_colors[hash] . ' Label'
   endfor
 endfunction
 
@@ -104,8 +127,9 @@ function! ghostgit#blame#FileType() abort
   setlocal nomodeline
   setlocal nomodifiable
   setlocal foldmethod=manual
+  let s:linechars_cache = {}
   call ghostgit#blame#Syntax()
-  call s:blame_maps(0)
+  call s:blame_maps()
   let &l:keywordprg = s:keywordprg()
   let b:undo_ftplugin = 'setl keywordprg= foldmethod<'
   if get(g:, 'ghostgit_blame_conceal', 1)
@@ -114,9 +138,10 @@ function! ghostgit#blame#FileType() abort
   endif
 endfunction
 
-function! s:blame_maps(has_maps) abort
-  call ghostgit#util#Map('n', '<2-LeftMouse>', ':<C-U>exe <SID>BlameOpen("edit")<CR>', '<silent>')
-  call ghostgit#util#Map('n', '<CR>', ':<C-U>exe <SID>BlameOpen("edit")<CR>', '<silent>')
+function! s:blame_maps() abort
+  for key in ['<2-LeftMouse>', '<CR>']
+    call ghostgit#util#Map('n', key, ':<C-U>exe <SID>BlameOpen("edit")<CR>', '<silent>')
+  endfor
   call ghostgit#util#Map('n', 'o', ':<C-U>exe <SID>BlameOpen("split")<CR>', '<silent>')
   call ghostgit#util#Map('n', 'p', ':<C-U>exe <SID>BlameOpen("pedit")<CR>', '<silent>')
   call ghostgit#util#Map('n', 'gO', ':<C-U>exe <SID>BlameOpen("vsplit")<CR>', '<silent>')
@@ -127,15 +152,13 @@ endfunction
 
 " ── Blame complete ──────────────────────────────────────────────────
 
-function! ghostgit#blame#Complete(A, L, P) abort
-  return s:complete_sub('blame', a:A, a:L, a:P)
-endfunction
+let s:blame_flags = ['--root', '--show-email', '--show-number', '--show-stats', '--porcelain', '--line-porcelain', '--incremental', '--abbrev=', '--contents=', '--reverse', '--progress', '--date=', '-L']
 
-function! s:complete_sub(subcommand, A, L, P) abort
+function! ghostgit#blame#Complete(A, L, P) abort
   let args = split(a:L[0 : a:P-1], '\s\+')
   let base = a:A
   if base =~# '^-'
-    return filter(['--root', '--show-email', '--show-number', '--show-stats', '--porcelain', '--line-porcelain', '--incremental', '--abbrev=', '--contents=', '--reverse', '--progress', '--date=', '-L'], 'stridx(v:val, base) == 0')
+    return filter(copy(s:blame_flags), 'stridx(v:val, base) == 0')
   endif
   return ghostgit#command#CompletePath(base)
 endfunction
