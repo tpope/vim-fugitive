@@ -330,7 +330,7 @@ let s:trees = {}
 let s:indexes = {}
 
 function! ghostgit#buffer#Simplify(url) abort
-  return substitute(a:url, '\c^ghostitive://\zs.\{-\}\ze//', '\=ghostgit#util#Slash(simplify(ghostgit#util#UrlDecode(submatch(0))))', '')
+  return substitute(a:url, '\c^ghostgit://\zs.\{-\}\ze//', '\=ghostgit#util#Slash(simplify(ghostgit#util#UrlDecode(submatch(0))))', '')
 endfunction
 
 function! ghostgit#buffer#Resolve(url) abort
@@ -368,8 +368,10 @@ function! ghostgit#buffer#GetFsize(url) abort
   if commit =~# '^\d$'
     let entry = ghostgit#buffer#LsTree(dir, commit, file)
     return get(entry, 'size', -1)
+  elseif commit =~# '^\x\{40,\}$'
+    return getfsize(ghostgit#core#Real(a:url))
   endif
-  return getfsize(ghostgit#core#Real(a:url))
+  return -1
 endfunction
 
 function! ghostgit#buffer#GetFtype(url) abort
@@ -517,7 +519,7 @@ endfunction
 
 function! ghostgit#buffer#LsTree(dir, stage, file) abort
   let trees = ghostgit#state#GetTrees()
-  let key = a:dir . ':' . a:stage
+  let key = a:dir
   if !has_key(trees, key)
     let r = ghostgit#git#Execute([a:dir, 'ls-files', '--stage', '--', '.'])
     let trees[key] = {}
@@ -528,9 +530,9 @@ function! ghostgit#buffer#LsTree(dir, stage, file) abort
         let sha = parts[1]
         let stage = parts[2][0]
         let path = join(parts[3:], ' ')
-        let trees[key][path] = {'mode': mode, 'sha': sha, 'stage': stage, 'type': mode[0] ==# '4' ? 'tree' : 'blob', 'size': 0}
+        let trees[key][path . ':' . stage] = {'mode': mode, 'sha': sha, 'stage': stage, 'type': mode[0] ==# '4' ? 'tree' : 'blob', 'size': -1}
       endif
     endfor
   endif
-  return get(trees[key], a:file[1:-1], {})
+  return get(trees[key], a:file[1:-1] . ':' . a:stage, {})
 endfunction
