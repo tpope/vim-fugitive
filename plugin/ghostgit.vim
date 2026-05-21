@@ -13,152 +13,149 @@ let s:bad_git_dir = '/$\|^ghostgit:'
 " ── Public API (Fugitive-compatible) ────────────────────────────────
 
 function! FugitiveGitDir(...) abort
-  return call('ghostgit#core#GitDir', a:000)
+  return call('ghostgit#GitDir', a:000)
 endfunction
 
 function! FugitiveReal(...) abort
-  return call('ghostgit#core#Real', a:000)
+  return call('ghostgit#Real', a:000)
 endfunction
 
 function! FugitiveFind(...) abort
-  return call('ghostgit#buffer#Find', a:000)
+  return call('ghostgit#Find', a:000)
 endfunction
 
 function! FugitiveHead(...) abort
-  return call('ghostgit#git#Head', a:000)
+  return call('ghostgit#Head', a:000)
 endfunction
 
 function! FugitiveExecute(args, ...) abort
-  return call('ghostgit#git#Execute', [a:args] + a:000)
+  return call('ghostgit#Execute', [a:args] + a:000)
 endfunction
 
 function! FugitiveResult(...) abort
-  return call('ghostgit#job#Result', a:000)
+  return call('ghostgit#Result', a:000)
 endfunction
 
 function! FugitiveDidChange(...) abort
-  return call('ghostgit#status#DidChange', a:000)
+  return call('ghostgit#DidChange', a:000)
 endfunction
 
 function! FugitiveConfig(...) abort
-  return call('ghostgit#config#Config', a:000)
+  return call('ghostgit#Config', a:000)
 endfunction
 
 function! FugitiveConfigGet(name, ...) abort
-  return get(call('FugitiveConfigGetAll', [a:name] + (a:0 ? [a:1] : [])), -1, get(a:, 2, ''))
+  return call('ghostgit#ConfigGet', [a:name] + a:000)
 endfunction
 
 function! FugitiveConfigGetAll(name, ...) abort
-  return call('ghostgit#config#GetAll', [a:name] + a:000)
+  return call('ghostgit#ConfigGetAll', [a:name] + a:000)
 endfunction
 
 function! FugitiveConfigGetRegexp(pattern, ...) abort
-  return call('ghostgit#config#GetRegexp', [a:pattern] + a:000)
+  return call('ghostgit#ConfigGetRegexp', [a:pattern] + a:000)
 endfunction
 
 function! FugitiveRemoteUrl(...) abort
-  return call('ghostgit#remote#RemoteUrl', a:000)
+  return call('ghostgit#RemoteUrl', a:000)
 endfunction
 
 function! FugitiveRemote(...) abort
-  return call('ghostgit#remote#Remote', a:000)
+  return call('ghostgit#Remote', a:000)
 endfunction
 
 function! FugitiveShellCommand(...) abort
-  return call('ghostgit#git#ShellCommand', a:000)
+  return call('ghostgit#ShellCommand', a:000)
 endfunction
 
 function! FugitiveStatusline(...) abort
-  if empty(ghostgit#core#GitDir(bufnr('')))
-    return ''
-  endif
-  return ghostgit#statusline#Statusline()
+  return call('ghostgit#Statusline', a:000)
 endfunction
 
 function! FugitivePath(...) abort
-  return call('ghostgit#core#Path', a:000)
+  return call('ghostgit#Path', a:000)
 endfunction
 
 function! FugitiveGitVersion(...) abort
-  return call('ghostgit#git#GitVersion', a:000)
+  return call('ghostgit#GitVersion', a:000)
 endfunction
 
 function! FugitiveParse(...) abort
-  return call('ghostgit#core#Parse', a:000)
+  return call('ghostgit#Parse', a:000)
 endfunction
 
 " ── Additional ghostgit API ─────────────────────────────────────────
 
 function! GhostgitGitDir(...) abort
-  return call('ghostgit#core#GitDir', a:000)
+  return call('ghostgit#GitDir', a:000)
 endfunction
 
 function! GhostgitReal(...) abort
-  return call('ghostgit#core#Real', a:000)
+  return call('ghostgit#Real', a:000)
 endfunction
 
 function! GhostgitFind(...) abort
-  return call('ghostgit#buffer#Find', a:000)
+  return call('ghostgit#Find', a:000)
 endfunction
 
 function! GhostgitHead(...) abort
-  return call('ghostgit#git#Head', a:000)
+  return call('ghostgit#Head', a:000)
 endfunction
 
 function! GhostgitExecute(...) abort
-  return call('ghostgit#git#Execute', a:000)
+  return call('ghostgit#Execute', a:000)
 endfunction
 
 function! GhostgitResult(...) abort
-  return call('ghostgit#job#Result', a:000)
+  return call('ghostgit#Result', a:000)
 endfunction
 
 function! GhostgitDidChange(...) abort
-  return call('ghostgit#status#DidChange', a:000)
+  return call('ghostgit#DidChange', a:000)
 endfunction
 
 function! GhostgitConfig(...) abort
-  return call('ghostgit#config#Config', a:000)
+  return call('ghostgit#Config', a:000)
 endfunction
 
 function! GhostgitConfigGet(name, ...) abort
-  return call('ghostgit#config#Get', [a:name] + a:000)
+  return call('ghostgit#ConfigGet', [a:name] + a:000)
 endfunction
 
 function! GhostgitConfigGetAll(name, ...) abort
-  return call('ghostgit#config#GetAll', [a:name] + a:000)
+  return call('ghostgit#ConfigGetAll', [a:name] + a:000)
 endfunction
 
 function! GhostgitConfigGetRegexp(pattern, ...) abort
-  return call('ghostgit#config#GetRegexp', [a:pattern] + a:000)
+  return call('ghostgit#ConfigGetRegexp', [a:pattern] + a:000)
 endfunction
 
 function! GhostgitRemoteUrl(...) abort
-  return call('ghostgit#remote#RemoteUrl', a:000)
+  return call('ghostgit#RemoteUrl', a:000)
 endfunction
 
 function! GhostgitRemote(...) abort
-  return call('ghostgit#remote#Remote', a:000)
+  return call('ghostgit#Remote', a:000)
 endfunction
 
 function! GhostgitShellCommand(...) abort
-  return call('ghostgit#git#ShellCommand', a:000)
+  return call('ghostgit#ShellCommand', a:000)
 endfunction
 
 function! GhostgitStatusline(...) abort
-  return ghostgit#statusline#Statusline()
+  return call('ghostgit#Statusline', a:000)
 endfunction
 
 function! GhostgitPath(...) abort
-  return call('ghostgit#core#Path', a:000)
+  return call('ghostgit#Path', a:000)
 endfunction
 
 function! GhostgitGitVersion(...) abort
-  return call('ghostgit#git#GitVersion', a:000)
+  return call('ghostgit#GitVersion', a:000)
 endfunction
 
 function! GhostgitParse(...) abort
-  return call('ghostgit#core#Parse', a:000)
+  return call('ghostgit#Parse', a:000)
 endfunction
 
 " ── io_ghostgit (virtual filesystem) ────────────────────────────────
