@@ -1,4 +1,5 @@
 /doc/tags
 .opencode/
 .opencode
-
+skills-lock.json
+.agents/
