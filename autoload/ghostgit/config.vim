@@ -64,7 +64,7 @@ let s:config_prototype = {
       \ 'Get': function('s:config_Get'),
       \ 'GetRegexp': function('s:config_GetRegexp')}
 
-" ── Config timestamps ───────────────────────────────────────────────
+" ── Config timestamps ───────────────────────────────────────────────  
 
 function! s:config_timestamps(dir, dict) abort
   let files = ['/etc/gitconfig', '~/.gitconfig',
