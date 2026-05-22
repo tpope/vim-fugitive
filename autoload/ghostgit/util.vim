@@ -128,6 +128,28 @@ else
 
 endif
 
+" ── Vim path (reverse of VimSlash) ──────────────────────────────────
+
+if exists('+shellslash')
+
+  function! ghostgit#util#VimPath(path) abort
+    return tr(a:path, '\/', &shellslash ? '//' : '\\')
+  endfunction
+
+else
+
+  if has('win32unix') && filereadable('/git-bash.exe')
+    function! ghostgit#util#VimPath(path) abort
+      return substitute(a:path, '^\(\a\):', '/\l\1', '')
+    endfunction
+  else
+    function! ghostgit#util#VimPath(path) abort
+      return a:path
+    endfunction
+  endif
+
+endif
+
 " ── Absolute path ───────────────────────────────────────────────────
 
 function! ghostgit#util#AbsoluteVimPath(...) abort

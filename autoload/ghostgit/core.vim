@@ -23,7 +23,7 @@ function! ghostgit#core#GitDir(...) abort
       return b:git_dir
     endif
     return dir =~# s:bad_git_dir ? '' : dir
-  elseif type(a:1) == type(0) && a:1 isnot# 0
+  elseif type(a:1) == type(0) && a:1 !=# 0
     if a:1 == bufnr('') && (!exists('b:git_dir') || b:git_dir =~# s:bad_git_dir) && &buftype =~# '^\%(nowrite\)\=$'
       let b:git_dir = ghostgit#core#ExtractGitDir(a:1)
     endif
@@ -54,10 +54,7 @@ endfunction
 " ── Is git dir check ────────────────────────────────────────────────
 
 function! ghostgit#core#IsGitDir(path) abort
-  if !a:0 || type(a:1) !=# type('')
-    return !empty(ghostgit#core#GitDir(a:0 ? a:1 : -1))
-  endif
-  let path = substitute(a:1, '[\/]$', '', '') . '/'
+  let path = substitute(a:path, '[\/]$', '', '') . '/'
   return len(path) && getfsize(path.'HEAD') > 10 && (
         \ isdirectory(path.'objects') && isdirectory(path.'refs') ||
         \ getftype(path.'commondir') ==# 'file')
@@ -104,7 +101,7 @@ function! s:tree(path) abort
          let config += s:read_file(dir . '/config.worktree', 50)
       endif
     else
-      let worktree = fnamemodify(ghostgit#util#VimPath(get(s:read_file(dir . '/gitdir', 1), '0', '')), ':h')
+      let worktree = fnamemodify(ghostgit#util#VimPath(get(s:read_file(dir . '/gitdir', 1), 0, '')), ':h')
       if worktree ==# '.'
         unlet! worktree
       endif
@@ -268,28 +265,6 @@ function! ghostgit#core#GitPath(path) abort
   return ghostgit#util#Slash(a:path)
 endfunction
 
-" ── Vim path (reverse of VimSlash) ──────────────────────────────────
-
-if exists('+shellslash')
-
-  function! ghostgit#util#VimPath(path) abort
-    return tr(a:path, '\/', &shellslash ? '//' : '\\')
-  endfunction
-
-else
-
-  if has('win32unix') && filereadable('/git-bash.exe')
-    function! ghostgit#util#VimPath(path) abort
-      return substitute(a:path, '^\(\a\):', '/\l\1', '')
-    endfunction
-  else
-    function! ghostgit#util#VimPath(path) abort
-      return a:path
-    endfunction
-  endif
-
-endif
-
 " ── Dir / Tree helpers ──────────────────────────────────────────────
 
 function! ghostgit#core#Dir(...) abort
@@ -312,6 +287,9 @@ function! ghostgit#core#InitializeBuffer(repo) abort
 endfunction
 
 " ── Dir check ───────────────────────────────────────────────────────
+" Returns a string to be :execute'd by the caller.
+" '' means ok; otherwise returns ':return :echoerr "..."' to abort the
+" calling function with an error message.
 
 let s:worktree_error = "core.worktree is required when using an external Git dir"
 
@@ -440,7 +418,7 @@ function! ghostgit#core#Path(url, ...) abort
       let cwd = fnamemodify(cwd, ':h')
     endwhile
     return path
-  elseif a:1 =~# '^:\%(\d\|$(\)\=$'
+  elseif a:1 =~# '^:\%(\d\|\)\=$'
     let path = ghostgit#util#Slash(ghostgit#core#Real(a:url))
     return strpart(path, len(tree) + 1)
   elseif a:1 =~# '^/'
