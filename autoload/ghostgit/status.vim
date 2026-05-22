@@ -16,29 +16,43 @@ let s:ref_header = '\%(Merge\|Rebase\|Upstream\|Pull\|Push\)'
 function! ghostgit#status#DidChange(...) abort
   let bufnr = a:0 ? a:1 : -1
   let soft = a:0 > 1 ? a:2 : 1
-  if bufnr is# 0
-    call ghostgit#state#SetDidChangeTime()
-    call ghostgit#state#ClearHeadCache()
-    call ghostgit#config#Expire()
-    call ghostgit#state#Expire('remote_headers')
-    return ''
-  endif
-  if bufnr is# -2
-    call ghostgit#state#SetDidChangeTime()
-    call ghostgit#state#ClearHeadCache()
-    call ghostgit#config#Expire()
-    call ghostgit#state#Expire('remote_headers')
-    return ''
-  endif
   let dir = ghostgit#core#GitDir(bufnr)
-  if empty(dir)
-    return ''
+
+  " Metadata check: if .git/HEAD or other refs changed, force a hard reload even if soft=1.
+  let hard = !soft || bufnr is# 0 || bufnr is# -2
+  if !hard && !empty(dir)
+    let head = ghostgit#buffer#Find('.git/HEAD', dir)
+    let index = ghostgit#buffer#Find('.git/index', dir)
+    let last_check = ghostgit#state#Get('last_meta_check', 0)
+    if (filereadable(head) && getftime(head) > last_check) ||
+          \ (filereadable(index) && getftime(index) > last_check)
+      let hard = 1
+    endif
+    call ghostgit#state#Set('last_meta_check', localtime())
   endif
+
   call ghostgit#state#SetDidChangeTime()
-  call ghostgit#state#ClearHeadCache()
-  call ghostgit#config#Expire(dir)
-  call ghostgit#state#Expire('remote_headers')
+
+  if hard
+    call ghostgit#state#ClearHeadCache()
+    if empty(dir) || bufnr is# 0 || bufnr is# -2
+      call ghostgit#config#Expire()
+    else
+      call ghostgit#config#Expire(dir)
+    endif
+    call ghostgit#state#Expire('remote_headers')
+  endif
+
+  if !empty(dir)
+    call ghostgit#status#ScheduleReload(dir)
+  endif
   return ''
+endfunction
+
+function! ghostgit#status#ScheduleReload(dir) abort
+  call ghostgit#state#ClearReloadTimer(a:dir)
+  let timers = ghostgit#state#GetReloadTimers()
+  let timers[a:dir] = timer_start(50, { -> s:reload_status_buffer() })
 endfunction
 
 " ── Expire status ───────────────────────────────────────────────────
@@ -344,6 +358,9 @@ function! s:StatusRender(stat) abort
     let [staged, unstaged, untracked, config] = [stat.staged, stat.unstaged, stat.untracked, stat.config]
     let dir = ghostgit#core#GitDir(config)
 
+    let b:ghostgit_render_gen = get(b:, 'ghostgit_render_gen', 0) + 1
+    let gen = b:ghostgit_render_gen
+
     let pull_ref = stat.merge
     if stat.fetch_remote !=# '.'
       let pull_ref = substitute(pull_ref, '^refs/heads/', 'refs/remotes/' . stat.fetch_remote . '/', '')
@@ -461,29 +478,60 @@ function! s:StatusRender(stat) abort
     endif
 
     let bufnr = stat.bufnr
-    setlocal noreadonly modifiable
-    if len(to.lines) < line('$')
-      silent keepjumps execute (len(to.lines)+1) . ',$delete_'
-    endif
-    call setline(1, to.lines)
-    call setbufvar(bufnr, 'ghostgit_status', stat)
-    call setbufvar(bufnr, 'ghostgit_expanded', stat.expanded)
-    setlocal nomodified readonly nomodifiable
-
-    " Finalize buffer setup after async load
-    doautocmd <nomodeline> BufReadPost
-    if getbufvar(bufnr, '&bufhidden') ==# ''
-      call setbufvar(bufnr, '&bufhidden', 'delete')
-    endif
-    if !exists('b:dispatch')
-      let b:dispatch = ':Git fetch --all'
-    endif
-    setlocal filetype=ghostgit
+    let chunk_size = get(g:, 'ghostgit_render_chunk_size', 500)
+    call s:StatusRenderChunk(bufnr, gen, to.lines, 1, chunk_size, stat)
 
     return ''
   finally
     let b:ghostgit_type = 'index'
   endtry
+endfunction
+
+function! s:StatusRenderChunk(bufnr, gen, lines, start, chunk_size, stat) abort
+  if !bufexists(a:bufnr) || getbufvar(a:bufnr, 'ghostgit_render_gen') != a:gen
+    return
+  endif
+
+  let winid = bufwinid(a:bufnr)
+
+  call setbufvar(a:bufnr, '&readonly', 0)
+  call setbufvar(a:bufnr, '&modifiable', 1)
+
+  let end = min([a:start + a:chunk_size - 1, len(a:lines)])
+  let chunk = a:lines[a:start - 1 : end - 1]
+
+  if a:start == 1
+    let old_len = getbufinfo(a:bufnr)[0].linecount
+    if len(a:lines) < old_len
+      if winid != -1
+        call win_execute(winid, 'silent keepjumps ' . (len(a:lines) + 1) . ',$delete_')
+      endif
+    endif
+  endif
+
+  call setbufline(a:bufnr, a:start, chunk)
+
+  if end < len(a:lines)
+    call timer_start(0, { -> s:StatusRenderChunk(a:bufnr, a:gen, a:lines, end + 1, a:chunk_size, a:stat) })
+  else
+    call setbufvar(a:bufnr, 'ghostgit_status', a:stat)
+    call setbufvar(a:bufnr, 'ghostgit_expanded', a:stat.expanded)
+    call setbufvar(a:bufnr, '&modified', 0)
+    call setbufvar(a:bufnr, '&readonly', 1)
+    call setbufvar(a:bufnr, '&modifiable', 0)
+
+    if winid != -1
+      call win_execute(winid, 'doautocmd <nomodeline> BufReadPost')
+    endif
+
+    if getbufvar(a:bufnr, '&bufhidden') ==# ''
+      call setbufvar(a:bufnr, '&bufhidden', 'delete')
+    endif
+    if getbufvar(a:bufnr, 'dispatch', 'NONE') ==# 'NONE'
+      call setbufvar(a:bufnr, 'dispatch', ':Git fetch --all')
+    endif
+    call setbufvar(a:bufnr, '&filetype', 'ghostgit')
+  endif
 endfunction
 
 function! s:AddHeader(to, key, value) abort
@@ -615,6 +663,7 @@ function! s:MapStatus() abort
   " Map basic status buffer commands
   nnoremap <buffer><silent> gq :if bufnr('$') == 1<Bar>quit<Bar>else<Bar>bdelete<Bar>endif<CR>
   nnoremap <buffer><silent> g? :help ghostgit-maps<CR>
+  autocmd BufWipeout <buffer> call ghostgit#state#ClearReloadTimer(ghostgit#core#GitDir())
 endfunction
 
 

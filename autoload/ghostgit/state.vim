@@ -252,6 +252,20 @@ endfunction
 
 " ── Status reload times (was s:last_time / s:last_times) ────────────
 
+function! ghostgit#state#GetReloadTimers() abort
+  if !has_key(s:store, 'reload_timers')
+    let s:store.reload_timers = {}
+  endif
+  return s:store.reload_timers
+endfunction
+
+function! ghostgit#state#ClearReloadTimer(dir) abort
+  let timers = ghostgit#state#GetReloadTimers()
+  if has_key(timers, a:dir)
+    call timer_stop(remove(timers, a:dir))
+  endif
+endfunction
+
 function! ghostgit#state#GetLastTime() abort
   if !has_key(s:store, 'last_time')
     let s:store.last_time = reltime()
