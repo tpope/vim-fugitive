@@ -7,14 +7,6 @@ let s:diff_header_pattern = '^diff --git \%("\=[abciow12]/.*\|/dev/null\) \%("\=
 
 " ── Diff window helpers ─────────────────────────────────────────────
 
-function! s:diff_window_count() abort
-  let c = 0
-  for nr in range(1, winnr('$'))
-    let c += getwinvar(nr, '&diff')
-  endfor
-  return c
-endfunction
-
 function! s:can_diffoff(buf) abort
   return getwinvar(bufwinnr(a:buf), '&diff') &&
         \ !empty(getwinvar(bufwinnr(a:buf), 'ghostgit_diff_restore'))
@@ -31,33 +23,15 @@ function! s:diffthis() abort
   endif
 endfunction
 
-function! s:diffoff() abort
-  unlet! w:ghostgit_diff_restore
-  diffoff
-endfunction
-
-function! s:diffoff_all(dir) abort
-  let curwin = winnr()
-  for nr in range(1, winnr('$'))
-    if getwinvar(nr, '&diff') && !empty(getwinvar(nr, 'ghostgit_diff_restore'))
-      call setwinvar(nr, 'ghostgit_diff_restore', '')
-    endif
-  endfor
-  if curwin != winnr()
-    execute curwin.'wincmd w'
-  endif
-  diffoff!
-endfunction
-
 " ── Diff modifier ───────────────────────────────────────────────────
 
-function! s:diff_modifier(count, default) abort
+function! s:diff_modifier(count, directional) abort
   let fdc = matchstr(&diffopt, 'foldcolumn:\zs\d\+')
   if &diffopt =~# 'horizontal' && &diffopt !~# 'vertical'
     return ''
   elseif &diffopt =~# 'vertical'
     return 'vertical '
-  elseif !get(g:, 'ghostgit_diffsplit_directional_fit', a:default)
+  elseif !get(g:, 'ghostgit_diffsplit_directional_fit', a:directional)
     return ''
   elseif winwidth(0) <= a:count * ((&tw ? &tw : 80) + (empty(fdc) ? 2 : fdc))
     return ''
@@ -103,7 +77,6 @@ function! ghostgit#diff#Diffsplit(autodir, keepfocus, mods, arg, ...) abort
   endif
   let back = exists('*win_getid') ? 'call win_gotoid(' . win_getid() . ')' : 'wincmd p'
   if (empty(args) || args[0] =~# '^>\=:$') && a:keepfocus
-    exe ghostgit#core#DirCheck()
     if commit =~# '^1\=$' && s:is_conflicted()
       let parents = [ghostgit#buffer#Relative(':2:'), ghostgit#buffer#Relative(':3:')]
     elseif empty(commit)
@@ -115,6 +88,7 @@ function! ghostgit#diff#Diffsplit(autodir, keepfocus, mods, arg, ...) abort
       call map(parents, 'ghostgit#buffer#Relative(v:val . ":")')
     endif
   endif
+  exe ghostgit#core#DirCheck()
   try
     if exists('parents') && len(parents) > 1
       exe pre
@@ -146,13 +120,10 @@ function! ghostgit#diff#Diffsplit(autodir, keepfocus, mods, arg, ...) abort
       if arg ==# ''
         return post
       elseif arg ==# ':/'
-        exe ghostgit#core#DirCheck()
         let file = ghostgit#buffer#Relative()
       elseif arg ==# ':'
-        exe ghostgit#core#DirCheck()
         let file = len(commit) ? ghostgit#buffer#Relative() : ghostgit#buffer#Relative(s:is_conflicted() ? ':1:' : ':0:')
       elseif arg =~# '^:\d$'
-        exe ghostgit#core#DirCheck()
         let file = ghostgit#buffer#Relative(arg . ':')
       elseif arg =~# '^[~^]\d*$'
         return 'echoerr ' . string('ghostgit: change ' . arg . ' to !' . arg . ' to diff against ancestor')
@@ -181,7 +152,6 @@ function! ghostgit#diff#Diffsplit(autodir, keepfocus, mods, arg, ...) abort
         let post = 'echohl WarningMsg|echo "Use :Gdiffsplit! for 3 way diff"|echohl NONE|' . post
       endif
     else
-      exe ghostgit#core#DirCheck()
       let file = ghostgit#buffer#Relative(':0:')
       let mods = s:mods(a:mods, 'leftabove')
     endif
@@ -198,12 +168,13 @@ function! ghostgit#diff#Diffsplit(autodir, keepfocus, mods, arg, ...) abort
     endif
     execute mods 'diffsplit' ghostgit#util#FnameEscape(spec)
     let w:ghostgit_diff_restore = 1
-    let winnr = winnr()
     if getwinvar('#', '&diff')
       call s:diffthis()
     endif
     if !a:keepfocus
       call s:diffthis()
+    else
+      exe back
     endif
     return post
   finally
@@ -216,6 +187,7 @@ endfunction
 " ── Diff close ──────────────────────────────────────────────────────
 
 function! ghostgit#diff#DiffClose() abort
+  let curwin = winnr()
   for nr in range(1, winnr('$'))
     if getwinvar(nr, '&diff')
       let restore = getwinvar(nr, 'ghostgit_diff_restore')
@@ -224,10 +196,18 @@ function! ghostgit#diff#DiffClose() abort
       endif
     endif
   endfor
-  diffoff
+  for nr in range(1, winnr('$'))
+    if getwinvar(nr, '&diff')
+      execute nr . 'wincmd w'
+      diffoff
+    endif
+  endfor
+  execute curwin . 'wincmd w'
 endfunction
 
 " ── Arg split ───────────────────────────────────────────────────────
+" NOTE: Does not handle escaped quotes (e.g., \" inside \"...\").
+" Low risk for Git argument parsing — keep if it stays internal.
 
 function! s:arg_split(arg) abort
   if empty(a:arg)
