@@ -22,7 +22,7 @@ endfunction
 
 function! ghostgit#config#GetRegexp(pattern, ...) abort
   if type(a:pattern) !=# type('')
-    let config = ghostgit#config#Config(a:name)
+    let config = a:pattern
     let pattern = a:0 ? a:1 : '.*'
   else
     let config = ghostgit#config#Config(a:0 ? a:1 : ghostgit#core#GitDir())
@@ -222,7 +222,7 @@ function! ghostgit#config#SshParseConfig(into, root, file) abort
         endif
         for included in reverse(split(glob(glob), "\n"))
           try
-            call extend(lines, readfile(included), 'keep')
+            let lines = readfile(included) + lines
           catch
           endtry
         endfor
