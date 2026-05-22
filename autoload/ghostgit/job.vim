@@ -5,7 +5,7 @@
 
 let s:run_jobs = (exists('*ch_close_in') || exists('*jobstart')) && exists('*bufwinid')
 
-" ── Wait for jobs ───────────────────────────────────────────────────
+" ── Wait for jobs ───────────────────────────────────────────────────  
 
 function! ghostgit#job#Wait(job_or_jobs, ...) abort
   let original = type(a:job_or_jobs) == type([]) ? copy(a:job_or_jobs) : [a:job_or_jobs]
