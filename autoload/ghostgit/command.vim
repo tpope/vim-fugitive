@@ -121,17 +121,17 @@ function! ghostgit#command#Run(line1, line2, range, bang, mods, args) abort
   let git_cmd = ghostgit#git#GitCmd()
   let tree = ghostgit#core#GetTree(dir)
   if empty(tree)
-    call insert(cmd, '--git-dir=' . ghostgit#core#GitPath(dir))
+    let full_cmd = git_cmd + ['--git-dir=' . ghostgit#core#GitPath(dir)] + cmd
   else
-    call extend(cmd, ['-C', ghostgit#core#GitPath(tree)], 'keep')
+    let dir_args = ['-C', ghostgit#core#GitPath(tree)]
     if !ghostgit#util#Cpath(tree . '/.git', dir) || len($GIT_DIR)
-      call extend(cmd, ['--git-dir=' . ghostgit#core#GitPath(dir)], 'keep')
+      let dir_args += ['--git-dir=' . ghostgit#core#GitPath(dir)]
     endif
+    let full_cmd = git_cmd + dir_args + cmd
   endif
-  call extend(cmd, git_cmd, 'keep')
 
   " Execute
-  let result = ghostgit#git#Execute(cmd)
+  let result = ghostgit#git#Execute(full_cmd)
   call ghostgit#status#DidChange(result)
   return ''
 endfunction
@@ -207,7 +207,9 @@ function! ghostgit#command#WriteCommand(line1, line2, range, bang, mods, arg, ..
     return 'echoerr ' . string('ghostgit: ' . join(r.stderr, "\n"))
   endif
   let sha = r.stdout[0]
-  let r = ghostgit#git#Execute([dir, 'update-index', '--cacheinfo', '100644', sha, expand('%:p')])
+  let fperm = getfperm(expand('%:p'))
+  let mode = fperm =~# 'x' ? '100755' : '100644'
+  let r = ghostgit#git#Execute([dir, 'update-index', '--cacheinfo', mode, sha, expand('%:p')])
   if r.exit_status
     return 'echoerr ' . string('ghostgit: ' . join(r.stderr, "\n"))
   endif
@@ -280,9 +282,9 @@ function! ghostgit#command#GrepCommand(line1, line2, range, bang, mods, arg) abo
   " Populate quickfix
   let qf = []
   for line in r.stdout
-    let parts = split(line, ':', 1)
-    if len(parts) >= 3
-      call add(qf, {'filename': parts[0], 'lnum': +parts[1], 'text': join(parts[2:], ':')})
+    let m = matchlist(line, '^\(.\{-}\):\(\d\+\):\(.*\)')
+    if len(m) >= 4
+      call add(qf, {'filename': m[1], 'lnum': +m[2], 'text': m[3]})
     endif
   endfor
   call setqflist(qf)
