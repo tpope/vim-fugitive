@@ -139,6 +139,19 @@ either. Consider using a [plugin that resolves
 symlinks](https://github.com/aymericbeaumet/symlink.vim), or even better,
 using fewer symlinks.
 
+## Contributing
+
+### Testing
+
+Tests are written using [plenary.nvim](https://github.com/nvim-lua/plenary.nvim).
+To run tests locally, ensure you have `plenary.nvim` in your runtimepath and run:
+
+```bash
+make test
+```
+
+For CI, we use GitHub Actions to run tests and linting on every push.
+
 ## License
 
 Original vim-fugitive Copyright (c) Tim Pope. Distributed under the same
