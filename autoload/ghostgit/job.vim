@@ -11,13 +11,22 @@ function! ghostgit#job#Wait(job_or_jobs, ...) abort
   let original = type(a:job_or_jobs) == type([]) ? copy(a:job_or_jobs) : [a:job_or_jobs]
   let jobs = map(copy(original), 'type(v:val) ==# type({}) ? get(v:val, "job", "") : v:val')
   call filter(jobs, 'type(v:val) !=# type("")')
+  if empty(jobs)
+    return a:job_or_jobs
+  endif
   let timeout_ms = a:0 ? a:1 : -1
   if exists('*jobwait')
     call map(copy(jobs), 'chanclose(v:val, "stdin")')
     call jobwait(jobs, timeout_ms)
-    let jobs = map(copy(original), 'type(v:val) ==# type({}) ? get(v:val, "job", "") : v:val')
-    call filter(jobs, 'type(v:val) !=# type("")')
-    if len(jobs)
+    " Check if any jobs are still running before sleeping
+    let still_running = 0
+    for j in jobs
+      if jobwait([j], 0)[0] == -1
+        let still_running = 1
+        break
+      endif
+    endfor
+    if still_running && timeout_ms != 0
       sleep 1m
     endif
   else

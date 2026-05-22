@@ -114,20 +114,15 @@ function! ghostgit#status#BufReadStatus(cmdbang) abort
     setlocal readonly nomodifiable noswapfile nomodeline buftype=nowrite
     call s:MapStatus()
 
-    call s:StatusRender(stat)
+    " Set a loading message while git runs in the background
+    setlocal noreadonly modifiable
+    call setline(1, ['# Loading git status...'])
+    setlocal nomodified readonly nomodifiable
 
-    doautocmd <nomodeline> BufReadPost
-    if &bufhidden ==# ''
-      setlocal bufhidden=delete
-    endif
-    if !exists('b:dispatch')
-      let b:dispatch = ':Git fetch --all'
-    endif
-    setlocal filetype=ghostgit
-
+    " s:StatusProcess will call StatusRender when finished.
     return ghostgit#util#DoAutocmd('User GhostgitIndex')
   finally
-    call setbufvar(stat.bufnr, 'ghostgit_loading', {})
+    " We don't clear b:ghostgit_loading yet, StatusProcess will do it
   endtry
 endfunction
 
@@ -155,7 +150,7 @@ function! s:StatusRetrieve(bufnr, ...) abort
     let stat.status = {}
     let stat.running = stat.rev_parse
   else
-    let stat.rev_parse = ghostgit#git#Execute(rev_parse_cmd)
+    let stat.rev_parse = ghostgit#git#Execute(rev_parse_cmd, function('len'))
     let status_cmd = cmd + ['status', '-bz', ghostgit#git#GitVersion(2, 11) ? '--porcelain=v2' : '--porcelain']
     let stat.status = call('ghostgit#git#Execute', [status_cmd, function('s:StatusProcess'), stat] + a:000)
     let stat.running = stat.status
@@ -182,41 +177,50 @@ function! s:StatusProcess(result, stat) abort
       return
 
     elseif status_exec.args[-1] ==# '--porcelain=v2'
-      let output = split(tr(join(status_exec.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
-      let i = 0
-      while i < len(output)
-        let line = output[i]
-        let prop = matchlist(line, '# \(\S\+\) \(.*\)')
-        if len(prop)
-          let stat.props[prop[1]] = prop[2]
-        elseif line[0] ==# '?'
-          call add(untracked, {'type': 'File', 'status': line[0], 'filename': line[2:-1], 'relative': [line[2:-1]]})
-        elseif line[0] !=# '#'
-          if line[0] ==# 'u'
-            let file = matchstr(line, '^.\{37\} \x\{40,\} \x\{40,\} \x\{40,\} \zs.*$')
-          else
-            let file = matchstr(line, '^.\{30\} \x\{40,\} \x\{40,\} \zs.*$')
-          endif
-          if line[0] ==# '2'
-            let i += 1
-            let file = matchstr(file, ' \zs.*')
-            let relative = [file, output[i]]
-          else
-            let relative = [file]
-          endif
-          let filename = join(reverse(copy(relative)), ' -> ')
-          let sub = matchstr(line, '^[12u] .. \zs....')
-          if line[2] !=# '.'
-            call add(staged, {'type': 'File', 'status': line[2], 'filename': filename, 'relative': relative, 'submodule': sub})
-          endif
-          if line[3] !=# '.'
+      if has('nvim')
+        let lua_res = luaeval('require("ghostgit.status").parse_porcelain_v2(_A)', status_exec.stdout)
+        let staged = lua_res.staged
+        let unstaged = lua_res.unstaged
+        let untracked = lua_res.untracked
+        let stat.props = lua_res.props
+        let stat.branch = lua_res.branch
+      else
+        let output = split(tr(join(status_exec.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
+        let i = 0
+        while i < len(output)
+          let line = output[i]
+          let prop = matchlist(line, '# \(\S\+\) \(.*\)')
+          if len(prop)
+            let stat.props[prop[1]] = prop[2]
+          elseif line[0] ==# '?'
+            call add(untracked, {'type': 'File', 'status': line[0], 'filename': line[2:-1], 'relative': [line[2:-1]]})
+          elseif line[0] !=# '#'
+            if line[0] ==# 'u'
+              let file = matchstr(line, '^.\{37\} \x\{40,\} \x\{40,\} \x\{40,\} \zs.*$')
+            else
+              let file = matchstr(line, '^.\{30\} \x\{40,\} \x\{40,\} \zs.*$')
+            endif
+            if line[0] ==# '2'
+              let i += 1
+              let file = matchstr(file, ' \zs.*')
+              let relative = [file, output[i]]
+            else
+              let relative = [file]
+            endif
+            let filename = join(reverse(copy(relative)), ' -> ')
             let sub = matchstr(line, '^[12u] .. \zs....')
-            call add(unstaged, {'type': 'File', 'status': get({'C':'M','M':'?','U':'?'}, matchstr(sub, 'S\.*\zs[CMU]'), line[3]), 'filename': file, 'relative': [file], 'submodule': sub})
+            if line[2] !=# '.'
+              call add(staged, {'type': 'File', 'status': line[2], 'filename': filename, 'relative': relative, 'submodule': sub})
+            endif
+            if line[3] !=# '.'
+              let sub = matchstr(line, '^[12u] .. \zs....')
+              call add(unstaged, {'type': 'File', 'status': get({'C':'M','M':'?','U':'?'}, matchstr(sub, 'S\.*\zs[CMU]'), line[3]), 'filename': file, 'relative': [file], 'submodule': sub})
+            endif
           endif
-        endif
-        let i += 1
-      endwhile
-      let stat.branch = substitute(get(stat.props, 'branch.head', '(unknown)'), '\C^(\%(detached\|unknown\))$', '', '')
+          let i += 1
+        endwhile
+        let stat.branch = substitute(get(stat.props, 'branch.head', '(unknown)'), '\C^(\%(detached\|unknown\))$', '', '')
+      endif
 
     else
       let output = split(tr(join(status_exec.stdout, "\1"), "\1\n", "\n\1"), "\1", 1)[0:-2]
@@ -318,6 +322,13 @@ function! s:StatusProcess(result, stat) abort
         let stat.pull_type = 'Merge'
       endif
     endif
+
+    " Call Render when processing is complete
+    call s:StatusRender(stat)
+  catch
+    echoerr 'ghostgit: ' . v:exception
+  finally
+    call setbufvar(stat.bufnr, 'ghostgit_loading', {})
   endtry
 endfunction
 
@@ -458,6 +469,17 @@ function! s:StatusRender(stat) abort
     call setbufvar(bufnr, 'ghostgit_status', stat)
     call setbufvar(bufnr, 'ghostgit_expanded', stat.expanded)
     setlocal nomodified readonly nomodifiable
+
+    " Finalize buffer setup after async load
+    doautocmd <nomodeline> BufReadPost
+    if getbufvar(bufnr, '&bufhidden') ==# ''
+      call setbufvar(bufnr, '&bufhidden', 'delete')
+    endif
+    if !exists('b:dispatch')
+      let b:dispatch = ':Git fetch --all'
+    endif
+    setlocal filetype=ghostgit
+
     return ''
   finally
     let b:ghostgit_type = 'index'
