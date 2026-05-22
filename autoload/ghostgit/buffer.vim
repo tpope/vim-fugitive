@@ -536,3 +536,265 @@ function! ghostgit#buffer#LsTree(dir, stage, file) abort
   endif
   return get(trees[key], a:file[1:-1] . ':' . a:stage, {})
 endfunction
+
+" ── BufReadCmd (was fugitive#BufReadCmd) ────────────────────────────
+
+function! ghostgit#buffer#BufReadCmd(...) abort
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  let [dir, rev] = ghostgit#core#DirRev(amatch)
+  if empty(dir)
+    return 'echo "Invalid Ghostgit URL"'
+  endif
+  call ghostgit#core#InitializeBuffer(dir)
+  if rev ==# ':'
+    return ghostgit#status#BufReadStatus(v:cmdbang)
+  endif
+  try
+    if rev =~# '^:\d$'
+      let b:ghostgit_type = 'stage'
+    else
+      let r = ghostgit#git#Execute([dir, 'cat-file', '-t', rev])
+      let b:ghostgit_type = get(r.stdout, 0, '')
+      if r.exit_status && rev =~# '^:0'
+        let r = ghostgit#git#Execute([dir, 'write-tree', '--prefix=' . rev[3:-1]])
+        let sha = get(r.stdout, 0, '')
+        let b:ghostgit_type = 'tree'
+      endif
+      if r.exit_status
+        let error = substitute(join(r.stderr, "\n"), "\n*$", '', '')
+        unlet b:ghostgit_type
+        setlocal noswapfile
+        if empty(&bufhidden)
+          setlocal bufhidden=delete
+        endif
+        if rev =~# '^:\d:'
+          let &l:readonly = !filewritable(ghostgit#buffer#Find('.git/index', dir))
+          return 'doautocmd BufNewFile'
+        else
+          setlocal readonly nomodifiable
+          return 'doautocmd BufNewFile|echo ' . string(error)
+        endif
+      elseif b:ghostgit_type !~# '^\%(tag\|commit\|tree\|blob\)$'
+        return "echoerr ".string("ghostgit: unrecognized git type '".b:ghostgit_type."'")
+      endif
+      if !exists('b:ghostgit_display_format') && b:ghostgit_type != 'blob'
+        let b:ghostgit_display_format = +getbufvar('#','ghostgit_display_format')
+      endif
+    endif
+
+    if b:ghostgit_type !=# 'blob'
+      setlocal nomodeline
+    endif
+
+    setlocal noreadonly modifiable
+    let pos = getpos('.')
+    silent keepjumps %delete_
+    setlocal endofline
+
+    let events = ['User GhostgitObject', 'User Ghostgit' . substitute(b:ghostgit_type, '^\l', '\u&', '')]
+
+    try
+      if b:ghostgit_type !=# 'blob'
+        setlocal foldmarker=<<<<<<<<,>>>>>>>>
+      endif
+      exe ghostgit#util#DoAutocmd('BufReadPre')
+      if b:ghostgit_type ==# 'tree'
+        let b:ghostgit_display_format = b:ghostgit_display_format % 2
+        if b:ghostgit_display_format
+          call s:ReplaceCmd([dir, 'ls-tree', exists('sha') ? sha : rev])
+        else
+          if !exists('sha')
+            let sha = ghostgit#git#TreeChomp(dir, 'rev-parse', '--verify', rev, '--')
+          endif
+          call s:ReplaceCmd([dir, 'show', '--no-color', sha])
+        endif
+      elseif b:ghostgit_type ==# 'tag'
+        let b:ghostgit_display_format = b:ghostgit_display_format % 2
+        if b:ghostgit_display_format
+          call s:ReplaceCmd([dir, 'cat-file', b:ghostgit_type, rev])
+        else
+          call s:ReplaceCmd([dir, 'cat-file', '-p', rev])
+        endif
+      elseif b:ghostgit_type ==# 'commit'
+        let b:ghostgit_display_format = b:ghostgit_display_format % 2
+        if b:ghostgit_display_format
+          call s:ReplaceCmd([dir, 'cat-file', b:ghostgit_type, rev])
+        else
+          call s:ReplaceCmd([dir, '-c', 'diff.noprefix=false', '-c', 'log.showRoot=false', 'show', '--no-color', '-m', '--first-parent', '--pretty=format:tree%x20%T%nparent%x20%P%nauthor%x20%an%x20<%ae>%x20%ad%ncommitter%x20%cn%x20<%ce>%x20%cd%nencoding%x20%e%n%n%B', rev])
+          keepjumps 1
+          keepjumps call search('^parent ')
+          if getline('.') ==# 'parent '
+            silent lockmarks keepjumps delete_
+          else
+            silent exe (exists(':keeppatterns') ? 'keeppatterns' : '') 'keepjumps s/\m\C\%(^parent\)\@<! /\rparent /e' . (&gdefault ? '' : 'g')
+          endif
+          keepjumps let lnum = search('^encoding \%(<unknown>\)\=$','W',line('.')+3)
+          if lnum
+            silent lockmarks keepjumps delete_
+          end
+          silent exe (exists(':keeppatterns') ? 'keeppatterns' : '') 'keepjumps 1,/^diff --git\|\%$/s/\r$//e'
+          keepjumps 1
+        endif
+      elseif b:ghostgit_type ==# 'stage'
+        call s:ReplaceCmd([dir, 'ls-files', '--stage'])
+      elseif b:ghostgit_type ==# 'blob'
+        let blob_or_filters = rev =~# ':' && ghostgit#git#GitVersion(2, 11) ? '--filters' : 'blob'
+        call s:ReplaceCmd([dir, 'cat-file', blob_or_filters, rev])
+      endif
+    finally
+      keepjumps call setpos('.',pos)
+      setlocal nomodified noswapfile
+      let modifiable = rev =~# '^:.:' && b:ghostgit_type !=# 'tree'
+      if modifiable
+        let events = ['User GhostgitStageBlob']
+      endif
+      let &l:readonly = !modifiable || !filewritable(ghostgit#buffer#Find('.git/index', dir))
+      if empty(&bufhidden)
+        setlocal bufhidden=delete
+      endif
+      let &l:modifiable = modifiable
+      if b:ghostgit_type !=# 'blob'
+        call ghostgit#util#Map('n', 'a', ":<C-U>let b:ghostgit_display_format += v:count1<Bar>exe ghostgit#buffer#BufReadCmd(@%)<CR>", '<silent>')
+        call ghostgit#util#Map('n', 'i', ":<C-U>let b:ghostgit_display_format -= v:count1<Bar>exe ghostgit#buffer#BufReadCmd(@%)<CR>", '<silent>')
+        setlocal filetype=git
+      endif
+    endtry
+
+    setlocal modifiable
+
+    return ghostgit#util#DoAutocmd('BufReadPost') .
+          \ (modifiable ? '' : '|setl nomodifiable') . '|' .
+          \ call('ghostgit#util#DoAutocmd', events)
+  catch /^ghostgit:/
+    return 'echoerr ' . string(v:exception)
+  endtry
+endfunction
+
+" ── BufWriteCmd (was fugitive#BufWriteCmd) ──────────────────────────
+
+function! ghostgit#buffer#BufWriteCmd(...) abort
+  return ghostgit#buffer#FileWriteCmd(a:0 ? a:1 : expand('<amatch>'), 1)
+endfunction
+
+" ── FileReadCmd (was fugitive#FileReadCmd) ──────────────────────────
+
+function! ghostgit#buffer#FileReadCmd(...) abort
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  let [dir, rev] = ghostgit#core#DirRev(amatch)
+  let line = a:0 > 1 ? a:2 : line("'[")
+  if empty(dir)
+    return 'noautocmd ' . line . 'read ' . ghostgit#util#FnameEscape(amatch)
+  endif
+  if rev !~# ':' && ghostgit#git#ChompDefault('', [dir, 'cat-file', '-t', rev]) =~# '^\%(commit\|tag\)$'
+    let cmd = [dir, 'log', '--pretty=format:%B', '-1', rev, '--']
+  elseif rev ==# ':'
+    let cmd = [dir, 'status', '--short']
+  else
+    let cmd = [dir, 'cat-file', '-p', rev, '--']
+  endif
+  let temp = tempname()
+  let [err, exec_error] = ghostgit#git#StdoutToFile(temp, cmd)
+  if exec_error
+    call delete(temp)
+    return 'noautocmd ' . line . 'read ' . ghostgit#util#FnameEscape(amatch)
+  else
+    return 'silent keepalt ' . line . 'read ' . ghostgit#util#FnameEscape(temp) . '|call delete(' . string(temp) . ')'
+  endif
+endfunction
+
+" ── FileWriteCmd (was fugitive#FileWriteCmd) ─────────────────────────
+
+function! ghostgit#buffer#FileWriteCmd(...) abort
+  let temp = tempname()
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  let autype = a:0 > 1 ? 'Buf' : 'File'
+  if exists('#' . autype . 'WritePre')
+    execute ghostgit#util#DoAutocmd(autype . 'WritePre ' . ghostgit#util#FnameEscape(amatch))
+  endif
+  try
+    let [dir, commit, file] = ghostgit#core#DirCommitFile(amatch)
+    if commit !~# '^[0-3]$' || !v:cmdbang && (line("'[") != 1 || line("']") != line('$'))
+      return "noautocmd '[,']write" . (v:cmdbang ? '!' : '') . ' ' . ghostgit#util#FnameEscape(amatch)
+    endif
+    silent execute "noautocmd keepalt '[,']write ".temp
+    let hash = ghostgit#git#TreeChomp(dir, '--literal-pathspecs', 'hash-object', '-w', '--', ghostgit#core#GitPath(temp))
+    let old_mode = matchstr(ghostgit#git#ChompDefault('', [dir, 'ls-files', '--stage', '.' . file]), '^\d\+')
+    if empty(old_mode)
+      let old_mode = executable(ghostgit#core#WorkTree(dir) . file) ? '100755' : '100644'
+    endif
+    let error = s:UpdateIndex(dir, [old_mode, hash, commit, file[1:-1]])
+    if empty(error)
+      setlocal nomodified
+      if exists('#' . autype . 'WritePost')
+        execute ghostgit#util#DoAutocmd(autype . 'WritePost ' . ghostgit#util#FnameEscape(amatch))
+      endif
+      exe ghostgit#status#DidChange(dir)
+      return ''
+    else
+      return 'echoerr '.string('ghostgit: '.error)
+    endif
+  catch /^ghostgit:/
+    return 'echoerr ' . string(v:exception)
+  finally
+    call delete(temp)
+  endtry
+endfunction
+
+" ── SourceCmd (was fugitive#SourceCmd) ──────────────────────────────
+
+function! ghostgit#buffer#SourceCmd(...) abort
+  let amatch = a:0 ? a:1 : expand('<amatch>')
+  let temp = s:BlobTemp(amatch)
+  if empty(temp)
+    return 'noautocmd source ' . ghostgit#util#FnameEscape(amatch)
+  endif
+  if !exists('g:virtual_scriptnames')
+    let g:virtual_scriptnames = {}
+  endif
+  let g:virtual_scriptnames[temp] = amatch
+  return 'source ' . ghostgit#util#FnameEscape(temp)
+endfunction
+
+" ── Replace command content ─────────────────────────────────────────
+
+function! s:ReplaceCmd(cmd) abort
+  let temp = tempname()
+  let [err, exec_error] = ghostgit#git#StdoutToFile(temp, a:cmd)
+  if exec_error
+    throw 'ghostgit: ' . (len(err) ? substitute(err, "\n$", '', '') : 'unknown error running ' . string(a:cmd))
+  endif
+  setlocal noswapfile
+  silent exe 'lockmarks keepalt noautocmd 0read ++edit' ghostgit#util#FnameEscape(temp)
+  if &foldenable && foldlevel('$') > 0
+    set nofoldenable
+    silent keepjumps $delete _
+    set foldenable
+  else
+    silent keepjumps $delete _
+  endif
+  call delete(temp)
+endfunction
+
+" ── Update index ────────────────────────────────────────────────────
+
+function! s:UpdateIndex(dir, info) abort
+  let [mode, hash, stage, path] = a:info
+  let r = ghostgit#git#Execute([a:dir, 'update-index', '--add', '--cacheinfo', mode.','.hash.','.path])
+  return r.exit_status ? join(r.stderr, "\n") : ''
+endfunction
+
+" ── Blob temp (was s:BlobTemp) ───────────────────────────────────────
+
+function! s:BlobTemp(url) abort
+  let [dir, rev] = ghostgit#core#DirRev(a:url)
+  if empty(dir)
+    return ''
+  endif
+  let temp = tempname()
+  let [err, exec_error] = ghostgit#git#StdoutToFile(temp, [dir, 'cat-file', 'blob', rev])
+  if exec_error
+    call delete(temp)
+    return ''
+  endif
+  return temp
+endfunction

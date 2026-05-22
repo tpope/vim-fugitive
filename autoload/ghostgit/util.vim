@@ -336,3 +336,60 @@ function! ghostgit#util#Autowrite() abort
   endif
   return ''
 endfunction
+
+" ── Cfile handling (was fugitive#MapCfile) ──────────────────────────
+
+function! ghostgit#util#MapCfile(...) abort
+  let candidates = s:cfile()
+  for candidate in candidates
+    let file = ghostgit#buffer#Find(candidate)
+    if !empty(file)
+      return (a:0 ? a:1 : 'edit') . ' ' . ghostgit#util#FnameEscape(file)
+    endif
+  endfor
+  return ''
+endfunction
+
+function! ghostgit#util#PorcelainMapCfile(...) abort
+  let candidates = s:CfilePorcelain()
+  if empty(candidates)
+    return ghostgit#util#MapCfile(a:0 ? a:1 : 'edit')
+  endif
+  for candidate in candidates
+    let file = ghostgit#buffer#Find(candidate)
+    if !empty(file)
+      return (a:0 ? a:1 : 'edit') . ' ' . ghostgit#util#FnameEscape(file)
+    endif
+  endfor
+  return ''
+endfunction
+
+function! s:cfile() abort
+  if empty(ghostgit#core#GitDir())
+    return []
+  endif
+  let line = getline('.')
+  let candidates = []
+
+  " commit hash
+  let hash = matchstr(line, '\<[0-9a-f]\{7,40\}\>')
+  if !empty(hash)
+    call add(candidates, hash)
+  endif
+
+  " file path in ls-tree or similar
+  let path = matchstr(line, '\t\zs.*')
+  if !empty(path)
+    call add(candidates, path)
+  endif
+
+  return candidates
+endfunction
+
+function! s:CfilePorcelain() abort
+  let line = getline('.')
+  if line =~# '^[A-Z?] '
+    return [line[2:-1]]
+  endif
+  return []
+endfunction

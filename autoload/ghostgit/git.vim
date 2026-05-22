@@ -8,24 +8,26 @@ function! ghostgit#git#GitCmd() abort
     return ['git']
   elseif type(g:ghostgit_git_executable) == type([])
     return g:ghostgit_git_executable
-  else
-    let dquote = '"\%([^"]\|""\|\\"\)*"\|'
-    let string = g:ghostgit_git_executable
-    let list = []
-    if string =~# '^\w\+='
-      call add(list, '/usr/bin/env')
-    endif
-    while string =~# '\S'
-      let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^' . "\t" . ' |]\)\+')
-      let string = strpart(string, len(arg))
-      let arg = substitute(arg, '^\s\+', '', '')
-      let arg = substitute(arg,
-            \ '\(' . dquote . '''\%(''''\|[^'']\)*''\|\\[' . s:fnameescape . ']\|^\\[>+-]\|' . s:commit_expand . '\)\|' . s:expand,
-            \ '\=submatch(0)[0] ==# "\\" ? submatch(0)[1] : submatch(0)[1:-2]', 'g')
-      call add(list, arg)
-    endwhile
-    return list
+  elseif !empty(s:git_cmd_cache) && s:git_cmd_cache[0] is# g:ghostgit_git_executable
+    return s:git_cmd_cache[1]
   endif
+  let dquote = '"\%([^"]\|""\|\\"\)*"\|'
+  let string = g:ghostgit_git_executable
+  let list = []
+  if string =~# '^\w\+='
+    call add(list, '/usr/bin/env')
+  endif
+  while string =~# '\S'
+    let arg = matchstr(string, '^\s*\%(' . dquote . '''[^'']*''\|\\.\|[^' . "\t" . ' |]\)\+')
+    let string = strpart(string, len(arg))
+    let arg = substitute(arg, '^\s\+', '', '')
+    let arg = substitute(arg,
+          \ '\(' . dquote . '''\%(''''\|[^'']\)*''\|\\[' . s:fnameescape . ']\|^\\[>+-]\|' . s:commit_expand . '\)\|' . s:expand,
+          \ '\=submatch(0)[0] ==# "\\" ? submatch(0)[1] : submatch(0)[1:-2]', 'g')
+    call add(list, arg)
+  endwhile
+  let s:git_cmd_cache = [g:ghostgit_git_executable, list]
+  return list
 endfunction
 
 function! ghostgit#git#GitShellCmd() abort
@@ -45,6 +47,8 @@ let s:var = '\%(<\%(cword\|cWORD\|cexpr\|cfile\|sfile\|slnum\|afile\|abuf\|amatc
 let s:flag = '\%(:[p8~.htre]\|:g\=s\(.\).\{-\}\1.\{-\}\1\)'
 let s:expand = '\%(\(' . s:var . '\)\(' . s:flag . '*\)\(:S\)\=\)'
 let s:commit_expand = '!\\\@!#\=\d*\|!%'
+
+let s:git_cmd_cache = []
 
 " ── User command list ───────────────────────────────────────────────
 
@@ -112,7 +116,7 @@ function! ghostgit#git#GitVersion(...) abort
       return 1
     endif
   endfor
-  return a:000[i] ==# get(components, i)
+  return 1
 endfunction
 
 " ── Head (branch name) ──────────────────────────────────────────────
@@ -217,7 +221,7 @@ endfunction
 " ── Internal helpers ────────────────────────────────────────────────
 
 function! s:build_shell(dir, env, git, args) abort
-  let cmd = copy(a:args)
+  let cmd = copy(a:args)  " Copy to avoid mutating caller's list (insert/extend below)
   let tree = ghostgit#core#WorkTree(a:dir)
   let pre = s:build_env_prefix(a:env)
   if empty(tree) || index(cmd, '--') == len(cmd) - 1
@@ -364,12 +368,12 @@ function! ghostgit#git#StdoutToFile(out, cmd, ...) abort
       let cmd = a:cmd
       let env = a:0 ? a:1 : {}
       let [cmd, jopts] = ghostgit#job#JobOptsInternal(cmd, env)
-      let jopts.stdout_buffered = v:true
-      let jopts.stderr_buffered = v:true
+      let jopts.stdout = a:out
+      let jopts.stderr = err
       let job = jobstart(cmd, jopts)
       call chanclose(job, 'stdin')
       call jobwait([job])
-      return ['', 0]
+      return [join(readfile(err, 'b'), "\n"), 0]
     elseif exists('*ch_close_in')
       let cmd = a:cmd
       let env = a:0 ? a:1 : {}
@@ -434,11 +438,7 @@ function! ghostgit#git#PrepareDirEnvGitFlagsArgs(...) abort
     elseif type(arg) == type('') && arg =~# '^[A-Z_]\+=.'
       let key = matchstr(arg, '^[A-Z_]\+=')[:-2]
       let val = strpart(arg, len(key) + 1)
-      if has_key(s:prepare_env, key)
-        let env[key] = val
-      else
-        let env[key] = val
-      endif
+      let env[key] = val
       let i += 1
       continue
     elseif type(arg) == type({}) && has_key(arg, 'env')
@@ -457,7 +457,7 @@ function! ghostgit#git#PrepareDirEnvGitFlagsArgs(...) abort
   let dir = ghostgit#core#GitDir(len(git_dir) ? git_dir : (len(cmd) && type(cmd[0]) == type('') && cmd[0] =~# '^\%(\.\.\=\|/\|\a:\)' ? '' : -1))
   let autoenv = {}
   if len(dir) && len($GIT_DIR)
-    let autoenv.GIT_DIR = FugitiveGitPath(dir)
+    let autoenv.GIT_DIR = ghostgit#core#GitPath(dir)
   endif
   if len($GPG_TTY) && !has_key(env, 'GPG_TTY')
     let autoenv.GPG_TTY = ''
@@ -466,30 +466,30 @@ function! ghostgit#git#PrepareDirEnvGitFlagsArgs(...) abort
   return [dir, env, extend(autoenv, env), ghostgit#git#GitCmd(), cmd[0 : -arg_count-1], arg_count ? cmd[-arg_count : -1] : []]
 endfunction
 
+function! s:resolve_integer_arg(cmd, i, literal, dir) abort
+  if a:literal
+    let a:cmd[a:i] = ghostgit#buffer#Path(bufname(a:cmd[a:i]), './', a:dir)
+  else
+    let a:cmd[a:i] = ghostgit#buffer#Path(bufname(a:cmd[a:i]), ':(top,literal)', a:dir)
+  endif
+endfunction
+
 function! s:prepare_path_args(cmd, dir, literal, explicit) abort
   if !a:explicit
     call insert(a:cmd, '--literal-pathspecs')
   endif
   let split = index(a:cmd, '--')
   for i in range(split < 0 ? len(a:cmd) : split)
-      if type(a:cmd[i]) == type(0)
-        if a:literal
-          let a:cmd[i] = ghostgit#buffer#Path(bufname(a:cmd[i]), './', a:dir)
-        else
-          let a:cmd[i] = ghostgit#buffer#Path(bufname(a:cmd[i]), ':(top,literal)', a:dir)
-        endif
-      endif
+    if type(a:cmd[i]) == type(0)
+      call s:resolve_integer_arg(a:cmd, i, a:literal, a:dir)
+    endif
   endfor
   if split < 0
     return a:cmd
   endif
   for i in range(split + 1, len(a:cmd) - 1)
     if type(a:cmd[i]) == type(0)
-      if a:literal
-        let a:cmd[i] = ghostgit#buffer#Path(bufname(a:cmd[i]), './', a:dir)
-      else
-        let a:cmd[i] = ghostgit#buffer#Path(bufname(a:cmd[i]), ':(top,literal)', a:dir)
-      endif
+      call s:resolve_integer_arg(a:cmd, i, a:literal, a:dir)
     elseif !a:explicit
       let a:cmd[i] = ghostgit#buffer#Path(a:cmd[i], './', a:dir)
     endif

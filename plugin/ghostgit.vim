@@ -194,6 +194,11 @@ command! -bar -bang -nargs=? -complete=customlist,ghostgit#command#CdComplete Gl
 exe 'command! -bang -nargs=? -range=-1' s:addr_wins '-complete=customlist,ghostgit#command#GrepComplete Ggrep  exe ghostgit#command#GrepCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
 exe 'command! -bang -nargs=? -range=-1' s:addr_wins '-complete=customlist,ghostgit#command#GrepComplete Glgrep exe ghostgit#command#GrepCommand(0, <count> > 0 ? <count> : 0, +"<range>", <bang>0, "<mods>", <q-args>)'
 
+exe 'command! -bang -nargs=? -range=-1' s:addr_wins '-complete=customlist,ghostgit#command#LogComplete Gclog  exe ghostgit#command#LogCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>, "c")'
+exe 'command! -bang -nargs=? -range=-1' s:addr_wins '-complete=customlist,ghostgit#command#LogComplete Gllog  exe ghostgit#command#LogCommand(0, <count> > 0 ? <count> : 0, +"<range>", <bang>0, "<mods>", <q-args>, "l")'
+
+exe 'command! -bar -bang -range=-1 -nargs=* -complete=customlist,ghostgit#blame#Complete Gblame exe ghostgit#Blame(<f-args>)'
+
 exe 'command! -bar -bang -nargs=*                          -complete=customlist,ghostgit#command#EditComplete   Ge       exe ghostgit#command#Open("edit<bang>", 0, "<mods>", <q-args>)'
 exe 'command! -bar -bang -nargs=*                          -complete=customlist,ghostgit#command#EditComplete   Gedit    exe ghostgit#command#Open("edit<bang>", 0, "<mods>", <q-args>)'
 exe 'command! -bar -bang -nargs=*                          -complete=customlist,ghostgit#command#EditComplete   Gpedit   exe ghostgit#command#Open("pedit", <bang>0, "<mods>", <q-args>)'
@@ -239,19 +244,19 @@ augroup ghostgit
   autocmd BufFilePost            *  unlet! b:git_dir
 
   autocmd FileType git
-        \ call ghostgit#util#Map('n', '<cfile>', ':<C-U>exe <SID>cfile()<CR>', '<silent>')
+        \ call ghostgit#util#Map('n', '<cfile>', ':<C-U>exe ghostgit#util#MapCfile()<CR>', '<silent>')
   autocmd FileType ghostgit
-        \ call ghostgit#util#Map('n', '<cfile>', ':<C-U>exe <SID>porcelain_cfile()<CR>', '<silent>')
+        \ call ghostgit#util#Map('n', '<cfile>', ':<C-U>exe ghostgit#util#PorcelainMapCfile()<CR>', '<silent>')
 
-  autocmd BufReadCmd   ghostgit://*          nested exe ghostgit#buffer#BufReadCmd() |
+  autocmd BufReadCmd   ghostgit://*          nested exe ghostgit#BufReadCmd() |
         \ if &path =~# '^\.\%(,\|$\)' |
         \   let &l:path = substitute(&path, '^\.,\=', '', '') |
         \ endif
-  autocmd BufWriteCmd  ghostgit://*          nested exe ghostgit#buffer#BufWriteCmd()
-  autocmd FileReadCmd  ghostgit://*          nested exe ghostgit#buffer#FileReadCmd()
-  autocmd FileWriteCmd ghostgit://*          nested exe ghostgit#buffer#FileWriteCmd()
+  autocmd BufWriteCmd  ghostgit://*          nested exe ghostgit#BufWriteCmd()
+  autocmd FileReadCmd  ghostgit://*          nested exe ghostgit#FileReadCmd()
+  autocmd FileWriteCmd ghostgit://*          nested exe ghostgit#FileWriteCmd()
   if exists('##SourceCmd')
-    autocmd SourceCmd     ghostgit://*       nested exe ghostgit#buffer#SourceCmd()
+    autocmd SourceCmd     ghostgit://*       nested exe ghostgit#SourceCmd()
   endif
 
   autocmd User Flags call Hoist('buffer', function('GhostgitStatusline'))

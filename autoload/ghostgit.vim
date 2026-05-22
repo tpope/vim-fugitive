@@ -139,3 +139,25 @@ endfunction
 function! ghostgit#Cd(path, ...) abort
     return call('ghostgit#command#Cd', [a:path] + a:000)
 endfunction
+
+" ── Buffer Command API ──────────────────────────────────────────────
+
+function! ghostgit#BufReadCmd(...) abort
+    return call('ghostgit#buffer#BufReadCmd', a:000)
+endfunction
+
+function! ghostgit#BufWriteCmd(...) abort
+    return call('ghostgit#buffer#BufWriteCmd', a:000)
+endfunction
+
+function! ghostgit#FileReadCmd(...) abort
+    return call('ghostgit#buffer#FileReadCmd', a:000)
+endfunction
+
+function! ghostgit#FileWriteCmd(...) abort
+    return call('ghostgit#buffer#FileWriteCmd', a:000)
+endfunction
+
+function! ghostgit#SourceCmd(...) abort
+    return call('ghostgit#buffer#SourceCmd', a:000)
+endfunction
