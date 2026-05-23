@@ -11,7 +11,7 @@ let s:section_pattern = '^[A-Z][a-z][^:]*$'
 let s:section_commit_pattern = s:section_pattern . '\|^commit '
 let s:ref_header = '\%(Merge\|Rebase\|Upstream\|Pull\|Push\)'
 
-" ── Change event (was fugitive#DidChange) ──────────────────────────
+" ── Change event (was fugitive#DidChange) ──────────────────────────  
 
 function! ghostgit#status#DidChange(...) abort
   let bufnr = a:0 ? a:1 : -1
