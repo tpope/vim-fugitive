@@ -7,8 +7,12 @@ describe('ghostgit.status', function()
       "# branch.head main",
       "# branch.upstream origin/main",
       "# branch.ab +0 -0",
-      "1 .M N... 100644 100644 100644 0123456789abcdef0123456789abcdef01234567 0123456789abcdef0123456789abcdef01234567 modified.txt",
-      "1 M. N... 100644 100644 100644 0123456789abcdef0123456789abcdef01234567 0123456789abcdef0123456789abcdef01234567 staged.txt",
+      "1 .M N... 100644 100644 100644 "
+        .. "0123456789abcdef0123456789abcdef01234567 "
+        .. "0123456789abcdef0123456789abcdef01234567 modified.txt",
+      "1 M. N... 100644 100644 100644 "
+        .. "0123456789abcdef0123456789abcdef01234567 "
+        .. "0123456789abcdef0123456789abcdef01234567 staged.txt",
       "? untracked.txt",
     }
 

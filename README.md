@@ -6,7 +6,7 @@ the same `:G*` commands and `Fugitive*` API compatibility, with refactored
 internals and Neovim-friendly improvements.
 
 The crown jewel of ghostgit is `:Git` (or just `:G`), which calls any
-arbitrary Git command. If you know how to use Git at the command line, you
+arbitrary Git command. If you know how to use Git at the command-line, you
 know how to use `:Git`. It's vaguely akin to `:!git` but with numerous
 improvements:
 
@@ -55,7 +55,7 @@ Additional commands are provided for higher level operations:
 - `:GDelete` does a `git rm` on the current file and simultaneously deletes
   the buffer. `:GRemove` does the same but leaves the (now empty) buffer
   open.
-- `:GBrowse` to open the current file on the web front-end of your favorite
+- `:GBrowse` to open the current file on the web frontend of your favorite
   hosting provider, with optional line range (try it in visual mode). Built-in
   support is provided for GitHub, GitLab, and Bitbucket. Custom providers can
   be registered via `ghostgit#browse#RegisterProvider()`.
@@ -67,7 +67,7 @@ For more information, see `:help ghostgit`.
 
 ## Screencasts
 
-- [A complement to command line git](http://vimcasts.org/e/31)
+- [A complement to command-line git](http://vimcasts.org/e/31)
 - [Working with the git index](http://vimcasts.org/e/32)
 - [Resolving merge conflicts with vimdiff](http://vimcasts.org/e/33)
 - [Browsing the git object database](http://vimcasts.org/e/34)
@@ -146,9 +146,7 @@ using fewer symlinks.
 Tests are written using [plenary.nvim](https://github.com/nvim-lua/plenary.nvim).
 To run tests locally, ensure you have `plenary.nvim` in your runtimepath and run:
 
-```bash
-make test
-```
+    make test
 
 For CI, we use GitHub Actions to run tests and linting on every push.
 
