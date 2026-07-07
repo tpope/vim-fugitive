@@ -628,13 +628,6 @@ elseif exists(':Grename') != 2 && !exists('g:fugitive_legacy_commands')
 endif
 
 exe 'command! -bar -bang -range=-1 -nargs=* -complete=customlist,fugitive#CompleteObject GBrowse exe fugitive#BrowseCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
-if exists(':Gbrowse') != 2 && get(g:, 'fugitive_legacy_commands', 0)
-  exe 'command! -bar -bang -range=-1 -nargs=* -complete=customlist,fugitive#CompleteObject Gbrowse exe fugitive#BrowseCommand(<line1>, <count>, +"<range>", <bang>0, "<mods>", <q-args>)'
-        \ '|if <bang>1|redraw!|endif|echohl WarningMSG|echomsg ":Gbrowse is deprecated in favor of :GBrowse"|echohl NONE'
-elseif exists(':Gbrowse') != 2 && !exists('g:fugitive_legacy_commands')
-  exe 'command! -bar -bang -range=-1 -nargs=* -complete=customlist,fugitive#CompleteObject Gbrowse'
-        \ 'echoerr ":Gbrowse has been removed in favor of :GBrowse"'
-endif
 
 if v:version < 704
   finish

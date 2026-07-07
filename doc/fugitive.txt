@@ -711,7 +711,6 @@ version.
 *:Gdelete*      Superseded by |:GDelete|.
 *:Gmove*        Superseded by |:GMove|.
 *:Grename*      Superseded by |:GRename|.
-*:Gbrowse*      Superseded by |:GBrowse|.
 *:Gdiff*        Superseded by |:Gdiffsplit|
 *:Gsdiff*       Superseded by |:Ghdiffsplit|
 *:Gvdiff*       Superseded by |:Gvdiffsplit| or |:vert| |:Gdiffsplit|.
