@@ -3717,9 +3717,47 @@ function! fugitive#Resume() abort
     if enqueued[2] isnot# ''
       try
         call call('s:RunWait', enqueued)
+        call s:RunPendingAmend(enqueued[0])
       endtry
     endif
   endwhile
+endfunction
+
+function! s:RunCaptureAmendDate(state, bufnr) abort
+  let args = get(a:state, 'args', [])
+  if get(args, 0, '') !=# 'commit' ||
+        \ index(args, '--amend') < 0 || index(args, '--no-edit') >= 0
+    return ''
+  endif
+  for line in getbufline(a:bufnr, 1, '$')
+    let date = matchstr(line, '^#\s*Date:\s*\zs.\+')
+    if len(date)
+      let a:state.amend_date = substitute(date, '\s\+$', '', '')
+      return ''
+    endif
+  endfor
+  return ''
+endfunction
+
+function! s:RunPendingAmend(state) abort
+  if !has_key(a:state, 'amend_date')
+    return ''
+  endif
+  let date = a:state.amend_date
+  if empty(date)
+    return ''
+  endif
+  let repo = a:state.git_dir
+  let head = s:ChompDefault('', [repo, 'log', '-1', '--pretty=format:%ad', '--'])
+  if head ==# date
+    return ''
+  endif
+  let err = s:ChompStderr([repo, 'commit', '--amend', '--no-edit', '--date', date])
+  if len(err)
+    call s:throw('fugitive: could not amend commit date: ' . err)
+  endif
+  call fugitive#DidChange(a:state)
+  return ''
 endfunction
 
 function! s:RunBufDelete(bufnr) abort
@@ -3735,6 +3773,7 @@ function! s:RunBufDelete(bufnr) abort
     endtry
   endif
   if has_key(s:edit_jobs, a:bufnr) |
+    call s:RunCaptureAmendDate(s:edit_jobs[a:bufnr][0], a:bufnr)
     call add(s:resume_queue, remove(s:edit_jobs, a:bufnr))
     call feedkeys("\<C-\>\<C-N>:redraw!|call delete(" . string(s:resume_queue[-1][0].file . '.edit') .
           \ ")|call fugitive#Resume()|checktime\r", 'n')
