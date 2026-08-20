@@ -6185,6 +6185,32 @@ function! s:OpenParse(string, wants_cmd, wants_multiple) abort
   return [a:wants_multiple ? urls : urls[0], pre]
 endfunction
 
+function! s:DiffHunks(cmd, reverse) abort
+  let [res, exec_error] = s:LinesError(a:cmd)
+  if exec_error
+    return []
+  endif
+  call filter(res, 'v:val =~# "^@@ "')
+  call map(res, 'substitute(v:val, ''[-+]\d\+\zs '', ",1 ", "g")')
+  call map(res, 'matchlist(v:val, ''^@@ -\(\d\+\),\(\d\+\) +\(\d\+\),\(\d\+\) @@'')[1:4]')
+  if a:reverse
+    call map(res, 'v:val[2:3] + v:val[0:1]')
+  endif
+  return res
+endfunction
+
+function! s:TranslateLine(cmd, line, reverse) abort
+  let line = a:line
+  let res = s:DiffHunks(a:cmd, a:reverse)
+  call filter(res, 'v:val[0] < line')
+  let hunk = get(res, -1, [0,0,0,0])
+  if hunk[0] + hunk[1] > line
+    return hunk[2] + max([1 - hunk[3], 0])
+  else
+    return hunk[2] + max([hunk[3], 1]) + line - hunk[0] - max([hunk[1], 1])
+  endif
+endfunction
+
 function! s:OpenExpand(dir, file, wants_cmd) abort
   if a:file ==# '-'
     let result = fugitive#Result()
@@ -6218,22 +6244,7 @@ function! s:OpenExpand(dir, file, wants_cmd) abort
       else
         let args = [from, to]
       endif
-      let [res, exec_error] = s:LinesError([a:dir, diffcmd, '-U0'] + args)
-      if !exec_error
-        call filter(res, 'v:val =~# "^@@ "')
-        call map(res, 'substitute(v:val, ''[-+]\d\+\zs '', ",1 ", "g")')
-        call map(res, 'matchlist(v:val, ''^@@ -\(\d\+\),\(\d\+\) +\(\d\+\),\(\d\+\) @@'')[1:4]')
-        if exists('reverse')
-          call map(res, 'v:val[2:3] + v:val[0:1]')
-        endif
-        call filter(res, 'v:val[0] < '.line('.'))
-        let hunk = get(res, -1, [0,0,0,0])
-        if hunk[0] + hunk[1] > line('.')
-          let line = hunk[2] + max([1 - hunk[3], 0])
-        else
-          let line = hunk[2] + max([hunk[3], 1]) + line('.') - hunk[0] - max([hunk[1], 1])
-        endif
-      endif
+      let line = s:TranslateLine([a:dir, diffcmd, '-U0'] + args, line, exists('reverse'))
     endif
     return [url, line]
   endif
@@ -8084,7 +8095,24 @@ function! s:CfilePorcelain(...) abort
   let info = s:StageInfo()
   let line = getline('.')
   if len(info.sigil) && len(info.section) && len(info.paths)
-    if info.section ==# 'Unstaged' && info.sigil !=# '-'
+    if info.section ==# 'Staged' && filereadable(info.paths[0])
+      let diff_options = ['--no-ext-diff', '--inter-hunk-context=0', '-U0']
+      let worktree_diff = [s:Dir(), 'diff-files'] + diff_options + ['--', info.paths[0]]
+      if info.sigil ==# '-'
+        let staged_diff = [s:Dir(), 'diff', '--cached'] + diff_options + ['--'] + info.paths
+        let hunks = s:DiffHunks(staged_diff, 0)
+        let hunk = get(filter(copy(hunks), 'v:val[0] <= info.offset && v:val[0] + v:val[1] > info.offset'), 0, [])
+        if get(hunk, 3, 0)
+          let offset = hunk[2] + min([info.offset - hunk[0], hunk[3] - 1])
+          let offset = s:TranslateLine(worktree_diff, offset, 0)
+        else
+          let offset = s:TranslateLine([s:Dir(), 'diff'] + diff_options + ['HEAD', '--'] + info.paths, info.offset, 0)
+        endif
+      else
+        let offset = s:TranslateLine(worktree_diff, info.offset, 0)
+      endif
+      return [lead . info.relative[0], offset, 'normal!zv']
+    elseif info.section ==# 'Unstaged' && info.sigil !=# '-'
       return [lead . info.relative[0], info.offset, 'normal!zv']
     elseif info.section ==# 'Staged' && info.sigil ==# '-'
       return ['@:' . info.relative[0], info.offset, 'normal!zv']
