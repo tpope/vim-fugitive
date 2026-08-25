@@ -8095,10 +8095,10 @@ function! s:CfilePorcelain(...) abort
   let info = s:StageInfo()
   let line = getline('.')
   if len(info.sigil) && len(info.section) && len(info.paths)
-    if info.section ==# 'Staged' && filereadable(info.paths[0])
+    if info.section ==# 'Staged' || info.section ==# 'Unstaged'
       let diff_options = ['--no-ext-diff', '--inter-hunk-context=0', '-U0']
       let worktree_diff = [s:Dir(), 'diff-files'] + diff_options + ['--', info.paths[0]]
-      if info.sigil ==# '-'
+      if info.section ==# 'Staged' && info.sigil ==# '-'
         let staged_diff = [s:Dir(), 'diff', '--cached'] + diff_options + ['--'] + info.paths
         let hunks = s:DiffHunks(staged_diff, 0)
         let hunk = get(filter(copy(hunks), 'v:val[0] <= info.offset && v:val[0] + v:val[1] > info.offset'), 0, [])
@@ -8108,14 +8108,14 @@ function! s:CfilePorcelain(...) abort
         else
           let offset = s:TranslateLine([s:Dir(), 'diff'] + diff_options + ['HEAD', '--'] + info.paths, info.offset, 0)
         endif
-      else
+      elseif info.section ==# 'Staged' || info.sigil ==# '-'
         let offset = s:TranslateLine(worktree_diff, info.offset, 0)
+      else
+        let offset = info.offset
       endif
       return [lead . info.relative[0], offset, 'normal!zv']
-    elseif info.section ==# 'Unstaged' && info.sigil !=# '-'
+    elseif info.section ==# 'Untracked'
       return [lead . info.relative[0], info.offset, 'normal!zv']
-    elseif info.section ==# 'Staged' && info.sigil ==# '-'
-      return ['@:' . info.relative[0], info.offset, 'normal!zv']
     else
       return [':0:' . info.relative[0], info.offset, 'normal!zv']
     endif
