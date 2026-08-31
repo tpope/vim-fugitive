@@ -8388,11 +8388,17 @@ function! fugitive#Foldtext() abort
   let line_foldstart = getline(v:foldstart)
   if line_foldstart =~# '^diff '
     let [add, remove] = [-1, -1]
+    let [rename_from, rename_to] = ['', '']
     let filename = ''
     for lnum in range(v:foldstart, v:foldend)
       let line = getline(lnum)
       if filename ==# '' && line =~# '^[+-]\{3\} "\=[abciow12]/'
         let filename = fugitive#Unquote(line[4:-1])[2:-1]
+      endif
+      if line =~# '^rename from '
+        let rename_from = fugitive#Unquote(line[12:-1])
+      elseif line =~# '^rename to '
+        let rename_to = fugitive#Unquote(line[10:-1])
       endif
       if line =~# '^+'
         let add += 1
@@ -8402,8 +8408,18 @@ function! fugitive#Foldtext() abort
         let binary = 1
       endif
     endfor
-    if filename ==# ''
-      let filename = fugitive#Unquote(matchstr(line_foldstart, '^diff .\{-\} \zs"\=[abciow12]/\zs.*\ze "\=[abciow12]/'))[2:-1]
+    if add < 0
+      let add = 0
+    endif
+    if remove < 0
+      let remove = 0
+    endif
+    if rename_from !=# '' && rename_to !=# ''
+      let filename = rename_from . ' -> ' . rename_to
+    elseif filename ==# ''
+      let [old_filename, new_filename] = s:ParseDiffHeader(line_foldstart)
+      let filename = new_filename ==# '/dev/null' ? old_filename : new_filename
+      let filename = substitute(filename, '^[abciow12]/', '', '')
     endif
     if filename ==# ''
       let filename = line_foldstart[5:-1]
