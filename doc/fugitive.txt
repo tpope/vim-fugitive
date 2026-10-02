@@ -23,6 +23,8 @@ that are part of Git repositories).
                         akin to git-status.  If a summary window is already
                         open for the current repository, it is focused
                         instead.  Press g?  or see |fugitive-maps| for usage.
+                        If |fugitive-summary-trees| are set, the set of listed
+                        files will be filtered.
 
                                                 *:Git*
 :Git {args}             Run an arbitrary git command and display any output.
@@ -282,6 +284,7 @@ These maps are available in both the |fugitive-summary| buffer and Fugitive
 object buffers, although not all maps make sense in all buffers.  Mappings
 that operate on the file or hunk under the cursor are generally available in
 visual mode to operate on multiple files or partial hunks.
+
 
                                                 *fugitive-staging-maps*
 Staging/unstaging maps ~
@@ -699,6 +702,23 @@ FugitiveChanged         After any event which can potentially change the
 API                                             *fugitive-api*
 
 Officially supported functions are documented inline in plugin/fugitive.vim.
+
+
+SUMMARY-TREES                                   *fugitive-summary-trees*
+
+Summary trees filter content of file lists in the |fugitive-summary buffer.
+The aim is to help staging and committing files that belong to different
+domains.
+Filters are applied automatically, based on the path of the file shown
+before G: was invoked: If the path is within any of the effective summary
+trees, the respective filter is applied. As a result, files not belonging
+to this domain are hidden and the UI mentions shows the active filter as
+'Tree shown:'.
+
+The domains are fetched from .git/config. The key statussummarytrees stores
+one colon separated string where each element is a directory. Elements must
+contatin neither wildcards nor git path magic.
+
 
 DEPRECATIONS                                    *fugitive-deprecated*
 

@@ -5,6 +5,23 @@
 " official API, see the commented functions in plugin/fugitive.vim.
 
 " Section: Utility
+function! s:filterable_tree(with_path) abort
+  let base_path = substitute(s:Dir(), '.git', '', '')
+  let to_check = v:null
+  if (empty(glob(s:CurrentFile)))
+      let to_check = s:UserCommandCwd('')
+  else
+      let to_check = s:CurrentFile
+  endif
+  let exclusive_trees = split(FugitiveConfigGet('core.statussummarytrees'), ':')
+  for tree in exclusive_trees
+    if  (to_check =~ (base_path . tree) )
+
+        return a:with_path ? (base_path . tree) : tree
+      endif
+  endfor
+  return v:null
+endfunction
 
 function! s:function(name) abort
   return function(substitute(a:name,'^s:',matchstr(expand('<sfile>'), '.*\zs<SNR>\d\+_'),''))
@@ -2971,6 +2988,7 @@ function! s:StatusRender(stat) abort
     let stat.expanded = {'Staged': {}, 'Unstaged': {}}
     let to = {'lines': []}
     call s:AddHeader(to, 'Head', head)
+    call s:AddHeader(to, 'Tree shown', s:filterable_tree(1))
     call s:AddHeader(to, stat.pull_type, pull_short)
     if push_ref !=# pull_ref
       call s:AddHeader(to, 'Push', push_short)
@@ -3053,7 +3071,13 @@ function! s:StatusRetrieve(bufnr, ...) abort
     let stat.running = stat.rev_parse
   else
     let stat.rev_parse = fugitive#Execute(rev_parse_cmd)
-    let status_cmd = cmd + ['status', '-bz', fugitive#GitVersion(2, 11) ? '--porcelain=v2' : '--porcelain']
+    let status_cmd = cmd + ['status']
+
+    let filter = s:filterable_tree(0)
+    if (filter isnot v:null)
+        call extend(status_cmd, [filter])
+    endif
+    call extend(status_cmd, [ '-bz', fugitive#GitVersion(2, 11) ? '--porcelain=v2' : '--porcelain'])
     let stat.status = call('fugitive#Execute', [status_cmd, function('s:StatusProcess'), stat] + a:000)
     let stat.running = stat.status
   endif
@@ -3803,6 +3827,7 @@ function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
   endif
   let config = copy(fugitive#Config(dir))
   let curwin = a:arg =~# '^++curwin\>' || !a:line2
+  let s:CurrentFile = fnamemodify(bufname(bufnr()), ':p:h')
   let [args, after] = s:SplitExpandChain(substitute(a:arg, '^++curwin\>\s*', '', ''), s:Tree(dir))
   let flags = []
   let pager = -1
