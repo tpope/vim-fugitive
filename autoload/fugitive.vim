@@ -8,7 +8,7 @@
 function! s:filterable_tree(with_path) abort
   let base_path = substitute(s:Dir(), '.git', '', '')
   let to_check = v:null
-  if (empty(glob(s:CurrentFile)))
+  if (!exists('s:CurrentFile') || empty(glob(s:CurrentFile)))
       let to_check = s:UserCommandCwd('')
   else
       let to_check = s:CurrentFile
