@@ -5030,8 +5030,11 @@ function! s:StageApply(info, reverse, extra) abort
   endif
   while getline(end) =~# '^[-+\ ]'
     let end += 1
-    if getline(end) =~# '^[' . (a:reverse ? '+' : '-') . '\ ]'
+    if getline(end) =~# '^[' . (a:reverse ? '+' : '-') . ' ]'
       call add(lines, ' ' . getline(end)[1:-1])
+    elseif getline(end) =~# '^\'
+      " keep note about no newline at end of file
+      call add(lines, getline(end))
     endif
   endwhile
   while start > 0 && getline(start) !~# '^@'
