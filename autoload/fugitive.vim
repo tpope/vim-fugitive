@@ -5530,10 +5530,10 @@ function! s:ToolParse(state, line) abort
     let a:state.from = ''
     let a:state.to = ''
   elseif a:state.mode ==# 'diffhead' && a:line =~# '^--- [^/]'
-    let a:state.from = a:line[4:-1]
+    let a:state.from = trim(a:line[4:-1], "\t", 2)
     let a:state.to = a:state.from
   elseif a:state.mode ==# 'diffhead' && a:line =~# '^+++ [^/]'
-    let a:state.to = a:line[4:-1]
+    let a:state.to = trim(a:line[4:-1], "\t", 2)
     if empty(get(a:state, 'from', ''))
       let a:state.from = a:state.to
     endif
